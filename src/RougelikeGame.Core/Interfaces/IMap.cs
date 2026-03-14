@@ -1,0 +1,1 @@
+// IMap and IMapGenerator are defined in Interfaces.cs

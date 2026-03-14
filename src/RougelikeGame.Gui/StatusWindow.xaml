@@ -1,0 +1,157 @@
+<Window x:Class="RougelikeGame.Gui.StatusWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ステータス" 
+        Height="600" Width="500"
+        Background="#1a1a2e"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        KeyDown="Window_KeyDown">
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- タイトル -->
+        <TextBlock Grid.Row="0" 
+                   Text="【ステータス】" 
+                   Foreground="#e94560" 
+                   FontSize="18" 
+                   FontWeight="Bold"
+                   Margin="0,0,0,10"/>
+
+        <!-- メインコンテンツ -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="ContentPanel" Margin="5">
+
+                <!-- レベル・経験値 -->
+                <Border Background="#16213e" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3" Padding="8" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="■ レベル・経験値" Foreground="#4ecca3" FontSize="14" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="LevelText" Foreground="White" FontSize="13" Grid.Column="0"/>
+                            <TextBlock x:Name="ExpText" Foreground="White" FontSize="13" Grid.Column="1"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- HP/MP/SP -->
+                <Border Background="#16213e" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3" Padding="8" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="■ バイタル" Foreground="#4ecca3" FontSize="14" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="HpText" Foreground="LimeGreen" FontSize="13" Grid.Column="0"/>
+                            <TextBlock x:Name="MpText" Foreground="CornflowerBlue" FontSize="13" Grid.Column="1"/>
+                            <TextBlock x:Name="SpText" Foreground="Gold" FontSize="13" Grid.Column="2"/>
+                        </Grid>
+                        <Grid Margin="0,3,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="HungerText" Foreground="Orange" FontSize="13" Grid.Column="0"/>
+                            <TextBlock x:Name="SanityText" Foreground="#C0A0FF" FontSize="13" Grid.Column="1"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 基本ステータス -->
+                <Border Background="#16213e" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3" Padding="8" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="■ 基本ステータス" Foreground="#4ecca3" FontSize="14" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <Grid x:Name="BaseStatsGrid">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock x:Name="StrText" Foreground="White" FontSize="13" Grid.Row="0" Grid.Column="0" Margin="0,1"/>
+                            <TextBlock x:Name="VitText" Foreground="White" FontSize="13" Grid.Row="0" Grid.Column="1" Margin="0,1"/>
+                            <TextBlock x:Name="AgiText" Foreground="White" FontSize="13" Grid.Row="0" Grid.Column="2" Margin="0,1"/>
+                            <TextBlock x:Name="DexText" Foreground="White" FontSize="13" Grid.Row="1" Grid.Column="0" Margin="0,1"/>
+                            <TextBlock x:Name="IntText" Foreground="White" FontSize="13" Grid.Row="1" Grid.Column="1" Margin="0,1"/>
+                            <TextBlock x:Name="MndText" Foreground="White" FontSize="13" Grid.Row="1" Grid.Column="2" Margin="0,1"/>
+                            <TextBlock x:Name="PerText" Foreground="White" FontSize="13" Grid.Row="2" Grid.Column="0" Margin="0,1"/>
+                            <TextBlock x:Name="ChaText" Foreground="White" FontSize="13" Grid.Row="2" Grid.Column="1" Margin="0,1"/>
+                            <TextBlock x:Name="LukText" Foreground="White" FontSize="13" Grid.Row="2" Grid.Column="2" Margin="0,1"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 戦闘パラメータ -->
+                <Border Background="#16213e" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3" Padding="8" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="■ 戦闘パラメータ" Foreground="#4ecca3" FontSize="14" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock x:Name="PhysAtkText" Foreground="White" FontSize="13" Grid.Row="0" Grid.Column="0" Margin="0,1"/>
+                            <TextBlock x:Name="PhysDefText" Foreground="White" FontSize="13" Grid.Row="0" Grid.Column="1" Margin="0,1"/>
+                            <TextBlock x:Name="MagAtkText" Foreground="White" FontSize="13" Grid.Row="1" Grid.Column="0" Margin="0,1"/>
+                            <TextBlock x:Name="MagDefText" Foreground="White" FontSize="13" Grid.Row="1" Grid.Column="1" Margin="0,1"/>
+                            <TextBlock x:Name="HitRateText" Foreground="White" FontSize="13" Grid.Row="2" Grid.Column="0" Margin="0,1"/>
+                            <TextBlock x:Name="EvasionText" Foreground="White" FontSize="13" Grid.Row="2" Grid.Column="1" Margin="0,1"/>
+                            <TextBlock x:Name="CritRateText" Foreground="White" FontSize="13" Grid.Row="3" Grid.Column="0" Margin="0,1"/>
+                            <TextBlock x:Name="ActionSpeedText" Foreground="White" FontSize="13" Grid.Row="3" Grid.Column="1" Margin="0,1"/>
+                            <TextBlock x:Name="EquipDefText" Foreground="White" FontSize="13" Grid.Row="4" Grid.Column="0" Margin="0,1"/>
+                            <TextBlock x:Name="EquipMDefText" Foreground="White" FontSize="13" Grid.Row="4" Grid.Column="1" Margin="0,1"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 装備 -->
+                <Border Background="#16213e" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3" Padding="8" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="■ 装備" Foreground="#4ecca3" FontSize="14" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <StackPanel x:Name="EquipmentPanel"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 状態異常 -->
+                <Border Background="#16213e" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3" Padding="8" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="■ 状態異常" Foreground="#4ecca3" FontSize="14" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <TextBlock x:Name="StatusEffectsText" Foreground="White" FontSize="13" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 閉じるボタン -->
+        <Button Grid.Row="2" 
+                Content="閉じる [Esc]" 
+                Width="120" 
+                Margin="0,10,0,0"
+                Click="CloseButton_Click"
+                Background="#0f3460"
+                Foreground="White"
+                BorderBrush="#e94560"/>
+    </Grid>
+</Window>
