@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RougelikeGame.Core\RougelikeGame.Core.csproj" />
+    <ProjectReference Include="..\RougelikeGame.Data\RougelikeGame.Data.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,124 @@
+<Window x:Class="RougelikeGame.Gui.TitleWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="ローグライクゲーム"
+        Height="720" Width="1024"
+        Background="#0a0a1a"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow"
+        KeyDown="Window_KeyDown">
+
+    <Window.Resources>
+        <!-- メニューボタンスタイル -->
+        <Style x:Key="TitleMenuButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#a0a0c0"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="40,12"/>
+            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#1a1a3e"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#e94560"/>
+                                <Setter Property="Foreground" Value="#e94560"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2a1a3e"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#ff6b8a"/>
+                                <Setter Property="Foreground" Value="#ff6b8a"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#404060"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="Transparent"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- タイトル表示エリア -->
+        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <!-- ゲームタイトル -->
+            <TextBlock Text="— Abyss Reborn —"
+                       FontFamily="Consolas"
+                       FontSize="52"
+                       FontWeight="Bold"
+                       Foreground="#e94560"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,5"/>
+            <!-- サブタイトル -->
+            <TextBlock Text="深淵より蘇りし者"
+                       FontFamily="Yu Gothic UI"
+                       FontSize="20"
+                       Foreground="#6060a0"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,10"/>
+            <!-- バージョン表示 -->
+            <TextBlock Text="Ver.prt.0.1 — Prototype"
+                       FontFamily="Consolas"
+                       FontSize="12"
+                       Foreground="#404060"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- メニューボタン -->
+        <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,20,0,0">
+            <Button x:Name="NewGameButton"
+                    Content="▶ ニューゲーム"
+                    Style="{StaticResource TitleMenuButton}"
+                    Click="NewGameButton_Click"/>
+            <Button x:Name="ContinueButton"
+                    Content="▶ コンティニュー"
+                    Style="{StaticResource TitleMenuButton}"
+                    Click="ContinueButton_Click"/>
+            <Button x:Name="SettingsButton"
+                    Content="⚙ 設定"
+                    Style="{StaticResource TitleMenuButton}"
+                    Click="SettingsButton_Click"/>
+            <Button x:Name="QuitButton"
+                    Content="✕ 終了"
+                    Style="{StaticResource TitleMenuButton}"
+                    Click="QuitButton_Click"/>
+        </StackPanel>
+
+        <!-- フッター -->
+        <StackPanel Grid.Row="3" HorizontalAlignment="Center" Margin="0,0,0,20">
+            <TextBlock Text="操作: ↑↓ 選択  Enter 決定  Esc 終了"
+                       FontFamily="Consolas"
+                       FontSize="12"
+                       Foreground="#303050"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+    </Grid>
+</Window>

@@ -3,7 +3,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using RougelikeGame.Core;
 using RougelikeGame.Core.Items;
+using RougelikeGame.Core.Systems;
+using RougelikeGame.Engine.Magic;
+using RougelikeGame.Gui.Audio;
 
 namespace RougelikeGame.Gui;
 
@@ -14,14 +18,44 @@ public partial class MainWindow : Window
 {
     private readonly GameController _gameController;
     private readonly GameRenderer _renderer;
+    private readonly GameSettings _settings;
+    private readonly IAudioManager _audioManager;
+    private readonly bool _loadSave;
+    private readonly bool _debugMap;
+    private readonly string _playerName;
+    private readonly Race _playerRace;
+    private readonly RougelikeGame.Core.CharacterClass _playerClass;
+    private readonly RougelikeGame.Core.Background _playerBackground;
+    private readonly DifficultyLevel _difficulty;
+    private readonly int _saveSlot;
     private readonly List<string> _messageHistory = new();
     private const int MaxMessages = 50;
     private bool _minimapVisible = true;
     private DispatcherTimer? _autoExploreTimer;
 
-    public MainWindow()
+    public MainWindow() : this(GameSettings.CreateDefault(), new SilentAudioManager(), false, false)
+    {
+    }
+
+    public MainWindow(GameSettings settings, IAudioManager audioManager, bool loadSave, bool debugMap = false,
+        string playerName = "冒険者", Race playerRace = Race.Human,
+        RougelikeGame.Core.CharacterClass playerClass = RougelikeGame.Core.CharacterClass.Fighter,
+        RougelikeGame.Core.Background playerBackground = RougelikeGame.Core.Background.Adventurer,
+        DifficultyLevel difficulty = DifficultyLevel.Normal,
+        int saveSlot = 0)
     {
         InitializeComponent();
+
+        _settings = settings;
+        _audioManager = audioManager;
+        _loadSave = loadSave;
+        _debugMap = debugMap;
+        _playerName = playerName;
+        _playerRace = playerRace;
+        _playerClass = playerClass;
+        _playerBackground = playerBackground;
+        _difficulty = difficulty;
+        _saveSlot = saveSlot;
 
         _gameController = new GameController();
         _renderer = new GameRenderer(GameCanvas);
@@ -35,11 +69,53 @@ public partial class MainWindow : Window
         _gameController.OnShowMessageLog += ShowMessageLogDialog;
         _gameController.OnSaveGame += HandleSaveGame;
         _gameController.OnLoadGame += HandleLoadGame;
+
+        // 追加イベント購読
+        _gameController.OnCastingStarted += OnCastingStarted;
+        _gameController.OnCastingEnded += OnCastingEnded;
+        _gameController.OnSpellPreviewUpdated += OnSpellPreviewUpdated;
+        _gameController.OnShowWorldMap += ShowWorldMapDialog;
+        _gameController.OnShowDialogue += OnShowDialogue;
+        _gameController.OnQuestUpdated += OnQuestUpdated;
+        _gameController.OnGuildRankUp += OnGuildRankUp;
+        _gameController.OnShowCrafting += ShowCraftingDialog;
+        _gameController.OnCraftingResult += OnCraftingResult;
+        _gameController.OnEnhancementResult += OnEnhancementResult;
+        _gameController.OnEnchantmentResult += OnEnchantmentResult;
+        _gameController.OnShowTutorial += OnShowTutorial;
+        _gameController.OnReligionChanged += OnReligionChanged;
+        _gameController.OnTerritoryChanged += OnTerritoryChanged;
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        _gameController.Initialize();
+        // デバッグマップモードの場合は小さい固定マップで初期化
+        if (_debugMap)
+            _gameController.InitializeDebug();
+        else
+            _gameController.Initialize(_playerName, _playerRace, _playerClass, _playerBackground, _difficulty);
+
+        // セーブデータからのコンティニュー
+        if (_loadSave)
+        {
+            try
+            {
+                var saveData = SaveManager.Load(_saveSlot);
+                if (saveData != null)
+                {
+                    _gameController.LoadSaveData(saveData);
+                    AddMessage("💾 セーブデータをロードした");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddMessage($"⚠ ロードに失敗: {ex.Message}");
+            }
+        }
+
+        // ダンジョン探索BGM開始
+        _audioManager.PlayBgm(BgmIds.DungeonNormal);
+
         UpdateDisplay();
         Focus();
     }
@@ -100,8 +176,42 @@ public partial class MainWindow : Window
                 Key.Q => GameAction.Quit,
                 Key.OemPeriod when Keyboard.Modifiers == ModifierKeys.Shift => GameAction.UseStairs,
                 Key.OemComma when Keyboard.Modifiers == ModifierKeys.Shift => GameAction.AscendStairs,
+                Key.F => GameAction.Search,
+                Key.X => GameAction.CloseDoor,
+                Key.R => GameAction.RangedAttack,
+                Key.T => GameAction.ThrowItem,
+                Key.V => GameAction.StartCasting,
+                Key.P => GameAction.Pray,
+                Key.E => GameAction.UseSkill,
+                Key.J => GameAction.OpenWorldMap,
+                Key.H => GameAction.OpenCrafting,
+                Key.N => GameAction.RegisterGuild,
                 _ => null
             };
+
+            // クエストログ（直接ダイアログ表示）
+            if (e.Key == Key.K)
+            {
+                ShowQuestLogDialog();
+                e.Handled = true;
+                return;
+            }
+
+            // 宗教画面（直接ダイアログ表示）
+            if (e.Key == Key.O)
+            {
+                ShowReligionDialog();
+                e.Handled = true;
+                return;
+            }
+
+            // 街入場（直接ダイアログ表示）
+            if (e.Key == Key.B)
+            {
+                ShowTownDialog();
+                e.Handled = true;
+                return;
+            }
 
             // ミニマップ切り替え（GameActionを経由しない直接処理）
             if (e.Key == Key.M)
@@ -136,6 +246,21 @@ public partial class MainWindow : Window
         FloorText.Text = $"第{_gameController.CurrentFloor}層";
         DateText.Text = _gameController.GameTime.ToFullString();
         TimePeriodText.Text = _gameController.GameTime.TimePeriod;
+
+        // 領地名・地上/ダンジョン表示
+        var territory = TerritoryDefinition.Get(_gameController.CurrentTerritory);
+        TerritoryText.Text = territory.Name;
+        if (_gameController.IsOnSurface)
+        {
+            SurfaceStatusText.Text = "【地上】";
+            SurfaceStatusText.Foreground = System.Windows.Media.Brushes.LimeGreen;
+        }
+        else
+        {
+            SurfaceStatusText.Text = $"【B{_gameController.CurrentFloor}F】";
+            SurfaceStatusText.Foreground = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0xff, 0x6b, 0x6b));
+        }
 
         // レベル・経験値
         LevelText.Text = $"{_gameController.Player.Level}";
@@ -198,6 +323,20 @@ public partial class MainWindow : Window
             };
         }
 
+        // 所持金
+        GoldText.Text = $"{_gameController.Player.Gold:N0}G";
+
+        // 重量
+        var inventory = (RougelikeGame.Core.Entities.Inventory)_gameController.Player.Inventory;
+        float currentWeight = inventory.TotalWeight;
+        float maxWeight = _gameController.Player.CalculateMaxWeight();
+        WeightText.Text = $"{currentWeight:F1}/{maxWeight:F1}kg";
+        WeightText.Foreground = currentWeight > maxWeight
+            ? System.Windows.Media.Brushes.Red
+            : currentWeight > maxWeight * 0.8f
+                ? System.Windows.Media.Brushes.Orange
+                : System.Windows.Media.Brushes.LightBlue;
+
         // マップ描画
         _renderer.Render(
             _gameController.Map,
@@ -232,6 +371,9 @@ public partial class MainWindow : Window
 
     private void OnGameOver()
     {
+        _audioManager.StopBgm();
+        _audioManager.PlayBgm(BgmIds.GameOver, loop: false);
+
         string result;
         if (_gameController.IsGameOver && !_gameController.Player.IsAlive)
         {
@@ -355,4 +497,201 @@ public partial class MainWindow : Window
             AddMessage($"⚠ ロードに失敗: {ex.Message}");
         }
     }
+
+    #region 追加イベントハンドラ
+
+    private void OnCastingStarted()
+    {
+        StopAutoExploreTimer();
+        var dialog = new SpellCastingWindow(_gameController);
+        dialog.Owner = this;
+
+        if (dialog.ShowDialog() == true && dialog.CastRequested)
+        {
+            _gameController.ProcessInput(GameAction.CastSpell);
+        }
+        else
+        {
+            _gameController.ProcessInput(GameAction.CancelCasting);
+        }
+
+        Focus();
+    }
+
+    private void OnCastingEnded()
+    {
+        // 詠唱終了通知（UIの状態リセット等があれば追加）
+    }
+
+    private void OnSpellPreviewUpdated(SpellPreview preview)
+    {
+        // プレビュー更新（SpellCastingWindow内で処理するため基本的に空）
+    }
+
+    private void ShowWorldMapDialog()
+    {
+        StopAutoExploreTimer();
+        var dialog = new WorldMapWindow(_gameController);
+        dialog.Owner = this;
+
+        if (dialog.ShowDialog() == true)
+        {
+            if (dialog.EnterTownRequested)
+            {
+                ShowTownDialog();
+            }
+            else if (dialog.TravelDestination.HasValue)
+            {
+                _gameController.TryTravelTo(dialog.TravelDestination.Value);
+            }
+        }
+
+        Focus();
+    }
+
+    private void OnShowDialogue(DialogueNode node)
+    {
+        StopAutoExploreTimer();
+
+        // NPCのIDを取得（現在の領地のNPCから話者名で検索）
+        string npcId = "";
+        var npcs = _gameController.GetNpcsInCurrentTerritory();
+        var matchNpc = npcs.FirstOrDefault(n => n.Name == node.SpeakerName);
+        if (matchNpc != null) npcId = matchNpc.Id;
+
+        var dialog = new DialogueWindow(_gameController, node, npcId);
+        dialog.Owner = this;
+        dialog.ShowDialog();
+        Focus();
+    }
+
+    private void OnQuestUpdated(string questId)
+    {
+        AddMessage($"📋 クエスト更新: {questId}");
+    }
+
+    private void OnGuildRankUp(GuildRank newRank)
+    {
+        string rankName = newRank switch
+        {
+            GuildRank.Copper => "銅",
+            GuildRank.Iron => "鉄",
+            GuildRank.Silver => "銀",
+            GuildRank.Gold => "金",
+            GuildRank.Platinum => "白金",
+            GuildRank.Mythril => "ミスリル",
+            GuildRank.Adamantine => "アダマンタイト",
+            _ => newRank.ToString()
+        };
+        AddMessage($"🎉 ギルドランクが{rankName}に昇格した！");
+    }
+
+    private void ShowCraftingDialog()
+    {
+        StopAutoExploreTimer();
+        var dialog = new CraftingWindow(_gameController);
+        dialog.Owner = this;
+        dialog.ShowDialog();
+        Focus();
+    }
+
+    private void OnCraftingResult(CraftingResult result)
+    {
+        if (result.Success && result.ResultItem != null)
+        {
+            AddMessage($"🔨 合成成功: {result.ResultItem.Name}");
+        }
+    }
+
+    private void OnEnhancementResult(EnhancementResult result)
+    {
+        if (result.Success)
+        {
+            AddMessage($"⚔ 強化成功: +{result.NewLevel}");
+        }
+    }
+
+    private void OnEnchantmentResult(EnchantmentResult result)
+    {
+        if (result.Success)
+        {
+            AddMessage($"✨ 付与成功: {result.Element}属性");
+        }
+    }
+
+    private void OnShowTutorial(TutorialStep step)
+    {
+        AddMessage($"💡 【ヒント】{step.Title}");
+        MessageBox.Show($"{step.Title}\n\n{step.Message}", "ヒント",
+            MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void OnReligionChanged()
+    {
+        AddMessage("⛪ 信仰状態が変更された");
+    }
+
+    private void OnTerritoryChanged(TerritoryId newTerritory)
+    {
+        var territory = TerritoryDefinition.Get(newTerritory);
+        AddMessage($"🗺️ {territory.Name}に到着した");
+        _audioManager.PlaySe("territory_change");
+    }
+
+    private void ShowTownDialog()
+    {
+        if (!_gameController.IsOnSurface)
+        {
+            AddMessage("※ ダンジョン内から街に入ることはできません");
+            return;
+        }
+
+        var territory = TerritoryDefinition.Get(_gameController.CurrentTerritory);
+        if (territory.AvailableFacilities.Length == 0)
+        {
+            AddMessage("※ この領地には街の施設がありません");
+            return;
+        }
+
+        StopAutoExploreTimer();
+        var dialog = new TownWindow(_gameController);
+        dialog.Owner = this;
+        dialog.ShowDialog();
+
+        // TownWindowからの店開きリクエスト処理
+        if (dialog.OpenShopRequest.HasValue)
+        {
+            var shopDialog = new ShopWindow(_gameController, dialog.OpenShopRequest.Value);
+            shopDialog.Owner = this;
+            shopDialog.ShowDialog();
+        }
+
+        // ダンジョン入場リクエスト処理
+        if (dialog.EnterDungeonRequested)
+        {
+            _gameController.ProcessInput(GameAction.UseStairs);
+        }
+
+        Focus();
+    }
+
+    private void ShowQuestLogDialog()
+    {
+        StopAutoExploreTimer();
+        var dialog = new QuestLogWindow(_gameController);
+        dialog.Owner = this;
+        dialog.ShowDialog();
+        Focus();
+    }
+
+    private void ShowReligionDialog()
+    {
+        StopAutoExploreTimer();
+        var dialog = new ReligionWindow(_gameController);
+        dialog.Owner = this;
+        dialog.ShowDialog();
+        Focus();
+    }
+
+    #endregion
 }

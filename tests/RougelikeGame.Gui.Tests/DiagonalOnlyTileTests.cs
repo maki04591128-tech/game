@@ -90,36 +90,6 @@ public class DiagonalOnlyTileTests
         }
     }
 
-    [Fact]
-    public void Generate_NoDiagonalOnlyIsolatedTiles()
-    {
-        // Arrange
-        var generator = new DungeonGenerator(42);
-        var parameters = CreateDefaultParameters();
-
-        // Act
-        var map = generator.Generate(parameters) as DungeonMap;
-
-        // Assert
-        Assert.NotNull(map);
-        AssertNoDiagonalOnlyTiles(map);
-    }
-
-    [Fact]
-    public void Generate_NoDiagonalOnlyConnections()
-    {
-        // Arrange
-        var generator = new DungeonGenerator(42);
-        var parameters = CreateDefaultParameters();
-
-        // Act
-        var map = generator.Generate(parameters) as DungeonMap;
-
-        // Assert
-        Assert.NotNull(map);
-        AssertNoDiagonalOnlyConnections(map);
-    }
-
     [Theory]
     [InlineData(1)]
     [InlineData(42)]

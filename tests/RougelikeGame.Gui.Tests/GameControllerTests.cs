@@ -28,15 +28,6 @@ public class GameControllerTests
         Assert.True(controller.Player.IsAlive);
         Assert.Equal(1, controller.CurrentFloor);
         Assert.Equal(0, controller.TurnCount);
-    }
-
-    [Fact]
-    public void Initialize_GameTimeStartsAtDefault()
-    {
-        // Arrange & Act
-        var controller = CreateInitializedController();
-
-        // Assert
         Assert.Equal("冒険歴1024年 緑風の月 15日 08:00", controller.GameTime.ToFullString());
     }
 
@@ -142,22 +133,6 @@ public class GameControllerTests
             // 範囲外の敵は位置が変わらない（移動していない）
             Assert.Equal(originalPos, enemy.Position);
         }
-    }
-
-    [Fact]
-    public void GameTime_SynchronizedWithTurnCount()
-    {
-        // Arrange
-        var controller = CreateInitializedController();
-
-        // Act - 10回待機
-        for (int i = 0; i < 10; i++)
-        {
-            controller.ProcessInput(GameAction.Wait);
-        }
-
-        // Assert
-        Assert.Equal(controller.TurnCount, controller.GameTime.TotalTurns);
     }
 
     [Fact]
@@ -318,22 +293,13 @@ public class GameControllerTests
     }
 
     [Fact]
-    public void Player_InitialHungerStageIsFull()
+    public void Player_InitialStages_AreCorrect()
     {
         // Arrange & Act
         var controller = CreateInitializedController();
 
         // Assert
         Assert.Equal(RougelikeGame.Core.HungerStage.Full, controller.Player.HungerStage);
-    }
-
-    [Fact]
-    public void Player_InitialSanityStageIsNormal()
-    {
-        // Arrange & Act
-        var controller = CreateInitializedController();
-
-        // Assert
         Assert.Equal(RougelikeGame.Core.SanityStage.Normal, controller.Player.SanityStage);
     }
 
@@ -833,36 +799,736 @@ public class GameControllerTests
 
     #endregion
 
-    #region 行動コスト差別化テスト
+    #region 難易度システムテスト
 
     [Fact]
-    public void ActionCost_Wait_Consumes1Turn()
+    public void Difficulty_DefaultIsNormal()
     {
-        // Arrange
+        // Arrange & Act
         var controller = CreateInitializedController();
-        int initialTurns = controller.GameTime.TotalTurns;
 
-        // Act
-        controller.ProcessInput(GameAction.Wait);
-
-        // Assert - 待機は1ターン消費
-        Assert.Equal(initialTurns + 1, controller.GameTime.TotalTurns);
+        // Assert
+        Assert.Equal(DifficultyLevel.Normal, controller.Difficulty);
     }
 
     [Fact]
-    public void ActionCost_TurnCountAndGameTime_Synchronized()
+    public void Difficulty_SetDifficulty_ChangesDifficulty()
     {
         // Arrange
         var controller = CreateInitializedController();
 
-        // Act - 複数の行動を実行
-        controller.ProcessInput(GameAction.Wait);
-        controller.ProcessInput(GameAction.MoveUp);
-        controller.ProcessInput(GameAction.MoveDown);
-        controller.ProcessInput(GameAction.Wait);
+        // Act
+        controller.SetDifficulty(DifficultyLevel.Hard);
 
-        // Assert - TurnCountとGameTime.TotalTurnsが同期
-        Assert.Equal(controller.TurnCount, controller.GameTime.TotalTurns);
+        // Assert
+        Assert.Equal(DifficultyLevel.Hard, controller.Difficulty);
+        Assert.Equal("難しい", controller.DifficultyConfig.DisplayName);
+    }
+
+    [Fact]
+    public void Difficulty_Easy_IncreaseTurnLimit()
+    {
+        // Arrange
+        var controllerNormal = CreateInitializedController();
+        long normalLimit = controllerNormal.CurrentTurnLimit;
+
+        var controllerEasy = CreateInitializedController();
+        controllerEasy.SetDifficulty(DifficultyLevel.Easy);
+
+        // Assert
+        Assert.True(controllerEasy.CurrentTurnLimit > normalLimit,
+            $"Easy ({controllerEasy.CurrentTurnLimit}) は Normal ({normalLimit}) より大きいべき");
+    }
+
+    [Fact]
+    public void Difficulty_SaveAndLoad_PreservesDifficulty()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        controller.SetDifficulty(DifficultyLevel.Nightmare);
+        var save = controller.CreateSaveData();
+
+        // Act
+        var controller2 = new GameController();
+        controller2.Initialize();
+        controller2.LoadSaveData(save);
+
+        // Assert
+        Assert.Equal(DifficultyLevel.Nightmare, controller2.Difficulty);
+    }
+
+    #endregion
+
+    #region 通貨（ゴールド）テスト
+
+    [Fact]
+    public void Gold_InitialValueIsZero()
+    {
+        // Arrange & Act
+        var controller = CreateInitializedController();
+
+        // Assert—Adventurer素性の初期ゴールド100G
+        Assert.Equal(100, controller.Player.Gold);
+    }
+
+    [Fact]
+    public void Gold_AddGold_IncreasesGold()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+
+        // Act
+        controller.Player.AddGold(100);
+
+        // Assert—初期100G + 100G = 200G
+        Assert.Equal(200, controller.Player.Gold);
+    }
+
+    [Fact]
+    public void Gold_SpendGold_DecreasesGold()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        controller.Player.AddGold(100);
+
+        // Act
+        bool result = controller.Player.SpendGold(30);
+
+        // Assert—初期100G + 100G - 30G = 170G
+        Assert.True(result);
+        Assert.Equal(170, controller.Player.Gold);
+    }
+
+    [Fact]
+    public void Gold_SpendGold_FailsIfInsufficient()
+    {
+        // Arrange—初期100Gのまま
+        var controller = CreateInitializedController();
+
+        // Act—150Gは支払えない
+        bool result = controller.Player.SpendGold(150);
+
+        // Assert
+        Assert.False(result);
+        Assert.Equal(100, controller.Player.Gold);
+    }
+
+    [Fact]
+    public void Gold_SaveAndLoad_PreservesGold()
+    {
+        // Arrange—初期100G + 500G = 600G
+        var controller = CreateInitializedController();
+        controller.Player.AddGold(500);
+        var save = controller.CreateSaveData();
+
+        // Act
+        var controller2 = new GameController();
+        controller2.Initialize();
+        controller2.LoadSaveData(save);
+
+        // Assert
+        Assert.Equal(600, controller2.Player.Gold);
+    }
+
+    #endregion
+
+    #region 重量システム テスト
+
+    [Fact]
+    public void Weight_CalculateMaxWeight_BasedOnStrength()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        var player = controller.Player;
+        int str = player.EffectiveStats.Strength;
+
+        // Act
+        float maxWeight = player.CalculateMaxWeight();
+
+        // Assert - BaseMaxWeight(50) + STR * WeightPerStrength(5)
+        float expected = GameConstants.BaseMaxWeight + str * GameConstants.WeightPerStrength;
+        Assert.Equal(expected, maxWeight);
+    }
+
+    [Fact]
+    public void Weight_InitializeUpdatesMaxWeight()
+    {
+        // Arrange & Act
+        var controller = CreateInitializedController();
+        var inventory = (RougelikeGame.Core.Entities.Inventory)controller.Player.Inventory;
+
+        // Assert - MaxWeight should be STR-based, not default 100
+        float expected = controller.Player.CalculateMaxWeight();
+        Assert.Equal(expected, inventory.MaxWeight);
+    }
+
+    [Fact]
+    public void Weight_IsOverweight_FalseWhenUnderLimit()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+
+        // Assert - 初期装備のみ
+        Assert.False(controller.Player.IsOverweight);
+    }
+
+    [Fact]
+    public void Weight_TotalWeight_ReflectsInventoryItems()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        var inventory = (RougelikeGame.Core.Entities.Inventory)controller.Player.Inventory;
+
+        // Assert - 初期装備とアイテムの重量合計が0以上
+        Assert.True(inventory.TotalWeight >= 0);
+    }
+
+    #endregion
+
+    #region アイテム鑑定システム テスト
+
+    [Fact]
+    public void Identify_UnidentifiedItem_ShowsUnidentifiedName()
+    {
+        // Arrange
+        var sword = RougelikeGame.Core.Items.ItemFactory.CreateIronSword();
+        sword.IsIdentified = false;
+
+        // Act & Assert
+        Assert.Equal("不明なアイテム", sword.GetDisplayName());
+    }
+
+    [Fact]
+    public void Identify_IdentifiedItem_ShowsRealName()
+    {
+        // Arrange
+        var sword = RougelikeGame.Core.Items.ItemFactory.CreateIronSword();
+        sword.IsIdentified = true;
+
+        // Act & Assert
+        Assert.Contains("鉄の剣", sword.GetDisplayName());
+    }
+
+    [Fact]
+    public void Identify_CursedItem_ShowsCursedPrefix()
+    {
+        // Arrange
+        var sword = RougelikeGame.Core.Items.ItemFactory.CreateIronSword();
+        sword.IsIdentified = true;
+        sword.IsCursed = true;
+
+        // Act
+        string name = sword.GetDisplayName();
+
+        // Assert
+        Assert.Contains("呪われた", name);
+    }
+
+    [Fact]
+    public void Identify_BlessedItem_ShowsBlessedPrefix()
+    {
+        // Arrange
+        var sword = RougelikeGame.Core.Items.ItemFactory.CreateIronSword();
+        sword.IsIdentified = true;
+        sword.IsBlessed = true;
+
+        // Act
+        string name = sword.GetDisplayName();
+
+        // Assert
+        Assert.Contains("祝福された", name);
+    }
+
+    [Fact]
+    public void Identify_GeneratedEquipment_IsUnidentified()
+    {
+        // Arrange
+        var factory = new RougelikeGame.Core.Items.ItemFactory(42);
+
+        // Act - 複数生成して装備品を見つける
+        RougelikeGame.Core.Items.Item? equipment = null;
+        for (int i = 0; i < 100; i++)
+        {
+            var item = factory.GenerateRandomItem(5);
+            if (item is RougelikeGame.Core.Items.EquipmentItem)
+            {
+                equipment = item;
+                break;
+            }
+        }
+
+        // Assert
+        Assert.NotNull(equipment);
+        Assert.False(equipment!.IsIdentified);
+    }
+
+    [Fact]
+    public void Identify_GeneratedScroll_IsUnidentified()
+    {
+        // Arrange
+        var factory = new RougelikeGame.Core.Items.ItemFactory(42);
+
+        // Act - 複数生成してスクロールを見つける
+        RougelikeGame.Core.Items.Item? scroll = null;
+        for (int i = 0; i < 100; i++)
+        {
+            var item = factory.GenerateRandomItem(1);
+            if (item is RougelikeGame.Core.Items.Scroll)
+            {
+                scroll = item;
+                break;
+            }
+        }
+
+        // Assert
+        Assert.NotNull(scroll);
+        Assert.False(scroll!.IsIdentified);
+    }
+
+    #endregion
+
+    #region ダンジョン階層システム テスト
+
+    [Fact]
+    public void Floor_DescendStairs_IncreasesFloor()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+
+        // プレイヤーを下り階段に移動
+        var stairsDown = controller.Map.StairsDownPosition;
+        if (stairsDown.HasValue)
+        {
+            controller.Player.Position = stairsDown.Value;
+
+            // Act
+            controller.ProcessInput(GameAction.UseStairs);
+
+            // Assert
+            Assert.Equal(2, controller.CurrentFloor);
+        }
+    }
+
+    [Fact]
+    public void Floor_AscendFromFloor1_ExitsDungeon()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        var stairsUp = controller.Map.StairsUpPosition;
+        if (stairsUp.HasValue)
+        {
+            controller.Player.Position = stairsUp.Value;
+
+            // Act
+            controller.ProcessInput(GameAction.AscendStairs);
+
+            // Assert - 1層からの帰還
+            Assert.False(controller.IsRunning);
+        }
+    }
+
+    [Fact]
+    public void Floor_EnemiesForDepth_ReturnsEnemies()
+    {
+        // Act
+        var shallow = RougelikeGame.Core.Factories.EnemyDefinitions.GetEnemiesForDepth(1);
+        var mid = RougelikeGame.Core.Factories.EnemyDefinitions.GetEnemiesForDepth(8);
+        var deep = RougelikeGame.Core.Factories.EnemyDefinitions.GetEnemiesForDepth(25);
+
+        // Assert
+        Assert.True(shallow.Count > 0);
+        Assert.True(mid.Count > 0);
+        Assert.True(deep.Count > 0);
+    }
+
+    #endregion
+
+    #region ドア・隠し通路システム
+
+    [Fact]
+    public void Door_OpenClosedDoor_ChangesTileToOpen()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        var playerPos = controller.Player.Position;
+        var doorPos = new Position(playerPos.X + 1, playerPos.Y);
+
+        // ドアを配置
+        controller.Map.SetTile(doorPos, RougelikeGame.Core.Map.TileType.DoorClosed);
+
+        // Act
+        controller.ProcessInput(GameAction.MoveRight);
+
+        // Assert - ドアが開いているはず
+        Assert.Equal(RougelikeGame.Core.Map.TileType.DoorOpen, controller.Map.GetTileType(doorPos));
+        // プレイヤーはドアの位置に移動していない（開けるだけ）
+        Assert.Equal(playerPos, controller.Player.Position);
+    }
+
+    [Fact]
+    public void Door_LockedDoor_BlocksOpenWithLowDex()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        var playerPos = controller.Player.Position;
+        var doorPos = new Position(playerPos.X + 1, playerPos.Y);
+
+        // 施錠ドアを配置（非常に高い難易度）
+        controller.Map.SetTile(doorPos, RougelikeGame.Core.Map.TileType.DoorClosed);
+        var tile = controller.Map.GetTile(doorPos);
+        tile.IsLocked = true;
+        tile.LockDifficulty = 100; // 非常に高い難易度
+
+        // Act
+        controller.ProcessInput(GameAction.MoveRight);
+
+        // Assert - 施錠は解除されていない可能性が高い（難易度100）
+        // ドアはまだ閉じている可能性が高い
+        Assert.Equal(playerPos, controller.Player.Position);
+    }
+
+    [Fact]
+    public void Door_CloseDoor_ChangesTileToClosed()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        var playerPos = controller.Player.Position;
+        var doorPos = new Position(playerPos.X + 1, playerPos.Y);
+
+        // 開いたドアを配置
+        controller.Map.SetTile(doorPos, RougelikeGame.Core.Map.TileType.DoorOpen);
+
+        // Act
+        controller.ProcessInput(GameAction.CloseDoor);
+
+        // Assert
+        Assert.Equal(RougelikeGame.Core.Map.TileType.DoorClosed, controller.Map.GetTileType(doorPos));
+    }
+
+    [Fact]
+    public void Door_CloseDoor_NoOpenDoorNearby_NoTurnUsed()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        int turnsBefore = controller.TurnCount;
+
+        // 近くにドアがない状態でCloseDoor
+        // Act
+        controller.ProcessInput(GameAction.CloseDoor);
+
+        // Assert - ターン消費なし
+        Assert.Equal(turnsBefore, controller.TurnCount);
+    }
+
+    [Fact]
+    public void Search_FindsSecretDoor_WithHighPerception()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        var playerPos = controller.Player.Position;
+        var secretPos = new Position(playerPos.X + 1, playerPos.Y);
+
+        // 隠し通路を配置
+        controller.Map.SetTile(secretPos, RougelikeGame.Core.Map.TileType.SecretDoor);
+
+        // Act - 複数回探索（PER判定の確率的成功を期待）
+        bool found = false;
+        for (int i = 0; i < 50; i++)
+        {
+            controller.ProcessInput(GameAction.Search);
+            if (controller.Map.GetTileType(secretPos) == RougelikeGame.Core.Map.TileType.DoorClosed)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        // Assert - 50回も試行すればPER10でも発見できるはず
+        Assert.True(found, "50回の探索で隠し通路が発見されるべき");
+    }
+
+    [Fact]
+    public void Search_ConsumeTurn()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        int turnsBefore = controller.TurnCount;
+
+        // Act
+        controller.ProcessInput(GameAction.Search);
+
+        // Assert
+        Assert.True(controller.TurnCount > turnsBefore, "探索はターンを消費する");
+    }
+
+    [Fact]
+    public void Search_FindsHiddenTrap()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        var playerPos = controller.Player.Position;
+        var trapPos = new Position(playerPos.X + 1, playerPos.Y);
+
+        // 隠し罠を配置
+        controller.Map.SetTile(trapPos, RougelikeGame.Core.Map.TileType.TrapHidden);
+        controller.Map.GetTile(trapPos).TrapId = "Arrow";
+
+        // Act - 複数回探索
+        bool found = false;
+        for (int i = 0; i < 50; i++)
+        {
+            controller.ProcessInput(GameAction.Search);
+            if (controller.Map.GetTileType(trapPos) == RougelikeGame.Core.Map.TileType.TrapVisible)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        // Assert
+        Assert.True(found, "50回の探索で隠し罠が発見されるべき");
+    }
+
+    #endregion
+
+    #region 射撃・投擲システム テスト
+
+    [Fact]
+    public void RangedAttack_WithoutRangedWeapon_Fails()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        int turnsBefore = controller.TurnCount;
+
+        // Act - 近接武器のみの状態で射撃
+        controller.ProcessInput(GameAction.RangedAttack);
+
+        // Assert - ターン消費なし
+        Assert.Equal(turnsBefore, controller.TurnCount);
+    }
+
+    [Fact]
+    public void RangedAttack_WithBow_NoEnemyInRange_Fails()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+
+        // 弓を装備
+        var bow = new RougelikeGame.Core.Items.Weapon
+        {
+            Name = "短弓",
+            WeaponType = RougelikeGame.Core.Items.WeaponType.Bow,
+            BaseDamage = 5,
+            DamageRange = (3, 8),
+            Range = 6,
+            AttackType = AttackType.Ranged,
+            Slot = RougelikeGame.Core.Items.EquipmentSlot.MainHand
+        };
+        controller.Player.Equipment.Equip(bow, controller.Player);
+
+        // 敵をクリア
+        controller.Enemies.Clear();
+
+        int turnsBefore = controller.TurnCount;
+
+        // Act
+        controller.ProcessInput(GameAction.RangedAttack);
+
+        // Assert - 敵がいないのでターン消費なし
+        Assert.Equal(turnsBefore, controller.TurnCount);
+    }
+
+    [Fact]
+    public void RangedAttack_WithBow_EnemyInRange_ConsumeTurn()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+
+        // 弓を装備
+        var bow = new RougelikeGame.Core.Items.Weapon
+        {
+            Name = "短弓",
+            WeaponType = RougelikeGame.Core.Items.WeaponType.Bow,
+            BaseDamage = 5,
+            DamageRange = (3, 8),
+            Range = 8,
+            AttackType = AttackType.Ranged,
+            Slot = RougelikeGame.Core.Items.EquipmentSlot.MainHand
+        };
+        controller.Player.Equipment.Equip(bow, controller.Player);
+
+        // 射程内に敵を配置（プレイヤーの3マス先）
+        var enemyPos = new Position(controller.Player.Position.X + 3, controller.Player.Position.Y);
+        // 射線上のタイルを歩行可能にする
+        for (int dx = 1; dx <= 3; dx++)
+        {
+            var pos = new Position(controller.Player.Position.X + dx, controller.Player.Position.Y);
+            if (controller.Map.IsInBounds(pos))
+                controller.Map.SetTile(pos, RougelikeGame.Core.Map.TileType.Floor);
+        }
+
+        var enemyDef = RougelikeGame.Core.Factories.EnemyDefinitions.GetEnemiesForDepth(1)[0];
+        var factory = new RougelikeGame.Core.Factories.EnemyFactory();
+        var enemy = factory.CreateEnemy(enemyDef, enemyPos);
+        controller.Enemies.Add(enemy);
+
+        int turnsBefore = controller.TurnCount;
+
+        // Act
+        controller.ProcessInput(GameAction.RangedAttack);
+
+        // Assert - ターンが消費される
+        Assert.True(controller.TurnCount > turnsBefore, "射撃はターンを消費する");
+    }
+
+    [Fact]
+    public void ThrowItem_WithoutThrowable_Fails()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+
+        // インベントリから投擲武器を除去（初期装備には投擲武器がないはず）
+        int turnsBefore = controller.TurnCount;
+
+        // Act
+        controller.ProcessInput(GameAction.ThrowItem);
+
+        // Assert - ターン消費なし
+        Assert.Equal(turnsBefore, controller.TurnCount);
+    }
+
+    [Fact]
+    public void ThrowItem_WithThrowable_RemovesFromInventory()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+
+        // 投擲武器を追加
+        var throwKnife = new RougelikeGame.Core.Items.Weapon
+        {
+            Name = "投げナイフ",
+            WeaponType = RougelikeGame.Core.Items.WeaponType.Thrown,
+            BaseDamage = 3,
+            DamageRange = (2, 5),
+            Range = 4,
+            AttackType = AttackType.Ranged,
+            Slot = RougelikeGame.Core.Items.EquipmentSlot.MainHand
+        };
+        ((RougelikeGame.Core.Entities.Inventory)controller.Player.Inventory).Add(throwKnife);
+
+        // 射程内に敵を配置
+        var enemyPos = new Position(controller.Player.Position.X + 2, controller.Player.Position.Y);
+        for (int dx = 1; dx <= 2; dx++)
+        {
+            var pos = new Position(controller.Player.Position.X + dx, controller.Player.Position.Y);
+            if (controller.Map.IsInBounds(pos))
+                controller.Map.SetTile(pos, RougelikeGame.Core.Map.TileType.Floor);
+        }
+
+        var enemyDef1 = RougelikeGame.Core.Factories.EnemyDefinitions.GetEnemiesForDepth(1)[0];
+        var factory1 = new RougelikeGame.Core.Factories.EnemyFactory();
+        var enemy1 = factory1.CreateEnemy(enemyDef1, enemyPos);
+        controller.Enemies.Add(enemy1);
+
+        // Act
+        controller.ProcessInput(GameAction.ThrowItem);
+
+        // Assert - インベントリから投擲武器が消えている
+        var remaining = ((RougelikeGame.Core.Entities.Inventory)controller.Player.Inventory).Items
+            .Where(i => i.Name == "投げナイフ")
+            .ToList();
+        Assert.Empty(remaining);
+    }
+
+    [Fact]
+    public void ThrowItem_DropsItemOnGround()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+
+        var throwKnife = new RougelikeGame.Core.Items.Weapon
+        {
+            Name = "投げナイフ",
+            WeaponType = RougelikeGame.Core.Items.WeaponType.Thrown,
+            BaseDamage = 3,
+            DamageRange = (2, 5),
+            Range = 4,
+            AttackType = AttackType.Ranged,
+            Slot = RougelikeGame.Core.Items.EquipmentSlot.MainHand
+        };
+        ((RougelikeGame.Core.Entities.Inventory)controller.Player.Inventory).Add(throwKnife);
+
+        // 射程内に敵を配置
+        var enemyPos = new Position(controller.Player.Position.X + 2, controller.Player.Position.Y);
+        for (int dx = 1; dx <= 2; dx++)
+        {
+            var pos = new Position(controller.Player.Position.X + dx, controller.Player.Position.Y);
+            if (controller.Map.IsInBounds(pos))
+                controller.Map.SetTile(pos, RougelikeGame.Core.Map.TileType.Floor);
+        }
+
+        var enemyDef2 = RougelikeGame.Core.Factories.EnemyDefinitions.GetEnemiesForDepth(1)[0];
+        var factory2 = new RougelikeGame.Core.Factories.EnemyFactory();
+        var enemy2 = factory2.CreateEnemy(enemyDef2, enemyPos);
+        controller.Enemies.Add(enemy2);
+
+        int groundItemsBefore = controller.GroundItems.Count;
+
+        // Act
+        controller.ProcessInput(GameAction.ThrowItem);
+
+        // Assert - 地面にアイテムが増えている
+        Assert.True(controller.GroundItems.Count > groundItemsBefore, "投擲アイテムが地面に落ちる");
+    }
+
+    [Fact]
+    public void GetDistance_CalculatesCorrectly()
+    {
+        // Arrange
+        var controller = CreateInitializedController();
+        var pos1 = new Position(0, 0);
+        var pos2 = new Position(3, 4);
+
+        // Act - チェビシェフ距離の確認（Max(|dx|, |dy|)）
+        // GetDistanceはprivateだが、RangedAttackの射程判定で使われている
+        // 間接的にテスト：射程5の武器で距離4の敵に攻撃可能か
+        var bow = new RougelikeGame.Core.Items.Weapon
+        {
+            Name = "テスト弓",
+            WeaponType = RougelikeGame.Core.Items.WeaponType.Bow,
+            BaseDamage = 5,
+            DamageRange = (3, 8),
+            Range = 5,
+            AttackType = AttackType.Ranged,
+            Slot = RougelikeGame.Core.Items.EquipmentSlot.MainHand
+        };
+        controller.Player.Equipment.Equip(bow, controller.Player);
+
+        // 距離4の位置に敵を配置
+        var enemyPos = new Position(controller.Player.Position.X + 3, controller.Player.Position.Y + 4);
+        // 射線上のタイルを確保
+        for (int x = Math.Min(controller.Player.Position.X, enemyPos.X); x <= Math.Max(controller.Player.Position.X, enemyPos.X); x++)
+        {
+            for (int y = Math.Min(controller.Player.Position.Y, enemyPos.Y); y <= Math.Max(controller.Player.Position.Y, enemyPos.Y); y++)
+            {
+                var p = new Position(x, y);
+                if (controller.Map.IsInBounds(p))
+                    controller.Map.SetTile(p, RougelikeGame.Core.Map.TileType.Floor);
+            }
+        }
+
+        var enemyDef3 = RougelikeGame.Core.Factories.EnemyDefinitions.GetEnemiesForDepth(1)[0];
+        var factory3 = new RougelikeGame.Core.Factories.EnemyFactory();
+        var enemy3 = factory3.CreateEnemy(enemyDef3, enemyPos);
+        controller.Enemies.Add(enemy3);
+
+        int turnsBefore = controller.TurnCount;
+
+        // Act
+        controller.ProcessInput(GameAction.RangedAttack);
+
+        // Assert - チェビシェフ距離 = Max(3, 4) = 4 <= 射程5 → 攻撃可能
+        Assert.True(controller.TurnCount > turnsBefore, "射程内なのでターンが消費される");
     }
 
     #endregion

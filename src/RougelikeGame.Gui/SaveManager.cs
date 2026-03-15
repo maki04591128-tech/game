@@ -56,6 +56,32 @@ public static class SaveManager
         if (File.Exists(path)) File.Delete(path);
     }
 
+    /// <summary>
+    /// 存在する全セーブスロットの番号一覧を返す
+    /// </summary>
+    public static List<int> GetAllSaveSlots(int maxSlots = 10)
+    {
+        var slots = new List<int>();
+        for (int i = 0; i < maxSlots; i++)
+        {
+            if (SaveExists(i))
+                slots.Add(i);
+        }
+        return slots;
+    }
+
+    /// <summary>
+    /// いずれかのスロットにセーブデータが存在するか
+    /// </summary>
+    public static bool AnySaveExists(int maxSlots = 10)
+    {
+        for (int i = 0; i < maxSlots; i++)
+        {
+            if (SaveExists(i)) return true;
+        }
+        return false;
+    }
+
     private static string GetSavePath(int slot) =>
         Path.Combine(SaveDirectory, $"save_{slot}.json");
 }

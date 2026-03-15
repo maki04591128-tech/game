@@ -18,6 +18,15 @@ public class GameRenderer
     private readonly Dictionary<Position, Rectangle> _tileRects = new();
     private readonly Dictionary<Position, TextBlock> _tileTexts = new();
 
+    /// <summary>再利用可能なRectangleプール</summary>
+    private readonly List<Rectangle> _rectPool = new();
+    /// <summary>再利用可能なTextBlockプール</summary>
+    private readonly List<TextBlock> _textPool = new();
+    /// <summary>現在使用中のRectangleインデックス</summary>
+    private int _rectPoolIndex;
+    /// <summary>現在使用中のTextBlockインデックス</summary>
+    private int _textPoolIndex;
+
     private const int TileSize = 20;
     private const string FontFamily = "Consolas";
 
@@ -34,6 +43,14 @@ public class GameRenderer
         { TileType.Water, (new SolidColorBrush(Color.FromRgb(20, 50, 80)), Brushes.DodgerBlue) },
         { TileType.TrapHidden, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.Gray) },
         { TileType.TrapVisible, (new SolidColorBrush(Color.FromRgb(80, 30, 80)), Brushes.Magenta) },
+        { TileType.Altar, (new SolidColorBrush(Color.FromRgb(50, 40, 60)), Brushes.Gold) },
+        { TileType.Fountain, (new SolidColorBrush(Color.FromRgb(30, 40, 60)), Brushes.Aqua) },
+        { TileType.Chest, (new SolidColorBrush(Color.FromRgb(60, 50, 20)), Brushes.Goldenrod) },
+        // デバッグ専用タイル（目立つ色）
+        { TileType.DebugEnemySpawn, (new SolidColorBrush(Color.FromRgb(80, 20, 20)), Brushes.OrangeRed) },
+        { TileType.DebugAIToggle, (new SolidColorBrush(Color.FromRgb(20, 60, 80)), Brushes.DeepSkyBlue) },
+        { TileType.DebugDayAdvance, (new SolidColorBrush(Color.FromRgb(60, 60, 20)), Brushes.Yellow) },
+        { TileType.DebugNpc, (new SolidColorBrush(Color.FromRgb(20, 60, 40)), Brushes.SpringGreen) },
     };
 
     private static readonly Brush ExploredBackground = new SolidColorBrush(Color.FromRgb(15, 15, 20));
@@ -47,9 +64,68 @@ public class GameRenderer
 
     public void Clear()
     {
-        _canvas.Children.Clear();
+        // プールインデックスをリセット（オブジェクトは再利用する）
+        _rectPoolIndex = 0;
+        _textPoolIndex = 0;
         _tileRects.Clear();
         _tileTexts.Clear();
+    }
+
+    /// <summary>
+    /// プール済みRectangleを取得（不足時は新規作成してCanvasに追加）
+    /// </summary>
+    private Rectangle RentRect()
+    {
+        if (_rectPoolIndex < _rectPool.Count)
+        {
+            var rect = _rectPool[_rectPoolIndex];
+            rect.Visibility = Visibility.Visible;
+            rect.Stroke = null;
+            rect.StrokeThickness = 0;
+            _rectPoolIndex++;
+            return rect;
+        }
+
+        var newRect = new Rectangle();
+        _canvas.Children.Add(newRect);
+        _rectPool.Add(newRect);
+        _rectPoolIndex++;
+        return newRect;
+    }
+
+    /// <summary>
+    /// プール済みTextBlockを取得（不足時は新規作成してCanvasに追加）
+    /// </summary>
+    private TextBlock RentText()
+    {
+        if (_textPoolIndex < _textPool.Count)
+        {
+            var text = _textPool[_textPoolIndex];
+            text.Visibility = Visibility.Visible;
+            _textPoolIndex++;
+            return text;
+        }
+
+        var newText = new TextBlock
+        {
+            FontFamily = new FontFamily(FontFamily),
+            TextAlignment = TextAlignment.Center
+        };
+        _canvas.Children.Add(newText);
+        _textPool.Add(newText);
+        _textPoolIndex++;
+        return newText;
+    }
+
+    /// <summary>
+    /// 未使用のプールオブジェクトを非表示にする
+    /// </summary>
+    private void HideUnusedPoolItems()
+    {
+        for (int i = _rectPoolIndex; i < _rectPool.Count; i++)
+            _rectPool[i].Visibility = Visibility.Collapsed;
+        for (int i = _textPoolIndex; i < _textPool.Count; i++)
+            _textPool[i].Visibility = Visibility.Collapsed;
     }
 
     public void Render(DungeonMap map, Player player, IEnumerable<Enemy> enemies, IEnumerable<(Item Item, Position Position)> groundItems)
@@ -105,6 +181,9 @@ public class GameRenderer
 
         // プレイヤー描画
         RenderEntity(player.Position, '@', Brushes.Yellow, offsetX, offsetY, true);
+
+        // 未使用プールオブジェクトを非表示
+        HideUnusedPoolItems();
     }
 
     private void RenderTile(Position pos, Tile tile, int offsetX, int offsetY)
@@ -144,31 +223,24 @@ public class GameRenderer
         }
 
         // 背景矩形
-        var rect = new Rectangle
-        {
-            Width = TileSize,
-            Height = TileSize,
-            Fill = background
-        };
+        var rect = RentRect();
+        rect.Width = TileSize;
+        rect.Height = TileSize;
+        rect.Fill = background;
         Canvas.SetLeft(rect, x);
         Canvas.SetTop(rect, y);
-        _canvas.Children.Add(rect);
         _tileRects[pos] = rect;
 
         // タイル文字
         if (displayChar != ' ')
         {
-            var text = new TextBlock
-            {
-                Text = displayChar.ToString(),
-                Foreground = foreground,
-                FontFamily = new FontFamily(FontFamily),
-                FontSize = TileSize - 4,
-                TextAlignment = TextAlignment.Center
-            };
+            var text = RentText();
+            text.Text = displayChar.ToString();
+            text.Foreground = foreground;
+            text.FontSize = TileSize - 4;
+            text.FontWeight = FontWeights.Normal;
             Canvas.SetLeft(text, x + 2);
             Canvas.SetTop(text, y);
-            _canvas.Children.Add(text);
             _tileTexts[pos] = text;
         }
     }
@@ -181,31 +253,23 @@ public class GameRenderer
         if (highlight)
         {
             // プレイヤーハイライト
-            var highlightRect = new Rectangle
-            {
-                Width = TileSize,
-                Height = TileSize,
-                Fill = new SolidColorBrush(Color.FromArgb(80, 255, 255, 0)),
-                Stroke = Brushes.Yellow,
-                StrokeThickness = 1
-            };
+            var highlightRect = RentRect();
+            highlightRect.Width = TileSize;
+            highlightRect.Height = TileSize;
+            highlightRect.Fill = new SolidColorBrush(Color.FromArgb(80, 255, 255, 0));
+            highlightRect.Stroke = Brushes.Yellow;
+            highlightRect.StrokeThickness = 1;
             Canvas.SetLeft(highlightRect, x);
             Canvas.SetTop(highlightRect, y);
-            _canvas.Children.Add(highlightRect);
         }
 
-        var text = new TextBlock
-        {
-            Text = symbol.ToString(),
-            Foreground = color,
-            FontFamily = new FontFamily(FontFamily),
-            FontSize = TileSize - 2,
-            FontWeight = FontWeights.Bold,
-            TextAlignment = TextAlignment.Center
-        };
+        var text = RentText();
+        text.Text = symbol.ToString();
+        text.Foreground = color;
+        text.FontSize = TileSize - 2;
+        text.FontWeight = FontWeights.Bold;
         Canvas.SetLeft(text, x + 2);
         Canvas.SetTop(text, y - 1);
-        _canvas.Children.Add(text);
     }
 
     private static Brush GetEnemyColor(Enemy enemy)

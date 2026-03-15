@@ -334,3 +334,162 @@ public class AmbushBehavior : AIBehaviorBase
         return distance <= _strikeRange;
     }
 }
+
+/// <summary>
+/// 遠距離ビヘイビア - 距離を保ちながら攻撃
+/// </summary>
+public class RangedBehavior : AIBehaviorBase
+{
+    public override string Name => "Ranged";
+    public override int Priority => 55;
+
+    private readonly int _preferredRange;
+    private readonly int _minRange;
+
+    public RangedBehavior(int preferredRange = 5, int minRange = 3)
+    {
+        _preferredRange = preferredRange;
+        _minRange = minRange;
+    }
+
+    public override TurnAction DecideAction(Enemy enemy, IGameState state)
+    {
+        var player = state.Player as Character;
+        if (player == null || !player.IsAlive) return TurnAction.Wait;
+
+        int distance = enemy.Position.ChebyshevDistanceTo(player.Position);
+
+        // 近すぎる → 距離を取る
+        if (distance < _minRange)
+        {
+            var action = MoveAwayFrom(enemy, player.Position, state);
+            if (action.Type != TurnActionType.Wait) return action;
+        }
+
+        // 射程内かつ視線が通る → 攻撃
+        if (distance <= _preferredRange && state.CurrentMap.HasLineOfSight(enemy.Position, player.Position))
+        {
+            return TurnAction.Attack(player);
+        }
+
+        // 射程外 → 接近（ただし近づきすぎない）
+        if (distance > _preferredRange)
+        {
+            return MoveTowards(enemy, player.Position, state);
+        }
+
+        return TurnAction.Wait;
+    }
+
+    public override bool IsApplicable(Enemy enemy, IGameState state)
+    {
+        var player = state.Player as Character;
+        if (player == null) return false;
+
+        int distance = enemy.Position.ChebyshevDistanceTo(player.Position);
+        return distance <= _preferredRange + 5;
+    }
+}
+
+/// <summary>
+/// バーサーカービヘイビア - HP低下時に攻撃力が上がり狂暴化
+/// </summary>
+public class BerserkerBehavior : AIBehaviorBase
+{
+    public override string Name => "Berserker";
+    public override int Priority => 80;
+
+    private readonly float _berserkThreshold;
+
+    public BerserkerBehavior(float berserkThreshold = 0.4f)
+    {
+        _berserkThreshold = berserkThreshold;
+    }
+
+    public override TurnAction DecideAction(Enemy enemy, IGameState state)
+    {
+        var player = state.Player as Character;
+        if (player == null || !player.IsAlive) return TurnAction.Wait;
+
+        int distance = enemy.Position.ChebyshevDistanceTo(player.Position);
+
+        // 隣接 → 攻撃
+        if (distance == 1)
+        {
+            return TurnAction.Attack(player);
+        }
+
+        // バーサーク状態では積極的に追跡
+        enemy.Target = player;
+        return MoveTowards(enemy, player.Position, state);
+    }
+
+    public override bool IsApplicable(Enemy enemy, IGameState state)
+    {
+        // HPが閾値以下で発動
+        float hpRatio = (float)enemy.CurrentHp / enemy.MaxHp;
+        return hpRatio <= _berserkThreshold && hpRatio > 0;
+    }
+}
+
+/// <summary>
+/// 召喚者ビヘイビア - 距離を保ちつつ味方を呼ぶ
+/// </summary>
+public class SummonerBehavior : AIBehaviorBase
+{
+    public override string Name => "Summoner";
+    public override int Priority => 65;
+
+    private readonly int _summonCooldown;
+    private int _currentCooldown;
+
+    public SummonerBehavior(int summonCooldown = 5)
+    {
+        _summonCooldown = summonCooldown;
+        _currentCooldown = 0;
+    }
+
+    public override TurnAction DecideAction(Enemy enemy, IGameState state)
+    {
+        var player = state.Player as Character;
+        if (player == null || !player.IsAlive) return TurnAction.Wait;
+
+        int distance = enemy.Position.ChebyshevDistanceTo(player.Position);
+
+        // クールダウン減少
+        if (_currentCooldown > 0) _currentCooldown--;
+
+        // 近すぎる → 逃げる
+        if (distance <= 2)
+        {
+            var action = MoveAwayFrom(enemy, player.Position, state);
+            if (action.Type != TurnActionType.Wait) return action;
+            // 逃げられない場合は攻撃
+            if (distance == 1) return TurnAction.Attack(player);
+        }
+
+        // 召喚可能 → UseSkillで表現
+        if (_currentCooldown <= 0 && distance <= 8)
+        {
+            _currentCooldown = _summonCooldown;
+            return TurnAction.UseSkill("Summon", null, 2);
+        }
+
+        // 距離を保つ
+        if (distance < 4)
+        {
+            return MoveAwayFrom(enemy, player.Position, state);
+        }
+
+        return TurnAction.Wait;
+    }
+
+    public override bool IsApplicable(Enemy enemy, IGameState state)
+    {
+        var player = state.Player as Character;
+        if (player == null) return false;
+
+        int distance = enemy.Position.ChebyshevDistanceTo(player.Position);
+        return distance <= 10;
+    }
+}

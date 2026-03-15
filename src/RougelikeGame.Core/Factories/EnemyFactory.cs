@@ -14,12 +14,26 @@ public class EnemyFactory
     /// </summary>
     public Enemy CreateEnemy(EnemyDefinition definition, Position position)
     {
+        return CreateEnemy(definition, position, null);
+    }
+
+    /// <summary>
+    /// 敵を生成（階層補正付き）
+    /// </summary>
+    public Enemy CreateEnemy(EnemyDefinition definition, Position position, StatModifier? floorBonus)
+    {
+        var stats = definition.BaseStats;
+        if (floorBonus.HasValue)
+        {
+            stats = stats.Apply(floorBonus.Value);
+        }
+
         var enemy = new Enemy
         {
             Name = definition.Name,
             EnemyTypeId = definition.TypeId,
             Description = definition.Description,
-            BaseStats = definition.BaseStats,
+            BaseStats = stats,
             ExperienceReward = definition.ExperienceReward,
             DropTableId = definition.DropTableId,
             SightRange = definition.SightRange,
@@ -92,6 +106,7 @@ public class EnemyFactory
                 break;
 
             case EnemyType.Boss:
+                composite.AddBehavior(new BerserkerBehavior(0.3f));
                 composite.AddBehavior(new AggressiveBehavior(20));
                 composite.AddBehavior(new ChaseBehavior());
                 composite.AddBehavior(new DefensiveBehavior(10));
@@ -304,6 +319,302 @@ public static class EnemyDefinitions
         FleeThreshold: 0.0f
     );
 
+    #region Territory-Specific Enemies
+
+    // === 森林領域 ===
+    public static readonly EnemyDefinition ForestWolf = new(
+        TypeId: "forest_wolf",
+        Name: "森狼",
+        Description: "森に棲む凶暴な狼。群れで獲物を追い詰める。",
+        BaseStats: new Stats(8, 7, 12, 10, 2, 4, 10, 1, 5),
+        EnemyType: EnemyType.Pack,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 20,
+        DropTableId: "drop_wolf",
+        SightRange: 10,
+        HearingRange: 12,
+        FleeThreshold: 0.25f
+    );
+
+    public static readonly EnemyDefinition Treant = new(
+        TypeId: "treant",
+        Name: "トレント",
+        Description: "動く古木。森の番人として侵入者を排除する。",
+        BaseStats: new Stats(15, 25, 2, 2, 4, 15, 3, 1, 2),
+        EnemyType: EnemyType.Defensive,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 55,
+        DropTableId: "drop_treant",
+        SightRange: 6,
+        GiveUpDistance: 10,
+        FleeThreshold: 0.0f
+    );
+
+    public static readonly EnemyDefinition ForestSprite = new(
+        TypeId: "forest_sprite",
+        Name: "森の精霊",
+        Description: "森に宿る精霊。魔法で攻撃してくる。",
+        BaseStats: new Stats(4, 4, 14, 12, 15, 10, 14, 3, 8),
+        EnemyType: EnemyType.Coward,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 25,
+        DropTableId: "drop_sprite",
+        SightRange: 12,
+        FleeThreshold: 0.4f
+    );
+
+    // === 山岳領域 ===
+    public static readonly EnemyDefinition MountainGolem = new(
+        TypeId: "mountain_golem",
+        Name: "ストーンゴーレム",
+        Description: "岩で構成された巨大な人型。非常に頑丈。",
+        BaseStats: new Stats(20, 30, 2, 2, 1, 20, 2, 1, 1),
+        EnemyType: EnemyType.Defensive,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 70,
+        DropTableId: "drop_golem",
+        SightRange: 5,
+        GiveUpDistance: 8,
+        FleeThreshold: 0.0f
+    );
+
+    public static readonly EnemyDefinition Harpy = new(
+        TypeId: "harpy",
+        Name: "ハーピー",
+        Description: "山岳に棲む鳥人。素早い動きで翻弄する。",
+        BaseStats: new Stats(6, 5, 14, 12, 8, 3, 12, 4, 6),
+        EnemyType: EnemyType.Aggressive,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 30,
+        DropTableId: "drop_harpy",
+        SightRange: 14,
+        FleeThreshold: 0.3f
+    );
+
+    public static readonly EnemyDefinition Wyvern = new(
+        TypeId: "wyvern",
+        Name: "ワイバーン",
+        Description: "小型の飛竜。毒を持つ尾で攻撃する。",
+        BaseStats: new Stats(16, 14, 10, 8, 6, 10, 8, 2, 4),
+        EnemyType: EnemyType.Aggressive,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 75,
+        DropTableId: "drop_wyvern",
+        SightRange: 15,
+        GiveUpDistance: 25,
+        FleeThreshold: 0.1f
+    );
+
+    // === 沿岸領域 ===
+    public static readonly EnemyDefinition SeaSerpent = new(
+        TypeId: "sea_serpent",
+        Name: "海蛇",
+        Description: "沿岸の洞窟に潜む巨大な蛇。",
+        BaseStats: new Stats(12, 10, 10, 8, 4, 6, 8, 1, 5),
+        EnemyType: EnemyType.Ambusher,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 35,
+        DropTableId: "drop_serpent",
+        SightRange: 6,
+        HearingRange: 12,
+        FleeThreshold: 0.15f
+    );
+
+    public static readonly EnemyDefinition Siren = new(
+        TypeId: "siren",
+        Name: "セイレーン",
+        Description: "美しい歌声で冒険者を惑わす海の魔女。",
+        BaseStats: new Stats(5, 5, 8, 10, 16, 12, 10, 14, 7),
+        EnemyType: EnemyType.Defensive,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 60,
+        DropTableId: "drop_siren",
+        SightRange: 10,
+        FleeThreshold: 0.2f
+    );
+
+    public static readonly EnemyDefinition Crab = new(
+        TypeId: "crab",
+        Name: "巨大蟹",
+        Description: "巨大な甲殻を持つ蟹。挟む力は凄まじい。",
+        BaseStats: new Stats(10, 16, 4, 6, 1, 18, 3, 1, 3),
+        EnemyType: EnemyType.Defensive,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 25,
+        DropTableId: "drop_crab",
+        SightRange: 5,
+        FleeThreshold: 0.0f
+    );
+
+    // === 南方領域 ===
+    public static readonly EnemyDefinition DesertScorpion = new(
+        TypeId: "desert_scorpion",
+        Name: "砂漠蠍",
+        Description: "灼熱の砂漠に棲む巨大な蠍。猛毒を持つ。",
+        BaseStats: new Stats(9, 8, 10, 8, 2, 12, 8, 1, 4),
+        EnemyType: EnemyType.Ambusher,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 30,
+        DropTableId: "drop_scorpion",
+        SightRange: 7,
+        HearingRange: 10,
+        FleeThreshold: 0.1f
+    );
+
+    public static readonly EnemyDefinition Mummy = new(
+        TypeId: "mummy",
+        Name: "ミイラ",
+        Description: "古代の呪いで蘇った死者。触れると呪われる。",
+        BaseStats: new Stats(12, 14, 4, 4, 8, 14, 3, 1, 2),
+        EnemyType: EnemyType.Aggressive,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 55,
+        DropTableId: "drop_mummy",
+        SightRange: 6,
+        FleeThreshold: 0.0f
+    );
+
+    public static readonly EnemyDefinition Sandworm = new(
+        TypeId: "sandworm",
+        Name: "サンドワーム",
+        Description: "砂の中を泳ぐ巨大な蟲。地響きと共に現れる。",
+        BaseStats: new Stats(18, 20, 6, 4, 1, 10, 4, 1, 2),
+        EnemyType: EnemyType.Ambusher,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 65,
+        DropTableId: "drop_sandworm",
+        SightRange: 3,
+        HearingRange: 15,
+        FleeThreshold: 0.0f
+    );
+
+    // === 辺境領域 ===
+    public static readonly EnemyDefinition Werewolf = new(
+        TypeId: "werewolf",
+        Name: "ウェアウルフ",
+        Description: "狼に変身する人狼。夜に力を増す。",
+        BaseStats: new Stats(14, 12, 12, 10, 4, 8, 10, 3, 4),
+        EnemyType: EnemyType.Aggressive,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 65,
+        DropTableId: "drop_werewolf",
+        SightRange: 12,
+        HearingRange: 14,
+        GiveUpDistance: 20,
+        FleeThreshold: 0.1f
+    );
+
+    public static readonly EnemyDefinition Chimera = new(
+        TypeId: "chimera",
+        Name: "キメラ",
+        Description: "複数の獣が融合した合成獣。3つの頭を持つ。",
+        BaseStats: new Stats(16, 14, 8, 8, 10, 10, 8, 2, 3),
+        EnemyType: EnemyType.Aggressive,
+        Rank: EnemyRank.Rare,
+        ExperienceReward: 90,
+        DropTableId: "drop_chimera",
+        SightRange: 10,
+        FleeThreshold: 0.05f
+    );
+
+    public static readonly EnemyDefinition DeathKnight = new(
+        TypeId: "death_knight",
+        Name: "デスナイト",
+        Description: "闇の力で蘇った騎士。強力な剣技と暗黒魔法を操る。",
+        BaseStats: new Stats(18, 16, 8, 10, 12, 14, 8, 3, 3),
+        EnemyType: EnemyType.Aggressive,
+        Rank: EnemyRank.Rare,
+        ExperienceReward: 100,
+        DropTableId: "drop_death_knight",
+        SightRange: 10,
+        GiveUpDistance: 30,
+        FleeThreshold: 0.0f
+    );
+
+    #endregion
+
+    #region Boss Monsters
+
+    public static readonly EnemyDefinition ForestGuardian = new(
+        TypeId: "boss_forest_guardian",
+        Name: "森の守護者",
+        Description: "森の最深部に棲む古代の精霊。森を冒涜する者を許さない。",
+        BaseStats: new Stats(25, 35, 8, 8, 20, 20, 8, 5, 5),
+        EnemyType: EnemyType.Boss,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 300,
+        DropTableId: "drop_boss_forest",
+        SightRange: 15,
+        FleeThreshold: 0.0f
+    );
+
+    public static readonly EnemyDefinition MountainKing = new(
+        TypeId: "boss_mountain_king",
+        Name: "山嶺王",
+        Description: "山脈の主たる巨人の王。大地を揺るがす一撃。",
+        BaseStats: new Stats(35, 40, 4, 6, 8, 25, 4, 2, 3),
+        EnemyType: EnemyType.Boss,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 400,
+        DropTableId: "drop_boss_mountain",
+        SightRange: 12,
+        FleeThreshold: 0.0f
+    );
+
+    public static readonly EnemyDefinition DeepSeaLeviathan = new(
+        TypeId: "boss_leviathan",
+        Name: "深海の大蛇",
+        Description: "海底深くに眠る古代の海竜。津波を呼ぶ。",
+        BaseStats: new Stats(30, 30, 10, 8, 18, 18, 6, 3, 4),
+        EnemyType: EnemyType.Boss,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 350,
+        DropTableId: "drop_boss_sea",
+        SightRange: 14,
+        FleeThreshold: 0.0f
+    );
+
+    public static readonly EnemyDefinition DesertPharaoh = new(
+        TypeId: "boss_pharaoh",
+        Name: "砂漠の覇王",
+        Description: "古代王朝の不死の王。強力な呪術を操る。",
+        BaseStats: new Stats(22, 20, 8, 10, 25, 18, 8, 8, 5),
+        EnemyType: EnemyType.Boss,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 350,
+        DropTableId: "drop_boss_desert",
+        SightRange: 12,
+        FleeThreshold: 0.0f
+    );
+
+    public static readonly EnemyDefinition FrontierDragon = new(
+        TypeId: "boss_dragon",
+        Name: "辺境の古竜",
+        Description: "辺境の果てに棲む太古の竜。全てを焼き尽くすブレスを吐く。",
+        BaseStats: new Stats(40, 35, 8, 10, 20, 22, 8, 4, 5),
+        EnemyType: EnemyType.Boss,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 500,
+        DropTableId: "drop_boss_dragon",
+        SightRange: 16,
+        FleeThreshold: 0.0f
+    );
+
+    public static readonly EnemyDefinition AbyssLord = new(
+        TypeId: "boss_abyss_lord",
+        Name: "深淵の覇王",
+        Description: "最深部に封印されていた古の魔王。圧倒的な力を持つ。",
+        BaseStats: new Stats(50, 40, 12, 12, 30, 25, 10, 6, 6),
+        EnemyType: EnemyType.Boss,
+        Rank: EnemyRank.HiddenBoss,
+        ExperienceReward: 1000,
+        DropTableId: "drop_boss_abyss",
+        SightRange: 20,
+        FleeThreshold: 0.0f
+    );
+
+    #endregion
+
     /// <summary>
     /// 階層に応じた敵リストを取得
     /// </summary>
@@ -318,5 +629,63 @@ public static class EnemyDefinitions
             <= 20 => new[] { Orc, DarkElf, Troll, Draugr },
             _ => new[] { DarkElf, Troll, Draugr }
         };
+    }
+
+    /// <summary>
+    /// 領域に応じた敵リストを取得
+    /// </summary>
+    public static IReadOnlyList<EnemyDefinition> GetEnemiesForTerritory(TerritoryId territory)
+    {
+        return territory switch
+        {
+            TerritoryId.Capital => new[] { Slime, Goblin, Skeleton },
+            TerritoryId.Forest => new[] { ForestWolf, ForestSprite, GiantSpider, Treant },
+            TerritoryId.Mountain => new[] { Harpy, Orc, MountainGolem, Wyvern },
+            TerritoryId.Coast => new[] { Crab, SeaSerpent, Siren, Skeleton },
+            TerritoryId.Southern => new[] { DesertScorpion, Mummy, Sandworm, DarkElf },
+            TerritoryId.Frontier => new[] { Werewolf, Troll, Chimera, DeathKnight, Draugr },
+            _ => new[] { Slime, Goblin }
+        };
+    }
+
+    /// <summary>
+    /// 領域のボスを取得
+    /// </summary>
+    public static EnemyDefinition? GetBossForTerritory(TerritoryId territory)
+    {
+        return territory switch
+        {
+            TerritoryId.Forest => ForestGuardian,
+            TerritoryId.Mountain => MountainKing,
+            TerritoryId.Coast => DeepSeaLeviathan,
+            TerritoryId.Southern => DesertPharaoh,
+            TerritoryId.Frontier => FrontierDragon,
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// 全敵定義を取得
+    /// </summary>
+    public static IReadOnlyList<EnemyDefinition> GetAllEnemies()
+    {
+        return new[]
+        {
+            Slime, Goblin, Skeleton, Orc, GiantSpider, DarkElf, Troll, Draugr,
+            ForestWolf, Treant, ForestSprite,
+            MountainGolem, Harpy, Wyvern,
+            SeaSerpent, Siren, Crab,
+            DesertScorpion, Mummy, Sandworm,
+            Werewolf, Chimera, DeathKnight,
+            ForestGuardian, MountainKing, DeepSeaLeviathan, DesertPharaoh, FrontierDragon, AbyssLord
+        };
+    }
+
+    /// <summary>
+    /// 全ボス定義を取得
+    /// </summary>
+    public static IReadOnlyList<EnemyDefinition> GetAllBosses()
+    {
+        return new[] { ForestGuardian, MountainKing, DeepSeaLeviathan, DesertPharaoh, FrontierDragon, AbyssLord };
     }
 }

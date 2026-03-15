@@ -1,5 +1,7 @@
 using RougelikeGame.Core;
+using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Interfaces;
+using RougelikeGame.Core.Systems;
 
 namespace RougelikeGame.Engine.Combat;
 
@@ -143,29 +145,54 @@ public class CombatSystem : ICombatSystem
         int armorDefense = 5;
         int vitality = 10;
         double critRate = GameConstants.BaseCriticalRate;
+        double attackerRacialBonus = 0.0;
+        double targetRacialResistance = 0.0;
+        double proficiencyMultiplier = 1.0;
 
-        if (attacker is Core.Entities.Character attackerChar)
+        if (attacker is Character attackerChar)
         {
             weaponAttack = attackerChar.EffectiveStats.PhysicalAttack;
             strength = attackerChar.EffectiveStats.Strength;
             critRate = attackerChar.EffectiveStats.CriticalRate;
+
+            // 種族特性: 狂戦士の血（HP50%以下で攻撃力ボーナス）
+            if (attacker is Player attackerPlayer)
+            {
+                attackerRacialBonus = RacialTraitSystem.CalculateBerserkerBonus(
+                    attackerPlayer.Race, attackerPlayer.CurrentHp, attackerPlayer.MaxHp);
+                // 種族特性: 幸運体質（クリティカル率ボーナス）
+                critRate += RacialTraitSystem.GetTraitValue(attackerPlayer.Race, RacialTraitType.LuckyBody);
+                // 装備適性倍率
+                var weapon = attackerPlayer.Equipment.MainHand;
+                if (weapon != null)
+                {
+                    proficiencyMultiplier = ClassEquipmentSystem.GetProficiencyMultiplier(
+                        attackerPlayer.CharacterClass, weapon.Category);
+                }
+            }
         }
 
-        if (target is Core.Entities.Character targetChar)
+        if (target is Character targetChar)
         {
             armorDefense = targetChar.EffectiveStats.PhysicalDefense;
             vitality = targetChar.EffectiveStats.Vitality;
+
+            // 種族特性: 物理耐性（スライム等）
+            if (target is Player targetPlayer)
+            {
+                targetRacialResistance = RacialTraitSystem.CalculatePhysicalResistance(targetPlayer.Race);
+            }
         }
 
         var param = new PhysicalDamageParams
         {
             WeaponAttack = weaponAttack,
             Strength = strength,
-            AttackBuff = 0,
+            AttackBuff = (int)(weaponAttack * attackerRacialBonus),
             ArmorDefense = armorDefense,
             Vitality = vitality,
             DefenseBuff = 0,
-            SkillMultiplier = 1.0f,
+            SkillMultiplier = (float)proficiencyMultiplier,
             AttackElement = attackElement,
             TargetElement = targetElement,
             CriticalRate = critRate,
@@ -174,7 +201,15 @@ public class CombatSystem : ICombatSystem
 
         var result = _damageCalculator.CalculatePhysicalDamage(param);
 
-        return new Damage(result.FinalDamage, DamageType.Physical, attackElement, result.IsCritical);
+        // 種族特性: 物理耐性を最終ダメージに適用
+        int finalDamage = result.FinalDamage;
+        if (targetRacialResistance > 0)
+        {
+            finalDamage = (int)(finalDamage * (1.0 - targetRacialResistance));
+            finalDamage = Math.Max(GameConstants.MinimumDamage, finalDamage);
+        }
+
+        return new Damage(finalDamage, DamageType.Physical, attackElement, result.IsCritical);
     }
 
     private Damage CalculateMagicalDamage(IDamageable attacker, IDamageable target,
@@ -184,14 +219,21 @@ public class CombatSystem : ICombatSystem
         int intelligence = 10;
         int magicDefense = 5;
         int mind = 10;
+        double magicDamageMultiplier = 1.0;
 
-        if (attacker is Core.Entities.Character attackerChar)
+        if (attacker is Character attackerChar)
         {
             staffAttack = attackerChar.EffectiveStats.MagicalAttack;
             intelligence = attackerChar.EffectiveStats.Intelligence;
+
+            // 種族特性: 魔法ダメージボーナス（エルフ等）
+            if (attacker is Player attackerPlayer)
+            {
+                magicDamageMultiplier = RacialTraitSystem.CalculateMagicDamageMultiplier(attackerPlayer.Race);
+            }
         }
 
-        if (target is Core.Entities.Character targetChar)
+        if (target is Character targetChar)
         {
             magicDefense = targetChar.EffectiveStats.MagicalDefense;
             mind = targetChar.EffectiveStats.Mind;
@@ -206,12 +248,23 @@ public class CombatSystem : ICombatSystem
             Mind = mind,
             MagicDefenseBuff = 0,
             SkillMultiplier = 1.0f,
-            LanguageBonus = 1.0f,
+            LanguageBonus = (float)magicDamageMultiplier,
             SpellElement = spellElement,
             TargetElement = targetElement
         };
 
         var result = _damageCalculator.CalculateMagicalDamage(param);
+
+        // 種族特性: 魔力吸収（悪魔等 - 魔法被弾時MP回復）
+        if (target is Player targetPlayer)
+        {
+            double absorbRate = RacialTraitSystem.GetTraitValue(targetPlayer.Race, RacialTraitType.ManaAbsorption);
+            if (absorbRate > 0)
+            {
+                int mpRecover = (int)(result.FinalDamage * absorbRate);
+                if (mpRecover > 0) targetPlayer.RestoreMp(mpRecover);
+            }
+        }
 
         return new Damage(result.FinalDamage, DamageType.Magical, spellElement, false);
     }

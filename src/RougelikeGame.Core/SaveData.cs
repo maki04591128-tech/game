@@ -33,6 +33,48 @@ public class SaveData
 
     /// <summary>ターン制限撤廃フラグ</summary>
     public bool TurnLimitRemoved { get; set; }
+
+    /// <summary>難易度</summary>
+    public DifficultyLevel Difficulty { get; set; } = DifficultyLevel.Normal;
+
+    /// <summary>現在のマップ名（種族・素性に応じた開始マップ名等）</summary>
+    public string CurrentMapName { get; set; } = "capital_guild";
+
+    /// <summary>素性クリア条件フラグ</summary>
+    public Systems.ClearFlagSaveData? ClearFlags { get; set; }
+
+    /// <summary>スキルクールダウン状態</summary>
+    public Dictionary<string, int> SkillCooldowns { get; set; } = new();
+
+    /// <summary>現在の領地</summary>
+    public string CurrentTerritory { get; set; } = nameof(TerritoryId.Capital);
+
+    /// <summary>訪問済み領地</summary>
+    public List<string> VisitedTerritories { get; set; } = new() { nameof(TerritoryId.Capital) };
+
+    /// <summary>地上にいるか</summary>
+    public bool IsOnSurface { get; set; } = true;
+
+    /// <summary>銀行残高</summary>
+    public int BankBalance { get; set; }
+
+    /// <summary>NPC好感度・状態</summary>
+    public Dictionary<string, Systems.NpcStateSaveData> NpcStates { get; set; } = new();
+
+    /// <summary>アクティブクエスト</summary>
+    public List<Systems.QuestProgressSaveData> ActiveQuests { get; set; } = new();
+
+    /// <summary>完了済みクエストID</summary>
+    public List<string> CompletedQuests { get; set; } = new();
+
+    /// <summary>ギルドランク</summary>
+    public string GuildRank { get; set; } = nameof(RougelikeGame.Core.GuildRank.None);
+
+    /// <summary>ギルドポイント</summary>
+    public int GuildPoints { get; set; }
+
+    /// <summary>会話フラグ</summary>
+    public List<string> DialogueFlags { get; set; } = new();
 }
 
 /// <summary>
@@ -82,6 +124,42 @@ public class PlayerSaveData
 
     /// <summary>信仰ポイント</summary>
     public int FaithPoints { get; set; }
+
+    /// <summary>前の宗教</summary>
+    public string? PreviousReligion { get; set; }
+
+    /// <summary>過去に信仰した宗教</summary>
+    public List<string> PreviousReligions { get; set; } = new();
+
+    /// <summary>背教者の呪いフラグ</summary>
+    public bool HasApostasyCurse { get; set; }
+
+    /// <summary>背教者の呪い残日数</summary>
+    public int ApostasyCurseRemainingDays { get; set; }
+
+    /// <summary>最終祈祷からの経過日数</summary>
+    public int DaysSinceLastPrayer { get; set; }
+
+    /// <summary>信仰度上限</summary>
+    public int FaithCap { get; set; } = 100;
+
+    /// <summary>所持金</summary>
+    public int Gold { get; set; }
+
+    /// <summary>種族</summary>
+    public Race Race { get; set; } = Race.Human;
+
+    /// <summary>職業</summary>
+    public CharacterClass CharacterClass { get; set; } = CharacterClass.Fighter;
+
+    /// <summary>素性</summary>
+    public Background Background { get; set; } = Background.Adventurer;
+
+    /// <summary>累計死亡回数</summary>
+    public int TotalDeaths { get; set; }
+
+    /// <summary>引き継ぎデータ</summary>
+    public TransferDataSaveData? TransferData { get; set; }
 }
 
 /// <summary>
@@ -163,4 +241,20 @@ public class ItemSaveData
 public class GameTimeSaveData
 {
     public int TotalTurns { get; set; }
+}
+
+/// <summary>
+/// 引き継ぎデータのセーブ形式
+/// </summary>
+public class TransferDataSaveData
+{
+    public Dictionary<string, int> LearnedWords { get; set; } = new();
+    public List<string> LearnedSkills { get; set; } = new();
+    public string? Religion { get; set; }
+    public int FaithPoints { get; set; }
+    public string? PreviousReligion { get; set; }
+    public List<string> PreviousReligions { get; set; } = new();
+    public int TotalDeaths { get; set; }
+    public int RescueCountRemaining { get; set; } = GameConstants.MaxRescueCount;
+    public int Sanity { get; set; } = GameConstants.InitialSanity;
 }

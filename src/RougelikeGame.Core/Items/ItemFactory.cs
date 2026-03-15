@@ -138,6 +138,101 @@ public class ItemFactory
         StatModifier = new StatModifier(Dexterity: 2)
     };
 
+    public static Weapon CreateGreatsword() => new()
+    {
+        ItemId = "weapon_greatsword",
+        Name = "グレートソード",
+        Description = "両手で振るう巨大な剣。一撃の威力は絶大。",
+        WeaponType = WeaponType.Greatsword,
+        BaseDamage = 22,
+        DamageRange = (16, 28),
+        AttackSpeed = 0.6f,
+        Range = 1,
+        IsTwoHanded = true,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 400,
+        Weight = 10.0f,
+        RequiredLevel = 10,
+        RequiredStats = new Stats(Strength: 16, Vitality: 10, Agility: 0, Dexterity: 0,
+            Intelligence: 0, Mind: 0, Perception: 0, Charisma: 0, Luck: 0),
+        StatModifier = new StatModifier(Strength: 5)
+    };
+
+    public static Weapon CreateSpear() => new()
+    {
+        ItemId = "weapon_spear",
+        Name = "槍",
+        Description = "リーチの長い槍。突きに優れる。",
+        WeaponType = WeaponType.Spear,
+        BaseDamage = 9,
+        DamageRange = (7, 12),
+        AttackSpeed = 1.0f,
+        Range = 2,
+        IsTwoHanded = true,
+        AttackType = AttackType.Pierce,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 150,
+        Weight = 4.0f,
+        RequiredLevel = 3,
+        StatModifier = new StatModifier(Dexterity: 2, Agility: 1)
+    };
+
+    public static Weapon CreateWarHammer() => new()
+    {
+        ItemId = "weapon_war_hammer",
+        Name = "ウォーハンマー",
+        Description = "重厚な戦鎚。鎧ごと叩き潰す。",
+        WeaponType = WeaponType.Hammer,
+        BaseDamage = 16,
+        DamageRange = (12, 20),
+        AttackSpeed = 0.7f,
+        Range = 1,
+        IsTwoHanded = true,
+        AttackType = AttackType.Blunt,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 250,
+        Weight = 8.0f,
+        RequiredLevel = 6,
+        RequiredStats = new Stats(Strength: 12, Vitality: 8, Agility: 0, Dexterity: 0,
+            Intelligence: 0, Mind: 0, Perception: 0, Charisma: 0, Luck: 0),
+        StatModifier = new StatModifier(Strength: 3)
+    };
+
+    public static Weapon CreateCrossbow() => new()
+    {
+        ItemId = "weapon_crossbow",
+        Name = "クロスボウ",
+        Description = "弦を機械仕掛けで引く弩。威力が高いが装填に時間がかかる。",
+        WeaponType = WeaponType.Crossbow,
+        BaseDamage = 12,
+        DamageRange = (9, 15),
+        AttackSpeed = 0.5f,
+        Range = 8,
+        IsTwoHanded = true,
+        AttackType = AttackType.Ranged,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 200,
+        Weight = 4.0f,
+        RequiredLevel = 5,
+        StatModifier = new StatModifier(Dexterity: 3)
+    };
+
+    public static Weapon CreateWhip() => new()
+    {
+        ItemId = "weapon_whip",
+        Name = "鞭",
+        Description = "長い革の鞭。リーチがあり、柔軟に攻撃できる。",
+        WeaponType = WeaponType.Whip,
+        BaseDamage = 5,
+        DamageRange = (3, 7),
+        AttackSpeed = 1.3f,
+        Range = 2,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 100,
+        Weight = 1.5f,
+        StatModifier = new StatModifier(Dexterity: 2, Agility: 1)
+    };
+
     #endregion
 
     #region Predefined Armor
@@ -245,6 +340,99 @@ public class ItemFactory
         StatModifier = new StatModifier(Vitality: 2)
     };
 
+    public static Armor CreateIronHelm() => new()
+    {
+        ItemId = "armor_iron_helm",
+        Name = "鉄兜",
+        Description = "頑丈な鉄製の兜。頭部を守る。",
+        ArmorType = ArmorType.Plate,
+        Slot = EquipmentSlot.Head,
+        BaseDefense = 6,
+        MagicDefense = 1,
+        EvasionModifier = 0.0f,
+        SpeedModifier = 0.95f,
+        Rarity = ItemRarity.Common,
+        BasePrice = 80,
+        Weight = 3.0f,
+        RequiredLevel = 3,
+        StatModifier = new StatModifier(Vitality: 1)
+    };
+
+    public static Armor CreateLeatherGloves() => new()
+    {
+        ItemId = "armor_leather_gloves",
+        Name = "革の手袋",
+        Description = "柔らかい革製の手袋。手を保護する。",
+        ArmorType = ArmorType.Leather,
+        Slot = EquipmentSlot.Hands,
+        BaseDefense = 2,
+        MagicDefense = 0,
+        EvasionModifier = 0.0f,
+        SpeedModifier = 1.0f,
+        Rarity = ItemRarity.Common,
+        BasePrice = 30,
+        Weight = 0.5f,
+        StatModifier = new StatModifier(Dexterity: 1)
+    };
+
+    public static Armor CreateIronBoots() => new()
+    {
+        ItemId = "armor_iron_boots",
+        Name = "鉄の靴",
+        Description = "足元を守る鉄製の靴。",
+        ArmorType = ArmorType.Plate,
+        Slot = EquipmentSlot.Feet,
+        BaseDefense = 4,
+        MagicDefense = 0,
+        EvasionModifier = -0.02f,
+        SpeedModifier = 0.95f,
+        Rarity = ItemRarity.Common,
+        BasePrice = 60,
+        Weight = 4.0f,
+        RequiredLevel = 3,
+        StatModifier = new StatModifier(Vitality: 1)
+    };
+
+    public static Accessory CreateIronRing() => new()
+    {
+        ItemId = "accessory_iron_ring",
+        Name = "鉄の指輪",
+        Description = "シンプルな鉄製の指輪。わずかに力を高める。",
+        Slot = EquipmentSlot.Ring1,
+        Rarity = ItemRarity.Common,
+        BasePrice = 50,
+        Weight = 0.1f,
+        StatModifier = new StatModifier(Strength: 1, Vitality: 1)
+    };
+
+    public static Accessory CreateProtectionAmulet() => new()
+    {
+        ItemId = "accessory_protection_amulet",
+        Name = "護りのアミュレット",
+        Description = "身を守る魔力が込められた首飾り。",
+        Slot = EquipmentSlot.Neck,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 150,
+        Weight = 0.2f,
+        RequiredLevel = 5,
+        StatModifier = new StatModifier(Vitality: 2, Mind: 2),
+        PassiveAbility = "MagicDefenseUp"
+    };
+
+    public static Accessory CreateSpeedCloak() => new()
+    {
+        ItemId = "accessory_speed_cloak",
+        Name = "疾風のマント",
+        Description = "風の魔法が織り込まれたマント。移動速度が上がる。",
+        Slot = EquipmentSlot.Back,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 300,
+        Weight = 1.0f,
+        RequiredLevel = 8,
+        StatModifier = new StatModifier(Agility: 4, Dexterity: 2),
+        PassiveAbility = "SpeedUp"
+    };
+
     #endregion
 
     #region Predefined Consumables
@@ -296,6 +484,103 @@ public class ItemFactory
         Weight = 0.3f
     };
 
+    public static Potion CreateSuperHealingPotion() => new()
+    {
+        ItemId = "potion_healing_super",
+        Name = "超回復薬",
+        Description = "非常に効果の高い回復薬。",
+        PotionType = PotionType.HealingSuper,
+        EffectValue = 150,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 200,
+        Weight = 0.5f
+    };
+
+    public static Potion CreateManaPotion() => new()
+    {
+        ItemId = "potion_mana",
+        Name = "マナポーション",
+        Description = "魔力を大きく回復する薬。",
+        PotionType = PotionType.ManaMajor,
+        EffectValue = 50,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 80,
+        Weight = 0.5f
+    };
+
+    public static Potion CreateStrengthPotion() => new()
+    {
+        ItemId = "potion_strength",
+        Name = "筋力増強薬",
+        Description = "一時的に筋力を高める薬。",
+        PotionType = PotionType.StrengthBoost,
+        EffectValue = 5,
+        Duration = 30,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 100,
+        Weight = 0.5f
+    };
+
+    public static Potion CreateAgilityPotion() => new()
+    {
+        ItemId = "potion_agility",
+        Name = "敏捷増強薬",
+        Description = "一時的に素早さを高める薬。",
+        PotionType = PotionType.AgilityBoost,
+        EffectValue = 5,
+        Duration = 30,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 100,
+        Weight = 0.5f
+    };
+
+    public static Potion CreateInvisibilityPotion() => new()
+    {
+        ItemId = "potion_invisibility",
+        Name = "透明化薬",
+        Description = "一時的に透明になれる薬。",
+        PotionType = PotionType.Invisibility,
+        Duration = 20,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 200,
+        Weight = 0.5f
+    };
+
+    public static Potion CreateFireResistPotion() => new()
+    {
+        ItemId = "potion_fire_resist",
+        Name = "耐火薬",
+        Description = "火のダメージを軽減する薬。",
+        PotionType = PotionType.FireResistance,
+        Duration = 50,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 80,
+        Weight = 0.5f
+    };
+
+    public static Potion CreateColdResistPotion() => new()
+    {
+        ItemId = "potion_cold_resist",
+        Name = "耐冷薬",
+        Description = "冷気のダメージを軽減する薬。",
+        PotionType = PotionType.ColdResistance,
+        Duration = 50,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 80,
+        Weight = 0.5f
+    };
+
+    public static Potion CreateCureAllPotion() => new()
+    {
+        ItemId = "potion_cure_all",
+        Name = "万能薬",
+        Description = "全ての状態異常を治す奇跡の薬。",
+        PotionType = PotionType.CureAll,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 300,
+        Weight = 0.5f
+    };
+
     public static Food CreateBread() => new()
     {
         ItemId = "food_bread",
@@ -334,6 +619,44 @@ public class ItemFactory
         Weight = 0.4f
     };
 
+    public static Food CreateEmergencyRation() => new()
+    {
+        ItemId = "food_emergency_ration",
+        Name = "非常食",
+        Description = "緊急用の高カロリー食。味は期待できない。",
+        FoodType = FoodType.EmergencyRation,
+        NutritionValue = 80,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 40,
+        Weight = 0.3f
+    };
+
+    public static Food CreateLembas() => new()
+    {
+        ItemId = "food_lembas",
+        Name = "エルフパン",
+        Description = "エルフが焼いた旅人のパン。少量で高い栄養がある。",
+        FoodType = FoodType.Lembas,
+        NutritionValue = 100,
+        HealValue = 20,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 100,
+        Weight = 0.2f
+    };
+
+    public static Food CreateFruit() => new()
+    {
+        ItemId = "food_fruit",
+        Name = "果物",
+        Description = "新鮮な果物。みずみずしい。",
+        FoodType = FoodType.Fruit,
+        NutritionValue = 20,
+        HealValue = 5,
+        Rarity = ItemRarity.Common,
+        BasePrice = 8,
+        Weight = 0.2f
+    };
+
     public static Scroll CreateScrollOfTeleport() => new()
     {
         ItemId = "scroll_teleport",
@@ -368,6 +691,96 @@ public class ItemFactory
         EffectValue = 20,
         Rarity = ItemRarity.Uncommon,
         BasePrice = 75,
+        Weight = 0.1f
+    };
+
+    public static Scroll CreateScrollOfFireball() => new()
+    {
+        ItemId = "scroll_fireball",
+        Name = "火球の巻物",
+        Description = "強力な炎の球を放つ。",
+        ScrollType = ScrollType.Fireball,
+        TargetType = TargetType.SingleEnemy,
+        EffectValue = 40,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 120,
+        Weight = 0.1f
+    };
+
+    public static Scroll CreateScrollOfLightning() => new()
+    {
+        ItemId = "scroll_lightning",
+        Name = "落雷の巻物",
+        Description = "雷を落として敵を撃つ。",
+        ScrollType = ScrollType.Lightning,
+        TargetType = TargetType.SingleEnemy,
+        EffectValue = 50,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 150,
+        Weight = 0.1f
+    };
+
+    public static Scroll CreateScrollOfFreeze() => new()
+    {
+        ItemId = "scroll_freeze",
+        Name = "凍結の巻物",
+        Description = "周囲の敵を凍りつかせる。",
+        ScrollType = ScrollType.Freeze,
+        TargetType = TargetType.Area,
+        EffectRadius = 3,
+        EffectValue = 25,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 100,
+        Weight = 0.1f
+    };
+
+    public static Scroll CreateScrollOfRemoveCurse() => new()
+    {
+        ItemId = "scroll_remove_curse",
+        Name = "解呪の巻物",
+        Description = "装備にかかった呪いを解く。",
+        ScrollType = ScrollType.RemoveCurse,
+        TargetType = TargetType.Item,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 200,
+        Weight = 0.1f
+    };
+
+    public static Scroll CreateScrollOfEnchant() => new()
+    {
+        ItemId = "scroll_enchant",
+        Name = "強化の巻物",
+        Description = "装備品を1段階強化する。",
+        ScrollType = ScrollType.Enchant,
+        TargetType = TargetType.Item,
+        EffectValue = 1,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 250,
+        Weight = 0.1f
+    };
+
+    public static Scroll CreateScrollOfReturn() => new()
+    {
+        ItemId = "scroll_return",
+        Name = "帰還の巻物",
+        Description = "ダンジョン入口に帰還する。",
+        ScrollType = ScrollType.Return,
+        TargetType = TargetType.Self,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 150,
+        Weight = 0.1f
+    };
+
+    public static Scroll CreateScrollOfSanctuary() => new()
+    {
+        ItemId = "scroll_sanctuary",
+        Name = "聖域の巻物",
+        Description = "周囲に結界を張り、敵を退ける。",
+        ScrollType = ScrollType.Sanctuary,
+        TargetType = TargetType.Self,
+        EffectRadius = 4,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 200,
         Weight = 0.1f
     };
 
@@ -431,6 +844,22 @@ public class ItemFactory
                 ItemRarity.Legendary => _random.Next(5, 10),
                 _ => 0
             };
+
+            // 拾った装備品は未鑑定
+            equip.IsIdentified = false;
+
+            // 呪い付与（深い階層ほど確率上昇: 5% + 階層*2%、最大30%）
+            int curseChance = Math.Min(5 + depth * 2, 30);
+            if (_random.Next(100) < curseChance)
+            {
+                equip.IsCursed = true;
+            }
+
+            // 祝福付与（レアリティ依存）
+            if (!equip.IsCursed && rarity >= ItemRarity.Rare && _random.Next(100) < 20)
+            {
+                equip.IsBlessed = true;
+            }
         }
 
         return baseItem;
@@ -440,14 +869,22 @@ public class ItemFactory
     {
         int consumableType = _random.Next(4);
 
-        return consumableType switch
+        var item = consumableType switch
         {
-            0 => rarity >= ItemRarity.Uncommon ? CreateHealingPotion() : CreateMinorHealingPotion(),
+            0 => (Item)(rarity >= ItemRarity.Uncommon ? CreateHealingPotion() : CreateMinorHealingPotion()),
             1 => CreateMinorManaPotion(),
             2 => CreateAntidote(),
             3 => CreateScrollOfIdentify(),
             _ => CreateMinorHealingPotion()
         };
+
+        // 巻物は未鑑定で生成
+        if (item is Scroll scroll)
+        {
+            scroll.IsIdentified = false;
+        }
+
+        return item;
     }
 
     private Item GenerateRandomFood()
@@ -509,6 +946,11 @@ public static class ItemDefinitions
         ["weapon_battle_axe"] = ItemFactory.CreateBattleAxe,
         ["weapon_wooden_staff"] = ItemFactory.CreateWoodenStaff,
         ["weapon_short_bow"] = ItemFactory.CreateShortBow,
+        ["weapon_greatsword"] = ItemFactory.CreateGreatsword,
+        ["weapon_spear"] = ItemFactory.CreateSpear,
+        ["weapon_war_hammer"] = ItemFactory.CreateWarHammer,
+        ["weapon_crossbow"] = ItemFactory.CreateCrossbow,
+        ["weapon_whip"] = ItemFactory.CreateWhip,
 
         // 防具
         ["armor_leather"] = ItemFactory.CreateLeatherArmor,
@@ -517,22 +959,48 @@ public static class ItemDefinitions
         ["armor_wizard_robe"] = ItemFactory.CreateWizardRobe,
         ["shield_wooden"] = ItemFactory.CreateWoodenShield,
         ["shield_iron"] = ItemFactory.CreateIronShield,
+        ["armor_iron_helm"] = ItemFactory.CreateIronHelm,
+        ["armor_leather_gloves"] = ItemFactory.CreateLeatherGloves,
+        ["armor_iron_boots"] = ItemFactory.CreateIronBoots,
+
+        // アクセサリ
+        ["accessory_iron_ring"] = ItemFactory.CreateIronRing,
+        ["accessory_protection_amulet"] = ItemFactory.CreateProtectionAmulet,
+        ["accessory_speed_cloak"] = ItemFactory.CreateSpeedCloak,
 
         // ポーション
         ["potion_healing_minor"] = ItemFactory.CreateMinorHealingPotion,
         ["potion_healing"] = ItemFactory.CreateHealingPotion,
+        ["potion_healing_super"] = ItemFactory.CreateSuperHealingPotion,
         ["potion_mana_minor"] = ItemFactory.CreateMinorManaPotion,
+        ["potion_mana"] = ItemFactory.CreateManaPotion,
         ["potion_antidote"] = ItemFactory.CreateAntidote,
+        ["potion_strength"] = ItemFactory.CreateStrengthPotion,
+        ["potion_agility"] = ItemFactory.CreateAgilityPotion,
+        ["potion_invisibility"] = ItemFactory.CreateInvisibilityPotion,
+        ["potion_fire_resist"] = ItemFactory.CreateFireResistPotion,
+        ["potion_cold_resist"] = ItemFactory.CreateColdResistPotion,
+        ["potion_cure_all"] = ItemFactory.CreateCureAllPotion,
 
         // 食料
         ["food_bread"] = ItemFactory.CreateBread,
         ["food_ration"] = ItemFactory.CreateRation,
         ["food_cooked_meat"] = ItemFactory.CreateCookedMeat,
+        ["food_emergency_ration"] = ItemFactory.CreateEmergencyRation,
+        ["food_lembas"] = ItemFactory.CreateLembas,
+        ["food_fruit"] = ItemFactory.CreateFruit,
 
         // 巻物
         ["scroll_teleport"] = ItemFactory.CreateScrollOfTeleport,
         ["scroll_identify"] = ItemFactory.CreateScrollOfIdentify,
-        ["scroll_magic_mapping"] = ItemFactory.CreateScrollOfMagicMapping
+        ["scroll_magic_mapping"] = ItemFactory.CreateScrollOfMagicMapping,
+        ["scroll_fireball"] = ItemFactory.CreateScrollOfFireball,
+        ["scroll_lightning"] = ItemFactory.CreateScrollOfLightning,
+        ["scroll_freeze"] = ItemFactory.CreateScrollOfFreeze,
+        ["scroll_remove_curse"] = ItemFactory.CreateScrollOfRemoveCurse,
+        ["scroll_enchant"] = ItemFactory.CreateScrollOfEnchant,
+        ["scroll_return"] = ItemFactory.CreateScrollOfReturn,
+        ["scroll_sanctuary"] = ItemFactory.CreateScrollOfSanctuary
     };
 
     /// <summary>

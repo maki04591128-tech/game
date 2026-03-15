@@ -108,7 +108,29 @@ public enum TileType
     /// <summary>
     /// 木
     /// </summary>
-    Tree
+    Tree,
+
+    // === デバッグ専用タイル ===
+
+    /// <summary>
+    /// デバッグ: 敵種類変更マス（踏むと敵の種類を切り替え）
+    /// </summary>
+    DebugEnemySpawn,
+
+    /// <summary>
+    /// デバッグ: AI切替マス（踏むと敵AIの活性/非活性を切り替え）
+    /// </summary>
+    DebugAIToggle,
+
+    /// <summary>
+    /// デバッグ: 日数進行マス（踏むと1日進む）
+    /// </summary>
+    DebugDayAdvance,
+
+    /// <summary>
+    /// デバッグ: NPC対話マス（踏むとNPCと対話）
+    /// </summary>
+    DebugNpc
 }
 
 /// <summary>
@@ -157,6 +179,16 @@ public class Tile
     /// タイル上の罠ID
     /// </summary>
     public string? TrapId { get; set; }
+
+    /// <summary>
+    /// ドアが施錠されているか
+    /// </summary>
+    public bool IsLocked { get; set; }
+
+    /// <summary>
+    /// 施錠の難易度（0=未施錠、高いほど解除が難しい）
+    /// </summary>
+    public int LockDifficulty { get; set; }
 
     /// <summary>
     /// 表示文字
@@ -242,6 +274,14 @@ public class Tile
                 tile.BlocksMovement = false;
                 break;
 
+            case TileType.DebugEnemySpawn:
+            case TileType.DebugAIToggle:
+            case TileType.DebugDayAdvance:
+            case TileType.DebugNpc:
+                tile.BlocksSight = false;
+                tile.BlocksMovement = false;
+                break;
+
             default:
                 tile.BlocksSight = true;
                 tile.BlocksMovement = true;
@@ -274,6 +314,10 @@ public class Tile
             TileType.SecretDoor => '#',  // 秘密のドアは壁に見える
             TileType.Grass => '"',
             TileType.Tree => '♣',
+            TileType.DebugEnemySpawn => 'E',
+            TileType.DebugAIToggle => 'A',
+            TileType.DebugDayAdvance => 'D',
+            TileType.DebugNpc => 'N',
             _ => '?'
         };
     }

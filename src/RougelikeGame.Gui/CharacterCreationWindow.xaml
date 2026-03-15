@@ -1,0 +1,111 @@
+<Window x:Class="RougelikeGame.Gui.CharacterCreationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="キャラクター作成" Height="580" Width="720"
+        Background="#1a1a2e" WindowStartupLocation="CenterOwner"
+        KeyDown="Window_KeyDown"
+        ResizeMode="NoResize">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- タイトル -->
+        <TextBlock Grid.Row="0" Text="キャラクター作成"
+                   Foreground="#ffd700" FontSize="20" FontWeight="Bold"
+                   HorizontalAlignment="Center" Margin="0,0,0,10"/>
+
+        <!-- 名前入力 -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+            <TextBlock Text="名前: " Foreground="White" FontSize="14" VerticalAlignment="Center"/>
+            <TextBox x:Name="NameBox" Width="200" FontSize="14" Text="冒険者"
+                     Background="#16213e" Foreground="White" BorderBrush="#4a4a6a" Padding="5,3"/>
+        </StackPanel>
+
+        <!-- 選択エリア（3列） -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 種族 -->
+            <Border Grid.Column="0" Background="#16213e" CornerRadius="5" Padding="5" Margin="0,0,5,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="種族" Foreground="#e94560" FontSize="14"
+                               FontWeight="Bold" Margin="5,0,0,5"/>
+                    <ListBox x:Name="RaceList" Background="Transparent" BorderThickness="0"
+                             Foreground="White" FontSize="12" SelectionChanged="Selection_Changed">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="3,2">
+                                    <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold" FontSize="13"/>
+                                    <TextBlock Text="{Binding Description}" Foreground="#a0a0a0" FontSize="10" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- 職業 -->
+            <Border Grid.Column="1" Background="#16213e" CornerRadius="5" Padding="5" Margin="5,0,5,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="職業" Foreground="#e94560" FontSize="14"
+                               FontWeight="Bold" Margin="5,0,0,5"/>
+                    <ListBox x:Name="ClassList" Background="Transparent" BorderThickness="0"
+                             Foreground="White" FontSize="12" SelectionChanged="Selection_Changed">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="3,2">
+                                    <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold" FontSize="13"/>
+                                    <TextBlock Text="{Binding Description}" Foreground="#a0a0a0" FontSize="10" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- 素性 -->
+            <Border Grid.Column="2" Background="#16213e" CornerRadius="5" Padding="5" Margin="5,0,0,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="素性" Foreground="#e94560" FontSize="14"
+                               FontWeight="Bold" Margin="5,0,0,5"/>
+                    <ListBox x:Name="BackgroundList" Background="Transparent" BorderThickness="0"
+                             Foreground="White" FontSize="12" SelectionChanged="Selection_Changed">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="3,2">
+                                    <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold" FontSize="13"/>
+                                    <TextBlock Text="{Binding Description}" Foreground="#a0a0a0" FontSize="10" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- プレビュー -->
+        <Border Grid.Row="3" Background="#0f3460" CornerRadius="5" Padding="10,5" Margin="0,8,0,0">
+            <TextBlock x:Name="PreviewText" Text="種族・職業・素性を選択してください"
+                       Foreground="#e0e0e0" FontSize="12" TextWrapping="Wrap"
+                       FontFamily="Consolas"/>
+        </Border>
+
+        <!-- ボタン -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
+            <Button Content="冒険を始める [Enter]" Width="160" Height="35"
+                    Click="ConfirmButton_Click" Background="#e94560" Foreground="White"
+                    FontSize="14" FontWeight="Bold" Margin="0,0,15,0"/>
+            <Button Content="キャンセル [Esc]" Width="120" Height="35"
+                    Click="CancelButton_Click" Background="#4a4a6a" Foreground="White" FontSize="13"/>
+        </StackPanel>
+    </Grid>
+</Window>

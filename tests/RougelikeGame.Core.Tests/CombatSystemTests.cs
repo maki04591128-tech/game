@@ -298,7 +298,7 @@ public class CombatSystemTests
             Vitality = 20,
             Level = 5,
             RaceBonus = 10,
-            CharacterClass = CharacterClass.Warrior
+            CharacterClass = RougelikeGame.Engine.Combat.CharacterClass.Warrior
         };
 
         // 50 + (20×10) + (5×5) + 10 + (15×4) = 50 + 200 + 25 + 10 + 60 = 345
@@ -316,7 +316,7 @@ public class CombatSystemTests
             Intelligence = 20,
             Level = 5,
             RaceBonus = 5,
-            CharacterClass = CharacterClass.Mage
+            CharacterClass = RougelikeGame.Engine.Combat.CharacterClass.Mage
         };
 
         // 20 + (15×5) + (20×2) + (5×2) + 5 + (8×4) = 20 + 75 + 40 + 10 + 5 + 32 = 182

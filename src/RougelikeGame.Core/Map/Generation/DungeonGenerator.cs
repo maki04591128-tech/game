@@ -41,6 +41,12 @@ public class DungeonGenerator : IMapGenerator
         // ドアを配置
         CorridorGenerator.PlaceDoors(map, _random, 0.25f);
 
+        // 施錠ドアを設定（閉じたドアの一部を施錠）
+        PlaceLockedDoors(map, parameters);
+
+        // 隠し通路を配置
+        PlaceSecretDoors(map, parameters);
+
         // 階段を配置
         PlaceStairs(map);
 
@@ -337,10 +343,77 @@ public class DungeonGenerator : IMapGenerator
     /// <summary>
     /// 罠を配置
     /// </summary>
+    /// <summary>
+    /// 閉じたドアの一部を施錠する
+    /// </summary>
+    private void PlaceLockedDoors(DungeonMap map, DungeonGenerationParameters parameters)
+    {
+        float lockChance = 0.1f + (parameters.Depth * 0.02f); // 階層が深いほど施錠率上昇
+
+        for (int x = 1; x < map.Width - 1; x++)
+        {
+            for (int y = 1; y < map.Height - 1; y++)
+            {
+                if (map.GetTileType(new Position(x, y)) == TileType.DoorClosed &&
+                    _random.NextDouble() < lockChance)
+                {
+                    var tile = map[x, y];
+                    tile.IsLocked = true;
+                    tile.LockDifficulty = 5 + parameters.Depth * 2; // 階層依存の解錠難易度
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 隠し通路（SecretDoor）を配置する
+    /// 部屋の壁のうち、反対側が廊下または別の部屋に面しているものを候補にする
+    /// </summary>
+    private void PlaceSecretDoors(DungeonMap map, DungeonGenerationParameters parameters)
+    {
+        int secretDoorCount = Math.Max(0, parameters.Depth / 3); // 3階ごとに1つずつ増加
+        if (secretDoorCount == 0 && _random.NextDouble() < 0.3)
+            secretDoorCount = 1; // 浅い階層でも30%の確率で1つ配置
+
+        var candidates = new List<Position>();
+
+        for (int x = 1; x < map.Width - 1; x++)
+        {
+            for (int y = 1; y < map.Height - 1; y++)
+            {
+                var pos = new Position(x, y);
+                if (map.GetTileType(pos) != TileType.Wall) continue;
+
+                // 壁の両側が通行可能（部屋の壁が廊下/他の部屋に面している）
+                bool horizontalPassage =
+                    map.IsInBounds(x - 1, y) && !map[x - 1, y].BlocksMovement &&
+                    map.IsInBounds(x + 1, y) && !map[x + 1, y].BlocksMovement;
+                bool verticalPassage =
+                    map.IsInBounds(x, y - 1) && !map[x, y - 1].BlocksMovement &&
+                    map.IsInBounds(x, y + 1) && !map[x, y + 1].BlocksMovement;
+
+                if (horizontalPassage || verticalPassage)
+                {
+                    candidates.Add(pos);
+                }
+            }
+        }
+
+        // 候補からランダムに選択して配置
+        for (int i = 0; i < secretDoorCount && candidates.Count > 0; i++)
+        {
+            int idx = _random.Next(candidates.Count);
+            var pos = candidates[idx];
+            candidates.RemoveAt(idx);
+            map.SetTile(pos, TileType.SecretDoor);
+        }
+    }
+
     private void PlaceTraps(DungeonMap map, DungeonGenerationParameters parameters)
     {
         int floorTiles = map.CountFloorTiles();
         int trapCount = (int)(floorTiles * parameters.TrapDensity);
+        var trapTypes = TrapDefinition.AllTraps;
 
         for (int i = 0; i < trapCount; i++)
         {
@@ -348,6 +421,8 @@ public class DungeonGenerator : IMapGenerator
             if (pos.HasValue && map.GetTileType(pos.Value) == TileType.Floor)
             {
                 map.SetTile(pos.Value, TileType.TrapHidden);
+                var trap = trapTypes[_random.Next(trapTypes.Length)];
+                map[pos.Value].TrapId = trap.Type.ToString();
             }
         }
     }

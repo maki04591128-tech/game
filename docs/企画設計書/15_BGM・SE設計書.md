@@ -2,8 +2,11 @@
 
 > **📌 実装状況**
 >
-> BGM/SE は **未実装** です（Phase 6: リリース準備で実装予定）。
-> 本書は音響設計の方針と実装計画を定義します。
+> BGM/SE の **AudioManager 基盤は実装済み**（Phase 6.3a 完了）。
+> - `IAudioManager` インターフェース + `AudioManager`（WPF MediaPlayer）+ `SilentAudioManager`（テスト用）
+> - BGM ループ再生、SE 同時再生（最大8）、重複抑制（50ms）、音量設定（Master/BGM/SE）対応
+> - 音声ファイル（MP3/WAV/OGG）は未配置。実際の楽曲・効果音は Ver.α 以降で順次追加予定。
+> - 音量設定は `GameSettings`（設定画面）と連動済み。
 
 ---
 
@@ -13,7 +16,7 @@
 |------|------|
 | BGM制作 | suno（AI音楽生成サービス）で作成 |
 | SE素材 | フリー素材サイトから収集（効果音ラボ、魔王魂など） |
-| 実装技術 | WPF MediaPlayer または NAudio ライブラリ（検討中） |
+| 実装技術 | WPF MediaPlayer（採用済み） |
 | ファイル形式 | BGM: MP3/OGG、SE: WAV/OGG |
 | 音量制御 | マスター/BGM/SE 個別音量調整（設定画面で制御） |
 | ライセンス | 商用利用可能な素材のみ使用 |
@@ -112,33 +115,60 @@
 
 ## 5. 実装計画
 
-### 5.1 技術選定（検討中）
+### 5.1 技術選定（確定）
 
-| 方式 | メリット | デメリット |
-|------|---------|-----------|
-| WPF MediaPlayer | 追加ライブラリ不要 | 同時再生制限、機能制限 |
-| NAudio | 高機能、ミキシング対応 | NuGet追加、学習コスト |
-| FMOD | プロ品質、3Dオーディオ | ライセンス費用 |
+**採用**: WPF MediaPlayer
 
-### 5.2 実装ファイル構成（予定）
+| 方式 | メリット | デメリット | 状態 |
+|------|---------|-----------|------|
+| WPF MediaPlayer | 追加ライブラリ不要 | 同時再生制限、機能制限 | ✅ 採用 |
+| NAudio | 高機能、ミキシング対応 | NuGet追加、学習コスト | — 不採用 |
+| FMOD | プロ品質、3Dオーディオ | ライセンス費用 | — 不採用 |
+
+> SE の同時再生制限は MediaPlayer インスタンスプール（最大8）で対処済み。
+> 将来的に高度なミキシングやクロスフェードが必要になった場合は NAudio への移行を検討。
+
+### 5.2 実装ファイル構成（実装済み）
 
 ```
 src/RougelikeGame.Gui/
 ├── Audio/
-│   ├── IAudioManager.cs          # オーディオ管理インターフェース
-│   ├── AudioManager.cs           # BGM/SE再生管理
-│   ├── BgmPlayer.cs              # BGM再生（ループ、クロスフェード）
-│   └── SoundEffectPlayer.cs      # SE再生（同時再生、重複制限）
+│   ├── IAudioManager.cs          # オーディオ管理インターフェース（✅ 実装済み）
+│   ├── AudioManager.cs           # BGM/SE再生管理（✅ 実装済み）
+│   ├── SilentAudioManager.cs     # テスト・無音実装（✅ 実装済み）
+│   └── AudioIds.cs               # BGM/SE ID定数（✅ 実装済み: BgmIds 10曲 + SeIds 16種）
 └── Resources/
-    ├── BGM/                       # BGMファイル配置
-    └── SE/                        # SEファイル配置
+    ├── BGM/                       # BGMファイル配置（⬜ 未配置）
+    └── SE/                        # SEファイル配置（⬜ 未配置）
 ```
+
+> **設計変更**: 当初予定の `BgmPlayer.cs` / `SoundEffectPlayer.cs` は `AudioManager.cs` に統合。
+> BGM（MediaPlayer 1インスタンス）と SE（MediaPlayer プール最大8）を単一クラスで管理する設計に変更。
 
 ### 5.3 実装フェーズ
 
-| フェーズ | 内容 | 優先度 |
-|---------|------|--------|
-| Phase 6.3a | AudioManager基盤 + BGM再生 | ★★★ |
-| Phase 6.3b | SE再生（戦闘・アイテム） | ★★★ |
-| Phase 6.3c | 音量設定画面 | ★★☆ |
-| Phase 6.3d | クロスフェード・距離減衰 | ★☆☆ |
+| フェーズ | 内容 | 優先度 | 状態 |
+|---------|------|--------|------|
+| Phase 6.3a | AudioManager基盤 + BGM/SE再生 | ★★★ | ✅ 完了 |
+| Phase 6.3b | 音声ファイル配置・SE実際の発音 | ★★★ | ⬜ Ver.α予定 |
+| Phase 6.3c | 音量設定画面（GameSettings連携） | ★★☆ | ✅ 完了 |
+| Phase 6.3d | クロスフェード・距離減衰 | ★☆☆ | ⬜ Ver.α以降 |
+
+### 5.4 AudioManager クラス概要
+
+| メソッド | 説明 |
+|----------|------|
+| `PlayBgm(string bgmId)` | BGM再生（自動ループ、MediaEnded イベント） |
+| `StopBgm()` | BGM停止 |
+| `PauseBgm()` / `ResumeBgm()` | BGM一時停止・再開 |
+| `PlaySe(string seId)` | SE再生（プールから空きMediaPlayer取得、50ms重複抑制） |
+| `StopAll()` | 全音声停止 |
+| `ApplyVolumeSettings(GameSettings)` | 音量設定反映（Master×BGM、Master×SE） |
+
+### 5.5 AudioIds 定数一覧
+
+**BgmIds**（10曲）:
+`Title`, `DungeonNormal`, `Battle`, `BossBattle`, `DeathReturn`, `GameOver`, `DungeonDeep`, `SafeZone`, `Shop`, `Event`
+
+**SeIds**（16種）:
+`Attack`, `AttackMiss`, `Critical`, `MagicCast`, `Damage`, `EnemyDefeat`, `PlayerDeath`, `FootStep`, `DoorOpen`, `StairsMove`, `TrapActivate`, `SecretDoor`, `ItemPickup`, `PotionUse`, `LevelUp`, `MenuOpen`

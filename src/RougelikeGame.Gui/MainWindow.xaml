@@ -30,8 +30,10 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- 左: 階層 + 日時 -->
+                <!-- 左: 領地 + 階層 + 日時 -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock x:Name="TerritoryText" Text="王都領" Foreground="#ffd93d" FontSize="14" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="SurfaceStatusText" Text="【地上】" Foreground="#4ecca3" FontSize="14" FontWeight="Bold" Margin="0,0,8,0"/>
                     <TextBlock x:Name="FloorText" Text="第1層" Foreground="#e94560" FontSize="16" FontWeight="Bold" Margin="0,0,15,0"/>
                     <TextBlock x:Name="DateText" Text="冒険歴1024年 緑風の月 15日 08:00" Foreground="#c0a0ff" FontSize="14" FontWeight="Bold" Margin="0,0,10,0"/>
                     <TextBlock x:Name="TimePeriodText" Text="朝" Foreground="#ffd93d" FontSize="14" FontStyle="Italic" Margin="0,0,15,0"/>
@@ -53,7 +55,11 @@
                     <TextBlock Text="満腹:" Foreground="White" FontSize="14"/>
                     <TextBlock x:Name="HungerText" Text="100" Foreground="#ff6b6b" FontSize="14" FontWeight="Bold" Margin="0,0,15,0"/>
                     <TextBlock Text="正気:" Foreground="White" FontSize="14"/>
-                    <TextBlock x:Name="SanityText" Text="100" Foreground="#c0a0ff" FontSize="14" FontWeight="Bold"/>
+                    <TextBlock x:Name="SanityText" Text="100" Foreground="#c0a0ff" FontSize="14" FontWeight="Bold" Margin="0,0,15,0"/>
+                    <TextBlock Text="💰" Foreground="#ffd700" FontSize="14"/>
+                    <TextBlock x:Name="GoldText" Text="0G" Foreground="#ffd700" FontSize="14" FontWeight="Bold" Margin="0,0,15,0"/>
+                    <TextBlock Text="⚖" Foreground="#a0c4ff" FontSize="14"/>
+                    <TextBlock x:Name="WeightText" Text="0/100kg" Foreground="#a0c4ff" FontSize="14" FontWeight="Bold"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -91,7 +97,8 @@
 
         <!-- 操作説明 -->
         <Border Grid.Row="3" Background="#0f3460" Padding="10,5">
-            <TextBlock Text="[W/↑]上 [S/↓]下 [A/←]左 [D/→]右 [同時押しで斜め] | [I]持物 [C]状態 [L]ログ [G]拾う [&gt;]降 [&lt;]昇 [Tab]探索 [M]地図 [F5]保存 [F9]読込 [Space]待機 [Q]終了"
+            <TextBlock x:Name="KeyHelpText"
+                       Text="[WASD/矢印]移動 [I]持物 [C]状態 [L]ログ [G]拾う [&gt;]降 [&lt;]昇 [Tab]探索 [M]地図 [J]世界 [B]街 [K]依頼 [V]魔法 [E]技能 [O]信仰 [H]鍛冶 [P]祈り [F5]保存 [F9]読込 [Q]終了"
                        Foreground="#e0e0e0" 
                        FontSize="12" 
                        HorizontalAlignment="Center"/>

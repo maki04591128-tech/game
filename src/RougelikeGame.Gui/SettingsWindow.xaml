@@ -1,0 +1,166 @@
+<Window x:Class="RougelikeGame.Gui.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="設定"
+        Height="520" Width="600"
+        Background="#1a1a2e"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow"
+        KeyDown="Window_KeyDown">
+
+    <Window.Resources>
+        <Style x:Key="SettingLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#c0c0d0"/>
+            <Setter Property="FontFamily" Value="Yu Gothic UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="SettingValueLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#e94560"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="MinWidth" Value="40"/>
+        </Style>
+        <Style x:Key="SettingSlider" TargetType="Slider">
+            <Setter Property="Minimum" Value="0"/>
+            <Setter Property="Maximum" Value="100"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Width" Value="250"/>
+        </Style>
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#e94560"/>
+            <Setter Property="FontFamily" Value="Yu Gothic UI"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,15,0,8"/>
+        </Style>
+        <Style x:Key="SettingsButton" TargetType="Button">
+            <Setter Property="Background" Value="#16213e"/>
+            <Setter Property="Foreground" Value="#c0c0d0"/>
+            <Setter Property="FontFamily" Value="Yu Gothic UI"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="30,8"/>
+            <Setter Property="Margin" Value="10,0"/>
+            <Setter Property="BorderBrush" Value="#404060"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="30,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- タイトル -->
+        <TextBlock Grid.Row="0" Text="⚙ 設定" 
+                   FontFamily="Yu Gothic UI" FontSize="24" FontWeight="Bold"
+                   Foreground="#e94560" Margin="0,0,0,10"/>
+
+        <!-- 設定項目 -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- 音量設定 -->
+                <TextBlock Text="🔊 音量設定" Style="{StaticResource SectionHeader}"/>
+
+                <Grid Margin="10,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="50"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="マスター音量" Style="{StaticResource SettingLabel}"/>
+                    <Slider x:Name="MasterVolumeSlider" Grid.Column="1" Style="{StaticResource SettingSlider}"
+                            ValueChanged="VolumeSlider_ValueChanged"/>
+                    <TextBlock x:Name="MasterVolumeText" Grid.Column="2" Text="80%" Style="{StaticResource SettingValueLabel}"/>
+                </Grid>
+
+                <Grid Margin="10,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="50"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="BGM音量" Style="{StaticResource SettingLabel}"/>
+                    <Slider x:Name="BgmVolumeSlider" Grid.Column="1" Style="{StaticResource SettingSlider}"
+                            ValueChanged="VolumeSlider_ValueChanged"/>
+                    <TextBlock x:Name="BgmVolumeText" Grid.Column="2" Text="80%" Style="{StaticResource SettingValueLabel}"/>
+                </Grid>
+
+                <Grid Margin="10,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="50"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="SE音量" Style="{StaticResource SettingLabel}"/>
+                    <Slider x:Name="SeVolumeSlider" Grid.Column="1" Style="{StaticResource SettingSlider}"
+                            ValueChanged="VolumeSlider_ValueChanged"/>
+                    <TextBlock x:Name="SeVolumeText" Grid.Column="2" Text="80%" Style="{StaticResource SettingValueLabel}"/>
+                </Grid>
+
+                <!-- 表示設定 -->
+                <TextBlock Text="🖥 表示設定" Style="{StaticResource SectionHeader}"/>
+
+                <Grid Margin="10,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="50"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="フォントサイズ" Style="{StaticResource SettingLabel}"/>
+                    <Slider x:Name="FontSizeSlider" Grid.Column="1" Minimum="10" Maximum="24" 
+                            VerticalAlignment="Center" Width="250"
+                            IsSnapToTickEnabled="True" TickFrequency="1"
+                            ValueChanged="FontSizeSlider_ValueChanged"/>
+                    <TextBlock x:Name="FontSizeText" Grid.Column="2" Text="14" Style="{StaticResource SettingValueLabel}"/>
+                </Grid>
+
+                <!-- キーバインド表示 -->
+                <TextBlock Text="⌨ キーバインド（参照用）" Style="{StaticResource SectionHeader}"/>
+
+                <Border Background="#0f0f23" CornerRadius="4" Padding="15,10" Margin="10,5">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="W/A/S/D, 矢印 — 移動" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                            <TextBlock Text="Space — 待機" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                            <TextBlock Text="G — アイテム拾う" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                            <TextBlock Text="I — インベントリ" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                            <TextBlock Text="C — ステータス" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                            <TextBlock Text="L — メッセージログ" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                            <TextBlock Text="Tab — 自動探索" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="M — ミニマップ" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                            <TextBlock Text="Shift+. — 階段を降りる" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                            <TextBlock Text="Shift+, — 階段を上る" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                            <TextBlock Text="F5 — セーブ" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                            <TextBlock Text="F9 — ロード" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                            <TextBlock Text="F — ドア操作" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                            <TextBlock Text="Q — ゲーム終了" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ボタン -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,0">
+            <Button Content="保存" Style="{StaticResource SettingsButton}" Click="SaveButton_Click"/>
+            <Button Content="キャンセル" Style="{StaticResource SettingsButton}" Click="CancelButton_Click"/>
+            <Button Content="初期値に戻す" Style="{StaticResource SettingsButton}" Click="ResetButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

@@ -63,6 +63,9 @@ public abstract class EquipmentItem : Item, IEquippable
     public StatModifier StatModifier { get; init; } = new();
     public int RequiredLevel { get; init; } = 1;
 
+    /// <summary>装備カテゴリ（職業適性判定用）</summary>
+    public virtual EquipmentCategory Category => EquipmentCategory.Sword;
+
     /// <summary>必要ステータス</summary>
     public Stats? RequiredStats { get; init; }
 
@@ -157,6 +160,21 @@ public class Weapon : EquipmentItem
 {
     public WeaponType WeaponType { get; init; }
 
+    /// <summary>WeaponTypeからEquipmentCategoryを導出</summary>
+    public override EquipmentCategory Category => WeaponType switch
+    {
+        WeaponType.Sword or WeaponType.Greatsword => EquipmentCategory.Sword,
+        WeaponType.Axe or WeaponType.Greataxe => EquipmentCategory.Axe,
+        WeaponType.Hammer => EquipmentCategory.Mace,
+        WeaponType.Dagger => EquipmentCategory.Dagger,
+        WeaponType.Bow or WeaponType.Crossbow or WeaponType.Thrown => EquipmentCategory.Bow,
+        WeaponType.Staff => EquipmentCategory.Staff,
+        WeaponType.Fist => EquipmentCategory.Fist,
+        WeaponType.Spear => EquipmentCategory.Sword,
+        WeaponType.Whip => EquipmentCategory.Sword,
+        _ => EquipmentCategory.Sword
+    };
+
     /// <summary>基本攻撃力</summary>
     public int BaseDamage { get; init; }
 
@@ -217,6 +235,17 @@ public class Weapon : EquipmentItem
 public class Armor : EquipmentItem
 {
     public ArmorType ArmorType { get; init; }
+
+    /// <summary>ArmorTypeからEquipmentCategoryを導出</summary>
+    public override EquipmentCategory Category => ArmorType switch
+    {
+        ArmorType.Plate => EquipmentCategory.HeavyArmor,
+        ArmorType.Chainmail => EquipmentCategory.MediumArmor,
+        ArmorType.Leather => EquipmentCategory.LightArmor,
+        ArmorType.Robe or ArmorType.Cloth => EquipmentCategory.Robe,
+        ArmorType.Shield => EquipmentCategory.Shield,
+        _ => EquipmentCategory.LightArmor
+    };
 
     /// <summary>基本防御力</summary>
     public int BaseDefense { get; init; }

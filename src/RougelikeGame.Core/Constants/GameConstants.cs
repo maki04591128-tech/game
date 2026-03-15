@@ -1,3 +1,6 @@
+using RougelikeGame.Core.AI;
+using RougelikeGame.Core.Items;
+
 namespace RougelikeGame.Core;
 
 /// <summary>
@@ -47,6 +50,10 @@ public static class TurnCosts
     // 魔法（最小・最大）
     public const int SpellMinimum = 5;
     public const int SpellMaximum = 100;
+
+    // 宗教
+    public const int Pray = 10;
+    public const int ReligionAction = 5;
 }
 
 /// <summary>
@@ -107,13 +114,35 @@ public static class GameConstants
     public const int DefaultMapHeight = 50;
     public const int DefaultViewRadius = 8;
 
+    // ダンジョン階層
+    public const int MaxDungeonFloor = 30;
+    public const int BossFloorInterval = 5;
+
     // インベントリ
     public const int DefaultInventorySize = 30;
+
+    // 重量
+    public const float BaseMaxWeight = 50f;
+    public const float WeightPerStrength = 5f;
+    public const float OverweightSpeedPenalty = 0.5f;
 
     // 魔法言語
     public const int MaxSpellWords = 7;
     public const int InitialWordMastery = 20;
     public const int MaxWordMastery = 100;
+
+    // 宗教
+    public const int MaxFaithPoints = 100;
+    public const double FaithRetentionRate = 0.80;          // 死に戻り時の信仰度維持率
+    public const int InitialFaithOnJoin = 20;               // 入信時初期信仰度
+    public const int InitialFaithOnConvert = 10;            // 改宗時初期信仰度
+    public const int PrayFaithGain = 2;                     // 祈り1回あたりの信仰度上昇
+    public const int ConversionSanityPenalty = 10;          // 改宗時正気度ペナルティ
+    public const int LeaveSanityPenalty = 5;                // 脱退時正気度ペナルティ
+    public const int ApostasyCurseDurationDays = 30;        // 背教者の呪い持続日数
+    public const int FaithDecayInterval = 10;               // 信仰度自然減少の間隔（日）
+    public const int FaithDecayAmount = 1;                  // 信仰度自然減少量
+    public const int MaxFaithCapReductionOnRejoin = 20;     // 再入信時の信仰度上限減少
 }
 
 /// <summary>
@@ -132,4 +161,133 @@ public static class SanityLoss
     public const int Fall = 8;
     public const int Poison = 7;
     public const int Unknown = 10;
+}
+
+/// <summary>
+/// バランス調整パラメータ
+/// </summary>
+public static class BalanceConfig
+{
+    #region 敵ステータス倍率
+
+    /// <summary>階層別ステータス倍率（階層 → 倍率）</summary>
+    public static double GetDepthStatMultiplier(int depth) => depth switch
+    {
+        <= 5 => 1.0,
+        <= 10 => 1.3,
+        <= 15 => 1.7,
+        <= 20 => 2.2,
+        <= 25 => 2.8,
+        <= 30 => 3.5,
+        _ => 3.5 + (depth - 30) * 0.2
+    };
+
+    /// <summary>ランク別ステータス倍率</summary>
+    public static double GetRankStatMultiplier(EnemyRank rank) => rank switch
+    {
+        EnemyRank.Common => 1.0,
+        EnemyRank.Elite => 1.5,
+        EnemyRank.Rare => 2.0,
+        EnemyRank.Boss => 2.5,
+        EnemyRank.HiddenBoss => 4.0,
+        _ => 1.0
+    };
+
+    /// <summary>階層別推奨レベル</summary>
+    public static int GetRecommendedLevel(int depth) => depth switch
+    {
+        <= 5 => 1 + (depth - 1),
+        <= 10 => 5 + (depth - 5) * 2,
+        <= 20 => 15 + (depth - 10) * 2,
+        <= 30 => 35 + (depth - 20),
+        _ => 45
+    };
+
+    #endregion
+
+    #region ドロップ率
+
+    /// <summary>レアリティ別基本ドロップ率</summary>
+    public static double GetBaseDropRate(ItemRarity rarity) => rarity switch
+    {
+        ItemRarity.Common => 0.50,
+        ItemRarity.Uncommon => 0.25,
+        ItemRarity.Rare => 0.10,
+        ItemRarity.Epic => 0.04,
+        ItemRarity.Legendary => 0.01,
+        _ => 0.50
+    };
+
+    /// <summary>ランク別ドロップ率ボーナス倍率</summary>
+    public static double GetRankDropBonus(EnemyRank rank) => rank switch
+    {
+        EnemyRank.Common => 1.0,
+        EnemyRank.Elite => 1.5,
+        EnemyRank.Rare => 2.0,
+        EnemyRank.Boss => 2.5,
+        EnemyRank.HiddenBoss => 3.0,
+        _ => 1.0
+    };
+
+    #endregion
+
+    #region ゴールド報酬
+
+    /// <summary>階層別ゴールドドロップ範囲（最小値）</summary>
+    public static int GetGoldDropMin(int depth) => 5 + depth * 3;
+
+    /// <summary>階層別ゴールドドロップ範囲（最大値）</summary>
+    public static int GetGoldDropMax(int depth) => 15 + depth * 8;
+
+    /// <summary>ランク別ゴールド倍率</summary>
+    public static double GetRankGoldMultiplier(EnemyRank rank) => rank switch
+    {
+        EnemyRank.Common => 1.0,
+        EnemyRank.Elite => 2.0,
+        EnemyRank.Rare => 3.0,
+        EnemyRank.Boss => 5.0,
+        EnemyRank.HiddenBoss => 10.0,
+        _ => 1.0
+    };
+
+    #endregion
+
+    #region 経験値バランス
+
+    /// <summary>ランク別経験値倍率</summary>
+    public static double GetRankExpMultiplier(EnemyRank rank) => rank switch
+    {
+        EnemyRank.Common => 1.0,
+        EnemyRank.Elite => 2.0,
+        EnemyRank.Rare => 3.0,
+        EnemyRank.Boss => 5.0,
+        EnemyRank.HiddenBoss => 10.0,
+        _ => 1.0
+    };
+
+    /// <summary>レベル差による経験値補正（自レベル - 敵レベル）</summary>
+    public static double GetLevelDiffExpModifier(int levelDiff) => levelDiff switch
+    {
+        <= -10 => 2.0,
+        <= -5 => 1.5,
+        <= 0 => 1.0,
+        <= 5 => 0.7,
+        <= 10 => 0.4,
+        _ => 0.1
+    };
+
+    #endregion
+
+    #region ショップバランス
+
+    /// <summary>ショップ買値倍率（基本価格 × この倍率）</summary>
+    public const double ShopBuyMultiplier = 1.5;
+
+    /// <summary>ショップ売値倍率（基本価格 × この倍率）</summary>
+    public const double ShopSellMultiplier = 0.3;
+
+    /// <summary>識別済みアイテムの売値ボーナス倍率</summary>
+    public const double IdentifiedSellBonus = 1.2;
+
+    #endregion
 }

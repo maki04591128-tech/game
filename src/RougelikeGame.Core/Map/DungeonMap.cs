@@ -14,6 +14,9 @@ public class DungeonMap : IMap
     public int Height { get; }
     public int Depth { get; init; } = 1;
 
+    /// <summary>マップの管理用名前（種族・素性に応じた開始マップ名等）</summary>
+    public string Name { get; set; } = "";
+
     public IReadOnlyList<Room> Rooms => _rooms.AsReadOnly();
 
     public Position? StairsUpPosition { get; private set; }
@@ -271,6 +274,26 @@ public class DungeonMap : IMap
     /// 歩行可能なランダムな位置を取得
     /// </summary>
     public Position? GetRandomWalkablePosition(Random random, int maxAttempts = 100)
+    {
+        for (int i = 0; i < maxAttempts; i++)
+        {
+            int x = random.Next(1, Width - 1);
+            int y = random.Next(1, Height - 1);
+            var pos = new Position(x, y);
+
+            if (IsWalkable(pos))
+            {
+                return pos;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 歩行可能なランダムな位置を取得（IRandomProvider版）
+    /// </summary>
+    public Position? GetRandomWalkablePosition(IRandomProvider random, int maxAttempts = 100)
     {
         for (int i = 0; i < maxAttempts; i++)
         {
