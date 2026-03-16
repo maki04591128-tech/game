@@ -353,7 +353,7 @@ Render(map, player, enemies, groundItems)
 ### 7.4 処理フロー
 
 ```
-ProcessInput(GameCommand)
+ProcessInput(GameAction)
   │
   ├─ 移動 → TryMove → 敵がいれば攻撃
   ├─ 待機 → AdvanceTurns(1)
