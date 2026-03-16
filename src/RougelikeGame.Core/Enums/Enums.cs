@@ -805,3 +805,205 @@ public enum DungeonFeatureType
     /// <summary>森林</summary>
     Forest
 }
+
+/// <summary>
+/// スキルノードの種類
+/// </summary>
+public enum SkillNodeType
+{
+    /// <summary>アクティブスキル</summary>
+    Active,
+    /// <summary>パッシブ強化</summary>
+    Passive,
+    /// <summary>ステータスノード（小）</summary>
+    StatMinor,
+    /// <summary>ステータスノード（大）</summary>
+    StatMajor,
+    /// <summary>キーストーン（強力だがデメリット付き）</summary>
+    Keystone
+}
+
+/// <summary>
+/// 攻撃方向（正面/側面/背面）
+/// </summary>
+public enum AttackDirection
+{
+    /// <summary>正面攻撃</summary>
+    Front,
+    /// <summary>側面攻撃</summary>
+    Side,
+    /// <summary>背面攻撃</summary>
+    Back
+}
+
+/// <summary>
+/// 耐久値段階
+/// </summary>
+public enum DurabilityStage
+{
+    /// <summary>完全 (100%〜76%)</summary>
+    Perfect,
+    /// <summary>消耗 (75%〜51%)</summary>
+    Worn,
+    /// <summary>損傷 (50%〜26%)</summary>
+    Damaged,
+    /// <summary>危険 (25%〜1%)</summary>
+    Critical,
+    /// <summary>破壊 (0%)</summary>
+    Broken
+}
+
+/// <summary>
+/// 能力値フラグ
+/// </summary>
+public enum StatFlag
+{
+    /// <summary>STR≥25: 怪力（岩破壊/力自慢NPC）</summary>
+    Herculean,
+    /// <summary>INT≥25: 博識（古文書解読/賢者会話）</summary>
+    Erudite,
+    /// <summary>PER≥25: 鷹の目（隠しドア自動発見/遠距離察知）</summary>
+    EagleEye,
+    /// <summary>AGI≥25: 韋駄天（逃走確率100%/特殊ルート）</summary>
+    FleetFooted,
+    /// <summary>CHA≥20: 魅力的（ショップ値引/好感度↑）</summary>
+    Charismatic,
+    /// <summary>LUK≥20: 強運（レアドロップ↑/カジノイベント）</summary>
+    Lucky,
+    /// <summary>VIT≥25: 頑健（状態異常耐性↑/スタミナ上限↑）</summary>
+    Robust,
+    /// <summary>DEX≥25: 神業（クリティカル率↑/罠解除↑）</summary>
+    Dexterous,
+    /// <summary>MND≥25: 精神力（MP回復↑/恐怖・混乱耐性）</summary>
+    SteadyMind
+}
+
+/// <summary>
+/// フラグ条件の種別
+/// </summary>
+public enum FlagConditionType
+{
+    /// <summary>フラグ存在チェック (has:flag_name)</summary>
+    HasFlag,
+    /// <summary>数値比較 (karma >= 50)</summary>
+    ValueCompare,
+    /// <summary>能力値条件 (stat:STR >= 20)</summary>
+    StatCompare,
+    /// <summary>種族条件 (race:Elf)</summary>
+    RaceCheck,
+    /// <summary>宗教条件 (religion:LightTemple)</summary>
+    ReligionCheck,
+    /// <summary>熟練度条件 (mastery:sword >= 10)</summary>
+    MasteryCheck,
+    /// <summary>カルマ段階条件</summary>
+    KarmaRankCheck
+}
+
+/// <summary>
+/// 季節
+/// </summary>
+public enum Season
+{
+    /// <summary>春 (3-5月)</summary>
+    Spring,
+    /// <summary>夏 (6-8月)</summary>
+    Summer,
+    /// <summary>秋 (9-11月)</summary>
+    Autumn,
+    /// <summary>冬 (12-2月)</summary>
+    Winter
+}
+
+/// <summary>
+/// 天候
+/// </summary>
+public enum Weather
+{
+    /// <summary>晴れ</summary>
+    Clear,
+    /// <summary>雨</summary>
+    Rain,
+    /// <summary>霧</summary>
+    Fog,
+    /// <summary>雪</summary>
+    Snow,
+    /// <summary>嵐</summary>
+    Storm
+}
+
+/// <summary>
+/// 戦闘スタンス
+/// </summary>
+public enum CombatStance
+{
+    /// <summary>バランス型（補正なし）</summary>
+    Balanced,
+    /// <summary>攻撃型（攻撃↑/防御↓）</summary>
+    Aggressive,
+    /// <summary>防御型（防御↑/攻撃↓）</summary>
+    Defensive
+}
+
+/// <summary>
+/// 採取ポイントの種類
+/// </summary>
+public enum GatheringType
+{
+    /// <summary>薬草採取</summary>
+    Herb,
+    /// <summary>鉱石採掘</summary>
+    Mining,
+    /// <summary>木材伐採</summary>
+    Logging,
+    /// <summary>釣り</summary>
+    Fishing,
+    /// <summary>採集（キノコ/果実等）</summary>
+    Foraging
+}
+
+/// <summary>
+/// 病気の種類
+/// </summary>
+public enum DiseaseType
+{
+    /// <summary>風邪（軽度、自然回復あり）</summary>
+    Cold,
+    /// <summary>感染症（傷口から、治療必要）</summary>
+    Infection,
+    /// <summary>食中毒（汚染食料、一時的）</summary>
+    FoodPoisoning,
+    /// <summary>瘴気病（特定ダンジョン、重度）</summary>
+    Miasma,
+    /// <summary>呪い病（呪い攻撃、魔法治療必要）</summary>
+    CursePlague
+}
+
+/// <summary>
+/// 睡眠の質
+/// </summary>
+public enum SleepQuality
+{
+    /// <summary>熟睡（宿屋/安全な野営）</summary>
+    DeepSleep,
+    /// <summary>普通（テント野営）</summary>
+    Normal,
+    /// <summary>浅い（屋外直寝）</summary>
+    Light,
+    /// <summary>仮眠（ダンジョン内）</summary>
+    Nap
+}
+
+/// <summary>
+/// 図鑑カテゴリ
+/// </summary>
+public enum EncyclopediaCategory
+{
+    /// <summary>モンスター図鑑</summary>
+    Monster,
+    /// <summary>アイテム図鑑</summary>
+    Item,
+    /// <summary>NPC図鑑</summary>
+    Npc,
+    /// <summary>地域図鑑</summary>
+    Region
+}
