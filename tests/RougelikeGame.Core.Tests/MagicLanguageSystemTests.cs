@@ -50,6 +50,7 @@ public class MagicLanguageSystemTests
     [InlineData("mikill", RuneWordCategory.Modifier)]
     [InlineData("hringr", RuneWordCategory.Range)]
     [InlineData("stund", RuneWordCategory.Duration)]
+    [InlineData("ef", RuneWordCategory.Condition)]
     public void RuneWordDatabase_GetById_ReturnsCorrectCategory(string id, RuneWordCategory expected)
     {
         var word = RuneWordDatabase.GetById(id);
@@ -70,6 +71,7 @@ public class MagicLanguageSystemTests
     [InlineData(RuneWordCategory.Modifier)]
     [InlineData(RuneWordCategory.Range)]
     [InlineData(RuneWordCategory.Duration)]
+    [InlineData(RuneWordCategory.Condition)]
     public void RuneWordDatabase_GetByCategory_ReturnsWords(RuneWordCategory category)
     {
         var words = RuneWordDatabase.GetByCategory(category).ToList();
@@ -103,6 +105,40 @@ public class MagicLanguageSystemTests
         Assert.NotNull(word);
         Assert.Equal(5, word.Difficulty);
         Assert.Equal(3.0f, word.PowerMultiplier);
+    }
+
+    [Theory]
+    [InlineData("ef", "エフ", "もし〜ならば", 3)]
+    [InlineData("tha", "サウ", "その時", 2)]
+    [InlineData("gegn", "ゲグン", "〜に対して", 2)]
+    [InlineData("daudr", "ダウズル", "死に瀕した時", 4)]
+    [InlineData("sar", "サウル", "傷ついた時", 3)]
+    public void RuneWordDatabase_ConditionWords_HaveCorrectProperties(string id, string pronunciation, string meaning, int difficulty)
+    {
+        var word = RuneWordDatabase.GetById(id);
+        Assert.NotNull(word);
+        Assert.Equal(RuneWordCategory.Condition, word.Category);
+        Assert.Equal(pronunciation, word.Pronunciation);
+        Assert.Equal(meaning, word.Meaning);
+        Assert.Equal(difficulty, word.Difficulty);
+    }
+
+    [Fact]
+    public void RuneWordDatabase_ConditionWords_Has5Words()
+    {
+        var conditionWords = RuneWordDatabase.GetByCategory(RuneWordCategory.Condition).ToList();
+        Assert.Equal(5, conditionWords.Count);
+    }
+
+    [Fact]
+    public void RuneWordDatabase_Loka_HasCorrectProperties()
+    {
+        var word = RuneWordDatabase.GetById("loka");
+        Assert.NotNull(word);
+        Assert.Equal(RuneWordCategory.Effect, word.Category);
+        Assert.Equal("ロカ", word.Pronunciation);
+        Assert.Equal("閉じる", word.Meaning);
+        Assert.Equal(2, word.Difficulty);
     }
 
     #endregion
@@ -286,6 +322,66 @@ public class MagicLanguageSystemTests
     {
         var fail = SpellResult.Failure("テストエラー");
         Assert.Equal("テストエラー", fail.GetDescription());
+    }
+
+    [Fact]
+    public void SpellParser_Parse_WithConditionWord_SetsConditionWord()
+    {
+        var parser = new SpellParser();
+        var mastery = new Dictionary<string, int>
+        {
+            { "ef", 80 },
+            { "brenna", 80 },
+            { "fjandi", 80 }
+        };
+        var result = parser.Parse("ef brenna fjandi", mastery);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.ConditionWord);
+        Assert.Equal("ef", result.ConditionWord.Id);
+        Assert.Equal(RuneWordCategory.Condition, result.ConditionWord.Category);
+    }
+
+    [Fact]
+    public void SpellParser_Parse_WithoutConditionWord_ConditionWordIsNull()
+    {
+        var parser = new SpellParser();
+        var mastery = new Dictionary<string, int>
+        {
+            { "brenna", 80 },
+            { "fjandi", 80 }
+        };
+        var result = parser.Parse("brenna fjandi", mastery);
+        Assert.True(result.IsSuccess);
+        Assert.Null(result.ConditionWord);
+    }
+
+    [Fact]
+    public void SpellParser_Parse_Loka_ReturnsSuccess()
+    {
+        var parser = new SpellParser();
+        var mastery = new Dictionary<string, int>
+        {
+            { "loka", 80 }
+        };
+        var result = parser.Parse("loka", mastery);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("loka", result.EffectWord!.Id);
+    }
+
+    [Fact]
+    public void SpellResult_GetDescription_WithCondition_IncludesConditionText()
+    {
+        var parser = new SpellParser();
+        var mastery = new Dictionary<string, int>
+        {
+            { "ef", 80 },
+            { "brenna", 80 },
+            { "fjandi", 80 }
+        };
+        var result = parser.Parse("ef brenna fjandi", mastery);
+        Assert.True(result.IsSuccess);
+        var description = result.GetDescription();
+        Assert.Contains("もし〜ならば", description);
     }
 
     #endregion

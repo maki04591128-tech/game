@@ -152,8 +152,8 @@ public class DungeonMap : IMap
 
     public bool CanMoveTo(Position position)
     {
+        // タイルレベルの移動可否判定のみ。エンティティ衝突チェックはGameControllerで実施
         return IsWalkable(position);
-        // TODO: エンティティ衝突チェックを追加
     }
 
     public bool HasLineOfSight(Position from, Position to)

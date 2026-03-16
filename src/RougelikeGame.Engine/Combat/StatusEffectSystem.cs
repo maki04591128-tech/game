@@ -178,6 +178,54 @@ public class StatusEffectSystem
         };
     }
 
+    /// <summary>
+    /// 魅了状態を生成（敵を攻撃できない、被ダメージで解除）
+    /// </summary>
+    public StatusEffect CreateCharm(int duration = 5)
+    {
+        return new StatusEffect(StatusEffectType.Charm, duration)
+        {
+            Name = "魅了"
+        };
+    }
+
+    /// <summary>
+    /// 狂気状態を生成（敵味方無差別攻撃、正気度に影響）
+    /// </summary>
+    public StatusEffect CreateMadness(int duration = 15)
+    {
+        return new StatusEffect(StatusEffectType.Madness, duration)
+        {
+            Name = "狂気"
+        };
+    }
+
+    /// <summary>
+    /// 石化状態を生成（完全行動不能、防御力大幅上昇）
+    /// </summary>
+    public StatusEffect CreatePetrification()
+    {
+        return new StatusEffect(StatusEffectType.Petrification, int.MaxValue)
+        {
+            Name = "石化",
+            TurnCostModifier = float.MaxValue,  // 行動不能
+            DefenseMultiplier = 3.0f             // 防御力大幅上昇
+        };
+    }
+
+    /// <summary>
+    /// 即死効果（HPを0にする特殊状態）
+    /// </summary>
+    public StatusEffect CreateInstantDeath()
+    {
+        return new StatusEffect(StatusEffectType.InstantDeath, 1)
+        {
+            Name = "即死",
+            DamagePerTick = int.MaxValue,
+            DamageElement = Element.Dark
+        };
+    }
+
     #endregion
 
     #region バフ生成
@@ -254,6 +302,9 @@ public class StatusEffectSystem
             StatusEffectType.Fear => param.Mind * 0.02,
             StatusEffectType.Sleep => param.Mind * 0.02,
             StatusEffectType.Silence => param.Mind * 0.02,
+            StatusEffectType.Charm => param.Mind * 0.02,
+            StatusEffectType.Madness => param.Mind * 0.02,
+            StatusEffectType.Petrification => param.Vitality * 0.01,
             _ => param.Mind * 0.01
         };
 
@@ -320,6 +371,29 @@ public class StatusEffectSystem
         return damageElement == Element.Fire;
     }
 
+    /// <summary>
+    /// 魅了からの解除判定（被ダメージで解除）
+    /// </summary>
+    public bool CheckCharmBreak(int damageTaken)
+    {
+        return damageTaken > 0;
+    }
+
+    /// <summary>
+    /// 狂気時の行動決定
+    /// </summary>
+    public MadnessAction GetMadnessAction()
+    {
+        int roll = _random.Next(100);
+        return roll switch
+        {
+            < 40 => MadnessAction.AttackNearest,   // 最も近い対象を攻撃（敵味方問わず）
+            < 60 => MadnessAction.AttackSelf,       // 自分を攻撃
+            < 80 => MadnessAction.MoveRandom,       // ランダム移動
+            _ => MadnessAction.ActNormally           // 正常行動
+        };
+    }
+
     #endregion
 }
 
@@ -355,6 +429,21 @@ public enum ConfusedAction
     MoveRandom,
     /// <summary>何もしない</summary>
     DoNothing,
+    /// <summary>正常に行動</summary>
+    ActNormally
+}
+
+/// <summary>
+/// 狂気時の行動
+/// </summary>
+public enum MadnessAction
+{
+    /// <summary>最も近い対象を攻撃（敵味方問わず）</summary>
+    AttackNearest,
+    /// <summary>自分を攻撃</summary>
+    AttackSelf,
+    /// <summary>ランダム移動</summary>
+    MoveRandom,
     /// <summary>正常に行動</summary>
     ActNormally
 }

@@ -285,6 +285,148 @@ public class CombatSystemTests
         Assert.False(system.CheckFreezeBreak(Element.Ice));
     }
 
+    [Fact]
+    public void CreateCharm_SetsCorrectProperties()
+    {
+        var system = new StatusEffectSystem(_fixedRandom);
+        var charm = system.CreateCharm();
+
+        Assert.Equal(StatusEffectType.Charm, charm.Type);
+        Assert.Equal("魅了", charm.Name);
+        Assert.Equal(5, charm.Duration);
+    }
+
+    [Fact]
+    public void CreateMadness_SetsCorrectProperties()
+    {
+        var system = new StatusEffectSystem(_fixedRandom);
+        var madness = system.CreateMadness();
+
+        Assert.Equal(StatusEffectType.Madness, madness.Type);
+        Assert.Equal("狂気", madness.Name);
+        Assert.Equal(15, madness.Duration);
+    }
+
+    [Fact]
+    public void CreatePetrification_SetsActionDisabledAndHighDefense()
+    {
+        var system = new StatusEffectSystem(_fixedRandom);
+        var petrification = system.CreatePetrification();
+
+        Assert.Equal(StatusEffectType.Petrification, petrification.Type);
+        Assert.Equal("石化", petrification.Name);
+        Assert.Equal(float.MaxValue, petrification.TurnCostModifier);  // 行動不能
+        Assert.Equal(3.0f, petrification.DefenseMultiplier);  // 防御力大幅上昇
+        Assert.Equal(int.MaxValue, petrification.Duration);  // 永続
+    }
+
+    [Fact]
+    public void CreateInstantDeath_HasMaxDamage()
+    {
+        var system = new StatusEffectSystem(_fixedRandom);
+        var instantDeath = system.CreateInstantDeath();
+
+        Assert.Equal(StatusEffectType.InstantDeath, instantDeath.Type);
+        Assert.Equal("即死", instantDeath.Name);
+        Assert.Equal(int.MaxValue, instantDeath.DamagePerTick);
+        Assert.Equal(Element.Dark, instantDeath.DamageElement);
+    }
+
+    [Fact]
+    public void CheckCharmBreak_ReturnsTrueOnDamage()
+    {
+        var system = new StatusEffectSystem(_fixedRandom);
+
+        Assert.True(system.CheckCharmBreak(1));
+        Assert.True(system.CheckCharmBreak(100));
+        Assert.False(system.CheckCharmBreak(0));
+    }
+
+    [Fact]
+    public void GetMadnessAction_ReturnsValidAction()
+    {
+        var system = new StatusEffectSystem(_fixedRandom);
+        var action = system.GetMadnessAction();
+
+        Assert.True(Enum.IsDefined(typeof(MadnessAction), action));
+    }
+
+    [Fact]
+    public void CheckResistance_HighMindResistsCharm()
+    {
+        var system = new StatusEffectSystem(new TestRandomProvider(0.1));
+        var param = new StatusResistanceParams
+        {
+            EffectType = StatusEffectType.Charm,
+            BaseResistance = 0.10,
+            Vitality = 10,
+            Mind = 40,  // 高いMND
+            EquipmentResistance = 0
+        };
+
+        // MND 40 × 0.02 = 0.80 + 0.10 = 0.90 (90%耐性)
+        var result = system.CheckResistance(param);
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void CheckResistance_VitalityResistsPetrification()
+    {
+        var system = new StatusEffectSystem(new TestRandomProvider(0.1));
+        var param = new StatusResistanceParams
+        {
+            EffectType = StatusEffectType.Petrification,
+            BaseResistance = 0.10,
+            Vitality = 50,  // 高いVIT
+            Mind = 10,
+            EquipmentResistance = 0
+        };
+
+        // VIT 50 × 0.01 = 0.50 + 0.10 = 0.60 (60%耐性)
+        var result = system.CheckResistance(param);
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void CombatSystem_CreateStatusEffect_ReturnsCharm()
+    {
+        var combatSystem = new CombatSystem(new TestRandomProvider(0.5));
+
+        var effect = combatSystem.CreateStatusEffect(StatusEffectType.Charm);
+        Assert.NotNull(effect);
+        Assert.Equal(StatusEffectType.Charm, effect!.Type);
+    }
+
+    [Fact]
+    public void CombatSystem_CreateStatusEffect_ReturnsMadness()
+    {
+        var combatSystem = new CombatSystem(new TestRandomProvider(0.5));
+
+        var effect = combatSystem.CreateStatusEffect(StatusEffectType.Madness);
+        Assert.NotNull(effect);
+        Assert.Equal(StatusEffectType.Madness, effect!.Type);
+    }
+
+    [Fact]
+    public void CombatSystem_CreateStatusEffect_ReturnsPetrification()
+    {
+        var combatSystem = new CombatSystem(new TestRandomProvider(0.5));
+
+        var effect = combatSystem.CreateStatusEffect(StatusEffectType.Petrification);
+        Assert.NotNull(effect);
+        Assert.Equal(StatusEffectType.Petrification, effect!.Type);
+    }
+
+    [Fact]
+    public void CombatSystem_CreateStatusEffect_ReturnsInstantDeath()
+    {
+        var combatSystem = new CombatSystem(new TestRandomProvider(0.5));
+
+        var effect = combatSystem.CreateStatusEffect(StatusEffectType.InstantDeath);
+        Assert.NotNull(effect);
+        Assert.Equal(StatusEffectType.InstantDeath, effect!.Type);
+    }
+
     #endregion
 
     #region ResourceSystem Tests

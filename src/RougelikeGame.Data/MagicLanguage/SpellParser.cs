@@ -96,7 +96,8 @@ public class SpellParser
             TargetWord = words.FirstOrDefault(w => w.Category == RuneWordCategory.Target),
             ElementWord = words.FirstOrDefault(w => w.Category == RuneWordCategory.Element),
             RangeWord = words.FirstOrDefault(w => w.Category == RuneWordCategory.Range),
-            DurationWord = words.FirstOrDefault(w => w.Category == RuneWordCategory.Duration)
+            DurationWord = words.FirstOrDefault(w => w.Category == RuneWordCategory.Duration),
+            ConditionWord = words.FirstOrDefault(w => w.Category == RuneWordCategory.Condition)
         };
     }
 
@@ -161,6 +162,7 @@ public class SpellResult
     public RuneWord? ElementWord { get; init; }
     public RuneWord? RangeWord { get; init; }
     public RuneWord? DurationWord { get; init; }
+    public RuneWord? ConditionWord { get; init; }
 
     public static SpellResult Failure(string message) => new()
     {
@@ -177,6 +179,7 @@ public class SpellResult
 
         var parts = new List<string>();
 
+        if (ConditionWord != null) parts.Add(ConditionWord.Meaning + "、");
         if (RangeWord != null) parts.Add(RangeWord.Meaning);
         if (TargetWord != null) parts.Add(TargetWord.Meaning + "を");
         if (ElementWord != null) parts.Add(ElementWord.Meaning + "の力で");
