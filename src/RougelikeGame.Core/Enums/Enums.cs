@@ -617,3 +617,76 @@ public enum MonsterRace
     /// <summary>構造体 - 状態異常完全無効</summary>
     Construct
 }
+
+/// <summary>
+/// 熟練度カテゴリ
+/// </summary>
+public enum ProficiencyCategory
+{
+    /// <summary>剣術 - 剣系武器の扱い</summary>
+    Swordsmanship,
+    /// <summary>槍術 - 槍系武器の扱い</summary>
+    Spearmanship,
+    /// <summary>弓術 - 弓・射撃武器の扱い</summary>
+    Archery,
+    /// <summary>格闘 - 素手・格闘武器の扱い</summary>
+    MartialArts,
+    /// <summary>魔術 - 魔法の行使</summary>
+    Sorcery,
+    /// <summary>鍛冶 - 装備の作成・強化</summary>
+    Smithing,
+    /// <summary>採掘 - 鉱石の採取</summary>
+    Mining,
+    /// <summary>錬金 - 薬品・素材の調合</summary>
+    Alchemy,
+    /// <summary>交渉 - 商取引・会話</summary>
+    Negotiation,
+    /// <summary>隠密 - 隠れ・忍び</summary>
+    Stealth,
+    /// <summary>探索 - 罠発見・宝箱開錠</summary>
+    Exploration,
+    /// <summary>信仰 - 祈り・神聖魔法</summary>
+    Faith
+}
+
+/// <summary>
+/// カルマ段階
+/// </summary>
+public enum KarmaRank
+{
+    /// <summary>外道 (-100 ~ -80)</summary>
+    Villain,
+    /// <summary>悪党 (-79 ~ -50)</summary>
+    Criminal,
+    /// <summary>悪漢 (-49 ~ -20)</summary>
+    Rogue,
+    /// <summary>中立 (-19 ~ 19)</summary>
+    Neutral,
+    /// <summary>普通 (20 ~ 49)</summary>
+    Normal,
+    /// <summary>善人 (50 ~ 79)</summary>
+    Virtuous,
+    /// <summary>聖人 (80 ~ 100)</summary>
+    Saint
+}
+
+/// <summary>
+/// 評判段階
+/// </summary>
+public enum ReputationRank
+{
+    /// <summary>憎悪 (-100 ~ -80)</summary>
+    Hated,
+    /// <summary>敵意 (-79 ~ -50)</summary>
+    Hostile,
+    /// <summary>不信 (-49 ~ -20)</summary>
+    Unfriendly,
+    /// <summary>無関心 (-19 ~ 19)</summary>
+    Indifferent,
+    /// <summary>友好 (20 ~ 49)</summary>
+    Friendly,
+    /// <summary>信頼 (50 ~ 79)</summary>
+    Trusted,
+    /// <summary>崇拝 (80 ~ 100)</summary>
+    Revered
+}
