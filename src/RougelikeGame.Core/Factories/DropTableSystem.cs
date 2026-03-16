@@ -7,7 +7,7 @@ namespace RougelikeGame.Core.Factories;
 /// <summary>
 /// ドロップテーブルエントリ
 /// </summary>
-public record DropTableEntry(string ItemId, double DropRate, int MinQuantity = 1, int MaxQuantity = 1);
+public record DropTableEntry(string ItemId, double DropRate, int MinQuantity = 1, int MaxQuantity = 1, ItemGrade MinGrade = ItemGrade.Standard);
 
 /// <summary>
 /// ドロップテーブル定義
@@ -116,6 +116,102 @@ public static class DropTableSystem
     }
 
     #region Default Drop Tables
+
+    /// <summary>種族別ボーナスドロップテーブル</summary>
+    private static readonly Dictionary<MonsterRace, List<DropTableEntry>> _raceBonusDrops = new()
+    {
+        [MonsterRace.Beast] = new()
+        {
+            new("material_beast_hide", 0.3),
+            new("material_beast_fang", 0.2)
+        },
+        [MonsterRace.Undead] = new()
+        {
+            new("material_bone_fragment", 0.35),
+            new("material_cursed_essence", 0.1)
+        },
+        [MonsterRace.Dragon] = new()
+        {
+            new("material_dragon_scale", 0.15),
+            new("material_dragon_fang", 0.1)
+        },
+        [MonsterRace.Insect] = new()
+        {
+            new("material_insect_shell", 0.3),
+            new("material_venom_sac", 0.2)
+        },
+        [MonsterRace.Plant] = new()
+        {
+            new("material_herb", 0.4),
+            new("material_wood", 0.25)
+        },
+        [MonsterRace.Demon] = new()
+        {
+            new("material_demon_horn", 0.15),
+            new("material_dark_crystal", 0.1)
+        },
+        [MonsterRace.Spirit] = new()
+        {
+            new("material_spirit_essence", 0.2),
+            new("material_elemental_core", 0.08)
+        },
+        [MonsterRace.Construct] = new()
+        {
+            new("material_golem_core", 0.1),
+            new("material_iron_fragment", 0.3)
+        },
+        [MonsterRace.Amorphous] = new()
+        {
+            new("material_slime_gel", 0.4),
+            new("material_magic_crystal", 0.08)
+        },
+    };
+
+    /// <summary>
+    /// 種族別ボーナスドロップエントリリストを取得
+    /// </summary>
+    public static IReadOnlyList<DropTableEntry> GetRaceBonusDrops(MonsterRace race)
+    {
+        return _raceBonusDrops.TryGetValue(race, out var entries)
+            ? entries
+            : Array.Empty<DropTableEntry>();
+    }
+
+    /// <summary>
+    /// ドロップテーブルからアイテムとゴールドを生成（種族別ボーナス付き）
+    /// </summary>
+    public static DropResult GenerateLoot(string tableId, int depth, EnemyRank rank, IRandomProvider random, MonsterRace? race = null)
+    {
+        var baseResult = GenerateLoot(tableId, depth, rank, random);
+
+        if (race == null || !_raceBonusDrops.TryGetValue(race.Value, out var bonusEntries))
+            return baseResult;
+
+        var items = new List<Item>(baseResult.Items);
+        double rankBonus = BalanceConfig.GetRankDropBonus(rank);
+
+        foreach (var entry in bonusEntries)
+        {
+            double effectiveRate = entry.DropRate * rankBonus;
+            if (random.NextDouble() < effectiveRate)
+            {
+                int quantity = entry.MinQuantity == entry.MaxQuantity
+                    ? entry.MinQuantity
+                    : random.Next(entry.MinQuantity, entry.MaxQuantity + 1);
+
+                for (int i = 0; i < quantity; i++)
+                {
+                    var item = ItemDefinitions.Create(entry.ItemId);
+                    if (item != null)
+                        items.Add(item);
+                }
+            }
+        }
+
+        return new DropResult(items, baseResult.Gold);
+    }
+
+    #region Default Drop Tables Definitions
 
     private static void RegisterDefaultTables()
     {
@@ -254,6 +350,8 @@ public static class DropTableSystem
             },
             GoldMin: 500, GoldMax: 2000));
     }
+
+    #endregion
 
     #endregion
 }
