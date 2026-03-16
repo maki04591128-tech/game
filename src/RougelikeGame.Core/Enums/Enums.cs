@@ -690,3 +690,118 @@ public enum ReputationRank
     /// <summary>崇拝 (80 ~ 100)</summary>
     Revered
 }
+
+/// <summary>
+/// 時間帯
+/// </summary>
+public enum TimePeriod
+{
+    /// <summary>早朝 (4:00-6:59)</summary>
+    Dawn,
+    /// <summary>午前 (7:00-11:59)</summary>
+    Morning,
+    /// <summary>午後 (12:00-16:59)</summary>
+    Afternoon,
+    /// <summary>夕方 (17:00-19:59)</summary>
+    Dusk,
+    /// <summary>夜 (20:00-23:59)</summary>
+    Night,
+    /// <summary>深夜 (0:00-3:59)</summary>
+    Midnight
+}
+
+/// <summary>
+/// 活動パターン
+/// </summary>
+public enum ActivityPattern
+{
+    /// <summary>昼行性</summary>
+    Diurnal,
+    /// <summary>夜行性</summary>
+    Nocturnal,
+    /// <summary>薄明薄暮性（夕方・早朝活性）</summary>
+    Crepuscular,
+    /// <summary>常時活動</summary>
+    Constant
+}
+
+/// <summary>
+/// 魂石の品質
+/// </summary>
+public enum SoulGemQuality
+{
+    /// <summary>欠片 (Common敵)</summary>
+    Fragment,
+    /// <summary>小 (Elite敵)</summary>
+    Small,
+    /// <summary>中 (Rare敵)</summary>
+    Medium,
+    /// <summary>大 (Boss敵)</summary>
+    Large,
+    /// <summary>極大 (HiddenBoss敵)</summary>
+    Grand
+}
+
+/// <summary>
+/// エンチャント効果の種類
+/// </summary>
+public enum EnchantmentType
+{
+    /// <summary>火炎付与</summary>
+    FireDamage,
+    /// <summary>氷結付与</summary>
+    IceDamage,
+    /// <summary>雷撃付与</summary>
+    LightningDamage,
+    /// <summary>毒付与</summary>
+    PoisonDamage,
+    /// <summary>神聖付与</summary>
+    HolyDamage,
+    /// <summary>暗黒付与</summary>
+    DarkDamage,
+    /// <summary>吸血</summary>
+    Lifesteal,
+    /// <summary>マナ吸収</summary>
+    ManaSteal,
+    /// <summary>麻痺付与</summary>
+    ParalysisChance,
+    /// <summary>経験値増加</summary>
+    ExpBoost,
+    /// <summary>ドロップ率上昇</summary>
+    DropBoost,
+    /// <summary>クリティカル率上昇</summary>
+    CriticalBoost,
+    /// <summary>攻撃速度上昇</summary>
+    SpeedBoost,
+    /// <summary>防御力上昇</summary>
+    DefenseBoost,
+    /// <summary>反射ダメージ</summary>
+    Thorns
+}
+
+/// <summary>
+/// ダンジョン特徴タイプ
+/// </summary>
+public enum DungeonFeatureType
+{
+    /// <summary>通常</summary>
+    Standard,
+    /// <summary>洞窟</summary>
+    Cave,
+    /// <summary>遺跡</summary>
+    Ruins,
+    /// <summary>下水道</summary>
+    Sewer,
+    /// <summary>鉱山</summary>
+    Mine,
+    /// <summary>墓地</summary>
+    Crypt,
+    /// <summary>神殿</summary>
+    Temple,
+    /// <summary>氷の洞窟</summary>
+    IceCavern,
+    /// <summary>火山</summary>
+    Volcanic,
+    /// <summary>森林</summary>
+    Forest
+}

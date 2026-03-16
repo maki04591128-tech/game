@@ -48,8 +48,10 @@ public class EnemyFactory
 
         enemy.InitializeResources();
 
-        // AIビヘイビアを設定
-        enemy.Behavior = CreateBehaviorFor(definition.EnemyType);
+        // AIビヘイビアを設定（EnemyType + MonsterRace）
+        var behavior = CreateBehaviorFor(definition.EnemyType);
+        AddRacialBehavior(behavior, definition.Race);
+        enemy.Behavior = behavior;
 
         return enemy;
     }
@@ -57,7 +59,7 @@ public class EnemyFactory
     /// <summary>
     /// 敵タイプに応じたビヘイビアを作成
     /// </summary>
-    private IAIBehavior CreateBehaviorFor(EnemyType type)
+    private CompositeBehavior CreateBehaviorFor(EnemyType type)
     {
         var composite = new CompositeBehavior();
 
@@ -120,6 +122,34 @@ public class EnemyFactory
         }
 
         return composite;
+    }
+
+    /// <summary>
+    /// 種族に応じた特殊ビヘイビアを追加
+    /// </summary>
+    private void AddRacialBehavior(CompositeBehavior composite, MonsterRace race)
+    {
+        switch (race)
+        {
+            case MonsterRace.Beast:
+                composite.AddBehavior(new PackHuntingBehavior());
+                break;
+            case MonsterRace.Undead:
+                composite.AddBehavior(new UndeadBehavior());
+                break;
+            case MonsterRace.Amorphous:
+                composite.AddBehavior(new AmorphousBehavior());
+                break;
+            case MonsterRace.Construct:
+                composite.AddBehavior(new ConstructBehavior());
+                break;
+            case MonsterRace.Dragon:
+                composite.AddBehavior(new DragonBehavior());
+                break;
+            case MonsterRace.Spirit:
+                composite.AddBehavior(new SpiritBehavior());
+                break;
+        }
     }
 
     #region Predefined Enemies
