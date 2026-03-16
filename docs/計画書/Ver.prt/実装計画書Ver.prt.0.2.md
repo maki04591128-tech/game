@@ -1,7 +1,7 @@
 ﻿# 実装計画書 Ver.prt.0.2〜2（新システム・既存強化）
 
 **目標**: Ver.prt.0.1完了後、新たなシステムアイデアの追加および既存システムの強化
-**状態**: ⬜ 未着手（Ver.prt.0.1 完了後に着手）
+**状態**: ✅ Ver.prt.0.2（基盤拡張）完了 — 14タスク全実装、テスト1503件（Core）
 **設計書参照**: [21_拡張システム設計書](../../企画設計書/21_拡張システム設計書.md)
 
 ---
@@ -172,24 +172,24 @@ Ver.prt.0.2〜2 は Ver.prt.0.1 で構築した全ゲームシステムを土台
 
 > 確定ではないが、依存関係と優先度を考慮した実装順序の目安。
 
-### 4.1 Ver.prt.0.2（基盤拡張）
+### 4.1 Ver.prt.0.2（基盤拡張） — ✅ 全14タスク完了
 
 > 他のシステムの前提となる基盤システムを優先。
 
-1. **P.1** 敵種族分類システム（他の多くのシステムが依存）
-2. **P.2** 武器種別属性の深化（P.1と連携必須）
-3. **P.45** 攻撃属性システム（P.2と連携。属性相性テーブル基盤）
-4. **P.46** アイテム等級システム（装備・アイテム全般の品質管理基盤）
-5. **P.12** 拡張ドロップテーブル（P.1と連携）
-6. **P.50** 剥ぎ取りシステム（ドロップ方式の根本変更。早期導入推奨）
-7. **P.9** 熟練度システム（P.8/P.10/P.48/P.49の前提）
-8. **P.22** カルマシステム（P.24/P.25の前提）
-9. **P.42** 評判・名声システム ✅（P.22カルマと連携。採用確定）
-10. **P.53** 時刻行動変化システム（NPC/敵の昼夜基本ロジック）
-11. **P.15** 敵AI拡張（P.1と連携）
-12. **P.11** エンチャントシステム（P.12と連携）
-13. **P.38** 宗教スキル補正の接続（既存システムの補完）
-14. **P.55** ダンジョン特徴別ランダム生成（BSP法拡張。マップ多様化基盤）
+1. **P.1** 敵種族分類システム（他の多くのシステムが依存） ✅ MonsterRace enum 10種族、MonsterRaceSystem、テスト55件
+2. **P.2** 武器種別属性の深化（P.1と連携必須） ✅ WeaponProficiencySystem、14武器種プロファイル
+3. **P.45** 攻撃属性システム（P.2と連携。属性相性テーブル基盤） ✅ ElementalAffinitySystem、種族×属性相性テーブル、テスト49件
+4. **P.46** アイテム等級システム（装備・アイテム全般の品質管理基盤） ✅ ItemGrade enum 6段階、ItemGradeSystem、テスト50件
+5. **P.12** 拡張ドロップテーブル（P.1と連携） ✅ 種族ボーナスドロップ9種族対応、等級MinGrade対応
+6. **P.50** 剥ぎ取りシステム（ドロップ方式の根本変更。早期導入推奨） ✅ HarvestSystem、10種族素材対応
+7. **P.9** 熟練度システム（P.8/P.10/P.48/P.49の前提） ✅ ProficiencySystem、12カテゴリ、経験値/レベルアップ/Decay
+8. **P.22** カルマシステム（P.24/P.25の前提） ✅ KarmaSystem、7段階、ショップ価格/NPC態度/闇市・聖域連動
+9. **P.42** 評判・名声システム ✅（P.22カルマと連携。採用確定） ✅ ReputationSystem、領地別7段階、割引/クエスト解放/入場制御
+10. **P.53** 時刻行動変化システム（NPC/敵の昼夜基本ロジック） ✅ TimeOfDaySystem、活動パターン4種、視界/ステ修正
+11. **P.15** 敵AI拡張（P.1と連携） ✅ RacialBehaviors 6種族ビヘイビア、EnemyFactory統合
+12. **P.11** エンチャントシステム（P.12と連携） ✅ EnchantmentSystem 15種エンチャント、魂石品質5段階
+13. **P.38** 宗教スキル補正の接続（既存システムの補完） ✅ ReligionSkillSystem、5宗教スキル補正、属性適合ボーナス
+14. **P.55** ダンジョン特徴別ランダム生成（BSP法拡張。マップ多様化基盤） ✅ DungeonFeatureGenerator 10タイプ、領地対応
 
 ### 4.2 Ver.prt.0.3（システム深化）
 
@@ -268,6 +268,51 @@ Ver.prt.0.2〜2 は Ver.prt.0.1 で構築した全ゲームシステムを土台
 
 ---
 
-## 5. タスク一覧（確定後に記載）
+## 5. Ver.prt.0.2 実装記録
 
-*各サブバージョンの着手時に、上記候補から選定してタスク一覧を作成する*
+### 5.1 実装済みシステム一覧
+
+| # | システム名 | ソースファイル | テストファイル | テスト数 |
+|---|-----------|---------------|---------------|---------|
+| P.1 | 敵種族分類 | `Systems/MonsterRaceSystem.cs`, `Enums/Enums.cs` | `MonsterRaceSystemTests.cs` | 55 |
+| P.2 | 武器種別属性 | `Systems/WeaponProficiencySystem.cs` | `WeaponProficiencySystemTests.cs` | — |
+| P.45 | 攻撃属性 | `Systems/ElementalAffinitySystem.cs` | `ElementalAffinitySystemTests.cs` | 49 |
+| P.46 | アイテム等級 | `Systems/ItemGradeSystem.cs`, `Enums/Enums.cs` | `ItemGradeSystemTests.cs` | 50 |
+| P.12 | 拡張ドロップテーブル | `Factories/DropTableSystem.cs` | `ExpandedDropTableTests.cs` | — |
+| P.50 | 剥ぎ取り | `Systems/HarvestSystem.cs` | `HarvestSystemTests.cs` | — |
+| P.9 | 熟練度 | `Systems/ProficiencySystem.cs`, `Enums/Enums.cs` | `ProficiencySystemTests.cs` | — |
+| P.22 | カルマ | `Systems/KarmaSystem.cs`, `Enums/Enums.cs` | `KarmaSystemTests.cs` | — |
+| P.42 | 評判・名声 | `Systems/ReputationSystem.cs`, `Enums/Enums.cs` | `ReputationSystemTests.cs` | — |
+| P.53 | 時刻行動変化 | `Systems/TimeOfDaySystem.cs`, `Enums/Enums.cs` | `TimeOfDaySystemTests.cs` | 28 |
+| P.15 | 敵AI拡張 | `AI/Behaviors/RacialBehaviors.cs`, `Factories/EnemyFactory.cs` | `RacialBehaviorTests.cs` | 13 |
+| P.11 | エンチャント | `Systems/EnchantmentSystem.cs`, `Enums/Enums.cs` | `EnchantmentSystemTests.cs` | 13 |
+| P.38 | 宗教スキル補正 | `Systems/ReligionSkillSystem.cs` | `ReligionSkillSystemTests.cs` | 15 |
+| P.55 | ダンジョン特徴生成 | `Systems/DungeonFeatureGenerator.cs`, `Enums/Enums.cs` | `DungeonFeatureGeneratorTests.cs` | 16 |
+
+### 5.2 追加された Enum 一覧
+
+| Enum名 | 値数 | 定義ファイル |
+|--------|------|-------------|
+| MonsterRace | 10 | Enums.cs |
+| ItemGrade | 6 | Enums.cs |
+| ProficiencyCategory | 12 | Enums.cs |
+| KarmaRank | 7 | Enums.cs |
+| ReputationRank | 7 | Enums.cs |
+| TimePeriod | 6 | Enums.cs |
+| ActivityPattern | 4 | Enums.cs |
+| SoulGemQuality | 5 | Enums.cs |
+| EnchantmentType | 15 | Enums.cs |
+| DungeonFeatureType | 10 | Enums.cs |
+
+### 5.3 テスト統計
+
+- **Ver.prt.0.1 完了時**: Core 980件 + GUI 139件 = 1,119件
+- **Ver.prt.0.2 完了時**: Core 1,503件 + GUI 139件 = 1,642件
+- **追加テスト数**: 523件（Core のみ）
+
+### 5.4 ドキュメントブラッシュアップ記録
+
+| # | 対象 | 内容 |
+|---|------|------|
+| D.128 | 実装計画書Ver.prt.0.2 | Ver.prt.0.2 実装状況をセクション4.1+5に反映。14タスク全完了 |
+| D.129 | 00_ドキュメント概要 | テスト数更新（Core1503+GUI139=1642件）、システム数更新 |

@@ -32,6 +32,17 @@ namespace RougelikeGame.Gui.Tests;
 ///      - 70ターン待機: 日付進行＋階層不変
 ///      - 800ターン待機: 満腹度減少確認
 ///      - 200ターン連続操作: ステータスバー正常維持
+///
+/// ■ Ver.prt.0.2 追加システムのカバレッジ状況:
+///   以下のシステムは Core テストで値レベル検証済み。GUI 接続後にここに追加:
+///   - MonsterRaceSystem（敵種族分類）→ 敵情報ダイアログで種族名表示時
+///   - TimeOfDaySystem（時刻行動変化）→ TimePeriod ステータスバー連携時
+///   - KarmaSystem（カルマ）→ カルマ表示UI実装時
+///   - ReputationSystem（評判・名声）→ ワールドマップ/領地情報表示時
+///   - ProficiencySystem（熟練度）→ キャラクター情報画面拡張時
+///   - EnchantmentSystem（エンチャント）→ 鍛冶画面エンチャントUI実装時
+///   - ItemGradeSystem（アイテム等級）→ アイテム表示名に等級接頭辞反映時
+///   - DungeonFeatureGenerator（ダンジョン特徴）→ フロア名表示連携時
 /// </summary>
 [Collection("GuiTests")]
 public class GuiSystemVerificationTests : IDisposable
