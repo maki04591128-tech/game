@@ -573,6 +573,25 @@ public enum SpecialFloorType
 }
 
 /// <summary>
+/// アイテム等級（品質）
+/// </summary>
+public enum ItemGrade
+{
+    /// <summary>粗悪品 - ステ×0.7, 価格×0.4</summary>
+    Crude = 1,
+    /// <summary>廉価品 - ステ×0.85, 価格×0.7</summary>
+    Cheap = 2,
+    /// <summary>標準品 - ステ×1.0, 価格×1.0</summary>
+    Standard = 3,
+    /// <summary>良品 - ステ×1.15, 価格×1.5</summary>
+    Fine = 4,
+    /// <summary>上質品 - ステ×1.3, 価格×2.5</summary>
+    Superior = 5,
+    /// <summary>傑作品 - ステ×1.5, 価格×5.0</summary>
+    Masterwork = 6
+}
+
+/// <summary>
 /// 敵種族（モンスター種族分類）
 /// </summary>
 public enum MonsterRace
