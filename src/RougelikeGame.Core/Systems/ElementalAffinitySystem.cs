@@ -48,7 +48,7 @@ public static class ElementalAffinitySystem
         [(MonsterRace.Demon, Element.Dark)] = ElementalResistanceLevel.Resistant,
         [(MonsterRace.Demon, Element.Curse)] = ElementalResistanceLevel.Resistant,
 
-        // Dragon: Ice弱点基本
+        // Dragon: Ice弱点（全ドラゴン共通の基本設定）
         [(MonsterRace.Dragon, Element.Ice)] = ElementalResistanceLevel.Weakness,
 
         // Plant: Fire/Ice弱点、Earth/Water耐性
