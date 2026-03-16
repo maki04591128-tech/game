@@ -40,6 +40,7 @@ public class EnemyFactory
             HearingRange = definition.HearingRange,
             GiveUpDistance = definition.GiveUpDistance,
             FleeThreshold = definition.FleeThreshold,
+            Race = definition.Race,
             Position = position,
             HomePosition = position,
             Faction = Faction.Enemy
@@ -205,7 +206,8 @@ public record EnemyDefinition(
     int SightRange = 8,
     int HearingRange = 5,
     int GiveUpDistance = 15,
-    float FleeThreshold = 0.2f
+    float FleeThreshold = 0.2f,
+    MonsterRace Race = MonsterRace.Humanoid
 );
 
 /// <summary>
@@ -223,7 +225,8 @@ public static class EnemyDefinitions
         ExperienceReward: 5,
         DropTableId: "drop_slime",
         SightRange: 5,
-        FleeThreshold: 0.1f
+        FleeThreshold: 0.1f,
+        Race: MonsterRace.Amorphous
     );
 
     public static readonly EnemyDefinition Goblin = new(
@@ -237,7 +240,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_goblin",
         SightRange: 8,
         HearingRange: 6,
-        FleeThreshold: 0.3f
+        FleeThreshold: 0.3f,
+        Race: MonsterRace.Humanoid
     );
 
     public static readonly EnemyDefinition Skeleton = new(
@@ -249,7 +253,8 @@ public static class EnemyDefinitions
         Rank: EnemyRank.Common,
         ExperienceReward: 20,
         DropTableId: "drop_skeleton",
-        FleeThreshold: 0.0f  // 逃げない
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Undead
     );
 
     public static readonly EnemyDefinition Orc = new(
@@ -263,7 +268,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_orc",
         SightRange: 7,
         GiveUpDistance: 20,
-        FleeThreshold: 0.15f
+        FleeThreshold: 0.15f,
+        Race: MonsterRace.Humanoid
     );
 
     public static readonly EnemyDefinition GiantSpider = new(
@@ -276,7 +282,8 @@ public static class EnemyDefinitions
         ExperienceReward: 25,
         DropTableId: "drop_spider",
         SightRange: 6,
-        HearingRange: 10  // 振動に敏感
+        HearingRange: 10,
+        Race: MonsterRace.Insect
     );
 
     public static readonly EnemyDefinition DarkElf = new(
@@ -289,7 +296,8 @@ public static class EnemyDefinitions
         ExperienceReward: 50,
         DropTableId: "drop_dark_elf",
         SightRange: 12,
-        FleeThreshold: 0.25f
+        FleeThreshold: 0.25f,
+        Race: MonsterRace.Humanoid
     );
 
     public static readonly EnemyDefinition Troll = new(
@@ -303,7 +311,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_troll",
         SightRange: 6,
         GiveUpDistance: 25,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Humanoid
     );
 
     public static readonly EnemyDefinition Draugr = new(
@@ -316,7 +325,8 @@ public static class EnemyDefinitions
         ExperienceReward: 60,
         DropTableId: "drop_draugr",
         SightRange: 8,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Undead
     );
 
     #region Territory-Specific Enemies
@@ -333,7 +343,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_wolf",
         SightRange: 10,
         HearingRange: 12,
-        FleeThreshold: 0.25f
+        FleeThreshold: 0.25f,
+        Race: MonsterRace.Beast
     );
 
     public static readonly EnemyDefinition Treant = new(
@@ -347,7 +358,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_treant",
         SightRange: 6,
         GiveUpDistance: 10,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Plant
     );
 
     public static readonly EnemyDefinition ForestSprite = new(
@@ -360,7 +372,8 @@ public static class EnemyDefinitions
         ExperienceReward: 25,
         DropTableId: "drop_sprite",
         SightRange: 12,
-        FleeThreshold: 0.4f
+        FleeThreshold: 0.4f,
+        Race: MonsterRace.Spirit
     );
 
     // === 山岳領域 ===
@@ -375,7 +388,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_golem",
         SightRange: 5,
         GiveUpDistance: 8,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Construct
     );
 
     public static readonly EnemyDefinition Harpy = new(
@@ -388,7 +402,8 @@ public static class EnemyDefinitions
         ExperienceReward: 30,
         DropTableId: "drop_harpy",
         SightRange: 14,
-        FleeThreshold: 0.3f
+        FleeThreshold: 0.3f,
+        Race: MonsterRace.Beast
     );
 
     public static readonly EnemyDefinition Wyvern = new(
@@ -402,7 +417,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_wyvern",
         SightRange: 15,
         GiveUpDistance: 25,
-        FleeThreshold: 0.1f
+        FleeThreshold: 0.1f,
+        Race: MonsterRace.Dragon
     );
 
     // === 沿岸領域 ===
@@ -417,7 +433,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_serpent",
         SightRange: 6,
         HearingRange: 12,
-        FleeThreshold: 0.15f
+        FleeThreshold: 0.15f,
+        Race: MonsterRace.Beast
     );
 
     public static readonly EnemyDefinition Siren = new(
@@ -430,7 +447,8 @@ public static class EnemyDefinitions
         ExperienceReward: 60,
         DropTableId: "drop_siren",
         SightRange: 10,
-        FleeThreshold: 0.2f
+        FleeThreshold: 0.2f,
+        Race: MonsterRace.Spirit
     );
 
     public static readonly EnemyDefinition Crab = new(
@@ -443,7 +461,8 @@ public static class EnemyDefinitions
         ExperienceReward: 25,
         DropTableId: "drop_crab",
         SightRange: 5,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Insect
     );
 
     // === 南方領域 ===
@@ -458,7 +477,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_scorpion",
         SightRange: 7,
         HearingRange: 10,
-        FleeThreshold: 0.1f
+        FleeThreshold: 0.1f,
+        Race: MonsterRace.Insect
     );
 
     public static readonly EnemyDefinition Mummy = new(
@@ -471,7 +491,8 @@ public static class EnemyDefinitions
         ExperienceReward: 55,
         DropTableId: "drop_mummy",
         SightRange: 6,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Undead
     );
 
     public static readonly EnemyDefinition Sandworm = new(
@@ -485,7 +506,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_sandworm",
         SightRange: 3,
         HearingRange: 15,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Beast
     );
 
     // === 辺境領域 ===
@@ -501,7 +523,8 @@ public static class EnemyDefinitions
         SightRange: 12,
         HearingRange: 14,
         GiveUpDistance: 20,
-        FleeThreshold: 0.1f
+        FleeThreshold: 0.1f,
+        Race: MonsterRace.Beast
     );
 
     public static readonly EnemyDefinition Chimera = new(
@@ -514,7 +537,8 @@ public static class EnemyDefinitions
         ExperienceReward: 90,
         DropTableId: "drop_chimera",
         SightRange: 10,
-        FleeThreshold: 0.05f
+        FleeThreshold: 0.05f,
+        Race: MonsterRace.Demon
     );
 
     public static readonly EnemyDefinition DeathKnight = new(
@@ -528,7 +552,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_death_knight",
         SightRange: 10,
         GiveUpDistance: 30,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Undead
     );
 
     #endregion
@@ -545,7 +570,8 @@ public static class EnemyDefinitions
         ExperienceReward: 300,
         DropTableId: "drop_boss_forest",
         SightRange: 15,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Spirit
     );
 
     public static readonly EnemyDefinition MountainKing = new(
@@ -558,7 +584,8 @@ public static class EnemyDefinitions
         ExperienceReward: 400,
         DropTableId: "drop_boss_mountain",
         SightRange: 12,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Construct
     );
 
     public static readonly EnemyDefinition DeepSeaLeviathan = new(
@@ -571,7 +598,8 @@ public static class EnemyDefinitions
         ExperienceReward: 350,
         DropTableId: "drop_boss_sea",
         SightRange: 14,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Dragon
     );
 
     public static readonly EnemyDefinition DesertPharaoh = new(
@@ -584,7 +612,8 @@ public static class EnemyDefinitions
         ExperienceReward: 350,
         DropTableId: "drop_boss_desert",
         SightRange: 12,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Undead
     );
 
     public static readonly EnemyDefinition FrontierDragon = new(
@@ -597,7 +626,8 @@ public static class EnemyDefinitions
         ExperienceReward: 500,
         DropTableId: "drop_boss_dragon",
         SightRange: 16,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Dragon
     );
 
     public static readonly EnemyDefinition AbyssLord = new(
@@ -610,7 +640,8 @@ public static class EnemyDefinitions
         ExperienceReward: 1000,
         DropTableId: "drop_boss_abyss",
         SightRange: 20,
-        FleeThreshold: 0.0f
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Demon
     );
 
     #endregion

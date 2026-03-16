@@ -15,6 +15,11 @@ public class Enemy : Character
     public string EnemyTypeId { get; init; } = string.Empty;
 
     /// <summary>
+    /// モンスター種族
+    /// </summary>
+    public MonsterRace Race { get; init; } = MonsterRace.Humanoid;
+
+    /// <summary>
     /// 経験値報酬
     /// </summary>
     public int ExperienceReward { get; init; }

@@ -571,3 +571,30 @@ public enum SpecialFloorType
     Arena,
     Library
 }
+
+/// <summary>
+/// 敵種族（モンスター種族分類）
+/// </summary>
+public enum MonsterRace
+{
+    /// <summary>獣 - 高AGI、群れ行動、夜行性</summary>
+    Beast,
+    /// <summary>人型 - 装備品使用、戦術的AI</summary>
+    Humanoid,
+    /// <summary>不定形 - 物理耐性高、分裂能力</summary>
+    Amorphous,
+    /// <summary>不死 - 毒/睡眠無効、暗闘</summary>
+    Undead,
+    /// <summary>悪魔 - 高MND、魔法使用</summary>
+    Demon,
+    /// <summary>竜 - 全ステ高、ブレス攻撃</summary>
+    Dragon,
+    /// <summary>植物 - 再生能力、状態異常付与</summary>
+    Plant,
+    /// <summary>昆虫 - 高速、毒攻撃、群れ</summary>
+    Insect,
+    /// <summary>精霊 - 物理攻撃半減、属性攻撃</summary>
+    Spirit,
+    /// <summary>構造体 - 状態異常完全無効</summary>
+    Construct
+}
