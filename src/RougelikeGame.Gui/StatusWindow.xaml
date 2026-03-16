@@ -141,6 +141,30 @@
                     </StackPanel>
                 </Border>
 
+                <!-- 身体状態・環境 -->
+                <Border Background="#16213e" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3" Padding="8" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="■ 身体状態・環境" Foreground="#4ecca3" FontSize="14" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock x:Name="ThirstStatusText" Foreground="#00BFFF" FontSize="13" Grid.Row="0" Grid.Column="0" Margin="0,1"/>
+                            <TextBlock x:Name="KarmaStatusText" Foreground="#C0C0C0" FontSize="13" Grid.Row="0" Grid.Column="1" Margin="0,1"/>
+                            <TextBlock x:Name="ReputationStatusText" Foreground="#FFD700" FontSize="13" Grid.Row="1" Grid.Column="0" Margin="0,1"/>
+                            <TextBlock x:Name="SeasonStatusText" Foreground="#90EE90" FontSize="13" Grid.Row="1" Grid.Column="1" Margin="0,1"/>
+                            <TextBlock x:Name="WeatherStatusText" Foreground="#87CEEB" FontSize="13" Grid.Row="2" Grid.Column="0" Margin="0,1"/>
+                            <TextBlock x:Name="CompanionStatusText" Foreground="#FFD700" FontSize="13" Grid.Row="2" Grid.Column="1" Margin="0,1"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
             </StackPanel>
         </ScrollViewer>
 

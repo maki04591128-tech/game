@@ -147,7 +147,7 @@ public partial class TownWindow : Window
                 break;
 
             case FacilityType.Arena:
-                MessageBox.Show("闘技場は準備中です。",
+                MessageBox.Show("闘技場で腕試しをした！\n（将来のアップデートで対戦機能が追加されます）",
                     "闘技場", MessageBoxButton.OK, MessageBoxImage.Information);
                 break;
         }

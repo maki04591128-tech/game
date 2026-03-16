@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using RougelikeGame.Core.Items;
+using RougelikeGame.Core.Systems;
 
 namespace RougelikeGame.Gui;
 
@@ -69,6 +70,14 @@ public partial class StatusWindow : Window
         {
             StatusEffectsText.Text = "なし";
         }
+
+        // 身体状態・環境
+        ThirstStatusText.Text = $"渇き: {ThirstSystem.GetThirstName(RougelikeGame.Core.ThirstLevel.Hydrated)}";
+        KarmaStatusText.Text = $"善悪: {KarmaSystem.GetKarmaRankName(controller.PlayerKarmaRank)} ({controller.PlayerKarma})";
+        ReputationStatusText.Text = $"評判: {controller.PlayerReputationRank}";
+        SeasonStatusText.Text = $"季節: {controller.CurrentSeasonName}";
+        WeatherStatusText.Text = $"天候: {controller.CurrentWeatherName}";
+        CompanionStatusText.Text = $"仲間: {controller.CompanionCount}/{CompanionSystem.MaxPartySize}";
     }
 
     private static string FormatStat(string name, int baseValue, int effectiveValue)
