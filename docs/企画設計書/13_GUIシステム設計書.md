@@ -99,10 +99,23 @@
 
 ### 2.4 サブウィンドウ
 
-| ウィンドウ | ファイル | 起動キー | 用途 |
-|-----------|---------|---------|------|
+| ウィンドウ | ファイル | 起動キー/条件 | 用途 |
+|-----------|---------|-------------|------|
+| CharacterCreationWindow | CharacterCreationWindow.xaml/.cs | ニューゲーム時 | キャラクター作成（10種族/10職業/10素性選択、名前入力、ステータスプレビュー） |
+| DifficultySelectWindow | DifficultySelectWindow.xaml/.cs | ニューゲーム時 | 難易度選択（Easy/Normal/Hard/Nightmare/Ironman） |
 | StatusWindow | StatusWindow.xaml/.cs | C | 基本9ステータス、戦闘パラメータ、装備、状態異常の詳細表示 |
 | InventoryWindow | InventoryWindow.xaml/.cs | I | アイテム一覧、装備/使用/ドロップ操作、数字キー選択 |
+| MessageLogWindow | MessageLogWindow.xaml/.cs | L | メッセージログの履歴閲覧、フィルタリング |
+| ShopWindow | ShopWindow.xaml/.cs | ショップ選択時 | アイテム売買 |
+| CraftingWindow | CraftingWindow.xaml/.cs | H | 合成・強化・エンチャント操作 |
+| SpellCastingWindow | SpellCastingWindow.xaml/.cs | V | ルーン語による魔法詠唱 |
+| DialogueWindow | DialogueWindow.xaml/.cs | NPC会話時 | NPC会話・選択肢表示 |
+| QuestLogWindow | QuestLogWindow.xaml/.cs | K | クエスト一覧・進捗確認 |
+| ReligionWindow | ReligionWindow.xaml/.cs | O | 宗教情報・入信・離脱・祈り |
+| TownWindow | TownWindow.xaml/.cs | B（街にいるとき） | 街施設メニュー（宿屋/教会/銀行/鍛冶屋/ギルド/神殿等） |
+| WorldMapWindow | WorldMapWindow.xaml/.cs | J | ワールドマップ・領地移動・ロケーション選択 |
+| TravelEventWindow | TravelEventWindow.xaml/.cs | 領地間移動時 | 移動イベント（強行/交渉/回避の選択） |
+| SaveDataSelectWindow | SaveDataSelectWindow.xaml/.cs | F5/F9 | セーブスロット選択 |
 
 ---
 
@@ -221,6 +234,12 @@ Render(map, player, enemies, groundItems)
 
 | 項目 | 通常色 | 条件変化色 |
 |------|--------|----------|
+| 領地名 | #e94560（赤） | — |
+| 地上/ダンジョン | #4ecca3（緑） | — |
+| 階層 | #e94560（赤） | — |
+| 日時 | #c0a0ff（紫） | — |
+| 時間帯 | #ffd93d（黄） | — |
+| ターン制限 | #ff6b6b（赤） | — |
 | Lv | #ffa500（オレンジ） | — |
 | EXP | #ffa500（オレンジ） | — |
 | HP | #4ecca3（緑） | 残量に応じて黄→赤へ変化 |
@@ -228,9 +247,8 @@ Render(map, player, enemies, groundItems)
 | SP | #ffd93d（黄） | — |
 | 満腹度 | #ff6b6b（赤） | 段階に応じて色変化 |
 | 正気度 | #c0a0ff（紫） | 段階に応じて色変化 |
-| 階層 | #e94560（赤） | — |
-| 日時 | #c0a0ff（紫） | — |
-| 時間帯 | #ffd93d（黄） | — |
+| 所持金 | #ffd93d（黄） | — |
+| 重量 | #c0c0c0（灰） | 超過時に赤へ変化 |
 
 ### 5.2 ウィンドウ配色
 
@@ -247,7 +265,7 @@ Render(map, player, enemies, groundItems)
 
 ### 6.1 キー割り当て
 
-| キー | GameCommand | 処理 |
+| キー | GameAction | 処理 |
 |------|------------|------|
 | W / ↑ | MoveUp | 上方向移動 |
 | S / ↓ | MoveDown | 下方向移動 |
@@ -257,13 +275,34 @@ Render(map, player, enemies, groundItems)
 | W+A / ↑+← 同時押し | — | 左上斜め移動 |
 | S+D / ↓+→ 同時押し | — | 右下斜め移動 |
 | S+A / ↓+← 同時押し | — | 左下斜め移動 |
+| Home | MoveUpLeft | 左上斜め移動（単独キー） |
+| PgUp | MoveUpRight | 右上斜め移動（単独キー） |
+| End | MoveDownLeft | 左下斜め移動（単独キー） |
+| PgDn | MoveDownRight | 右下斜め移動（単独キー） |
 | Space | Wait | 待機（1ターン消費） |
-| G | PickupItem | アイテム拾う |
+| G | Pickup | アイテム拾う |
 | I | OpenInventory | インベントリ画面表示 |
 | C | OpenStatus | ステータス画面表示 |
+| L | OpenMessageLog | メッセージログ画面表示 |
 | Tab | AutoExplore | 自動探索開始/停止 |
 | M | ToggleMinimap | ミニマップ表示切り替え |
-| Shift + . | DescendStairs | 階段を降りる |
+| F | Search | 周囲探索（隠しドア・罠発見） |
+| X | CloseDoor | ドア閉じる |
+| R | RangedAttack | 遠隔攻撃（射撃） |
+| T | ThrowItem | アイテム投擲 |
+| V | StartCasting | 魔法詠唱画面表示 |
+| P | Pray | 祈り（宗教行動） |
+| E | UseSkill | スキル使用 |
+| N | RegisterGuild | ギルド登録 |
+| J | OpenWorldMap | ワールドマップ画面表示 |
+| K | ViewQuestLog | クエストログ画面表示 |
+| O | OpenReligion | 宗教画面表示 |
+| H | OpenCrafting | 合成・鍛冶画面表示 |
+| B | EnterTown | 街入場 |
+| Shift + . | UseStairs | 階段を降りる |
+| Shift + , | AscendStairs | 階段を上る |
+| F5 | Save | セーブ |
+| F9 | Load | ロード |
 | Q | Quit | ゲーム終了 |
 | Esc | — | ダイアログ閉じる |
 
@@ -341,7 +380,7 @@ src/RougelikeGame.Gui/Audio/
 ├── IAudioManager.cs          # オーディオ管理インターフェース
 ├── AudioManager.cs           # WPF MediaPlayer実装
 ├── SilentAudioManager.cs     # テスト・無音環境用実装
-└── AudioIds.cs               # BGM/SE ID定数（BgmIds 10種、SeIds 16種）
+└── AudioIds.cs               # BGM/SE ID定数（BgmIds 10種、SeIds 21種）
 ```
 
 ### 8.2 BGM再生
