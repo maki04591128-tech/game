@@ -1007,3 +1007,379 @@ public enum EncyclopediaCategory
     /// <summary>地域図鑑</summary>
     Region
 }
+
+/// <summary>
+/// 仲間の種別
+/// </summary>
+public enum CompanionType
+{
+    /// <summary>傭兵（金で雇用）</summary>
+    Mercenary,
+    /// <summary>仲間NPC（好感度で加入）</summary>
+    Ally,
+    /// <summary>ペット（捕獲・テイム）</summary>
+    Pet
+}
+
+/// <summary>
+/// 仲間のAI制御モード
+/// </summary>
+public enum CompanionAIMode
+{
+    /// <summary>攻撃優先</summary>
+    Aggressive,
+    /// <summary>防御優先</summary>
+    Defensive,
+    /// <summary>支援優先</summary>
+    Support,
+    /// <summary>待機（行動しない）</summary>
+    Wait
+}
+
+/// <summary>
+/// 関係値の種別
+/// </summary>
+public enum RelationshipType
+{
+    /// <summary>種族間関係</summary>
+    Racial,
+    /// <summary>領地間関係</summary>
+    Territorial,
+    /// <summary>宗教間関係</summary>
+    Religious,
+    /// <summary>個人間関係</summary>
+    Personal
+}
+
+/// <summary>
+/// 傷の種類
+/// </summary>
+public enum BodyWoundType
+{
+    /// <summary>切り傷</summary>
+    Cut,
+    /// <summary>打撲</summary>
+    Bruise,
+    /// <summary>刺し傷</summary>
+    Puncture,
+    /// <summary>骨折</summary>
+    Fracture,
+    /// <summary>火傷</summary>
+    Burn
+}
+
+/// <summary>
+/// 疲労度段階
+/// </summary>
+public enum FatigueLevel
+{
+    /// <summary>元気</summary>
+    Fresh,
+    /// <summary>軽疲労</summary>
+    Mild,
+    /// <summary>疲労</summary>
+    Tired,
+    /// <summary>重疲労</summary>
+    Exhausted,
+    /// <summary>過労（行動不能）</summary>
+    Collapse
+}
+
+/// <summary>
+/// 清潔度段階
+/// </summary>
+public enum HygieneLevel
+{
+    /// <summary>清潔</summary>
+    Clean,
+    /// <summary>普通</summary>
+    Normal,
+    /// <summary>汚れ</summary>
+    Dirty,
+    /// <summary>不衛生</summary>
+    Filthy,
+    /// <summary>不潔（病気リスク高）</summary>
+    Foul
+}
+
+/// <summary>
+/// 施設カテゴリ（拠点作成）
+/// </summary>
+public enum FacilityCategory
+{
+    /// <summary>キャンプ（基本野営地）</summary>
+    Camp,
+    /// <summary>作業台（クラフト用）</summary>
+    Workbench,
+    /// <summary>鍛冶場（武器防具作成）</summary>
+    Smithy,
+    /// <summary>倉庫（アイテム保管）</summary>
+    Storage,
+    /// <summary>畑（食料生産）</summary>
+    Farm,
+    /// <summary>防壁（防衛用）</summary>
+    Barricade,
+    /// <summary>宿舎（仲間収容）</summary>
+    Barracks
+}
+
+/// <summary>
+/// テンプレートマップの種類
+/// </summary>
+public enum TemplateMapType
+{
+    /// <summary>ボスフロア</summary>
+    BossFloor,
+    /// <summary>街マップ</summary>
+    Town,
+    /// <summary>遺跡マップ</summary>
+    Ruins,
+    /// <summary>塔マップ</summary>
+    Tower,
+    /// <summary>特殊ダンジョン</summary>
+    SpecialDungeon
+}
+
+/// <summary>
+/// 罠の種類（プレイヤー設置用）
+/// </summary>
+public enum PlayerTrapType
+{
+    /// <summary>棘罠（物理ダメージ）</summary>
+    SpikeTrap,
+    /// <summary>落とし穴（移動阻害+ダメージ）</summary>
+    PitfallTrap,
+    /// <summary>爆発罠（範囲ダメージ）</summary>
+    ExplosiveTrap,
+    /// <summary>睡眠罠（状態異常付与）</summary>
+    SleepTrap,
+    /// <summary>警報罠（敵を誘引）</summary>
+    AlarmTrap
+}
+
+/// <summary>
+/// 料理方法
+/// </summary>
+public enum CookingMethod
+{
+    /// <summary>焼く</summary>
+    Grill,
+    /// <summary>煮る</summary>
+    Boil,
+    /// <summary>蒸す</summary>
+    Steam,
+    /// <summary>干す</summary>
+    Dry,
+    /// <summary>発酵</summary>
+    Ferment
+}
+
+/// <summary>
+/// グリッドアイテムサイズ
+/// </summary>
+public enum GridItemSize
+{
+    /// <summary>1×1（小型アイテム）</summary>
+    Size1x1,
+    /// <summary>1×2（縦長）</summary>
+    Size1x2,
+    /// <summary>2×1（横長）</summary>
+    Size2x1,
+    /// <summary>2×2（中型）</summary>
+    Size2x2,
+    /// <summary>2×3（大型装備）</summary>
+    Size2x3
+}
+
+/// <summary>
+/// パズルの種類
+/// </summary>
+public enum PuzzleType
+{
+    /// <summary>ルーン語パズル</summary>
+    RuneLanguage,
+    /// <summary>属性パズル</summary>
+    Elemental,
+    /// <summary>物理パズル（レバー/圧力板等）</summary>
+    Physical
+}
+
+/// <summary>
+/// 誓約の種類
+/// </summary>
+public enum OathType
+{
+    /// <summary>禁酒の誓約</summary>
+    Temperance,
+    /// <summary>不殺の誓約</summary>
+    Pacifism,
+    /// <summary>孤高の誓約（仲間禁止）</summary>
+    Solitude,
+    /// <summary>粗食の誓約（上質食料禁止）</summary>
+    Austerity,
+    /// <summary>暗闘の誓約（松明禁止）</summary>
+    Darkness
+}
+
+/// <summary>
+/// クラス段階（転職）
+/// </summary>
+public enum ClassTier
+{
+    /// <summary>基本職</summary>
+    Base,
+    /// <summary>上位職</summary>
+    Advanced,
+    /// <summary>最上位職</summary>
+    Master
+}
+
+/// <summary>
+/// 噂の種別（NPC記憶）
+/// </summary>
+public enum RumorType
+{
+    /// <summary>英雄的行為の噂</summary>
+    Heroic,
+    /// <summary>悪行の噂</summary>
+    Villainous,
+    /// <summary>奇行の噂</summary>
+    Eccentric,
+    /// <summary>無名（噂なし）</summary>
+    Unknown
+}
+
+/// <summary>
+/// 闇市場商品カテゴリ
+/// </summary>
+public enum BlackMarketCategory
+{
+    /// <summary>盗品</summary>
+    StolenGoods,
+    /// <summary>禁忌アイテム</summary>
+    ForbiddenItems,
+    /// <summary>暗殺道具</summary>
+    AssassinTools,
+    /// <summary>情報</summary>
+    Information
+}
+
+/// <summary>
+/// 渇きの段階
+/// </summary>
+public enum ThirstLevel
+{
+    /// <summary>潤い（十分）</summary>
+    Hydrated,
+    /// <summary>軽い渇き</summary>
+    Thirsty,
+    /// <summary>脱水</summary>
+    Dehydrated,
+    /// <summary>重度脱水（危険）</summary>
+    SevereDehydration
+}
+
+/// <summary>
+/// 水源の品質
+/// </summary>
+public enum WaterQuality
+{
+    /// <summary>清水（安全）</summary>
+    Pure,
+    /// <summary>川水（軽い感染リスク）</summary>
+    River,
+    /// <summary>泥水（感染リスク中）</summary>
+    Muddy,
+    /// <summary>汚水（高感染リスク）</summary>
+    Polluted
+}
+
+/// <summary>
+/// 投資種別
+/// </summary>
+public enum InvestmentType
+{
+    /// <summary>ショップ投資</summary>
+    Shop,
+    /// <summary>冒険者パーティ出資</summary>
+    AdventurerParty,
+    /// <summary>事業出資</summary>
+    Business
+}
+
+/// <summary>
+/// 禁制品カテゴリ
+/// </summary>
+public enum ContrabandType
+{
+    /// <summary>違法武器</summary>
+    IllegalWeapons,
+    /// <summary>魔物素材</summary>
+    MonsterMaterials,
+    /// <summary>禁書</summary>
+    ForbiddenBooks,
+    /// <summary>毒物</summary>
+    Poisons
+}
+
+/// <summary>
+/// HUD要素種別
+/// </summary>
+public enum HudElement
+{
+    /// <summary>HPバー</summary>
+    HpBar,
+    /// <summary>MPバー</summary>
+    MpBar,
+    /// <summary>ミニマップ</summary>
+    MiniMap,
+    /// <summary>メッセージログ</summary>
+    MessageLog,
+    /// <summary>ステータス情報</summary>
+    StatusInfo
+}
+
+/// <summary>
+/// 無限ダンジョン難易度帯
+/// </summary>
+public enum InfiniteDungeonTier
+{
+    /// <summary>通常（1-10F）</summary>
+    Normal,
+    /// <summary>上級（11-30F）</summary>
+    Advanced,
+    /// <summary>深層（31-50F）</summary>
+    Deep,
+    /// <summary>魔界（51F-）</summary>
+    Abyss
+}
+
+/// <summary>
+/// NG+段階
+/// </summary>
+public enum NewGamePlusTier
+{
+    /// <summary>NG+1</summary>
+    Plus1,
+    /// <summary>NG+2</summary>
+    Plus2,
+    /// <summary>NG+3</summary>
+    Plus3,
+    /// <summary>NG+4</summary>
+    Plus4,
+    /// <summary>NG+5（最大）</summary>
+    Plus5
+}
+
+/// <summary>
+/// ギャンブルゲーム種別
+/// </summary>
+public enum GamblingGameType
+{
+    /// <summary>サイコロ（出目予想）</summary>
+    Dice,
+    /// <summary>丁半（偶数奇数）</summary>
+    ChoHan,
+    /// <summary>カード（ハイ&ロー）</summary>
+    Card
+}
