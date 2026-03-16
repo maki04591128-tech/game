@@ -46,6 +46,7 @@ public static class RuneWordDatabase
         InitializeModifierWords();
         InitializeRangeWords();
         InitializeDurationWords();
+        InitializeConditionWords();
     }
 
     private static void InitializeEffectWords()
@@ -88,6 +89,7 @@ public static class RuneWordDatabase
         Add(new("snua", "snúa", "スヌーア", "逆さにする", RuneWordCategory.Effect, 25, 18, Difficulty: 5));
         Add(new("banna", "banna", "バンナ", "禁じる", RuneWordCategory.Effect, 15, 12, Difficulty: 4));
         Add(new("opna", "opna", "オプナ", "開く", RuneWordCategory.Effect, 8, 6, Difficulty: 2));
+        Add(new("loka", "loka", "ロカ", "閉じる", RuneWordCategory.Effect, 8, 6, Difficulty: 2));
     }
 
     private static void InitializeTargetWords()
@@ -155,6 +157,15 @@ public static class RuneWordDatabase
         Add(new("eilifr", "eilífr", "エイリーヴル", "永遠", RuneWordCategory.Duration, 0, 10, MpMultiplier: 2.0f, Difficulty: 3));
         Add(new("sidar", "síðar", "シーザル", "後で", RuneWordCategory.Duration, 0, 3, MpMultiplier: 0.8f, Difficulty: 2));
         Add(new("endalauss", "endalauss", "エンダラウス", "無限", RuneWordCategory.Duration, 0, 12, MpMultiplier: 2.5f, Difficulty: 4));
+    }
+
+    private static void InitializeConditionWords()
+    {
+        Add(new("ef", "ef", "エフ", "もし〜ならば", RuneWordCategory.Condition, 0, 3, MpMultiplier: 1.2f, Difficulty: 3));
+        Add(new("tha", "þá", "サウ", "その時", RuneWordCategory.Condition, 0, 2, MpMultiplier: 1.1f, Difficulty: 2));
+        Add(new("gegn", "gegn", "ゲグン", "〜に対して", RuneWordCategory.Condition, 0, 2, MpMultiplier: 1.1f, Difficulty: 2));
+        Add(new("daudr", "dauðr", "ダウズル", "死に瀕した時", RuneWordCategory.Condition, 0, 5, MpMultiplier: 1.5f, Difficulty: 4));
+        Add(new("sar", "sár", "サウル", "傷ついた時", RuneWordCategory.Condition, 0, 3, MpMultiplier: 1.2f, Difficulty: 3));
     }
 
     private static void Add(RuneWord word)

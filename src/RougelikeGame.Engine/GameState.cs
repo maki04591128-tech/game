@@ -104,7 +104,8 @@ public class BasicMap : IMap
 
     public bool CanMoveTo(Position position)
     {
-        return IsWalkable(position);  // TODO: エンティティ衝突チェック
+        // タイルレベルの移動可否判定のみ。エンティティ衝突チェックはGameControllerで実施
+        return IsWalkable(position);
     }
 
     public bool HasLineOfSight(Position from, Position to)
