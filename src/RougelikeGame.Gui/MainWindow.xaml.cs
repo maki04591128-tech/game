@@ -85,6 +85,14 @@ public partial class MainWindow : Window
         _gameController.OnShowTutorial += OnShowTutorial;
         _gameController.OnReligionChanged += OnReligionChanged;
         _gameController.OnTerritoryChanged += OnTerritoryChanged;
+
+        // 新システム画面イベント購読
+        _gameController.OnShowEncyclopedia += ShowEncyclopediaDialog;
+        _gameController.OnShowDeathLog += ShowDeathLogDialog;
+        _gameController.OnShowSkillTree += ShowSkillTreeDialog;
+        _gameController.OnShowCompanion += ShowCompanionDialog;
+        _gameController.OnShowCooking += ShowCookingDialog;
+        _gameController.OnShowBaseConstruction += ShowBaseConstructionDialog;
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -186,6 +194,9 @@ public partial class MainWindow : Window
                 Key.J => GameAction.OpenWorldMap,
                 Key.H => GameAction.OpenCrafting,
                 Key.N => GameAction.RegisterGuild,
+                Key.Y => GameAction.OpenEncyclopedia,
+                Key.U => GameAction.OpenCompanion,
+                Key.Z => GameAction.OpenDeathLog,
                 _ => null
             };
 
@@ -336,6 +347,53 @@ public partial class MainWindow : Window
             : currentWeight > maxWeight * 0.8f
                 ? System.Windows.Media.Brushes.Orange
                 : System.Windows.Media.Brushes.LightBlue;
+
+        // === 新システム表示更新 ===
+
+        // 季節表示
+        SeasonText.Text = SeasonSystem.GetSeasonName(_gameController.CurrentSeason);
+        SeasonText.Foreground = _gameController.CurrentSeason switch
+        {
+            Season.Spring => System.Windows.Media.Brushes.LimeGreen,
+            Season.Summer => System.Windows.Media.Brushes.Orange,
+            Season.Autumn => new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0xDA, 0xA5, 0x20)),
+            Season.Winter => System.Windows.Media.Brushes.LightBlue,
+            _ => System.Windows.Media.Brushes.White
+        };
+
+        // 天候表示
+        WeatherText.Text = _gameController.CurrentWeatherName;
+        WeatherText.Foreground = _gameController.CurrentWeather switch
+        {
+            Weather.Clear => System.Windows.Media.Brushes.LightBlue,
+            Weather.Rain => System.Windows.Media.Brushes.DodgerBlue,
+            Weather.Snow => System.Windows.Media.Brushes.White,
+            Weather.Storm => System.Windows.Media.Brushes.DarkOrange,
+            Weather.Fog => System.Windows.Media.Brushes.Gray,
+            _ => System.Windows.Media.Brushes.LightBlue
+        };
+
+        // 渇き表示
+        ThirstText.Text = ThirstSystem.GetThirstName(ThirstLevel.Hydrated);
+        ThirstText.Foreground = System.Windows.Media.Brushes.DeepSkyBlue;
+
+        // カルマ表示
+        KarmaText.Text = KarmaSystem.GetKarmaRankName(_gameController.PlayerKarmaRank);
+        KarmaText.Foreground = _gameController.PlayerKarma switch
+        {
+            > 50 => System.Windows.Media.Brushes.Gold,
+            > 0 => System.Windows.Media.Brushes.LightGreen,
+            0 => System.Windows.Media.Brushes.Silver,
+            > -50 => System.Windows.Media.Brushes.Orange,
+            _ => System.Windows.Media.Brushes.Red
+        };
+
+        // 仲間数表示
+        CompanionCountText.Text = $"{_gameController.CompanionCount}";
+        CompanionCountText.Foreground = _gameController.CompanionCount > 0
+            ? System.Windows.Media.Brushes.Gold
+            : System.Windows.Media.Brushes.Gray;
 
         // マップ描画
         _renderer.Render(
@@ -690,6 +748,124 @@ public partial class MainWindow : Window
         var dialog = new ReligionWindow(_gameController);
         dialog.Owner = this;
         dialog.ShowDialog();
+        Focus();
+    }
+
+    #endregion
+
+    #region 新システム画面
+
+    private void ShowEncyclopediaDialog()
+    {
+        StopAutoExploreTimer();
+        var enc = _gameController.GetEncyclopediaSystem();
+        var sb = new StringBuilder();
+        sb.AppendLine("【図鑑】");
+        sb.AppendLine($"総エントリ数: {enc.TotalEntries}");
+        foreach (var cat in Enum.GetValues<EncyclopediaCategory>())
+        {
+            var entries = enc.GetByCategory(cat);
+            if (entries.Count > 0)
+            {
+                float rate = enc.GetDiscoveryRate(cat);
+                sb.AppendLine($"  {cat}: {entries.Count}件 (発見率: {rate:P0})");
+            }
+        }
+        MessageBox.Show(sb.ToString(), "図鑑", MessageBoxButton.OK, MessageBoxImage.Information);
+        Focus();
+    }
+
+    private void ShowDeathLogDialog()
+    {
+        StopAutoExploreTimer();
+        var log = _gameController.GetDeathLogSystem();
+        var sb = new StringBuilder();
+        sb.AppendLine("【死亡記録】");
+        sb.AppendLine($"総死亡回数: {log.TotalDeaths}");
+        if (log.TotalDeaths > 0)
+        {
+            sb.AppendLine($"最高到達レベル: {log.GetHighestLevel()}");
+            sb.AppendLine($"最深到達階層: {log.GetDeepestFloor()}");
+            sb.AppendLine($"平均生存ターン: {log.GetAverageSurvivalTurns():F0}");
+            var common = log.GetMostCommonCause();
+            if (common.HasValue)
+                sb.AppendLine($"最多死因: {common.Value}");
+        }
+        foreach (var entry in log.AllLogs.TakeLast(5))
+        {
+            sb.AppendLine($"  #{entry.RunNumber} {entry.CharacterName}(Lv{entry.Level}) - {entry.CauseDetail} @{entry.Location} B{entry.Floor}F");
+        }
+        MessageBox.Show(sb.ToString(), "死亡記録", MessageBoxButton.OK, MessageBoxImage.Information);
+        Focus();
+    }
+
+    private void ShowSkillTreeDialog()
+    {
+        StopAutoExploreTimer();
+        var tree = _gameController.GetSkillTreeSystem();
+        var sb = new StringBuilder();
+        sb.AppendLine("【スキルツリー】");
+        sb.AppendLine($"利用可能スキルポイント: {tree.AvailablePoints}");
+        sb.AppendLine($"解放済みノード数: {tree.UnlockedCount}");
+        foreach (var nodeId in tree.UnlockedNodes)
+        {
+            if (tree.AllNodes.TryGetValue(nodeId, out var node))
+            {
+                sb.AppendLine($"  ✓ {node.Name} ({node.NodeType})");
+            }
+        }
+        MessageBox.Show(sb.ToString(), "スキルツリー", MessageBoxButton.OK, MessageBoxImage.Information);
+        Focus();
+    }
+
+    private void ShowCompanionDialog()
+    {
+        StopAutoExploreTimer();
+        var comp = _gameController.GetCompanionSystem();
+        var sb = new StringBuilder();
+        sb.AppendLine("【仲間一覧】");
+        sb.AppendLine($"パーティ: {comp.Party.Count}/{CompanionSystem.MaxPartySize}");
+        foreach (var c in comp.Party)
+        {
+            sb.AppendLine($"  {c.Name} (Lv{c.Level}) - {CompanionSystem.GetTypeName(c.Type)} / AI:{c.AIMode} / 忠誠:{c.Loyalty}");
+        }
+        if (comp.Party.Count == 0)
+            sb.AppendLine("  仲間はまだいません");
+        MessageBox.Show(sb.ToString(), "仲間管理", MessageBoxButton.OK, MessageBoxImage.Information);
+        Focus();
+    }
+
+    private void ShowCookingDialog()
+    {
+        StopAutoExploreTimer();
+        var sb = new StringBuilder();
+        sb.AppendLine("【料理】");
+        sb.AppendLine("利用可能な調理法:");
+        foreach (var method in Enum.GetValues<CookingMethod>())
+        {
+            sb.AppendLine($"  {CookingSystem.GetMethodName(method)} (所要ターン: {CookingSystem.GetCookingTime(method)})");
+        }
+        MessageBox.Show(sb.ToString(), "料理", MessageBoxButton.OK, MessageBoxImage.Information);
+        Focus();
+    }
+
+    private void ShowBaseConstructionDialog()
+    {
+        StopAutoExploreTimer();
+        var baseSys = _gameController.GetBaseConstructionSystem();
+        var sb = new StringBuilder();
+        sb.AppendLine("【拠点管理】");
+        sb.AppendLine($"建設済み施設数: {baseSys.BuiltFacilities.Count}");
+        sb.AppendLine("建設済み施設:");
+        foreach (var category in baseSys.BuiltFacilities)
+        {
+            var def = BaseConstructionSystem.GetDefinition(category);
+            if (def != null)
+                sb.AppendLine($"  {def.Name}");
+        }
+        if (baseSys.BuiltFacilities.Count == 0)
+            sb.AppendLine("  まだ施設がありません");
+        MessageBox.Show(sb.ToString(), "拠点管理", MessageBoxButton.OK, MessageBoxImage.Information);
         Focus();
     }
 
