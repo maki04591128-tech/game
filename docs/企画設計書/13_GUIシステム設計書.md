@@ -441,7 +441,7 @@ src/RougelikeGame.Gui/Audio/
 |------|---------|------|------|
 | タイトル画面 | Phase 6 | スタート/コンティニュー/設定/終了 | ✅ 実装済み |
 | 設定画面 | Phase 6 | 音量調整、フォントサイズ | ✅ 実装済み |
-| BGM/SE管理 | Phase 6 | AudioManager、10BGM+16SE定義 | ✅ 実装済み |
+| BGM/SE管理 | Phase 6 | AudioManager、10BGM+21SE定義 | ✅ 実装済み |
 | 描画最適化 | Phase 6 | プーリング、Visibility切替 | ✅ 実装済み |
 | キャラクター作成GUI画面 | Ver.α | 種族・職業選択、ステータス振り分け | ⬜ |
 | アニメーション | Ver.α | 攻撃エフェクト、画面遷移 | ⬜ |

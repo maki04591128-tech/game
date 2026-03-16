@@ -136,7 +136,7 @@ src/RougelikeGame.Gui/
 │   ├── IAudioManager.cs          # オーディオ管理インターフェース（✅ 実装済み）
 │   ├── AudioManager.cs           # BGM/SE再生管理（✅ 実装済み）
 │   ├── SilentAudioManager.cs     # テスト・無音実装（✅ 実装済み）
-│   └── AudioIds.cs               # BGM/SE ID定数（✅ 実装済み: BgmIds 10曲 + SeIds 16種）
+│   └── AudioIds.cs               # BGM/SE ID定数（✅ 実装済み: BgmIds 10曲 + SeIds 21種）
 └── Resources/
     ├── BGM/                       # BGMファイル配置（⬜ 未配置）
     └── SE/                        # SEファイル配置（⬜ 未配置）
@@ -168,7 +168,10 @@ src/RougelikeGame.Gui/
 ### 5.5 AudioIds 定数一覧
 
 **BgmIds**（10曲）:
-`Title`, `DungeonNormal`, `Battle`, `BossBattle`, `DeathReturn`, `GameOver`, `DungeonDeep`, `SafeZone`, `Shop`, `Event`
+`Title`, `DungeonNormal`, `BattleNormal`, `BattleBoss`, `DeathReturn`, `GameOver`, `DungeonDeep`, `Town`, `Shop`, `Event`
 
-**SeIds**（16種）:
-`Attack`, `AttackMiss`, `Critical`, `MagicCast`, `Damage`, `EnemyDefeat`, `PlayerDeath`, `FootStep`, `DoorOpen`, `StairsMove`, `TrapActivate`, `SecretDoor`, `ItemPickup`, `PotionUse`, `LevelUp`, `MenuOpen`
+**SeIds**（21種）:
+- 戦闘系（7種）: `AttackHit`, `AttackMiss`, `CriticalHit`, `MagicCast`, `TakeDamage`, `EnemyDefeat`, `PlayerDeath`
+- 探索系（5種）: `Footstep`, `DoorOpen`, `StairsMove`, `TrapTrigger`, `SecretFound`
+- アイテム系（5種）: `ItemPickup`, `PotionUse`, `ScrollUse`, `EquipChange`, `Eat`
+- UI系（4種）: `MenuOpen`, `LevelUp`, `SanityChange`, `HungerChange`
