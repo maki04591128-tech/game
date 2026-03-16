@@ -37,6 +37,18 @@ public class GameController
     private readonly CraftingSystem _craftingSystem = new();
     private readonly TutorialSystem _tutorialSystem = new();
 
+    // === Ver.prt.0.2-0.4 新システム ===
+    private readonly KarmaSystem _karmaSystem = new();
+    private readonly ReputationSystem _reputationSystem = new();
+    private readonly CompanionSystem _companionSystem = new();
+    private readonly EncyclopediaSystem _encyclopediaSystem = new();
+    private readonly DeathLogSystem _deathLogSystem = new();
+    private readonly OathSystem _oathSystem = new();
+    private readonly SkillTreeSystem _skillTreeSystem = new();
+    private readonly BaseConstructionSystem _baseConstructionSystem = new();
+    private readonly InvestmentSystem _investmentSystem = new();
+    private readonly GridInventorySystem _gridInventorySystem = new();
+
     /// <summary>敵がアクティブになる描画範囲半径</summary>
     private const int ActiveRange = 10;
 
@@ -144,6 +156,14 @@ public class GameController
     public event Action<EnhancementResult>? OnEnhancementResult;
     public event Action<EnchantmentResult>? OnEnchantmentResult;
     public event Action<TutorialStep>? OnShowTutorial;
+
+    // === 新画面表示イベント ===
+    public event Action? OnShowEncyclopedia;
+    public event Action? OnShowDeathLog;
+    public event Action? OnShowSkillTree;
+    public event Action? OnShowCompanion;
+    public event Action? OnShowCooking;
+    public event Action? OnShowBaseConstruction;
 
     /// <summary>メッセージ履歴</summary>
     private readonly List<string> _messageHistory = new();
@@ -710,6 +730,24 @@ public class GameController
                 return;
             case GameAction.EnchantWeapon:
                 // 付与は外部UIから TryEnchantWeapon(weapon, element) を呼ぶ
+                return;
+            case GameAction.OpenEncyclopedia:
+                OnShowEncyclopedia?.Invoke();
+                return;
+            case GameAction.OpenDeathLog:
+                OnShowDeathLog?.Invoke();
+                return;
+            case GameAction.OpenSkillTree:
+                OnShowSkillTree?.Invoke();
+                return;
+            case GameAction.OpenCompanion:
+                OnShowCompanion?.Invoke();
+                return;
+            case GameAction.OpenCooking:
+                OnShowCooking?.Invoke();
+                return;
+            case GameAction.OpenBaseConstruction:
+                OnShowBaseConstruction?.Invoke();
                 return;
             case GameAction.Save:
                 OnSaveGame?.Invoke();
@@ -3635,6 +3673,67 @@ public class GameController
     }
 
     #endregion
+
+    #region 新システムアクセス
+
+    /// <summary>現在の季節</summary>
+    public Season CurrentSeason => SeasonSystem.GetSeason(GameTime.Month);
+
+    /// <summary>季節名を取得</summary>
+    public string CurrentSeasonName => SeasonSystem.GetSeasonName(CurrentSeason);
+
+    /// <summary>現在の天候</summary>
+    public Weather CurrentWeather { get; private set; } = Weather.Clear;
+
+    /// <summary>天候名を取得</summary>
+    public string CurrentWeatherName => WeatherSystem.GetWeatherName(CurrentWeather);
+
+    /// <summary>カルマ値</summary>
+    public int PlayerKarma => _karmaSystem.KarmaValue;
+
+    /// <summary>カルマランク</summary>
+    public KarmaRank PlayerKarmaRank => _karmaSystem.CurrentRank;
+
+    /// <summary>評判ランク（現在の領地）</summary>
+    public ReputationRank PlayerReputationRank => _reputationSystem.GetReputationRank(_worldMapSystem.CurrentTerritory);
+
+    /// <summary>仲間パーティ</summary>
+    public IReadOnlyList<CompanionSystem.CompanionData> CompanionParty => _companionSystem.Party;
+
+    /// <summary>仲間数</summary>
+    public int CompanionCount => _companionSystem.Party.Count;
+
+    /// <summary>図鑑システム</summary>
+    public EncyclopediaSystem GetEncyclopediaSystem() => _encyclopediaSystem;
+
+    /// <summary>死亡ログシステム</summary>
+    public DeathLogSystem GetDeathLogSystem() => _deathLogSystem;
+
+    /// <summary>スキルツリーシステム</summary>
+    public SkillTreeSystem GetSkillTreeSystem() => _skillTreeSystem;
+
+    /// <summary>仲間システム</summary>
+    public CompanionSystem GetCompanionSystem() => _companionSystem;
+
+    /// <summary>拠点システム</summary>
+    public BaseConstructionSystem GetBaseConstructionSystem() => _baseConstructionSystem;
+
+    /// <summary>カルマシステム</summary>
+    public KarmaSystem GetKarmaSystem() => _karmaSystem;
+
+    /// <summary>評判システム</summary>
+    public ReputationSystem GetReputationSystem() => _reputationSystem;
+
+    /// <summary>誓約システム</summary>
+    public OathSystem GetOathSystem() => _oathSystem;
+
+    /// <summary>投資システム</summary>
+    public InvestmentSystem GetInvestmentSystem() => _investmentSystem;
+
+    /// <summary>グリッドインベントリシステム</summary>
+    public GridInventorySystem GetGridInventorySystem() => _gridInventorySystem;
+
+    #endregion
 }
 
 public enum GameAction
@@ -3686,5 +3785,13 @@ public enum GameAction
     EnchantWeapon,
     Save,
     Load,
-    Quit
+    Quit,
+
+    // Ver.prt.0.4 新画面アクション
+    OpenEncyclopedia,
+    OpenDeathLog,
+    OpenSkillTree,
+    OpenCompanion,
+    OpenCooking,
+    OpenBaseConstruction
 }
