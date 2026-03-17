@@ -1467,3 +1467,207 @@ public enum AmbientSoundType
     /// <summary>静寂</summary>
     Silence
 }
+
+/// <summary>
+/// アイテム鑑定状態
+/// </summary>
+public enum IdentificationState
+{
+    /// <summary>未鑑定</summary>
+    Unknown,
+    /// <summary>鑑定済み</summary>
+    Identified,
+    /// <summary>呪い判明</summary>
+    Cursed
+}
+
+/// <summary>
+/// 呪い種別
+/// </summary>
+public enum CurseType
+{
+    /// <summary>呪いなし</summary>
+    None,
+    /// <summary>軽度の呪い（ステータス微減）</summary>
+    Minor,
+    /// <summary>重度の呪い（外せない＋ステータス減）</summary>
+    Major,
+    /// <summary>致死呪い（徐々にHP減少）</summary>
+    Deadly
+}
+
+/// <summary>
+/// 生態系イベント種別
+/// </summary>
+public enum EcosystemEventType
+{
+    /// <summary>捕食（強い敵が弱い敵を倒す）</summary>
+    Predation,
+    /// <summary>縄張り争い（同格の敵同士の戦闘）</summary>
+    TerritoryFight,
+    /// <summary>共生（異種間の協力関係）</summary>
+    Symbiosis,
+    /// <summary>漁り（戦闘残骸からの採取）</summary>
+    Scavenging
+}
+
+/// <summary>
+/// ペット種別
+/// </summary>
+public enum PetType
+{
+    /// <summary>狼（戦闘補助型）</summary>
+    Wolf,
+    /// <summary>馬（騎乗移動型）</summary>
+    Horse,
+    /// <summary>鷹（偵察型）</summary>
+    Hawk,
+    /// <summary>猫（幸運型）</summary>
+    Cat,
+    /// <summary>熊（タンク型）</summary>
+    Bear,
+    /// <summary>竜（万能型・希少）</summary>
+    Dragon
+}
+
+/// <summary>
+/// 交易路状態
+/// </summary>
+public enum TradeRouteStatus
+{
+    /// <summary>閉鎖中</summary>
+    Closed,
+    /// <summary>開通済み</summary>
+    Open,
+    /// <summary>封鎖中（戦争・災害等）</summary>
+    Blocked,
+    /// <summary>繁栄中（利益増大）</summary>
+    Prosperous
+}
+
+/// <summary>
+/// 実績カテゴリ
+/// </summary>
+public enum AchievementCategory
+{
+    /// <summary>戦闘系</summary>
+    Combat,
+    /// <summary>探索系</summary>
+    Exploration,
+    /// <summary>収集系</summary>
+    Collection,
+    /// <summary>ストーリー系</summary>
+    Story,
+    /// <summary>チャレンジ系</summary>
+    Challenge,
+    /// <summary>メタ系（周回・実績数等）</summary>
+    Meta
+}
+
+/// <summary>
+/// 碑文種別
+/// </summary>
+public enum InscriptionType
+{
+    /// <summary>伝承（世界観・歴史）</summary>
+    Lore,
+    /// <summary>警告（危険情報）</summary>
+    Warning,
+    /// <summary>ヒント（攻略情報）</summary>
+    Hint,
+    /// <summary>レシピ（調合・鍛冶）</summary>
+    Recipe,
+    /// <summary>呪文（新魔法習得）</summary>
+    Spell,
+    /// <summary>地図（隠し部屋情報）</summary>
+    Map
+}
+
+/// <summary>
+/// ヘルプカテゴリ
+/// </summary>
+public enum HelpCategory
+{
+    /// <summary>移動</summary>
+    Movement,
+    /// <summary>戦闘</summary>
+    Combat,
+    /// <summary>インベントリ</summary>
+    Inventory,
+    /// <summary>魔法</summary>
+    Magic,
+    /// <summary>クラフト</summary>
+    Crafting,
+    /// <summary>サバイバル</summary>
+    Survival,
+    /// <summary>上級</summary>
+    Advanced
+}
+
+/// <summary>
+/// 色覚モード
+/// </summary>
+public enum ColorBlindMode
+{
+    /// <summary>通常</summary>
+    None,
+    /// <summary>1型色覚（赤色覚異常）</summary>
+    Protanopia,
+    /// <summary>2型色覚（緑色覚異常）</summary>
+    Deuteranopia,
+    /// <summary>3型色覚（青色覚異常）</summary>
+    Tritanopia,
+    /// <summary>モノクロ</summary>
+    Monochrome
+}
+
+/// <summary>
+/// MODコンテンツ種別
+/// </summary>
+public enum ModContentType
+{
+    /// <summary>敵データ</summary>
+    Enemy,
+    /// <summary>アイテムデータ</summary>
+    Item,
+    /// <summary>マップデータ</summary>
+    Map,
+    /// <summary>呪文データ</summary>
+    Spell,
+    /// <summary>クエストデータ</summary>
+    Quest,
+    /// <summary>システム拡張</summary>
+    System
+}
+
+/// <summary>
+/// 戦争フェーズ
+/// </summary>
+public enum WarPhase
+{
+    /// <summary>緊張（開戦前）</summary>
+    Tension,
+    /// <summary>小競り合い</summary>
+    Skirmish,
+    /// <summary>本格戦闘</summary>
+    Battle,
+    /// <summary>戦後処理</summary>
+    Aftermath,
+    /// <summary>和平</summary>
+    Peace
+}
+
+/// <summary>
+/// 陣営所属
+/// </summary>
+public enum FactionAlignment
+{
+    /// <summary>第1陣営（攻撃側）</summary>
+    Faction1,
+    /// <summary>第2陣営（防衛側）</summary>
+    Faction2,
+    /// <summary>中立</summary>
+    Neutral,
+    /// <summary>傭兵（状況で変動）</summary>
+    Mercenary
+}
