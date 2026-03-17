@@ -511,9 +511,10 @@ public class GuiSystemVerificationTests : IDisposable
         Log("  → 戦闘後ステータスバー整合性OK");
 
         // ========== 自動探索フロー検証 ==========
-        Log("検証: Tab(自動探索開始)→3秒待機→Space(中断)のフローでクラッシュしないか");
+        Log("検証: Tab(自動探索開始)→待機→Space(中断)のフローでクラッシュしないか");
+        const int AutoExploreWaitMs = 3000; // 自動探索が数ステップ進むのを待つ時間
         PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.TAB);
-        Thread.Sleep(3000);
+        Thread.Sleep(AutoExploreWaitMs);
         PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.SPACE);
         Thread.Sleep(500);
         Assert.False(_app!.HasExited, "自動探索フロー中にクラッシュ");
