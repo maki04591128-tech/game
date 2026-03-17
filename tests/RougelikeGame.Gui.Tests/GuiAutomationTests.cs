@@ -26,12 +26,12 @@ namespace RougelikeGame.Gui.Tests;
 ///      - ウィンドウタイトル・サイズ・メッセージログ初期表示
 ///      - 操作説明テキスト(KeyHelpText)存在＋内容チェック
 ///      - ミニマップ切替（M）
-///      - ステータスバー全15要素存在チェック（Territory/Surface/Floor/Date/TimePeriod/Lv/Exp/HP/MP/SP/Hunger/Sanity/Gold/Weight/TurnLimit）
+///      - ステータスバー全20要素存在チェック（Territory/Surface/Floor/Date/TimePeriod/Lv/Exp/HP/MP/SP/Hunger/Sanity/Gold/Weight/TurnLimit/Season/Weather/Thirst/Karma/CompanionCount）
 ///      - 移動: WASD / 矢印 / 斜め（Home/PgUp/End/PgDn）
 ///      - アクション: G拾う / F探索 / X閉ドア / R射撃 / T投擲 / P祈り / E技能 / N登録
-///      - ダイアログ: I持物 / C状態 / Lログ / V魔法詠唱 / Jワールドマップ / Kクエスト / O宗教 / H鍛冶 / B街
+///      - ダイアログ: I持物 / C状態 / Lログ / V魔法詠唱 / Jワールドマップ / Kクエスト / O宗教 / H鍛冶 / B街 / Y図鑑 / U仲間 / Z死亡録
 ///      - システム: Tab自動探索→中断 / F5セーブ / F9ロード / Space×65日時進行
-///      - 連打耐性: 15種キー×3ラウンド高速連打
+///      - 連打耐性: 18種キー×3ラウンド高速連打（Y/U/Z追加）
 ///      - 終了: Qキーでゲーム終了（破壊的操作のためテスト末尾に配置）
 /// </summary>
 [Collection("GuiTests")]
@@ -311,12 +311,13 @@ public class GuiAutomationTests : IDisposable
 
         // ========== ステータスバー全要素存在チェック ==========
         // ※ 値の詳細検証（初期値フル確認、形式チェック等）はGuiSystemVerificationTestsで実施
-        Log("検証: ステータスバー全13要素のUI存在チェック");
+        Log("検証: ステータスバー全20要素のUI存在チェック");
         var statusBarIds = new[]
         {
             "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
             "LevelText", "ExpText", "HpText", "MpText", "SpText",
-            "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText"
+            "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText"
         };
         foreach (var id in statusBarIds)
         {
@@ -491,6 +492,30 @@ public class GuiAutomationTests : IDisposable
         Assert.False(_app!.HasExited);
         Log("  → ギルド登録OK");
 
+        // ========== 図鑑ダイアログ（Y） ==========
+        Log("検証: Yキーで図鑑ダイアログが開き、閉じてもクラッシュしないか");
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_Y);
+        Thread.Sleep(500);
+        CloseModals(window);
+        Assert.False(_app!.HasExited);
+        Log("  → 図鑑ダイアログOK");
+
+        // ========== 仲間管理ダイアログ（U） ==========
+        Log("検証: Uキーで仲間管理ダイアログが開き、閉じてもクラッシュしないか");
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_U);
+        Thread.Sleep(500);
+        CloseModals(window);
+        Assert.False(_app!.HasExited);
+        Log("  → 仲間管理ダイアログOK");
+
+        // ========== 死亡記録ダイアログ（Z） ==========
+        Log("検証: Zキーで死亡記録ダイアログが開き、閉じてもクラッシュしないか");
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_Z);
+        Thread.Sleep(500);
+        CloseModals(window);
+        Assert.False(_app!.HasExited);
+        Log("  → 死亡記録ダイアログOK");
+
         // ========== 待機キーで日時進行 ==========
         Log("検証: Spaceキー65回連打で日付が進行するか（時間経過の確認）");
         var dateBeforeWait = FindElement(window, "DateText");
@@ -507,7 +532,7 @@ public class GuiAutomationTests : IDisposable
         Log("  → 日時進行OK");
 
         // ========== 連打耐性テスト ==========
-        Log("検証: 15種キーを3ラウンド高速連打（30ms間隔）してクラッシュしないか");
+        Log("検証: 18種キーを3ラウンド高速連打（30ms間隔）してクラッシュしないか");
         var rapidKeys = new[]
         {
             FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_W,
@@ -525,6 +550,9 @@ public class GuiAutomationTests : IDisposable
             FlaUI.Core.WindowsAPI.VirtualKeyShort.DOWN,
             FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT,
             FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT,
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_Y,
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_U,
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_Z,
         };
         for (int round = 0; round < 3; round++)
         {

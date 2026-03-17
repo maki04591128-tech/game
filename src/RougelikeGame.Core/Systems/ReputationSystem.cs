@@ -1,0 +1,106 @@
+namespace RougelikeGame.Core.Systems;
+
+/// <summary>
+/// 評判変動イベント引数
+/// </summary>
+public record ReputationChangedEventArgs(
+    TerritoryId Territory,
+    int OldValue,
+    int NewValue,
+    string Reason);
+
+/// <summary>
+/// 評判・名声システム - 領地ごとの評判を管理
+/// </summary>
+public class ReputationSystem
+{
+    private readonly Dictionary<TerritoryId, int> _reputations = new();
+
+    /// <summary>評判変動時に発火するイベント</summary>
+    public event Action<ReputationChangedEventArgs>? OnReputationChanged;
+
+    public ReputationSystem()
+    {
+        foreach (TerritoryId territory in Enum.GetValues<TerritoryId>())
+        {
+            _reputations[territory] = 0;
+        }
+    }
+
+    /// <summary>指定領地の評判を変動させる</summary>
+    public void ModifyReputation(TerritoryId territory, int amount, string reason)
+    {
+        int oldValue = _reputations[territory];
+        _reputations[territory] = Math.Clamp(oldValue + amount, -100, 100);
+        int newValue = _reputations[territory];
+
+        if (oldValue != newValue)
+        {
+            OnReputationChanged?.Invoke(new ReputationChangedEventArgs(territory, oldValue, newValue, reason));
+        }
+    }
+
+    /// <summary>指定領地の評判値を取得</summary>
+    public int GetReputation(TerritoryId territory) => _reputations[territory];
+
+    /// <summary>指定領地の評判段階を取得</summary>
+    public ReputationRank GetReputationRank(TerritoryId territory) => GetRankFromValue(_reputations[territory]);
+
+    /// <summary>全領地の評判データを取得</summary>
+    public IReadOnlyDictionary<TerritoryId, int> GetAllReputations() => _reputations;
+
+    /// <summary>評判による割引率を取得</summary>
+    public double GetShopDiscount(TerritoryId territory) => GetRankFromValue(_reputations[territory]) switch
+    {
+        ReputationRank.Revered => 0.8,
+        ReputationRank.Trusted => 0.9,
+        ReputationRank.Friendly => 0.95,
+        ReputationRank.Indifferent => 1.0,
+        ReputationRank.Unfriendly => 1.1,
+        ReputationRank.Hostile => 1.3,
+        ReputationRank.Hated => 1.5,
+        _ => 1.0
+    };
+
+    /// <summary>評判によるクエスト解放率を取得（0.0～1.0）</summary>
+    public double GetQuestAvailability(TerritoryId territory) => GetRankFromValue(_reputations[territory]) switch
+    {
+        ReputationRank.Revered => 1.0,
+        ReputationRank.Trusted => 0.9,
+        ReputationRank.Friendly => 0.7,
+        ReputationRank.Indifferent => 0.5,
+        ReputationRank.Unfriendly => 0.3,
+        ReputationRank.Hostile => 0.1,
+        ReputationRank.Hated => 0.0,
+        _ => 0.5
+    };
+
+    /// <summary>指定領地に入場可能か（Hatedで拒否）</summary>
+    public bool IsWelcome(TerritoryId territory) =>
+        GetRankFromValue(_reputations[territory]) != ReputationRank.Hated;
+
+    /// <summary>評判段階の日本語名を取得</summary>
+    public static string GetReputationRankName(ReputationRank rank) => rank switch
+    {
+        ReputationRank.Revered => "崇拝",
+        ReputationRank.Trusted => "信頼",
+        ReputationRank.Friendly => "友好",
+        ReputationRank.Indifferent => "無関心",
+        ReputationRank.Unfriendly => "不信",
+        ReputationRank.Hostile => "敵意",
+        ReputationRank.Hated => "憎悪",
+        _ => "不明"
+    };
+
+    /// <summary>評判値から段階を判定</summary>
+    private static ReputationRank GetRankFromValue(int value) => value switch
+    {
+        >= 80 => ReputationRank.Revered,
+        >= 50 => ReputationRank.Trusted,
+        >= 20 => ReputationRank.Friendly,
+        >= -19 => ReputationRank.Indifferent,
+        >= -49 => ReputationRank.Unfriendly,
+        >= -79 => ReputationRank.Hostile,
+        _ => ReputationRank.Hated
+    };
+}

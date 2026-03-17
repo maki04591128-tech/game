@@ -1,4 +1,5 @@
 using RougelikeGame.Core.Interfaces;
+using RougelikeGame.Core.Systems;
 
 namespace RougelikeGame.Core.Items;
 
@@ -245,6 +246,9 @@ public abstract class Item : IItem
     /// <summary>最大耐久度</summary>
     public int MaxDurability { get; init; } = -1;
 
+    /// <summary>アイテム等級（品質）</summary>
+    public ItemGrade Grade { get; set; } = ItemGrade.Standard;
+
     /// <summary>実際の価格を計算</summary>
     public virtual int CalculatePrice()
     {
@@ -264,10 +268,13 @@ public abstract class Item : IItem
 
         multiplier *= 1.0f + (EnhancementLevel * 0.2f);
 
+        // 等級係数を適用
+        multiplier *= ItemGradeSystem.GetPriceMultiplier(Grade);
+
         return (int)(BasePrice * multiplier);
     }
 
-    /// <summary>表示名を取得（識別・強化値を考慮）</summary>
+    /// <summary>表示名を取得（識別・強化値・等級を考慮）</summary>
     public virtual string GetDisplayName()
     {
         if (!IsIdentified)
@@ -277,11 +284,13 @@ public abstract class Item : IItem
         if (IsBlessed) prefix = "祝福された";
         else if (IsCursed) prefix = "呪われた";
 
+        var gradePrefix = ItemGradeSystem.GetGradeDisplayPrefix(Grade);
+
         var enhancement = EnhancementLevel != 0 
             ? $"+{EnhancementLevel} " 
             : "";
 
-        return $"{prefix}{enhancement}{Name}";
+        return $"{prefix}{gradePrefix}{enhancement}{Name}";
     }
 
     /// <summary>アイテムタイプに応じた表示文字</summary>

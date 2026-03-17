@@ -60,6 +60,17 @@
                     <TextBlock x:Name="GoldText" Text="0G" Foreground="#ffd700" FontSize="14" FontWeight="Bold" Margin="0,0,15,0"/>
                     <TextBlock Text="⚖" Foreground="#a0c4ff" FontSize="14"/>
                     <TextBlock x:Name="WeightText" Text="0/100kg" Foreground="#a0c4ff" FontSize="14" FontWeight="Bold"/>
+                    <TextBlock Text=" | " Foreground="Gray" FontSize="14"/>
+                    <TextBlock Text="季節:" Foreground="White" FontSize="14"/>
+                    <TextBlock x:Name="SeasonText" Text="春" Foreground="#90EE90" FontSize="14" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <TextBlock Text="天候:" Foreground="White" FontSize="14"/>
+                    <TextBlock x:Name="WeatherText" Text="晴" Foreground="#87CEEB" FontSize="14" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <TextBlock Text="渇き:" Foreground="White" FontSize="14"/>
+                    <TextBlock x:Name="ThirstText" Text="潤沢" Foreground="#00BFFF" FontSize="14" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <TextBlock Text="善悪:" Foreground="White" FontSize="14"/>
+                    <TextBlock x:Name="KarmaText" Text="中立" Foreground="#C0C0C0" FontSize="14" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <TextBlock Text="仲間:" Foreground="White" FontSize="14"/>
+                    <TextBlock x:Name="CompanionCountText" Text="0" Foreground="#FFD700" FontSize="14" FontWeight="Bold"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -98,7 +109,7 @@
         <!-- 操作説明 -->
         <Border Grid.Row="3" Background="#0f3460" Padding="10,5">
             <TextBlock x:Name="KeyHelpText"
-                       Text="[WASD/矢印]移動 [I]持物 [C]状態 [L]ログ [G]拾う [&gt;]降 [&lt;]昇 [Tab]探索 [M]地図 [J]世界 [B]街 [K]依頼 [V]魔法 [E]技能 [O]信仰 [H]鍛冶 [P]祈り [F5]保存 [F9]読込 [Q]終了"
+                       Text="[WASD/矢印]移動 [I]持物 [C]状態 [L]ログ [G]拾う [&gt;]降 [&lt;]昇 [Tab]探索 [M]地図 [J]世界 [B]街 [K]依頼 [V]魔法 [E]技能 [O]信仰 [H]鍛冶 [P]祈り [Y]図鑑 [U]仲間 [Z]死亡録 [F5]保存 [F9]読込 [Q]終了"
                        Foreground="#e0e0e0" 
                        FontSize="12" 
                        HorizontalAlignment="Center"/>

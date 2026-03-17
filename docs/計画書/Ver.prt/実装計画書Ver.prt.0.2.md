@@ -1,7 +1,7 @@
 ﻿# 実装計画書 Ver.prt.0.2〜2（新システム・既存強化）
 
 **目標**: Ver.prt.0.1完了後、新たなシステムアイデアの追加および既存システムの強化
-**状態**: ⬜ 未着手（Ver.prt.0.1 完了後に着手）
+**状態**: ✅ Ver.prt.0.2（基盤拡張14タスク）+ Ver.prt.0.3（システム深化27タスク）+ Ver.prt.0.4（大型新機能24タスク）全完了 — テスト1907件（Core）
 **設計書参照**: [21_拡張システム設計書](../../企画設計書/21_拡張システム設計書.md)
 
 ---
@@ -172,85 +172,85 @@ Ver.prt.0.2〜2 は Ver.prt.0.1 で構築した全ゲームシステムを土台
 
 > 確定ではないが、依存関係と優先度を考慮した実装順序の目安。
 
-### 4.1 Ver.prt.0.2（基盤拡張）
+### 4.1 Ver.prt.0.2（基盤拡張） — ✅ 全14タスク完了
 
 > 他のシステムの前提となる基盤システムを優先。
 
-1. **P.1** 敵種族分類システム（他の多くのシステムが依存）
-2. **P.2** 武器種別属性の深化（P.1と連携必須）
-3. **P.45** 攻撃属性システム（P.2と連携。属性相性テーブル基盤）
-4. **P.46** アイテム等級システム（装備・アイテム全般の品質管理基盤）
-5. **P.12** 拡張ドロップテーブル（P.1と連携）
-6. **P.50** 剥ぎ取りシステム（ドロップ方式の根本変更。早期導入推奨）
-7. **P.9** 熟練度システム（P.8/P.10/P.48/P.49の前提）
-8. **P.22** カルマシステム（P.24/P.25の前提）
-9. **P.42** 評判・名声システム ✅（P.22カルマと連携。採用確定）
-10. **P.53** 時刻行動変化システム（NPC/敵の昼夜基本ロジック）
-11. **P.15** 敵AI拡張（P.1と連携）
-12. **P.11** エンチャントシステム（P.12と連携）
-13. **P.38** 宗教スキル補正の接続（既存システムの補完）
-14. **P.55** ダンジョン特徴別ランダム生成（BSP法拡張。マップ多様化基盤）
+1. **P.1** 敵種族分類システム（他の多くのシステムが依存） ✅ MonsterRace enum 10種族、MonsterRaceSystem、テスト55件
+2. **P.2** 武器種別属性の深化（P.1と連携必須） ✅ WeaponProficiencySystem、14武器種プロファイル
+3. **P.45** 攻撃属性システム（P.2と連携。属性相性テーブル基盤） ✅ ElementalAffinitySystem、種族×属性相性テーブル、テスト49件
+4. **P.46** アイテム等級システム（装備・アイテム全般の品質管理基盤） ✅ ItemGrade enum 6段階、ItemGradeSystem、テスト50件
+5. **P.12** 拡張ドロップテーブル（P.1と連携） ✅ 種族ボーナスドロップ9種族対応、等級MinGrade対応
+6. **P.50** 剥ぎ取りシステム（ドロップ方式の根本変更。早期導入推奨） ✅ HarvestSystem、10種族素材対応
+7. **P.9** 熟練度システム（P.8/P.10/P.48/P.49の前提） ✅ ProficiencySystem、12カテゴリ、経験値/レベルアップ/Decay
+8. **P.22** カルマシステム（P.24/P.25の前提） ✅ KarmaSystem、7段階、ショップ価格/NPC態度/闇市・聖域連動
+9. **P.42** 評判・名声システム ✅（P.22カルマと連携。採用確定） ✅ ReputationSystem、領地別7段階、割引/クエスト解放/入場制御
+10. **P.53** 時刻行動変化システム（NPC/敵の昼夜基本ロジック） ✅ TimeOfDaySystem、活動パターン4種、視界/ステ修正
+11. **P.15** 敵AI拡張（P.1と連携） ✅ RacialBehaviors 6種族ビヘイビア、EnemyFactory統合
+12. **P.11** エンチャントシステム（P.12と連携） ✅ EnchantmentSystem 15種エンチャント、魂石品質5段階
+13. **P.38** 宗教スキル補正の接続（既存システムの補完） ✅ ReligionSkillSystem、5宗教スキル補正、属性適合ボーナス
+14. **P.55** ダンジョン特徴別ランダム生成（BSP法拡張。マップ多様化基盤） ✅ DungeonFeatureGenerator 10タイプ、領地対応
 
-### 4.2 Ver.prt.0.3（システム深化）
+### 4.2 Ver.prt.0.3（システム深化） ✅ 全27タスク完了
 
 > 基盤の上に成長・戦闘・経済の深みを追加。
 
-15. **P.8** スキルツリー拡張
-16. **P.3** 方向・向きシステム
-17. **P.4** 装備耐久値システム
-18. **P.24** 能力値フラグシステム
-19. **P.25** フラグ選択肢変動システム
-20. **P.7** 状態異常の拡充
-21. **P.17** 季節システム
+15. **P.8** スキルツリー拡張 ✅
+16. **P.3** 方向・向きシステム ✅
+17. **P.4** 装備耐久値システム ✅
+18. **P.24** 能力値フラグシステム ✅
+19. **P.25** フラグ選択肢変動システム ✅
+20. **P.7** 状態異常の拡充 ✅
+21. **P.17** 季節システム ✅
 22. **P.18** 天候システム ✅（P.17季節と連動。採用確定）
-23. **P.48** 採取システム（P.9熟練度と連動。素材収集基盤）
-24. **P.49** 釣りシステム（P.48採取のサブシステム）
-25. **P.51** 物品価値変動システム（P.22カルマ/P.42評判と連動）
-26. **P.52** 描画範囲外抑制・軽量化（パフォーマンス基盤）
-27. **P.54** シンボルマップランダムイベント拡張
-28. **P.56** 勢力地変動システム（P.1/P.22と連動）
-29. **P.35** マルチスロットセーブ
-30. **P.58** 環境利用戦闘システム（P.45攻撃属性と連携。地表面×属性連鎖）
-31. **P.59** 戦闘スタンス切替システム（P.2武器種別と連携）
-32. **P.60** 処刑・止めの一撃システム（P.22カルマと連携）
-33. **P.62** ダンジョン内派閥・生態系（P.1敵種族と連携）
-34. **P.63** 隠し通路・シークレットルーム（BSP法拡張。PER判定基盤）
-35. **P.65** ミミック・偽装オブジェクト（正気度/鑑定連動）
-36. **P.71** 病気・疫病システム（P.28身体状態と連携 ※P.28は1.0で実装予定。0.3では簡易版で先行実装し、1.0で統合）
-37. **P.72** 睡眠・野営システム（P.28身体状態(疲労度)と連携 ※同上、疲労度は0.3で簡易管理→1.0で正式統合）
-38. **P.68** NPC日常行動ルーティン（P.53時刻行動変化と連携）
-39. **P.74** 知識図鑑・百科事典（TransferData連動。死に戻りテーマ強化）
-40. **P.79** 自動探索・マクロ操作（探索QoL向上）
-41. **P.80** 死因統計・死亡ログ（死に戻りテーマ強化）
+23. **P.48** 採取システム ✅（P.9熟練度と連動。素材収集基盤）
+24. **P.49** 釣りシステム ✅（P.48採取のサブシステム）
+25. **P.51** 物品価値変動システム ✅（P.22カルマ/P.42評判と連動）
+26. **P.52** 描画範囲外抑制・軽量化 ✅（パフォーマンス基盤）
+27. **P.54** シンボルマップランダムイベント拡張 ✅
+28. **P.56** 勢力地変動システム ✅（P.1/P.22と連動）
+29. **P.35** マルチスロットセーブ ✅
+30. **P.58** 環境利用戦闘システム ✅（P.45攻撃属性と連携。地表面×属性連鎖）
+31. **P.59** 戦闘スタンス切替システム ✅（P.2武器種別と連携）
+32. **P.60** 処刑・止めの一撃システム ✅（P.22カルマと連携）
+33. **P.62** ダンジョン内派閥・生態系 ✅（P.1敵種族と連携）
+34. **P.63** 隠し通路・シークレットルーム ✅（BSP法拡張。PER判定基盤）
+35. **P.65** ミミック・偽装オブジェクト ✅（正気度/鑑定連動）
+36. **P.71** 病気・疫病システム ✅（P.28身体状態と連携 ※0.3では簡易版で先行実装、0.4で統合）
+37. **P.72** 睡眠・野営システム ✅（P.28身体状態(疲労度)と連携 ※同上）
+38. **P.68** NPC日常行動ルーティン ✅（P.53時刻行動変化と連携）
+39. **P.74** 知識図鑑・百科事典 ✅（TransferData連動。死に戻りテーマ強化）
+40. **P.79** 自動探索・マクロ操作 ✅（探索QoL向上）
+41. **P.80** 死因統計・死亡ログ ✅（死に戻りテーマ強化）
 
-### 4.3 Ver.prt.1.0（大型新機能）
+### 4.3 Ver.prt.0.4（大型新機能） ✅ 全24タスク完了
 
 > パーティ/仲間/拠点という大きなシステム変更。
 
-42. **P.27** 仲間・傭兵システム
-43. **P.23** 関係値システム拡張
-44. **P.10** スキル合成システム
-45. **P.28** 身体状態システム
-46. **P.47** 拠点作成システム（仲間システムと連動。建設・防衛）
-47. **P.21** 具体的マップ作製基盤
+42. **P.27** 仲間・傭兵システム ✅
+43. **P.23** 関係値システム拡張 ✅
+44. **P.10** スキル合成システム ✅
+45. **P.28** 身体状態システム ✅
+46. **P.47** 拠点作成システム ✅（仲間システムと連動。建設・防衛）
+47. **P.21** 具体的マップ作製基盤 ✅
 48. **P.40** 罠作成システム ✅（P.9熟練度と連動。採用確定）
 49. **P.29** 料理・調合システム拡張 ✅（P.9熟練度と連動。採用確定）
-50. **P.57** グリッドインベントリ（UI大型変更。EFT参考）
-51. **P.30** ゲームオーバー後のタイトル画面戻り
-52. **P.31** ゲームクリア画面
-53. **P.61** 環境パズル・仕掛けシステム（ルーン語/属性パズル）
-54. **P.64** ダンジョンショートカット永続開通（テンプレートマップ+TransferData）
-55. **P.66** 誓約・縛りプレイシステム（宗教連動。難易度カスタマイズ）
-56. **P.67** マルチクラス・転職システム（サブクラス/上位職）
-57. **P.69** NPCの記憶・プレイヤー認知（噂伝播システム）
-58. **P.70** 闇市場・裏社会ネットワーク（P.22カルマ/P.42評判と連携）
-59. **P.73** 飢餓・渇きシステム（P.71病気と連携）
-60. **P.76** 投資・出資システム（P.51物品価値変動と連携）
-61. **P.78** 密輸・禁制品取引システム（P.70闇市場と連携）
-62. **P.81** モジュラーHUD（HUDカスタマイズUI）
-63. **P.83** 無限ダンジョン・深層チャレンジ（エンドコンテンツ）
-64. **P.84** New Game+（エンドコンテンツ。NG+引き継ぎ）
-65. **P.77** 賭博・ギャンブルシステム（ミニゲーム基盤）
+50. **P.57** グリッドインベントリ ✅（UI大型変更。EFT参考）
+51. **P.30** ゲームオーバー後のタイトル画面戻り ✅
+52. **P.31** ゲームクリア画面 ✅
+53. **P.61** 環境パズル・仕掛けシステム ✅（ルーン語/属性パズル）
+54. **P.64** ダンジョンショートカット永続開通 ✅（テンプレートマップ+TransferData）
+55. **P.66** 誓約・縛りプレイシステム ✅（宗教連動。難易度カスタマイズ）
+56. **P.67** マルチクラス・転職システム ✅（サブクラス/上位職）
+57. **P.69** NPCの記憶・プレイヤー認知 ✅（噂伝播システム）
+58. **P.70** 闇市場・裏社会ネットワーク ✅（P.22カルマ/P.42評判と連携）
+59. **P.73** 飢餓・渇きシステム ✅（P.71病気と連携）
+60. **P.76** 投資・出資システム ✅（P.51物品価値変動と連携）
+61. **P.78** 密輸・禁制品取引システム ✅（P.70闇市場と連携）
+62. **P.81** モジュラーHUD ✅（HUDカスタマイズUI）
+63. **P.83** 無限ダンジョン・深層チャレンジ ✅（エンドコンテンツ）
+64. **P.84** New Game+ ✅（エンドコンテンツ。NG+引き継ぎ）
+65. **P.77** 賭博・ギャンブルシステム ✅（ミニゲーム基盤）
 
 ### 4.4 Ver.prt.2.0（コンテンツ充実・仕上げ）
 
@@ -268,6 +268,192 @@ Ver.prt.0.2〜2 は Ver.prt.0.1 で構築した全ゲームシステムを土台
 
 ---
 
-## 5. タスク一覧（確定後に記載）
+## 5. Ver.prt.0.2 実装記録
 
-*各サブバージョンの着手時に、上記候補から選定してタスク一覧を作成する*
+### 5.1 実装済みシステム一覧
+
+| # | システム名 | ソースファイル | テストファイル | テスト数 |
+|---|-----------|---------------|---------------|---------|
+| P.1 | 敵種族分類 | `Systems/MonsterRaceSystem.cs`, `Enums/Enums.cs` | `MonsterRaceSystemTests.cs` | 55 |
+| P.2 | 武器種別属性 | `Systems/WeaponProficiencySystem.cs` | `WeaponProficiencySystemTests.cs` | — |
+| P.45 | 攻撃属性 | `Systems/ElementalAffinitySystem.cs` | `ElementalAffinitySystemTests.cs` | 49 |
+| P.46 | アイテム等級 | `Systems/ItemGradeSystem.cs`, `Enums/Enums.cs` | `ItemGradeSystemTests.cs` | 50 |
+| P.12 | 拡張ドロップテーブル | `Factories/DropTableSystem.cs` | `ExpandedDropTableTests.cs` | — |
+| P.50 | 剥ぎ取り | `Systems/HarvestSystem.cs` | `HarvestSystemTests.cs` | — |
+| P.9 | 熟練度 | `Systems/ProficiencySystem.cs`, `Enums/Enums.cs` | `ProficiencySystemTests.cs` | — |
+| P.22 | カルマ | `Systems/KarmaSystem.cs`, `Enums/Enums.cs` | `KarmaSystemTests.cs` | — |
+| P.42 | 評判・名声 | `Systems/ReputationSystem.cs`, `Enums/Enums.cs` | `ReputationSystemTests.cs` | — |
+| P.53 | 時刻行動変化 | `Systems/TimeOfDaySystem.cs`, `Enums/Enums.cs` | `TimeOfDaySystemTests.cs` | 28 |
+| P.15 | 敵AI拡張 | `AI/Behaviors/RacialBehaviors.cs`, `Factories/EnemyFactory.cs` | `RacialBehaviorTests.cs` | 13 |
+| P.11 | エンチャント | `Systems/EnchantmentSystem.cs`, `Enums/Enums.cs` | `EnchantmentSystemTests.cs` | 13 |
+| P.38 | 宗教スキル補正 | `Systems/ReligionSkillSystem.cs` | `ReligionSkillSystemTests.cs` | 15 |
+| P.55 | ダンジョン特徴生成 | `Systems/DungeonFeatureGenerator.cs`, `Enums/Enums.cs` | `DungeonFeatureGeneratorTests.cs` | 16 |
+
+### 5.2 追加された Enum 一覧
+
+| Enum名 | 値数 | 定義ファイル |
+|--------|------|-------------|
+| MonsterRace | 10 | Enums.cs |
+| ItemGrade | 6 | Enums.cs |
+| ProficiencyCategory | 12 | Enums.cs |
+| KarmaRank | 7 | Enums.cs |
+| ReputationRank | 7 | Enums.cs |
+| TimePeriod | 6 | Enums.cs |
+| ActivityPattern | 4 | Enums.cs |
+| SoulGemQuality | 5 | Enums.cs |
+| EnchantmentType | 15 | Enums.cs |
+| DungeonFeatureType | 10 | Enums.cs |
+
+### 5.3 テスト統計
+
+- **Ver.prt.0.1 完了時**: Core 980件 + GUI 139件 = 1,119件
+- **Ver.prt.0.2 完了時**: Core 1,503件 + GUI 139件 = 1,642件
+- **追加テスト数**: 523件（Core のみ）
+
+### 5.4 ドキュメントブラッシュアップ記録
+
+| # | 対象 | 内容 |
+|---|------|------|
+| D.128 | 実装計画書Ver.prt.0.2 | Ver.prt.0.2 実装状況をセクション4.1+5に反映。14タスク全完了 |
+| D.129 | 00_ドキュメント概要 | テスト数更新（Core1503+GUI139=1642件）、システム数更新 |
+
+## 6. Ver.prt.0.3 実装記録
+
+### 6.1 実装済みシステム一覧
+
+| # | タスクID | システム名 | ファイル | テスト数 |
+|---|---------|-----------|---------|---------|
+| 1 | P.8 | スキルツリー拡張 | SkillTreeSystem.cs | 12 |
+| 2 | P.3 | 方向・向きシステム | DirectionSystem.cs | 11 |
+| 3 | P.4 | 装備耐久値システム | DurabilitySystem.cs | 14 |
+| 4 | P.24 | 能力値フラグシステム | StatFlagSystem.cs | 8 |
+| 5 | P.25 | フラグ選択肢変動システム | FlagConditionSystem.cs | 14 |
+| 6 | P.17 | 季節システム | SeasonSystem.cs | 15 |
+| 7 | P.18 | 天候システム | WeatherSystem.cs | 15 |
+| 8 | P.7 | 状態異常の拡充 | ExtendedStatusEffectSystem.cs | 8 |
+| 9 | P.48 | 採取システム | GatheringSystem.cs | 6 |
+| 10 | P.49 | 釣りシステム | FishingSystem.cs | 6 |
+| 11 | P.51 | 物品価値変動システム | PriceFluctuationSystem.cs | 5 |
+| 12 | P.59 | 戦闘スタンス切替 | CombatStanceSystem.cs | 4 |
+| 13 | P.60 | 処刑・止めの一撃 | ExecutionSystem.cs | 4 |
+| 14 | P.58 | 環境利用戦闘 | EnvironmentalCombatSystem.cs | 5 |
+| 15 | P.62 | ダンジョン内派閥 | DungeonFactionSystem.cs | 4 |
+| 16 | P.63 | 隠し通路・シークレットルーム | SecretRoomSystem.cs | 3 |
+| 17 | P.65 | ミミック・偽装オブジェクト | MimicSystem.cs | 4 |
+| 18 | P.71 | 病気・疫病システム | DiseaseSystem.cs | 3 |
+| 19 | P.72 | 睡眠・野営システム | RestSystem.cs | 6 |
+| 20 | P.68 | NPC日常行動ルーティン | NpcRoutineSystem.cs | 4 |
+| 21 | P.74 | 知識図鑑・百科事典 | EncyclopediaSystem.cs | 2 |
+| 22 | P.80 | 死因統計・死亡ログ | DeathLogSystem.cs | 3 |
+| 23 | P.56 | 勢力地変動システム | TerritoryInfluenceSystem.cs | 2 |
+| 24 | P.35 | マルチスロットセーブ | MultiSlotSaveSystem.cs | 3 |
+| 25 | P.54 | シンボルマップランダムイベント | SymbolMapEventSystem.cs | 4 |
+| 26 | P.52 | 描画範囲外抑制 | RenderOptimizationSystem.cs | 5 |
+| 27 | P.79 | 自動探索・マクロ操作 | AutoExploreSystem.cs | 5 |
+
+### 6.2 追加された Enum 一覧
+
+| Enum名 | 値数 | 定義ファイル |
+|--------|------|-------------|
+| SkillNodeType | 5 | Enums.cs |
+| AttackDirection | 3 | Enums.cs |
+| DurabilityStage | 5 | Enums.cs |
+| StatFlag | 9 | Enums.cs |
+| FlagConditionType | 7 | Enums.cs |
+| Season | 4 | Enums.cs |
+| Weather | 5 | Enums.cs |
+| CombatStance | 3 | Enums.cs |
+| GatheringType | 5 | Enums.cs |
+| DiseaseType | 5 | Enums.cs |
+| SleepQuality | 4 | Enums.cs |
+| EncyclopediaCategory | 4 | Enums.cs |
+
+### 6.3 テスト統計
+
+- **Ver.prt.0.2 完了時**: Core 1,503件 + GUI 139件 = 1,642件
+- **Ver.prt.0.3 完了時**: Core 1,726件 + GUI 139件 = 1,865件
+- **追加テスト数**: 223件（Core のみ）
+
+## 7. Ver.prt.0.4 実装記録
+
+### 7.1 実装済みシステム一覧
+
+| # | タスクID | システム名 | ファイル | テスト数 |
+|---|---------|-----------|---------|---------|
+| 1 | P.27 | 仲間・傭兵システム | CompanionSystem.cs | 6 |
+| 2 | P.23 | 関係値システム拡張 | RelationshipSystem.cs | 6 |
+| 3 | P.10 | スキル合成システム | SkillFusionSystem.cs | 6 |
+| 4 | P.28 | 身体状態システム | BodyConditionSystem.cs | 5 |
+| 5 | P.47 | 拠点作成システム | BaseConstructionSystem.cs | 5 |
+| 6 | P.21 | 具体的マップ作製基盤 | TemplateMapSystem.cs | 5 |
+| 7 | P.40 | 罠作成システム | TrapCraftingSystem.cs | 5 |
+| 8 | P.29 | 料理・調合システム拡張 | CookingSystem.cs | 5 |
+| 9 | P.57 | グリッドインベントリ | GridInventorySystem.cs | 6 |
+| 10 | P.30 | ゲームオーバー後のタイトル画面戻り | GameOverSystem.cs | 5 |
+| 11 | P.31 | ゲームクリア画面 | GameClearSystem.cs | 4 |
+| 12 | P.61 | 環境パズル・仕掛けシステム | EnvironmentalPuzzleSystem.cs | 4 |
+| 13 | P.64 | ダンジョンショートカット永続開通 | DungeonShortcutSystem.cs | 5 |
+| 14 | P.66 | 誓約・縛りプレイシステム | OathSystem.cs | 5 |
+| 15 | P.67 | マルチクラス・転職システム | MultiClassSystem.cs | 6 |
+| 16 | P.69 | NPCの記憶・プレイヤー認知 | NpcMemorySystem.cs | 5 |
+| 17 | P.70 | 闇市場・裏社会ネットワーク | BlackMarketSystem.cs | 5 |
+| 18 | P.73 | 飢餓・渇きシステム | ThirstSystem.cs | 5 |
+| 19 | P.76 | 投資・出資システム | InvestmentSystem.cs | 5 |
+| 20 | P.78 | 密輸・禁制品取引システム | SmugglingSystem.cs | 5 |
+| 21 | P.81 | モジュラーHUD | ModularHudSystem.cs | 5 |
+| 22 | P.83 | 無限ダンジョン・深層チャレンジ | InfiniteDungeonSystem.cs | 5 |
+| 23 | P.84 | New Game+ | NewGamePlusSystem.cs | 5 |
+| 24 | P.77 | 賭博・ギャンブルシステム | GamblingSystem.cs | 6 |
+
+### 7.2 追加された Enum 一覧
+
+| Enum名 | 値数 | 定義ファイル |
+|--------|------|-------------|
+| CompanionType | 3 | Enums.cs |
+| CompanionAIMode | 4 | Enums.cs |
+| RelationshipType | 4 | Enums.cs |
+| BodyWoundType | 5 | Enums.cs |
+| FatigueLevel | 5 | Enums.cs |
+| HygieneLevel | 5 | Enums.cs |
+| FacilityCategory | 7 | Enums.cs |
+| TemplateMapType | 5 | Enums.cs |
+| PlayerTrapType | 5 | Enums.cs |
+| CookingMethod | 5 | Enums.cs |
+| GridItemSize | 5 | Enums.cs |
+| PuzzleType | 3 | Enums.cs |
+| OathType | 5 | Enums.cs |
+| ClassTier | 3 | Enums.cs |
+| RumorType | 4 | Enums.cs |
+| BlackMarketCategory | 4 | Enums.cs |
+| ThirstLevel | 4 | Enums.cs |
+| WaterQuality | 4 | Enums.cs |
+| InvestmentType | 3 | Enums.cs |
+| ContrabandType | 4 | Enums.cs |
+| HudElement | 5 | Enums.cs |
+| InfiniteDungeonTier | 4 | Enums.cs |
+| NewGamePlusTier | 5 | Enums.cs |
+| GamblingGameType | 3 | Enums.cs |
+
+### 7.3 テスト統計
+
+- **Ver.prt.0.3 完了時**: Core 1,726件 + GUI 139件 = 1,865件
+- **Ver.prt.0.4 完了時**: Core 1,907件 + GUI 139件 = 2,046件
+- **テスト全システムカバレッジ補完後**: Core 2,061件 + GUI 139件 = 2,200件
+- **追加テスト数**: 335件（Core のみ、Ver.prt.0.3完了時から）
+
+### 7.4 ドキュメントブラッシュアップ記録
+
+| # | 対象 | 内容 |
+|---|------|------|
+| D.130 | 実装計画書Ver.prt.0.2 | Ver.prt.1.0→Ver.prt.0.4名称変更。セクション4.3+7に反映。24タスク全完了 |
+| D.131 | 21_拡張システム設計書 | Ver.prt.1.0→Ver.prt.0.4名称変更（19箇所） |
+| D.132 | 実装計画書Ver.prt（マスター） | ロードマップ更新（0.2→0.3→0.4→2.0の4段階） |
+| D.133 | 00_ドキュメント概要 | テスト数更新（Core1907+GUI139=2046件）、計画書状態更新 |
+| D.134 | テスト全カバレッジ補完 | 18システムの不足テスト154件追加（Core2061件）。全システムにテスト対応完了 |
+| D.135 | GUI統合 | GameControllerに新システム10種統合。ステータスバーに季節/天候/渇き/カルマ/仲間数追加。新画面遷移6種（図鑑/死亡録/スキルツリー/仲間/料理/拠点）。StatusWindowに身体状態・環境セクション追加。キーバインドY/U/Z追加 |
+| D.136 | GUIオートテスト更新 | GuiAutomationTests: ステータスバー15→20要素、ダイアログキーY/U/Z追加、連打耐性15→18種。GuiSystemVerificationTests: 季節/天候/渇き/カルマ/仲間数の値レベル検証追加。ヘッダーコメント最新化 |
+| D.137 | 実装漏れ確認＋ドキュメント最新化 | 19_GUIオートテスト説明書.md本文をコード実態に整合（カテゴリ3に5要素追加、カテゴリ4に13キー追加、連打耐性11→18種、カテゴリ6新設、検証項目数74→62に修正）。00_ドキュメント概要の検証項目数更新 |
+| D.138 | ドキュメント全体漏れ補完 | 17_デバッグ・テスト設計書: テスト数980→2061件、ファイル数19→87、GUIオート37→38検証項目、システム検証37→24検証項目、テスト一覧68ファイル追加。13_GUIシステム設計書: キーバインドY/U/Z追加。20_GUI画面遷移図: 新ウィンドウ6種追加（18→24）。10_プロジェクト構造設計書: テスト数/Systems説明更新。11_クラス設計書: Ver.prt.0.2-0.4新クラス14件追加 |
+| D.139 | ドキュメント全体精査 | 10_プロジェクト構造設計書: 表1.2のxUnitテスト数1,119→2,200件に修正。全21設計書+6計画書の数値・記述の整合性を精査し、D.138で漏れた表1.2の古い数値を修正完了 |
+| D.140 | 全体ブラッシュアップ最終精査 | 00_ドキュメント概要: フォルダ構成図のVer.1~1.9/に「未着手・ディレクトリ未作成」注釈追加。全21設計書+6計画書+コード実態を網羅精査し、数値・記述の完全一致を確認完了 |
+| D.141 | XMLコメント警告修正 | Enums.cs/GamblingSystem.csのCS1570警告修正（ハイ&ロー→ハイ&amp;ロー）。GuiSystemVerificationTests.csのCS1570修正（Shift+&lt;/&gt;エスケープ）。ビルド警告ゼロ+テスト2,061件全合格+ドキュメント全27ファイル整合性再確認完了 |
