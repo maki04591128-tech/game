@@ -95,6 +95,24 @@ public class InscriptionSystem
         return fullText[..revealChars] + "...";
     }
 
+    /// <summary>
+    /// 全碑文の解読状態をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、解読した碑文は未解読に戻る。
+    /// 碑文の登録（マスターデータ）は保持する。
+    /// </summary>
+    public void Reset()
+    {
+        var keys = _inscriptions.Keys.ToList();
+        foreach (var key in keys)
+        {
+            var inscription = _inscriptions[key];
+            if (inscription.IsDecoded)
+            {
+                _inscriptions[key] = inscription with { IsDecoded = false };
+            }
+        }
+    }
+
     /// <summary>種別ごとの碑文一覧を取得</summary>
     public IReadOnlyList<Inscription> GetByType(InscriptionType type)
     {

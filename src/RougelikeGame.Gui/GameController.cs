@@ -50,6 +50,17 @@ public class GameController
     private readonly GridInventorySystem _gridInventorySystem = new();
     private readonly SymbolMapSystem _symbolMapSystem = new();
 
+    // === Ver.prt.0.5-0.6 新システム ===
+    private readonly NpcMemorySystem _npcMemorySystem = new();
+    private readonly RelationshipSystem _relationshipSystem = new();
+    private readonly ItemIdentificationSystem _itemIdentificationSystem = new();
+    private readonly DungeonEcosystemSystem _dungeonEcosystemSystem = new();
+    private readonly PetSystem _petSystem = new();
+    private readonly MerchantGuildSystem _merchantGuildSystem = new();
+    private readonly InscriptionSystem _inscriptionSystem = new();
+    private readonly FactionWarSystem _factionWarSystem = new();
+    private readonly TerritoryInfluenceSystem _territoryInfluenceSystem = new();
+
     /// <summary>敵がアクティブになる描画範囲半径</summary>
     private const int ActiveRange = 10;
 
@@ -1875,6 +1886,21 @@ public class GameController
         // グリッドインベントリリセット
         _gridInventorySystem.Reset();
 
+        // NPC記憶・噂リセット（NpcSystemとは別管理）
+        _npcMemorySystem.Reset();
+
+        // 関係値・勢力リセット
+        _relationshipSystem.Reset();
+        _territoryInfluenceSystem.Reset();
+
+        // 鑑定・刻印・ペット・商人ギルド・派閥戦・生態系リセット
+        _itemIdentificationSystem.Reset();
+        _inscriptionSystem.Reset();
+        _petSystem.Reset();
+        _merchantGuildSystem.Reset();
+        _factionWarSystem.Reset();
+        _dungeonEcosystemSystem.Reset();
+
         // 正気度0の場合、知識系システムも消失
         if (isSanityZero)
         {
@@ -1900,6 +1926,10 @@ public class GameController
         _infiniteDungeonKills = 0;
         _ngPlusTier = null;
         _clearRank = "";
+
+        // 天候・渇きリセット（キャラクター作成直後の状態に戻す）
+        CurrentWeather = Weather.Clear;
+        PlayerThirstLevel = ThirstLevel.Hydrated;
 
         // 敵・アイテム・マップリセット
         Enemies.Clear();

@@ -48,6 +48,15 @@ public class TerritoryInfluenceSystem
         return factions.GetValueOrDefault(factionName);
     }
 
+    /// <summary>
+    /// 全勢力情報をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、プレイ中に変動した勢力は初期状態に戻る。
+    /// </summary>
+    public void Reset()
+    {
+        _influence.Clear();
+    }
+
     /// <summary>勢力値を正規化（合計1.0に）</summary>
     private void NormalizeInfluence(TerritoryId territory)
     {

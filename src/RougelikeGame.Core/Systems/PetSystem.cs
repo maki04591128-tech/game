@@ -119,6 +119,16 @@ public class PetSystem
         return updated;
     }
 
+    /// <summary>
+    /// 全ペット状態をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、入手したペットは全て消失する。
+    /// 種別定義（マスターデータ）は保持する。
+    /// </summary>
+    public void Reset()
+    {
+        _pets.Clear();
+    }
+
     /// <summary>忠誠度に基づく命令成功率を取得</summary>
     public int GetObedienceRate(string petId)
     {

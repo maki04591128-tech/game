@@ -102,6 +102,16 @@ public class MerchantGuildSystem
         }
     }
 
+    /// <summary>
+    /// 商人ギルド状態をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、ギルド加入・交易路は全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        _membership = null;
+        _routes.Clear();
+    }
+
     /// <summary>ギルドランクに応じたボーナスを取得</summary>
     public static int GetRankBonus(GuildRank rank) => rank switch
     {

@@ -103,6 +103,17 @@ public class DungeonEcosystemSystem
         return (int)floorTraces.Average(t => t.DangerLevel);
     }
 
+    /// <summary>
+    /// イベント記録・戦闘痕跡をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、ダンジョン内の痕跡は全て消失する。
+    /// 捕食関係の定義（マスターデータ）は保持する。
+    /// </summary>
+    public void Reset()
+    {
+        _events.Clear();
+        _traces.Clear();
+    }
+
     /// <summary>生態系イベント種別名を取得</summary>
     public static string GetEventTypeName(EcosystemEventType type) => type switch
     {

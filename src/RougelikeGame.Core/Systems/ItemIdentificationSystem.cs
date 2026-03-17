@@ -100,6 +100,16 @@ public class ItemIdentificationSystem
         _ => 0
     };
 
+    /// <summary>
+    /// 全鑑定状態をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、アイテムの鑑定知識は全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        _identifiedItems.Clear();
+        _knownCurses.Clear();
+    }
+
     /// <summary>呪いの説明文を取得</summary>
     public static string GetCurseDescription(CurseType curse) => curse switch
     {

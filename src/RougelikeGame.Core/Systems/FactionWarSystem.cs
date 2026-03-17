@@ -133,6 +133,16 @@ public class FactionWarSystem
         _ => "不明"
     };
 
+    /// <summary>
+    /// 全戦争状態をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、戦争イベント・履歴は全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        _activeWars.Clear();
+        _warHistory.Clear();
+    }
+
     /// <summary>陣営名を取得</summary>
     public static string GetAlignmentName(FactionAlignment alignment) => alignment switch
     {
