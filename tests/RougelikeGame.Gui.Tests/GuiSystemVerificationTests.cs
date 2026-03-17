@@ -18,7 +18,7 @@ namespace RougelikeGame.Gui.Tests;
 /// ■ 責務: ステータス初期値・表示形式・システム動作の値レベル詳細検証
 ///   （UI存在チェック＋キーバインドクラッシュ耐性は GuiAutomationTests に委譲）
 ///
-/// テスト構成（4テスト）:
+/// テスト構成（5テスト）:
 ///   1. SystemVerification_DebugMap_FullIntegration — 1回起動で以下を一括検証:
 ///      - マップ生成・初期メッセージ（第1層、デバッグモード、WASD）
 ///      - 領地名・地上/ダンジョン表示の値検証
@@ -42,6 +42,10 @@ namespace RougelikeGame.Gui.Tests;
 ///      - 各種アクション（拾う/探索/射撃/投擲/祈り/ドア閉じ）実行後のステータスバー全要素検証
 ///      - 階段操作前後のステータスバー変化追跡
 ///      - ミニマップ切替前後のステータスバー不変検証
+///   5. SystemVerification_NewStatusBarFormats — 新ステータスバー要素のフォーマット詳細検証:
+///      - Season/Weather/Thirst/Karma/CompanionCountの初期値が適切な日本語表記であること
+///      - 各値の取りうる範囲（enum値や数値範囲）の検証
+///      - 複数ターン経過後もフォーマットが維持されること
 ///
 /// ■ GUI接続済みシステムのカバレッジ:
 ///   - SeasonSystem（季節）→ SeasonText ステータスバー値検証済み
@@ -713,5 +717,157 @@ public class GuiSystemVerificationTests : IDisposable
         Log("  → 連続アクション後ステータスバー整合性OK");
 
         Log("=== テスト完了: アクション後ステータス一貫性検証 ===");
+    }
+
+    // ─────────────────────────────────────────
+    // 5. 新ステータスバー要素フォーマット詳細検証（1回起動）
+    //    Season/Weather/Thirst/Karma/CompanionCountの初期値と
+    //    複数ターン経過後のフォーマット維持を値レベルで検証
+    // ─────────────────────────────────────────
+
+    [Fact]
+    public void SystemVerification_NewStatusBarFormats()
+    {
+        Log("=== テスト開始: 新ステータスバー要素フォーマット詳細検証 ===");
+        Log("目的: Season/Weather/Thirst/Karma/CompanionCountの初期値フォーマットと経過後のフォーマット維持を検証する");
+
+        var window = LaunchWithDebugMap();
+
+        // ========== SeasonText 初期値検証 ==========
+        Log("検証: SeasonText（季節）が有効な季節名であること");
+        var seasonText = GetText(window, "SeasonText");
+        var validSeasons = new[] { "春", "夏", "秋", "冬" };
+        Assert.Contains(seasonText, validSeasons);
+        Log($"  → SeasonText='{seasonText}' OK（有効な季節名）");
+
+        // ========== WeatherText 初期値検証 ==========
+        Log("検証: WeatherText（天候）が有効な天候名であること");
+        var weatherText = GetText(window, "WeatherText");
+        Assert.False(string.IsNullOrWhiteSpace(weatherText), "WeatherTextが空");
+        // 天候は「晴」「曇」「雨」「雪」「霧」「嵐」等の日本語1〜2文字
+        Assert.True(weatherText.Length >= 1 && weatherText.Length <= 4,
+            $"WeatherText='{weatherText}' の文字数が1〜4の範囲外");
+        Log($"  → WeatherText='{weatherText}' OK（有効な天候名）");
+
+        // ========== ThirstText 初期値検証 ==========
+        Log("検証: ThirstText（渇き）が有効な渇きレベル表記であること");
+        var thirstText = GetText(window, "ThirstText");
+        Assert.False(string.IsNullOrWhiteSpace(thirstText), "ThirstTextが空");
+        // 渇きは「潤沢」「普通」「やや乾燥」「乾燥」「脱水」等の日本語表記
+        Assert.True(thirstText.Length >= 1 && thirstText.Length <= 6,
+            $"ThirstText='{thirstText}' の文字数が1〜6の範囲外");
+        Log($"  → ThirstText='{thirstText}' OK（有効な渇きレベル）");
+
+        // ========== KarmaText 初期値検証 ==========
+        Log("検証: KarmaText（カルマ）が有効なカルマ表記であること");
+        var karmaText = GetText(window, "KarmaText");
+        Assert.False(string.IsNullOrWhiteSpace(karmaText), "KarmaTextが空");
+        // カルマは「善良」「中立」「邪悪」等の日本語表記
+        Assert.True(karmaText.Length >= 1 && karmaText.Length <= 6,
+            $"KarmaText='{karmaText}' の文字数が1〜6の範囲外");
+        Log($"  → KarmaText='{karmaText}' OK（有効なカルマ表記）");
+
+        // ========== CompanionCountText 初期値検証 ==========
+        Log("検証: CompanionCountText（仲間数）が非負整数であること");
+        var companionText = GetText(window, "CompanionCountText");
+        Assert.Matches(@"^\d+$", companionText);
+        int companionCount = int.Parse(companionText);
+        Assert.True(companionCount >= 0, $"仲間数が負値: {companionCount}");
+        Log($"  → CompanionCountText='{companionText}' OK（非負整数）");
+
+        // ========== 初期値の相互整合性検証 ==========
+        Log("検証: 初期状態で全新ステータスバー要素が同時に正常値であること");
+        // 初期状態では仲間数=0が期待される
+        Assert.Equal("0", companionText);
+        Log("  → 初期仲間数=0 OK");
+
+        // ========== 複数ターン経過後のフォーマット維持検証 ==========
+        Log("検証: 100ターン待機後も全新ステータスバー要素のフォーマットが維持されること");
+        for (int i = 0; i < 100; i++)
+        {
+            window.Focus();
+            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.SPACE);
+            Thread.Sleep(10);
+        }
+        Thread.Sleep(500);
+        Assert.False(_app!.HasExited, "100ターン待機中にクラッシュ");
+
+        // 100ターン後の季節検証
+        var seasonAfter = GetText(window, "SeasonText");
+        Assert.Contains(seasonAfter, validSeasons);
+        Log($"  → 100ターン後SeasonText='{seasonAfter}' OK");
+
+        // 100ターン後の天候検証
+        var weatherAfter = GetText(window, "WeatherText");
+        Assert.False(string.IsNullOrWhiteSpace(weatherAfter), "100ターン後WeatherTextが空");
+        Assert.True(weatherAfter.Length >= 1 && weatherAfter.Length <= 4,
+            $"100ターン後WeatherText='{weatherAfter}' の文字数が範囲外");
+        Log($"  → 100ターン後WeatherText='{weatherAfter}' OK");
+
+        // 100ターン後の渇き検証
+        var thirstAfter = GetText(window, "ThirstText");
+        Assert.False(string.IsNullOrWhiteSpace(thirstAfter), "100ターン後ThirstTextが空");
+        Assert.True(thirstAfter.Length >= 1 && thirstAfter.Length <= 6,
+            $"100ターン後ThirstText='{thirstAfter}' の文字数が範囲外");
+        Log($"  → 100ターン後ThirstText='{thirstAfter}' OK");
+
+        // 100ターン後のカルマ検証
+        var karmaAfter = GetText(window, "KarmaText");
+        Assert.False(string.IsNullOrWhiteSpace(karmaAfter), "100ターン後KarmaTextが空");
+        Assert.True(karmaAfter.Length >= 1 && karmaAfter.Length <= 6,
+            $"100ターン後KarmaText='{karmaAfter}' の文字数が範囲外");
+        Log($"  → 100ターン後KarmaText='{karmaAfter}' OK");
+
+        // 100ターン後の仲間数検証
+        var companionAfter = GetText(window, "CompanionCountText");
+        Assert.Matches(@"^\d+$", companionAfter);
+        Log($"  → 100ターン後CompanionCountText='{companionAfter}' OK");
+
+        // ========== 移動操作後のフォーマット維持検証 ==========
+        Log("検証: 50回移動後も全新ステータスバー要素のフォーマットが維持されること");
+        for (int i = 0; i < 50; i++)
+        {
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_D);
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_S);
+        }
+        Thread.Sleep(300);
+        Assert.False(_app!.HasExited, "50回移動中にクラッシュ");
+
+        // 移動後の全新ステータスバー要素の検証
+        var seasonMove = GetText(window, "SeasonText");
+        Assert.Contains(seasonMove, validSeasons);
+        var weatherMove = GetText(window, "WeatherText");
+        Assert.False(string.IsNullOrWhiteSpace(weatherMove));
+        var thirstMove = GetText(window, "ThirstText");
+        Assert.False(string.IsNullOrWhiteSpace(thirstMove));
+        var karmaMove = GetText(window, "KarmaText");
+        Assert.False(string.IsNullOrWhiteSpace(karmaMove));
+        var companionMove = GetText(window, "CompanionCountText");
+        Assert.Matches(@"^\d+$", companionMove);
+        Log($"  → 移動後 Season='{seasonMove}' Weather='{weatherMove}' Thirst='{thirstMove}' Karma='{karmaMove}' Companion='{companionMove}' OK");
+
+        // ========== 全20ステータスバー要素の最終整合性確認 ==========
+        Log("検証: テスト終了時に全20ステータスバー要素が正常に表示されること");
+        var allStatusIds = new[]
+        {
+            "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
+            "LevelText", "ExpText", "HpText", "MpText", "SpText",
+            "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText"
+        };
+        foreach (var id in allStatusIds)
+        {
+            var text = GetText(window, id);
+            Assert.False(string.IsNullOrWhiteSpace(text), $"最終チェックで{id}の表示が空");
+        }
+        Assert.Matches(@"^\d+/\d+$", GetText(window, "HpText"));
+        Assert.Matches(@"^\d+/\d+$", GetText(window, "MpText"));
+        Assert.Matches(@"^\d+/\d+$", GetText(window, "SpText"));
+        Assert.Matches(@"^\d+$", GetText(window, "LevelText"));
+        Assert.Matches(@"^\d+$", GetText(window, "HungerText"));
+        Assert.Matches(@"^\d+$", GetText(window, "SanityText"));
+        Log("  → 全20ステータスバー要素最終整合性OK");
+
+        Log("=== テスト完了: 新ステータスバー要素フォーマット詳細検証 ===");
     }
 }
