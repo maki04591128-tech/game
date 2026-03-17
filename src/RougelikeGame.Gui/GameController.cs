@@ -48,6 +48,7 @@ public class GameController
     private readonly BaseConstructionSystem _baseConstructionSystem = new();
     private readonly InvestmentSystem _investmentSystem = new();
     private readonly GridInventorySystem _gridInventorySystem = new();
+    private readonly SymbolMapSystem _symbolMapSystem = new();
 
     /// <summary>敵がアクティブになる描画範囲半径</summary>
     private const int ActiveRange = 10;
@@ -165,6 +166,15 @@ public class GameController
     public event Action? OnShowCooking;
     public event Action? OnShowBaseConstruction;
 
+    /// <summary>シンボルマップでのロケーション到着通知</summary>
+    public event Action<LocationDefinition>? OnLocationArrived;
+
+    /// <summary>シンボルマップでの街入場要求</summary>
+    public event Action? OnSymbolMapEnterTown;
+
+    /// <summary>シンボルマップでのダンジョン入場要求</summary>
+    public event Action<LocationDefinition>? OnSymbolMapEnterDungeon;
+
     /// <summary>メッセージ履歴</summary>
     private readonly List<string> _messageHistory = new();
 
@@ -218,12 +228,13 @@ public class GameController
         // STRベースの最大重量を更新
         Player.UpdateMaxWeight();
 
-        // マップ生成
-        GenerateFloor();
+        // マップ生成（シンボルマップから開始）
+        GenerateSymbolMap();
 
         var mapDisplayName = StartingMapResolver.GetDisplayName(_currentMapName);
-        AddMessage($"{mapDisplayName} ─ ダンジョン第{CurrentFloor}層に入った！");
-        AddMessage("WASD/矢印で移動、敵に体当たりで攻撃");
+        var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
+        AddMessage($"{territoryName}のシンボルマップに入った");
+        AddMessage("WASD/矢印で移動、ロケーションに到着して>キーでダンジョン、Tキーで街に入る");
     }
 
     /// <summary>
@@ -433,6 +444,30 @@ public class GameController
             _skillSystem.RegisterSkill(e.SkillId);
             AddMessage($"📖 スキル「{SkillDatabase.GetById(e.SkillId)?.Name ?? e.SkillId}」を習得した！");
         };
+    }
+
+    /// <summary>
+    /// シンボルマップを生成する（領地の地上マップ）
+    /// </summary>
+    private void GenerateSymbolMap()
+    {
+        var territory = _worldMapSystem.CurrentTerritory;
+        var symbolMap = _symbolMapSystem.GenerateForTerritory(territory);
+
+        Map = symbolMap;
+        _worldMapSystem.IsOnSurface = true;
+
+        // プレイヤー配置（入口位置）
+        var startPos = symbolMap.EntrancePosition ?? new Position(
+            SymbolMapGenerator.MapWidth / 2, SymbolMapGenerator.MapHeight / 2);
+        Player.Position = startPos;
+
+        // シンボルマップでは敵・アイテムを配置しない
+        Enemies.Clear();
+        GroundItems.Clear();
+
+        // 視界計算（シンボルマップは広い視界）
+        symbolMap.ComputeFov(Player.Position, 12);
     }
 
     private void GenerateFloor()
@@ -888,6 +923,21 @@ public class GameController
         // 移動実行
         Player.Position = newPos;
 
+        // シンボルマップ上のロケーション到着処理
+        if (_worldMapSystem.IsOnSurface && _symbolMapSystem.IsLocationSymbol(newPos))
+        {
+            var location = _symbolMapSystem.GetLocationAt(newPos);
+            if (location != null)
+            {
+                var msg = _symbolMapSystem.GetLocationArrivalMessage(newPos);
+                if (!string.IsNullOrEmpty(msg))
+                {
+                    AddMessage(msg);
+                }
+                OnLocationArrived?.Invoke(location);
+            }
+        }
+
         // 階段メッセージ
         if (tile.Type == TileType.StairsDown)
         {
@@ -1249,6 +1299,24 @@ public class GameController
     private bool TryDescendStairs()
     {
         var tile = Map.GetTile(Player.Position);
+
+        // シンボルマップ上のダンジョン入口から入場
+        if (_worldMapSystem.IsOnSurface && tile.Type == TileType.SymbolDungeon)
+        {
+            var location = _symbolMapSystem.GetLocationAt(Player.Position);
+            if (location != null)
+            {
+                _worldMapSystem.IsOnSurface = false;
+                _currentMapName = location.Id;
+                CurrentFloor = 1;
+                GenerateFloor();
+                AddMessage($"【{location.Name}】─ ダンジョン第{CurrentFloor}層に足を踏み入れた...");
+                OnSymbolMapEnterDungeon?.Invoke(location);
+                OnStateChanged?.Invoke();
+                return true;
+            }
+        }
+
         if (tile.Type == TileType.StairsDown)
         {
             if (CurrentFloor >= GameConstants.MaxDungeonFloor)
@@ -1289,10 +1357,22 @@ public class GameController
 
         if (CurrentFloor <= 1)
         {
-            // 1層目の上り階段 → 地上帰還
+            // 1層目の上り階段 → シンボルマップに帰還
             AddMessage("ダンジョンから脱出した！ 地上に帰還する...");
-            IsRunning = false;
-            OnGameOver?.Invoke();
+            _worldMapSystem.IsOnSurface = true;
+            GenerateSymbolMap();
+
+            // ダンジョン入口位置にプレイヤーを配置
+            var dungeonPos = _symbolMapSystem.FindLocationPosition(_currentMapName);
+            if (dungeonPos.HasValue)
+            {
+                Player.Position = dungeonPos.Value;
+                Map.ComputeFov(Player.Position, 12);
+            }
+
+            var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
+            AddMessage($"{territoryName}のシンボルマップに戻った");
+            OnStateChanged?.Invoke();
             return true;
         }
         else
@@ -2825,6 +2905,14 @@ public class GameController
     public IReadOnlyList<FacilityDefinition> GetAvailableFacilities() =>
         _townSystem.GetAvailableFacilities(_worldMapSystem.CurrentTerritory);
 
+    /// <summary>シンボルマップ上のロケーション配置情報を取得</summary>
+    public IReadOnlyDictionary<Position, LocationDefinition> GetSymbolMapLocations() =>
+        _symbolMapSystem.GetAllLocationPositions();
+
+    /// <summary>プレイヤー位置のロケーション情報を取得</summary>
+    public LocationDefinition? GetLocationAtPlayerPosition() =>
+        _symbolMapSystem.GetLocationAt(Player.Position);
+
     /// <summary>領地間移動を実行</summary>
     public bool TryTravelTo(TerritoryId destination)
     {
@@ -2854,6 +2942,9 @@ public class GameController
             // ショップ在庫リセット
             _shopSystem.ClearShopInventory();
 
+            // 新しい領地のシンボルマップを生成
+            GenerateSymbolMap();
+
             OnTerritoryChanged?.Invoke(destination);
             OnStateChanged?.Invoke();
         }
@@ -2870,7 +2961,18 @@ public class GameController
             return false;
         }
 
-        AddMessage($"{_worldMapSystem.GetCurrentTerritoryInfo().Name}の街に入った");
+        // シンボルマップ上の街入口にいるか確認
+        if (_symbolMapSystem.IsTownEntrance(Player.Position))
+        {
+            var location = _symbolMapSystem.GetLocationAt(Player.Position);
+            AddMessage($"【{location!.Name}】に入った");
+            OnSymbolMapEnterTown?.Invoke();
+        }
+        else
+        {
+            AddMessage($"{_worldMapSystem.GetCurrentTerritoryInfo().Name}の街に入った");
+        }
+
         OnStateChanged?.Invoke();
         return true;
     }
@@ -2980,7 +3082,7 @@ public class GameController
         return result.Success;
     }
 
-    /// <summary>ダンジョンに入る（地上→地下）</summary>
+    /// <summary>ダンジョンに入る（シンボルマップ→地下）</summary>
     public bool TryEnterDungeon()
     {
         if (!_worldMapSystem.IsOnSurface)
@@ -2989,6 +3091,24 @@ public class GameController
             return false;
         }
 
+        // シンボルマップ上のダンジョン入口にいるか確認
+        if (_symbolMapSystem.IsDungeonEntrance(Player.Position))
+        {
+            var location = _symbolMapSystem.GetLocationAt(Player.Position);
+            if (location != null)
+            {
+                _worldMapSystem.IsOnSurface = false;
+                _currentMapName = location.Id;
+                CurrentFloor = 1;
+                GenerateFloor();
+                AddMessage($"【{location.Name}】─ ダンジョン第{CurrentFloor}層に足を踏み入れた...");
+                OnSymbolMapEnterDungeon?.Invoke(location);
+                OnStateChanged?.Invoke();
+                return true;
+            }
+        }
+
+        // ダンジョン入口でない場合は汎用ダンジョン入場
         _worldMapSystem.IsOnSurface = false;
         CurrentFloor = 1;
         GenerateFloor();
@@ -2997,7 +3117,7 @@ public class GameController
         return true;
     }
 
-    /// <summary>ダンジョンから脱出（地下→地上）</summary>
+    /// <summary>ダンジョンから脱出（地下→シンボルマップ）</summary>
     public bool TryExitDungeon()
     {
         if (_worldMapSystem.IsOnSurface)
@@ -3007,7 +3127,18 @@ public class GameController
         }
 
         _worldMapSystem.IsOnSurface = true;
-        AddMessage($"{_worldMapSystem.GetCurrentTerritoryInfo().Name}の地上に戻った");
+        GenerateSymbolMap();
+
+        // ダンジョン入口位置にプレイヤーを配置
+        var dungeonPos = _symbolMapSystem.FindLocationPosition(_currentMapName);
+        if (dungeonPos.HasValue)
+        {
+            Player.Position = dungeonPos.Value;
+            Map.ComputeFov(Player.Position, 12);
+        }
+
+        var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
+        AddMessage($"{territoryName}のシンボルマップに戻った");
         OnStateChanged?.Invoke();
         return true;
     }
