@@ -1857,6 +1857,7 @@ public class GameController
         ((Inventory)Player.Inventory).Add(armor);
         Player.Equipment.Equip(sword, Player);
         Player.Equipment.Equip(armor, Player);
+        // 初期アイテム支給（HP薬2個 + パン）
         ((Inventory)Player.Inventory).Add(ItemFactory.CreateHealingPotion());
         ((Inventory)Player.Inventory).Add(ItemFactory.CreateHealingPotion());
         ((Inventory)Player.Inventory).Add(ItemFactory.CreateBread());
