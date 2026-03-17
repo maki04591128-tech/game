@@ -203,6 +203,42 @@ public static class BalanceConfig
         _ => 45
     };
 
+    /// <summary>フロアボスのHP倍率（通常敵比）</summary>
+    public static double GetFloorBossHpMultiplier(int floor) => floor switch
+    {
+        5 => 3.0,    // 初ボスは控えめ
+        10 => 3.5,
+        15 => 4.0,
+        20 => 4.5,
+        25 => 5.0,
+        30 => 6.0,   // 最終ボスは特に硬い
+        _ => 3.0
+    };
+
+    /// <summary>フロアボスの攻撃力倍率（通常敵比）</summary>
+    public static double GetFloorBossAttackMultiplier(int floor) => floor switch
+    {
+        5 => 2.0,
+        10 => 2.5,
+        15 => 3.0,
+        20 => 3.5,
+        25 => 4.0,
+        30 => 5.0,
+        _ => 2.0
+    };
+
+    /// <summary>ボス撃破時の経験値ボーナス倍率</summary>
+    public static double GetBossExpBonus(int floor) => floor switch
+    {
+        5 => 3.0,
+        10 => 4.0,
+        15 => 5.0,
+        20 => 6.0,
+        25 => 8.0,
+        30 => 10.0,
+        _ => 2.0
+    };
+
     #endregion
 
     #region ドロップ率

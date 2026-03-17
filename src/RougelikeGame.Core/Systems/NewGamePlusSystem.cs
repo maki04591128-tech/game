@@ -14,6 +14,16 @@ public static class NewGamePlusSystem
         bool UnlocksSpecialContent
     );
 
+    /// <summary>NG+引き継ぎデータ</summary>
+    public record NgPlusCarryOver(
+        NewGamePlusTier Tier,
+        int Level,
+        int Gold,
+        IReadOnlyList<string> Skills,
+        IReadOnlyList<string> EncyclopediaEntries,
+        string ClearRank
+    );
+
     private static readonly Dictionary<NewGamePlusTier, NgPlusConfig> Configs = new()
     {
         [NewGamePlusTier.Plus1] = new(NewGamePlusTier.Plus1, 1.5f, 1.2f, 1.1f, false),
@@ -55,4 +65,45 @@ public static class NewGamePlusSystem
         NewGamePlusTier.Plus5 => "NG+5",
         _ => "不明"
     };
+
+    /// <summary>次のNG+段階を取得</summary>
+    public static NewGamePlusTier GetNextTier(NewGamePlusTier current) => current switch
+    {
+        NewGamePlusTier.Plus1 => NewGamePlusTier.Plus2,
+        NewGamePlusTier.Plus2 => NewGamePlusTier.Plus3,
+        NewGamePlusTier.Plus3 => NewGamePlusTier.Plus4,
+        NewGamePlusTier.Plus4 => NewGamePlusTier.Plus5,
+        _ => NewGamePlusTier.Plus5
+    };
+
+    /// <summary>NG+段階に応じた敵ステータス倍率を取得</summary>
+    public static float GetEnemyStatMultiplier(NewGamePlusTier tier)
+    {
+        var config = GetConfig(tier);
+        return config?.EnemyMultiplier ?? 1.0f;
+    }
+
+    /// <summary>NG+段階に応じた経験値倍率を取得</summary>
+    public static float GetExpMultiplier(NewGamePlusTier tier)
+    {
+        var config = GetConfig(tier);
+        return config?.ExpMultiplier ?? 1.0f;
+    }
+
+    /// <summary>クリアランクに基づく初回NG+段階を決定</summary>
+    public static NewGamePlusTier DetermineInitialTier(string clearRank) => clearRank switch
+    {
+        "S" => NewGamePlusTier.Plus1,
+        "A" => NewGamePlusTier.Plus1,
+        "B" => NewGamePlusTier.Plus1,
+        _ => NewGamePlusTier.Plus1
+    };
+
+    /// <summary>NG+開始メッセージを取得</summary>
+    public static string GetStartMessage(NewGamePlusTier tier)
+    {
+        var config = GetConfig(tier);
+        if (config == null) return "NG+を開始します";
+        return $"⚔ {GetTierName(tier)} を開始！ 敵強化: ×{config.EnemyMultiplier:F1} / 経験値: ×{config.ExpMultiplier:F1}";
+    }
 }

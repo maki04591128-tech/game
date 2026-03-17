@@ -1,7 +1,7 @@
 namespace RougelikeGame.Core.Systems;
 
 /// <summary>
-/// 仲間・傭兵システム - パーティ管理（最大4体）
+/// 仲間・傭兵システム - パーティ管理（最大4体）と戦闘AI
 /// </summary>
 public class CompanionSystem
 {
@@ -12,7 +12,20 @@ public class CompanionSystem
         CompanionAIMode AIMode,
         int Level,
         int Loyalty,
-        int HireCost
+        int HireCost,
+        int Hp = 100,
+        int MaxHp = 100,
+        int Attack = 10,
+        int Defense = 5,
+        bool IsAlive = true
+    );
+
+    /// <summary>仲間の行動結果</summary>
+    public record CompanionActionResult(
+        string CompanionName,
+        string ActionDescription,
+        int DamageDealt = 0,
+        string? TargetName = null
     );
 
     private readonly List<CompanionData> _party = new();
@@ -80,4 +93,107 @@ public class CompanionSystem
         CompanionType.Pet => "ペット",
         _ => "不明"
     };
+
+    /// <summary>仲間のターン行動を処理（AIモード別）</summary>
+    public IReadOnlyList<CompanionActionResult> ProcessCompanionTurns(
+        bool hasNearbyEnemy, string? nearbyEnemyName = null, int enemyDistance = 99)
+    {
+        var results = new List<CompanionActionResult>();
+
+        foreach (var companion in _party.Where(c => c.IsAlive))
+        {
+            var result = companion.AIMode switch
+            {
+                CompanionAIMode.Aggressive => ProcessAttackMode(companion, hasNearbyEnemy, nearbyEnemyName, enemyDistance),
+                CompanionAIMode.Defensive => ProcessDefendMode(companion, hasNearbyEnemy, nearbyEnemyName, enemyDistance),
+                CompanionAIMode.Support => ProcessFollowMode(companion),
+                CompanionAIMode.Wait => new CompanionActionResult(companion.Name, "待機している"),
+                _ => new CompanionActionResult(companion.Name, "待機している")
+            };
+            results.Add(result);
+        }
+
+        return results;
+    }
+
+    private static CompanionActionResult ProcessAttackMode(
+        CompanionData companion, bool hasEnemy, string? enemyName, int distance)
+    {
+        if (hasEnemy && distance <= 2)
+        {
+            int damage = CalculateCompanionDamage(companion);
+            return new CompanionActionResult(companion.Name,
+                $"{enemyName}に攻撃した！", damage, enemyName);
+        }
+        return new CompanionActionResult(companion.Name, "敵を探している");
+    }
+
+    private static CompanionActionResult ProcessDefendMode(
+        CompanionData companion, bool hasEnemy, string? enemyName, int distance)
+    {
+        if (hasEnemy && distance <= 1)
+        {
+            int damage = CalculateCompanionDamage(companion) / 2;
+            return new CompanionActionResult(companion.Name,
+                $"防御しながら{enemyName}に反撃した", damage, enemyName);
+        }
+        return new CompanionActionResult(companion.Name, "プレイヤーの近くで防御態勢をとっている");
+    }
+
+    private static CompanionActionResult ProcessFollowMode(CompanionData companion)
+    {
+        return new CompanionActionResult(companion.Name, "プレイヤーに追従している");
+    }
+
+    private static CompanionActionResult ProcessFreeMode(
+        CompanionData companion, bool hasEnemy, string? enemyName, int distance)
+    {
+        if (hasEnemy && distance <= 3)
+        {
+            int damage = CalculateCompanionDamage(companion);
+            return new CompanionActionResult(companion.Name,
+                $"自由行動で{enemyName}に攻撃した", damage, enemyName);
+        }
+        return new CompanionActionResult(companion.Name, "自由に行動している");
+    }
+
+    /// <summary>仲間のダメージ計算</summary>
+    public static int CalculateCompanionDamage(CompanionData companion)
+    {
+        return Math.Max(1, companion.Attack + companion.Level / 2);
+    }
+
+    /// <summary>仲間にダメージを与える</summary>
+    public bool DamageCompanion(string name, int damage)
+    {
+        var index = _party.FindIndex(c => c.Name == name);
+        if (index < 0) return false;
+
+        var companion = _party[index];
+        int newHp = Math.Max(0, companion.Hp - Math.Max(1, damage - companion.Defense));
+        bool alive = newHp > 0;
+        _party[index] = companion with { Hp = newHp, IsAlive = alive };
+        return !alive; // true if companion died
+    }
+
+    /// <summary>仲間を回復</summary>
+    public void HealCompanion(string name, int amount)
+    {
+        var index = _party.FindIndex(c => c.Name == name);
+        if (index < 0) return;
+        var companion = _party[index];
+        if (!companion.IsAlive) return;
+        _party[index] = companion with { Hp = Math.Min(companion.MaxHp, companion.Hp + amount) };
+    }
+
+    /// <summary>死亡した仲間を除去</summary>
+    public IReadOnlyList<string> RemoveDeadCompanions()
+    {
+        var dead = _party.Where(c => !c.IsAlive).Select(c => c.Name).ToList();
+        _party.RemoveAll(c => !c.IsAlive);
+        return dead;
+    }
+
+    /// <summary>生存仲間数</summary>
+    public int AliveCount => _party.Count(c => c.IsAlive);
 }

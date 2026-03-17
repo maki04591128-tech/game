@@ -507,6 +507,88 @@ public class QuestSystem
             }).ToList()
         }).ToList();
     }
+
+    /// <summary>メインクエスト定義を一括登録</summary>
+    public void RegisterMainQuest()
+    {
+        var mainQuest = new QuestDefinition(
+            Id: "main_quest_abyss",
+            Name: "深淵の探索",
+            Description: "ダンジョン最深部に潜む深淵の王を討伐せよ",
+            Type: QuestType.Main,
+            GiverNpcId: "guild_master",
+            RequiredLevel: 1,
+            RequiredGuildRank: GuildRank.None,
+            Objectives: new[]
+            {
+                new QuestObjective("5階ボス「キングスライム」を撃破", "floor_boss_5", 1),
+                new QuestObjective("10階ボス「ゴブリンキング」を撃破", "floor_boss_10", 1),
+                new QuestObjective("15階ボス「スケルトンロード」を撃破", "floor_boss_15", 1),
+                new QuestObjective("20階ボス「ダークエルフ将軍」を撃破", "floor_boss_20", 1),
+                new QuestObjective("25階ボス「炎竜ヴァルグレス」を撃破", "floor_boss_25", 1),
+                new QuestObjective("30階ボス「深淵の王」を撃破", "floor_boss_30", 1),
+            },
+            Reward: new QuestReward(Gold: 10000, Experience: 5000)
+        );
+        RegisterQuest(mainQuest);
+    }
+
+    /// <summary>敵撃破時のクエスト目標自動更新</summary>
+    public IReadOnlyList<string> UpdateKillObjective(string enemyTypeId)
+    {
+        var messages = new List<string>();
+        UpdateObjective(enemyTypeId);
+
+        foreach (var progress in _activeQuests.Values.Where(p => p.State == QuestState.Completed))
+        {
+            var quest = _questDefinitions.GetValueOrDefault(progress.QuestId);
+            if (quest != null)
+            {
+                messages.Add($"📋 クエスト「{quest.Name}」の全目標を達成！報告可能になった");
+            }
+        }
+
+        // ボス撃破チェックポイントメッセージ
+        foreach (var progress in _activeQuests.Values.Where(p => p.State == QuestState.Active))
+        {
+            foreach (var obj in progress.Objectives)
+            {
+                if (obj.TargetId == enemyTypeId && obj.IsComplete)
+                {
+                    messages.Add($"📋 クエスト目標達成: {obj.Description}");
+                }
+            }
+        }
+
+        return messages;
+    }
+
+    /// <summary>フロア到達時のクエスト目標自動更新</summary>
+    public IReadOnlyList<string> UpdateExploreObjective(int floor)
+    {
+        var messages = new List<string>();
+        UpdateObjective($"floor_{floor}");
+        return messages;
+    }
+
+    /// <summary>アイテム取得時のクエスト目標自動更新</summary>
+    public IReadOnlyList<string> UpdateCollectObjective(string itemId)
+    {
+        var messages = new List<string>();
+        UpdateObjective(itemId);
+        return messages;
+    }
+
+    /// <summary>完了済みクエストの自動報酬付与</summary>
+    public QuestRewardResult? AutoTurnInIfComplete(string questId, Entities.Player player)
+    {
+        if (!_activeQuests.TryGetValue(questId, out var progress)) return null;
+        if (progress.State != QuestState.Completed) return null;
+        return TurnInQuest(questId, player);
+    }
+
+    /// <summary>メインクエストが完了しているか</summary>
+    public bool IsMainQuestComplete => _completedQuests.Contains("main_quest_abyss");
 }/// <summary>
 /// クエストアクション結果
 /// </summary>

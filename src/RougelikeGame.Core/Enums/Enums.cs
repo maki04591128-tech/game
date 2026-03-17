@@ -461,7 +461,20 @@ public enum NpcType
     Sage,
     Villager,
     QuestGiver,
-    Wanderer
+    Wanderer,
+    // Ver.prt.0.5 追加（P.26 NPC拡充基盤）
+    /// <summary>バード（情報屋）</summary>
+    Bard,
+    /// <summary>魔法商人</summary>
+    MagicShopkeeper,
+    /// <summary>闇商人</summary>
+    BlackMarketDealer,
+    /// <summary>訓練師</summary>
+    Trainer,
+    /// <summary>薬師</summary>
+    Alchemist,
+    /// <summary>番人</summary>
+    Guardian
 }
 
 /// <summary>
@@ -486,7 +499,9 @@ public enum QuestType
     Explore,
     Escort,
     Deliver,
-    Talk
+    Talk,
+    /// <summary>メインクエスト</summary>
+    Main
 }
 
 /// <summary>
@@ -1382,4 +1397,73 @@ public enum GamblingGameType
     ChoHan,
     /// <summary>カード（ハイ&amp;ロー）</summary>
     Card
+}
+
+// ═══════════════════════════════════════════════════
+// Ver.prt.0.5 追加
+// ═══════════════════════════════════════════════════
+
+/// <summary>
+/// 拡張アイテムカテゴリ（P.13）
+/// </summary>
+public enum ExtendedItemCategory
+{
+    /// <summary>素材</summary>
+    Material,
+    /// <summary>魂石</summary>
+    SoulGem,
+    /// <summary>罠キット</summary>
+    TrapKit,
+    /// <summary>修理道具</summary>
+    RepairTool,
+    /// <summary>料理</summary>
+    CookedFood,
+    /// <summary>書物</summary>
+    Book,
+    /// <summary>鍵</summary>
+    Key,
+    /// <summary>楽器</summary>
+    Instrument
+}
+
+/// <summary>
+/// マルチエンディング種別（P.75）
+/// </summary>
+public enum EndingType
+{
+    /// <summary>正規エンディング（30階ボス撃破）</summary>
+    Normal,
+    /// <summary>真エンディング（全ボス撃破+高ランク）</summary>
+    True,
+    /// <summary>闇エンディング（カルマ極悪時）</summary>
+    Dark,
+    /// <summary>救済エンディング（死に戻り0回+高カルマ）</summary>
+    Salvation,
+    /// <summary>放浪エンディング（クリアせず全領地踏破）</summary>
+    Wanderer
+}
+
+/// <summary>
+/// 環境音種別（P.82）
+/// </summary>
+public enum AmbientSoundType
+{
+    /// <summary>ダンジョン（洞窟の滴る水音）</summary>
+    Dungeon,
+    /// <summary>森（鳥の鳴き声、風）</summary>
+    Forest,
+    /// <summary>山岳（強い風）</summary>
+    Mountain,
+    /// <summary>沿岸（波の音）</summary>
+    Coast,
+    /// <summary>砂漠（乾いた風）</summary>
+    Desert,
+    /// <summary>辺境（不気味な雰囲気）</summary>
+    Frontier,
+    /// <summary>街（人々の声）</summary>
+    Town,
+    /// <summary>ボス戦（緊迫した空気）</summary>
+    BossBattle,
+    /// <summary>静寂</summary>
+    Silence
 }
