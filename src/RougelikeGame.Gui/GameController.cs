@@ -4149,8 +4149,8 @@ public class GameController
     /// <summary>転職を実行する</summary>
     public bool TryClassChange(Core.CharacterClass targetClass)
     {
-        var completedQuests = _questSystem.CompletedQuestIds;
-        if (!MultiClassSystem.CanClassChange(Player.CharacterClass, targetClass, Player.Level, (HashSet<string>)completedQuests))
+        var completedQuests = new HashSet<string>(_questSystem.CompletedQuestIds);
+        if (!MultiClassSystem.CanClassChange(Player.CharacterClass, targetClass, Player.Level, completedQuests))
         {
             var req = MultiClassSystem.GetRequirement(Player.CharacterClass, targetClass);
             if (req == null)

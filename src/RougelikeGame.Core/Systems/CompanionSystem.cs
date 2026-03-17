@@ -145,18 +145,6 @@ public class CompanionSystem
         return new CompanionActionResult(companion.Name, "プレイヤーに追従している");
     }
 
-    private static CompanionActionResult ProcessFreeMode(
-        CompanionData companion, bool hasEnemy, string? enemyName, int distance)
-    {
-        if (hasEnemy && distance <= 3)
-        {
-            int damage = CalculateCompanionDamage(companion);
-            return new CompanionActionResult(companion.Name,
-                $"自由行動で{enemyName}に攻撃した", damage, enemyName);
-        }
-        return new CompanionActionResult(companion.Name, "自由に行動している");
-    }
-
     /// <summary>仲間のダメージ計算</summary>
     public static int CalculateCompanionDamage(CompanionData companion)
     {
