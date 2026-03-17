@@ -103,4 +103,16 @@ public class ReputationSystem
         >= -79 => ReputationRank.Hostile,
         _ => ReputationRank.Hated
     };
+
+    /// <summary>
+    /// 全評判をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、全領地の評判は初期値に戻る。
+    /// </summary>
+    public void Reset()
+    {
+        foreach (var territory in _reputations.Keys.ToList())
+        {
+            _reputations[territory] = 0;
+        }
+    }
 }

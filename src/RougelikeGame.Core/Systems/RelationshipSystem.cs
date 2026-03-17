@@ -58,6 +58,15 @@ public class RelationshipSystem
         return 0f;
     }
 
+    /// <summary>
+    /// 全関係値をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、築いた関係は全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        _relations.Clear();
+    }
+
     /// <summary>関係値総数</summary>
     public int TotalRelations => _relations.Count;
 

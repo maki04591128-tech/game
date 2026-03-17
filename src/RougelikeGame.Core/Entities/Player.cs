@@ -444,6 +444,15 @@ public class Player : Character, IPlayer, IInventoryHolder
     #endregion
 
     #region Initialization
+    /// <summary>
+    /// 基本ステータスを指定してプレイヤーを作成するファクトリメソッド。
+    /// これはプログラム的にPlayerオブジェクトを生成する処理であり、
+    /// GUI上のキャラクター作成画面への遷移は発生しない。
+    /// テスト用やカスタムステータス指定時に使用する。
+    /// </summary>
+    /// <param name="name">キャラクター名</param>
+    /// <param name="baseStats">基礎ステータス</param>
+    /// <returns>初期状態のPlayerインスタンス</returns>
     public static Player Create(string name, Stats baseStats)
     {
         var player = new Player
@@ -461,8 +470,17 @@ public class Player : Character, IPlayer, IInventoryHolder
     }
 
     /// <summary>
-    /// 種族・職業・素性を指定してプレイヤーを作成
+    /// 種族・職業・素性を指定してプレイヤーを作成するファクトリメソッド。
+    /// これはプログラム的にPlayerオブジェクトを生成する処理であり、
+    /// GUI上のキャラクター作成画面への遷移は発生しない。
+    /// 初回作成時はMainWindow経由でユーザーが選択した種族/職業/素性を渡し、
+    /// 死に戻り時はExecuteRebirth()が前回と同じ種族/職業/素性を再利用して呼び出す。
     /// </summary>
+    /// <param name="name">キャラクター名</param>
+    /// <param name="race">種族</param>
+    /// <param name="characterClass">職業</param>
+    /// <param name="background">素性</param>
+    /// <returns>種族・職業・素性ボーナス適用済みのPlayerインスタンス</returns>
     public static Player Create(string name, Race race, CharacterClass characterClass, Background background)
     {
         var raceDef = RaceDefinition.Get(race);

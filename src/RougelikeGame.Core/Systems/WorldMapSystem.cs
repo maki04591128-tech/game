@@ -222,6 +222,18 @@ public class WorldMapSystem
             VisitedTerritories.Add(territory);
     }
 
+    /// <summary>
+    /// 全状態をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、訪問履歴は消失し、開始領地に戻る。
+    /// </summary>
+    public void Reset(TerritoryId startTerritory)
+    {
+        CurrentTerritory = startTerritory;
+        VisitedTerritories.Clear();
+        VisitedTerritories.Add(startTerritory);
+        IsOnSurface = true;
+    }
+
     /// <summary>領地間移動時のランダムイベント判定</summary>
     public TravelEvent? RollTravelEvent(TerritoryId from, TerritoryId to, IRandomProvider random)
     {

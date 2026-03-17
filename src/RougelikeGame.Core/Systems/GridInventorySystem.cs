@@ -87,4 +87,13 @@ public class GridInventorySystem
         var (iw, ih) = GetDimensions(item.Size);
         return !(item.GridX + iw <= x || x + w <= item.GridX || item.GridY + ih <= y || y + h <= item.GridY);
     }
+
+    /// <summary>
+    /// 全アイテムを消去する（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、グリッドインベントリは空になる。
+    /// </summary>
+    public void Reset()
+    {
+        _items.Clear();
+    }
 }

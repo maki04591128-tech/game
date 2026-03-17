@@ -81,4 +81,17 @@ public class EncyclopediaSystem
         }
         return desc;
     }
+
+    /// <summary>
+    /// 全発見レベルをリセットする（死に戻り＋正気度0時に呼び出し）。
+    /// 正気度0での死に戻りでは知識が消失するため、図鑑の発見レベルが0に戻る。
+    /// エントリ定義（マスターデータ）は保持される。
+    /// </summary>
+    public void ResetDiscoveryLevels()
+    {
+        foreach (var id in _entries.Keys.ToList())
+        {
+            _entries[id] = _entries[id] with { DiscoveryLevel = 0 };
+        }
+    }
 }

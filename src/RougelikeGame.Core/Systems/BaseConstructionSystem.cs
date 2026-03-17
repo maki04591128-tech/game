@@ -1,7 +1,7 @@
 namespace RougelikeGame.Core.Systems;
 
 /// <summary>
-/// 拠点作成システム - 施設の建設・防衛管理
+/// 拠点作成システム - 施設の建設・防衛管理・効果発動
 /// </summary>
 public class BaseConstructionSystem
 {
@@ -12,6 +12,16 @@ public class BaseConstructionSystem
         int MaterialCost,
         int BuildTurns,
         string Effect
+    );
+
+    /// <summary>施設効果</summary>
+    public record FacilityBonus(
+        float HpRecoveryMultiplier,
+        float CraftingSuccessBonus,
+        int ExtraStorageSlots,
+        int FoodProductionPerDay,
+        int DefenseBonus,
+        int ExtraCompanionSlots
     );
 
     private static readonly Dictionary<FacilityCategory, FacilityDefinition> Facilities = new()
@@ -63,5 +73,65 @@ public class BaseConstructionSystem
         if (_built.Contains(FacilityCategory.Barracks)) defense += 10;
         if (_built.Contains(FacilityCategory.Camp)) defense += 5;
         return defense;
+    }
+
+    /// <summary>全施設効果を集計</summary>
+    public FacilityBonus GetTotalBonus()
+    {
+        float hpRecovery = 1.0f;
+        float craftingBonus = 0f;
+        int storage = 0;
+        int food = 0;
+        int defense = 0;
+        int companion = 0;
+
+        if (_built.Contains(FacilityCategory.Camp)) hpRecovery += 0.25f;
+        if (_built.Contains(FacilityCategory.Barracks)) { hpRecovery += 0.5f; companion += 2; }
+        if (_built.Contains(FacilityCategory.Workbench)) craftingBonus += 0.1f;
+        if (_built.Contains(FacilityCategory.Smithy)) craftingBonus += 0.2f;
+        if (_built.Contains(FacilityCategory.Storage)) storage += 50;
+        if (_built.Contains(FacilityCategory.Farm)) food += 3;
+        if (_built.Contains(FacilityCategory.Barricade)) defense += 30;
+
+        return new FacilityBonus(hpRecovery, craftingBonus, storage, food, defense, companion);
+    }
+
+    /// <summary>休息時のHP回復ボーナス倍率を取得</summary>
+    public float GetRestHpRecoveryMultiplier()
+    {
+        return GetTotalBonus().HpRecoveryMultiplier;
+    }
+
+    /// <summary>製作時の成功確率ボーナスを取得</summary>
+    public float GetCraftingSuccessBonus()
+    {
+        return GetTotalBonus().CraftingSuccessBonus;
+    }
+
+    /// <summary>追加保管枠を取得</summary>
+    public int GetExtraStorageSlots()
+    {
+        return GetTotalBonus().ExtraStorageSlots;
+    }
+
+    /// <summary>毎日の食料自動生産量を取得</summary>
+    public int GetDailyFoodProduction()
+    {
+        return GetTotalBonus().FoodProductionPerDay;
+    }
+
+    /// <summary>追加仲間収容枠を取得</summary>
+    public int GetExtraCompanionSlots()
+    {
+        return GetTotalBonus().ExtraCompanionSlots;
+    }
+
+    /// <summary>
+    /// 全施設を撤去する（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、建設した施設は全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        _built.Clear();
     }
 }

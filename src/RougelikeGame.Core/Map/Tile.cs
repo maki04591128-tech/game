@@ -110,6 +110,58 @@ public enum TileType
     /// </summary>
     Tree,
 
+    // === シンボルマップ用タイル ===
+
+    /// <summary>
+    /// シンボルマップ: 草原（移動可能な開けた地形）
+    /// </summary>
+    SymbolGrass,
+
+    /// <summary>
+    /// シンボルマップ: 森林（移動コスト増）
+    /// </summary>
+    SymbolForest,
+
+    /// <summary>
+    /// シンボルマップ: 山岳（通行不可）
+    /// </summary>
+    SymbolMountain,
+
+    /// <summary>
+    /// シンボルマップ: 水域（通行不可）
+    /// </summary>
+    SymbolWater,
+
+    /// <summary>
+    /// シンボルマップ: 道（移動コスト低）
+    /// </summary>
+    SymbolRoad,
+
+    /// <summary>
+    /// シンボルマップ: 街の入口
+    /// </summary>
+    SymbolTown,
+
+    /// <summary>
+    /// シンボルマップ: ダンジョン入口
+    /// </summary>
+    SymbolDungeon,
+
+    /// <summary>
+    /// シンボルマップ: 施設
+    /// </summary>
+    SymbolFacility,
+
+    /// <summary>
+    /// シンボルマップ: 祠・宗教施設
+    /// </summary>
+    SymbolShrine,
+
+    /// <summary>
+    /// シンボルマップ: 野外エリア
+    /// </summary>
+    SymbolField,
+
     // === デバッグ専用タイル ===
 
     /// <summary>
@@ -274,6 +326,34 @@ public class Tile
                 tile.BlocksMovement = false;
                 break;
 
+            // シンボルマップ用タイル
+            case TileType.SymbolGrass:
+            case TileType.SymbolRoad:
+            case TileType.SymbolTown:
+            case TileType.SymbolDungeon:
+            case TileType.SymbolFacility:
+            case TileType.SymbolShrine:
+            case TileType.SymbolField:
+                tile.BlocksSight = false;
+                tile.BlocksMovement = false;
+                break;
+
+            case TileType.SymbolForest:
+                tile.BlocksSight = false;
+                tile.BlocksMovement = false;
+                tile.MovementCost = 1.5f;
+                break;
+
+            case TileType.SymbolMountain:
+                tile.BlocksSight = false;
+                tile.BlocksMovement = true;
+                break;
+
+            case TileType.SymbolWater:
+                tile.BlocksSight = false;
+                tile.BlocksMovement = true;
+                break;
+
             case TileType.DebugEnemySpawn:
             case TileType.DebugAIToggle:
             case TileType.DebugDayAdvance:
@@ -318,6 +398,16 @@ public class Tile
             TileType.DebugAIToggle => 'A',
             TileType.DebugDayAdvance => 'D',
             TileType.DebugNpc => 'N',
+            TileType.SymbolGrass => ',',
+            TileType.SymbolForest => '♣',
+            TileType.SymbolMountain => '▲',
+            TileType.SymbolWater => '~',
+            TileType.SymbolRoad => '=',
+            TileType.SymbolTown => '■',
+            TileType.SymbolDungeon => '▼',
+            TileType.SymbolFacility => '☆',
+            TileType.SymbolShrine => '†',
+            TileType.SymbolField => '◇',
             _ => '?'
         };
     }

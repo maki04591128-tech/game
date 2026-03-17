@@ -676,6 +676,122 @@ public static class EnemyDefinitions
 
     #endregion
 
+    #region Floor Bosses (5階ごとのフロアボス)
+
+    /// <summary>5階ボス: 大型スライム（初見プレイヤー向け）</summary>
+    public static readonly EnemyDefinition FloorBoss5 = new(
+        TypeId: "floor_boss_5",
+        Name: "キングスライム",
+        Description: "数多のスライムが融合した巨大なスライム。弾力ある体で攻撃を吸収する。",
+        BaseStats: new Stats(15, 30, 4, 4, 5, 15, 4, 1, 5),
+        EnemyType: EnemyType.Boss,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 150,
+        DropTableId: "drop_floor_boss_5",
+        SightRange: 10,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Amorphous
+    );
+
+    /// <summary>10階ボス: ゴブリンキング（集団戦入門）</summary>
+    public static readonly EnemyDefinition FloorBoss10 = new(
+        TypeId: "floor_boss_10",
+        Name: "ゴブリンキング",
+        Description: "ゴブリン族の統率者。狡猾な戦術で冒険者を追い詰める。",
+        BaseStats: new Stats(20, 25, 12, 10, 8, 12, 10, 4, 8),
+        EnemyType: EnemyType.Boss,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 300,
+        DropTableId: "drop_floor_boss_10",
+        SightRange: 12,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Humanoid
+    );
+
+    /// <summary>15階ボス: スケルトンロード（不死系ボス）</summary>
+    public static readonly EnemyDefinition FloorBoss15 = new(
+        TypeId: "floor_boss_15",
+        Name: "スケルトンロード",
+        Description: "不死の軍勢を率いる骸骨の将軍。暗黒の剣技を振るう。",
+        BaseStats: new Stats(25, 30, 10, 12, 15, 20, 8, 3, 4),
+        EnemyType: EnemyType.Boss,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 500,
+        DropTableId: "drop_floor_boss_15",
+        SightRange: 12,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Undead
+    );
+
+    /// <summary>20階ボス: ダークエルフ将軍（高速型ボス）</summary>
+    public static readonly EnemyDefinition FloorBoss20 = new(
+        TypeId: "floor_boss_20",
+        Name: "ダークエルフ将軍",
+        Description: "地下帝国の将軍。素早い剣技と暗黒魔法の二刀流。",
+        BaseStats: new Stats(28, 25, 18, 16, 20, 15, 16, 6, 8),
+        EnemyType: EnemyType.Boss,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 700,
+        DropTableId: "drop_floor_boss_20",
+        SightRange: 14,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Humanoid
+    );
+
+    /// <summary>25階ボス: ドラゴン（高HP・高火力）</summary>
+    public static readonly EnemyDefinition FloorBoss25 = new(
+        TypeId: "floor_boss_25",
+        Name: "炎竜ヴァルグレス",
+        Description: "地下深くに棲む古のドラゴン。灼熱のブレスで全てを焼き尽くす。",
+        BaseStats: new Stats(45, 50, 10, 10, 20, 28, 8, 4, 5),
+        EnemyType: EnemyType.Boss,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 1000,
+        DropTableId: "drop_floor_boss_25",
+        SightRange: 16,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Dragon
+    );
+
+    /// <summary>30階ボス: 深淵の王（最終ボス）</summary>
+    public static readonly EnemyDefinition FloorBoss30 = new(
+        TypeId: "floor_boss_30",
+        Name: "深淵の王",
+        Description: "ダンジョン最深部に封印されていた太古の魔王。万物を支配する力を持つ。",
+        BaseStats: new Stats(60, 55, 14, 14, 35, 30, 12, 8, 8),
+        EnemyType: EnemyType.Boss,
+        Rank: EnemyRank.HiddenBoss,
+        ExperienceReward: 2000,
+        DropTableId: "drop_floor_boss_30",
+        SightRange: 20,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Demon
+    );
+
+    #endregion
+
+    /// <summary>
+    /// フロアボスを取得（5階ごと）
+    /// </summary>
+    public static EnemyDefinition? GetFloorBoss(int floor) => floor switch
+    {
+        5 => FloorBoss5,
+        10 => FloorBoss10,
+        15 => FloorBoss15,
+        20 => FloorBoss20,
+        25 => FloorBoss25,
+        30 => FloorBoss30,
+        _ => null
+    };
+
+    /// <summary>
+    /// 全フロアボス定義を取得
+    /// </summary>
+    public static IReadOnlyList<EnemyDefinition> GetAllFloorBosses()
+    {
+        return new[] { FloorBoss5, FloorBoss10, FloorBoss15, FloorBoss20, FloorBoss25, FloorBoss30 };
+    }
+
     /// <summary>
     /// 階層に応じた敵リストを取得
     /// </summary>

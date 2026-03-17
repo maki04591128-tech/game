@@ -88,6 +88,17 @@ public class KarmaSystem
     /// <summary>聖域への入場可否（悪党以上は制限）</summary>
     public bool CanEnterHolyGround() => KarmaValue > -50;
 
+    /// <summary>
+    /// 全状態をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、カルマ値・履歴は全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        KarmaValue = 0;
+        KarmaHistory.Clear();
+        _currentTurn = 0;
+    }
+
     /// <summary>カルマ段階の日本語名を取得</summary>
     public static string GetKarmaRankName(KarmaRank rank) => rank switch
     {

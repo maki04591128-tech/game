@@ -69,4 +69,13 @@ public class OathSystem
         (OathType.Darkness, "use_torch") => true,
         _ => false
     };
+
+    /// <summary>
+    /// 全誓約を解除する（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、誓約は全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        _activeOaths.Clear();
+    }
 }

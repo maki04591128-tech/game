@@ -57,6 +57,16 @@ public class NpcMemorySystem
         return _memories.Where(m => m.NpcId == npcId).Sum(m => m.Impact);
     }
 
+    /// <summary>
+    /// 全記憶・噂をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、NPCとの関係は全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        _memories.Clear();
+        _rumors.Clear();
+    }
+
     /// <summary>噂の種別名を取得</summary>
     public static string GetRumorTypeName(RumorType type) => type switch
     {

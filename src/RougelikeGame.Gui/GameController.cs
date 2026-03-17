@@ -48,6 +48,18 @@ public class GameController
     private readonly BaseConstructionSystem _baseConstructionSystem = new();
     private readonly InvestmentSystem _investmentSystem = new();
     private readonly GridInventorySystem _gridInventorySystem = new();
+    private readonly SymbolMapSystem _symbolMapSystem = new();
+
+    // === Ver.prt.0.5-0.6 新システム ===
+    private readonly NpcMemorySystem _npcMemorySystem = new();
+    private readonly RelationshipSystem _relationshipSystem = new();
+    private readonly ItemIdentificationSystem _itemIdentificationSystem = new();
+    private readonly DungeonEcosystemSystem _dungeonEcosystemSystem = new();
+    private readonly PetSystem _petSystem = new();
+    private readonly MerchantGuildSystem _merchantGuildSystem = new();
+    private readonly InscriptionSystem _inscriptionSystem = new();
+    private readonly FactionWarSystem _factionWarSystem = new();
+    private readonly TerritoryInfluenceSystem _territoryInfluenceSystem = new();
 
     /// <summary>敵がアクティブになる描画範囲半径</summary>
     private const int ActiveRange = 10;
@@ -85,8 +97,26 @@ public class GameController
     /// <summary>現在のマップ名（種族・素性に応じた開始マップ名等）</summary>
     private string _currentMapName = "capital_guild";
 
+    /// <summary>ロケーションマップ（非ダンジョン）内にいるか</summary>
+    private bool _isInLocationMap;
+
     /// <summary>引き継ぎデータ（死に戻り用）</summary>
     private TransferData? _transferData;
+
+    /// <summary>NG+段階（非NG+時はnull）</summary>
+    private NewGamePlusTier? _ngPlusTier;
+
+    /// <summary>ゲームクリア済みフラグ</summary>
+    private bool _hasCleared = false;
+
+    /// <summary>最終クリアランク</summary>
+    private string _clearRank = "";
+
+    /// <summary>無限ダンジョンモード</summary>
+    private bool _infiniteDungeonMode = false;
+
+    /// <summary>無限ダンジョン撃破数</summary>
+    private int _infiniteDungeonKills = 0;
 
     /// <summary>累計死亡回数</summary>
     public int TotalDeaths { get; private set; } = 0;
@@ -165,6 +195,27 @@ public class GameController
     public event Action? OnShowCooking;
     public event Action? OnShowBaseConstruction;
 
+    /// <summary>シンボルマップでのロケーション到着通知</summary>
+    public event Action<LocationDefinition>? OnLocationArrived;
+
+    /// <summary>シンボルマップでの街入場要求</summary>
+    public event Action? OnSymbolMapEnterTown;
+
+    /// <summary>シンボルマップでのダンジョン入場要求</summary>
+    public event Action<LocationDefinition>? OnSymbolMapEnterDungeon;
+
+    /// <summary>ゲームクリアイベント</summary>
+    public event Action<GameClearSystem.ClearScore>? OnGameClear;
+
+    /// <summary>ゲームクリア済みか</summary>
+    public bool HasCleared => _hasCleared;
+
+    /// <summary>NG+段階</summary>
+    public NewGamePlusTier? CurrentNgPlusTier => _ngPlusTier;
+
+    /// <summary>無限ダンジョンモードか</summary>
+    public bool IsInfiniteDungeonMode => _infiniteDungeonMode;
+
     /// <summary>メッセージ履歴</summary>
     private readonly List<string> _messageHistory = new();
 
@@ -218,12 +269,17 @@ public class GameController
         // STRベースの最大重量を更新
         Player.UpdateMaxWeight();
 
-        // マップ生成
-        GenerateFloor();
+        // メインクエスト登録・受注
+        _questSystem.RegisterMainQuest();
+        _questSystem.AcceptQuest("main_quest_abyss", Player.Level, GuildRank.None);
+
+        // マップ生成（シンボルマップから開始）
+        GenerateSymbolMap();
 
         var mapDisplayName = StartingMapResolver.GetDisplayName(_currentMapName);
-        AddMessage($"{mapDisplayName} ─ ダンジョン第{CurrentFloor}層に入った！");
-        AddMessage("WASD/矢印で移動、敵に体当たりで攻撃");
+        var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
+        AddMessage($"{territoryName}のシンボルマップに入った");
+        AddMessage("WASD/矢印で移動、ロケーションに到着して>キーでダンジョン、Tキーで街に入る");
     }
 
     /// <summary>
@@ -435,6 +491,30 @@ public class GameController
         };
     }
 
+    /// <summary>
+    /// シンボルマップを生成する（領地の地上マップ）
+    /// </summary>
+    private void GenerateSymbolMap()
+    {
+        var territory = _worldMapSystem.CurrentTerritory;
+        var symbolMap = _symbolMapSystem.GenerateForTerritory(territory);
+
+        Map = symbolMap;
+        _worldMapSystem.IsOnSurface = true;
+
+        // プレイヤー配置（入口位置）
+        var startPos = symbolMap.EntrancePosition ?? new Position(
+            SymbolMapGenerator.MapWidth / 2, SymbolMapGenerator.MapHeight / 2);
+        Player.Position = startPos;
+
+        // シンボルマップでは敵・アイテムを配置しない
+        Enemies.Clear();
+        GroundItems.Clear();
+
+        // 視界計算（シンボルマップは広い視界）
+        symbolMap.ComputeFov(Player.Position, 12);
+    }
+
     private void GenerateFloor()
     {
         var parameters = new DungeonGenerationParameters
@@ -479,13 +559,39 @@ public class GameController
 
         // 階層補正: 3階ごとに全ステータス+1
         int floorBonus = CurrentFloor / 3;
-        StatModifier? bonus = floorBonus > 0
+
+        // NG+段階による敵強化倍率
+        float ngPlusMultiplier = _ngPlusTier.HasValue
+            ? NewGamePlusSystem.GetEnemyStatMultiplier(_ngPlusTier.Value)
+            : 1.0f;
+        int ngPlusBonus = (int)((ngPlusMultiplier - 1.0f) * 10);
+
+        StatModifier? bonus = (floorBonus > 0 || ngPlusBonus > 0)
             ? new StatModifier(
-                Strength: floorBonus,
-                Vitality: floorBonus,
-                Agility: floorBonus / 2,
-                Dexterity: floorBonus / 2)
+                Strength: floorBonus + ngPlusBonus,
+                Vitality: floorBonus + ngPlusBonus,
+                Agility: floorBonus / 2 + ngPlusBonus / 2,
+                Dexterity: floorBonus / 2 + ngPlusBonus / 2)
             : null;
+
+        // フロアボスを配置（5階ごと）
+        if (CurrentFloor % GameConstants.BossFloorInterval == 0)
+        {
+            var bossDef = EnemyDefinitions.GetFloorBoss(CurrentFloor);
+            if (bossDef != null)
+            {
+                var bossRoom = Map.GetBossRoom();
+                var bossPos = bossRoom != null
+                    ? new Position(bossRoom.X + bossRoom.Width / 2, bossRoom.Y + bossRoom.Height / 2)
+                    : GetRandomFloorPosition();
+
+                if (bossPos.HasValue)
+                {
+                    var boss = _enemyFactory.CreateEnemy(bossDef, bossPos.Value, bonus);
+                    Enemies.Add(boss);
+                }
+            }
+        }
 
         for (int i = 0; i < enemyCount; i++)
         {
@@ -888,6 +994,21 @@ public class GameController
         // 移動実行
         Player.Position = newPos;
 
+        // シンボルマップ上のロケーション到着処理
+        if (_worldMapSystem.IsOnSurface && _symbolMapSystem.IsLocationSymbol(newPos))
+        {
+            var location = _symbolMapSystem.GetLocationAt(newPos);
+            if (location != null)
+            {
+                var msg = _symbolMapSystem.GetLocationArrivalMessage(newPos);
+                if (!string.IsNullOrEmpty(msg))
+                {
+                    AddMessage(msg);
+                }
+                OnLocationArrived?.Invoke(location);
+            }
+        }
+
         // 階段メッセージ
         if (tile.Type == TileType.StairsDown)
         {
@@ -961,6 +1082,26 @@ public class GameController
             _clearSystem.IncrementFlag("boss_kills");
         }
 
+        // クエスト自動進行（敵撃破）
+        var questMessages = _questSystem.UpdateKillObjective(enemy.EnemyTypeId);
+        foreach (var msg in questMessages)
+        {
+            AddMessage(msg);
+            OnQuestUpdated?.Invoke(msg);
+        }
+
+        // 30階ボス撃破→ゲームクリア判定
+        if (GameClearSystem.IsFinalBossDefeated(CurrentFloor, enemy.EnemyTypeId))
+        {
+            HandleGameClear();
+        }
+
+        // 無限ダンジョンモード時の撃破カウント
+        if (_infiniteDungeonMode)
+        {
+            _infiniteDungeonKills++;
+        }
+
         // 宗教の経験値ボーナス
         double expBonus = _religionSystem.GetBenefitValue(Player, ReligionBenefitType.ExpBonus);
         if (expBonus > 0)
@@ -971,12 +1112,90 @@ public class GameController
                 Player.GainExperience(bonusExp);
             }
         }
+
+        // NG+時の経験値ボーナス
+        if (_ngPlusTier.HasValue)
+        {
+            float expMultiplier = NewGamePlusSystem.GetExpMultiplier(_ngPlusTier.Value);
+            if (expMultiplier > 1.0f)
+            {
+                int ngBonusExp = (int)(enemy.ExperienceReward * (expMultiplier - 1.0f));
+                if (ngBonusExp > 0)
+                {
+                    Player.GainExperience(ngBonusExp);
+                    AddMessage($"⚔ NG+ボーナス経験値: +{ngBonusExp}");
+                }
+            }
+        }
+    }
+
+    /// <summary>ゲームクリア処理</summary>
+    private void HandleGameClear()
+    {
+        _hasCleared = true;
+        _clearSystem.SetFlag("game_clear");
+
+        var score = GameClearSystem.CalculateScore(
+            TurnCount, TotalDeaths, Player.Level, CurrentFloor);
+        _clearRank = score.Rank;
+
+        var clearText = GameClearSystem.GetClearText(Player.Background);
+        var clearMsg = GameClearSystem.GetClearMessage(
+            Player.Background.ToString(), score.Rank);
+
+        AddMessage("🏆 ═══════════════════════════════════════");
+        AddMessage("🏆 ゲームクリア！！");
+        AddMessage(clearText);
+        AddMessage(clearMsg);
+        AddMessage($"📊 スコア: {score.TotalScore} | ターン: {TurnCount} | 死亡: {TotalDeaths}回");
+        AddMessage("🏆 ═══════════════════════════════════════");
+
+        if (GameClearSystem.UnlocksNewGamePlus(score.Rank))
+        {
+            AddMessage("⚔ NG+（周回プレイ）が解放された！");
+        }
+
+        // 無限ダンジョン解放
+        AddMessage(InfiniteDungeonSystem.GetUnlockMessage());
+
+        OnGameClear?.Invoke(score);
     }
 
     private void ProcessEnemyTurns()
     {
         // デバッグモードでAI非活性化中は敵のターンをスキップ
         if (_isDebugMode && !_debugAIActive) return;
+
+        // 仲間のターン処理
+        if (_companionSystem.Party.Count > 0)
+        {
+            var nearestEnemy = Enemies.Where(e => e.IsAlive)
+                .OrderBy(e => e.Position.ChebyshevDistanceTo(Player.Position))
+                .FirstOrDefault();
+            bool hasNearby = nearestEnemy != null &&
+                             nearestEnemy.Position.ChebyshevDistanceTo(Player.Position) <= ActiveRange;
+            int distance = nearestEnemy != null
+                ? nearestEnemy.Position.ChebyshevDistanceTo(Player.Position)
+                : 99;
+
+            var companionResults = _companionSystem.ProcessCompanionTurns(
+                hasNearby, nearestEnemy?.Name, distance);
+            foreach (var result in companionResults)
+            {
+                if (result.DamageDealt > 0 && nearestEnemy != null)
+                {
+                    nearestEnemy.TakeDamage(Damage.Physical(result.DamageDealt));
+                    AddMessage($"[仲間] {result.CompanionName}: {result.ActionDescription} ({result.DamageDealt}ダメージ)");
+
+                    if (!nearestEnemy.IsAlive)
+                    {
+                        AddMessage($"{nearestEnemy.Name}を倒した！（仲間の功績）");
+                        Player.GainExperience(nearestEnemy.ExperienceReward / 2);
+                        OnEnemyDefeated(nearestEnemy);
+                    }
+                }
+            }
+        }
 
         // プレイヤーからActiveRange以内の敵のみ処理する
         foreach (var enemy in Enemies.Where(e => e.IsAlive))
@@ -1249,6 +1468,24 @@ public class GameController
     private bool TryDescendStairs()
     {
         var tile = Map.GetTile(Player.Position);
+
+        // シンボルマップ上のダンジョン入口から入場
+        if (_worldMapSystem.IsOnSurface && tile.Type == TileType.SymbolDungeon)
+        {
+            var location = _symbolMapSystem.GetLocationAt(Player.Position);
+            if (location != null)
+            {
+                _worldMapSystem.IsOnSurface = false;
+                _currentMapName = location.Id;
+                CurrentFloor = 1;
+                GenerateFloor();
+                AddMessage($"【{location.Name}】─ ダンジョン第{CurrentFloor}層に足を踏み入れた...");
+                OnSymbolMapEnterDungeon?.Invoke(location);
+                OnStateChanged?.Invoke();
+                return true;
+            }
+        }
+
         if (tile.Type == TileType.StairsDown)
         {
             if (CurrentFloor >= GameConstants.MaxDungeonFloor)
@@ -1263,10 +1500,24 @@ public class GameController
             GenerateFloor();
             AddMessage($"第{CurrentFloor}層に降りた");
 
+            // クエスト自動進行（フロア到達）
+            var floorMessages = _questSystem.UpdateExploreObjective(CurrentFloor);
+            foreach (var msg in floorMessages)
+            {
+                AddMessage(msg);
+            }
+
             // ボスフロア通知
             if (CurrentFloor % GameConstants.BossFloorInterval == 0)
             {
-                AddMessage("⚠ 強大な気配を感じる...ボスフロアだ！");
+                var bossDef = EnemyDefinitions.GetFloorBoss(CurrentFloor);
+                var bossName = bossDef?.Name ?? "ボス";
+                AddMessage($"⚠ 強大な気配を感じる...{bossName}がいるフロアだ！");
+
+                if (CurrentFloor == GameConstants.MaxDungeonFloor)
+                {
+                    AddMessage("⚠ ここがダンジョン最深部！ 最終ボスが待ち受けている！");
+                }
             }
 
             return true;
@@ -1289,10 +1540,22 @@ public class GameController
 
         if (CurrentFloor <= 1)
         {
-            // 1層目の上り階段 → 地上帰還
+            // 1層目の上り階段 → シンボルマップに帰還
             AddMessage("ダンジョンから脱出した！ 地上に帰還する...");
-            IsRunning = false;
-            OnGameOver?.Invoke();
+            _worldMapSystem.IsOnSurface = true;
+            GenerateSymbolMap();
+
+            // ダンジョン入口位置にプレイヤーを配置
+            var dungeonPos = _symbolMapSystem.FindLocationPosition(_currentMapName);
+            if (dungeonPos.HasValue)
+            {
+                Player.Position = dungeonPos.Value;
+                Map.ComputeFov(Player.Position, 12);
+            }
+
+            var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
+            AddMessage($"{territoryName}のシンボルマップに戻った");
+            OnStateChanged?.Invoke();
             return true;
         }
         else
@@ -1567,7 +1830,11 @@ public class GameController
     }
 
     /// <summary>
-    /// 死に戻り（リバース）を実行する
+    /// 死に戻り（リバース）を実行する。
+    /// 死に戻りはキャラクター作成直後への時間巻き戻しであるため、
+    /// プレイヤーの肉体・世界の状態を全てリセットし、内面知識のみ引き継ぐ。
+    /// Player.Create()を使って同じ名前・種族・職業・素性のPlayerオブジェクトを
+    /// プログラム的に再生成する（キャラクター作成画面への遷移は発生しない）。
     /// </summary>
     private void ExecuteRebirth(TransferData transfer)
     {
@@ -1575,8 +1842,9 @@ public class GameController
         var race = Player.Race;
         var charClass = Player.CharacterClass;
         var background = Player.Background;
+        bool isSanityZero = transfer.Sanity <= 0 || (transfer.LearnedWords.Count == 0 && transfer.LearnedSkills.Count == 0 && TotalDeaths > 0);
 
-        // プレイヤーを再作成（肉体リセット）
+        // プレイヤーを再作成（肉体リセット）— 同一キャラの時間巻き戻し。画面遷移なし。
         Player = Player.Create(Player.Name, race, charClass, background);
 
         // 引き継ぎデータを適用（知識系）
@@ -1585,33 +1853,110 @@ public class GameController
         // イベント再購読
         SubscribePlayerEvents();
 
-        // 初期装備を支給
+        // 初期装備を支給（Initialize時と同一の内容）
         var sword = ItemFactory.CreateIronSword();
         var armor = ItemFactory.CreateLeatherArmor();
         ((Inventory)Player.Inventory).Add(sword);
         ((Inventory)Player.Inventory).Add(armor);
         Player.Equipment.Equip(sword, Player);
         Player.Equipment.Equip(armor, Player);
+        // 初期アイテム支給（HP薬2個 + パン）
+        ((Inventory)Player.Inventory).Add(ItemFactory.CreateHealingPotion());
         ((Inventory)Player.Inventory).Add(ItemFactory.CreateHealingPotion());
         ((Inventory)Player.Inventory).Add(ItemFactory.CreateBread());
 
         // STRベースの最大重量を更新
         Player.UpdateMaxWeight();
 
-        // フロア1から再開
+        // === 世界状態の全リセット（キャラクター作成直後への時間巻き戻し） ===
+
+        // NPC関連リセット（好感度・出会い・会話フラグ・クエスト・ギルド）
+        _npcSystem.Reset();
+        _dialogueSystem.Reset();
+        _questSystem.Reset();
+        _guildSystem.Reset();
+
+        // メインクエストを再登録・受注
+        _questSystem.RegisterMainQuest();
+        _questSystem.AcceptQuest("main_quest_abyss", Player.Level, GuildRank.None);
+
+        // 社会的状態リセット（カルマ・評判・誓約・投資）
+        _karmaSystem.Reset();
+        _reputationSystem.Reset();
+        _oathSystem.Reset();
+        _investmentSystem.Reset();
+
+        // 仲間・拠点リセット
+        _companionSystem.Reset();
+        _baseConstructionSystem.Reset();
+
+        // グリッドインベントリリセット
+        _gridInventorySystem.Reset();
+
+        // NPC記憶・噂リセット（NpcSystemとは別管理）
+        _npcMemorySystem.Reset();
+
+        // 関係値・勢力リセット
+        _relationshipSystem.Reset();
+        _territoryInfluenceSystem.Reset();
+
+        // 鑑定・刻印・ペット・商人ギルド・派閥戦・生態系リセット
+        _itemIdentificationSystem.Reset();
+        _inscriptionSystem.Reset();
+        _petSystem.Reset();
+        _merchantGuildSystem.Reset();
+        _factionWarSystem.Reset();
+        _dungeonEcosystemSystem.Reset();
+
+        // 正気度0の場合、知識系システムも消失
+        if (isSanityZero)
+        {
+            _encyclopediaSystem.ResetDiscoveryLevels();
+            _skillTreeSystem.Reset();
+        }
+
+        // マップ・領地リセット（開始地点に帰還）
+        _currentMapName = StartingMapResolver.Resolve(race, background);
+        var startTerritory = StartingMapResolver.GetStartingTerritory(_currentMapName);
+        _worldMapSystem.Reset(startTerritory);
+        _symbolMapSystem.Clear();
+
+        // ゲーム進行フラグリセット
         CurrentFloor = 1;
         TurnCount = 0;
         GameTime.SetTotalTurns(0);
         _turnLimitExtended = false;
         _turnLimitRemoved = false;
         _lastTurnLimitWarningStage = 0;
+        _hasCleared = false;
+        _infiniteDungeonMode = false;
+        _infiniteDungeonKills = 0;
+        _isInLocationMap = false;
+        _ngPlusTier = null;
+        _clearRank = "";
+
+        // 天候・渇きリセット（キャラクター作成直後の状態に戻す）
+        CurrentWeather = Weather.Clear;
+        PlayerThirstLevel = ThirstLevel.Hydrated;
+
+        // 敵・アイテム・マップリセット
         Enemies.Clear();
         GroundItems.Clear();
-        GenerateFloor();
 
+        // シンボルマップから再開（Initialize時と同じ初期スポーン場所）
+        GenerateSymbolMap();
+
+        var startLocationName = StartingMapResolver.GetDisplayName(_currentMapName);
         AddMessage($"\n━━ 死に戻り ({TotalDeaths}回目) ━━");
-        AddMessage($"ダンジョン第1層に戻った。正気度: {Player.Sanity}");
-        AddMessage($"経験と装備は失われたが、知識は残っている...");
+        AddMessage($"時は巻き戻り、{startLocationName}に戻った。正気度: {Player.Sanity}");
+        if (isSanityZero)
+        {
+            AddMessage("知識も技も全て失われた...白紙の状態で再び歩み出す。");
+        }
+        else
+        {
+            AddMessage("肉体と世界は初期化されたが、心に刻まれた知識は残っている...");
+        }
 
         OnStateChanged?.Invoke();
     }
@@ -2825,6 +3170,14 @@ public class GameController
     public IReadOnlyList<FacilityDefinition> GetAvailableFacilities() =>
         _townSystem.GetAvailableFacilities(_worldMapSystem.CurrentTerritory);
 
+    /// <summary>シンボルマップ上のロケーション配置情報を取得</summary>
+    public IReadOnlyDictionary<Position, LocationDefinition> GetSymbolMapLocations() =>
+        _symbolMapSystem.GetAllLocationPositions();
+
+    /// <summary>プレイヤー位置のロケーション情報を取得</summary>
+    public LocationDefinition? GetLocationAtPlayerPosition() =>
+        _symbolMapSystem.GetLocationAt(Player.Position);
+
     /// <summary>領地間移動を実行</summary>
     public bool TryTravelTo(TerritoryId destination)
     {
@@ -2854,6 +3207,9 @@ public class GameController
             // ショップ在庫リセット
             _shopSystem.ClearShopInventory();
 
+            // 新しい領地のシンボルマップを生成
+            GenerateSymbolMap();
+
             OnTerritoryChanged?.Invoke(destination);
             OnStateChanged?.Invoke();
         }
@@ -2861,24 +3217,81 @@ public class GameController
         return result.Success;
     }
 
-    /// <summary>街に入る</summary>
+    /// <summary>街・施設・宗教施設・フィールドに入る（ロケーションマップ遷移）</summary>
     private bool TryEnterTown()
     {
         if (!_worldMapSystem.IsOnSurface)
         {
-            AddMessage("すでにダンジョン内にいる");
+            AddMessage("すでにロケーション内にいる");
             return false;
         }
 
-        AddMessage($"{_worldMapSystem.GetCurrentTerritoryInfo().Name}の街に入った");
+        // シンボルマップ上のロケーション（Dungeon以外）を判定
+        var location = _symbolMapSystem.GetLocationAt(Player.Position);
+        if (location == null || location.Type == LocationType.Dungeon)
+        {
+            AddMessage("ここには入れるロケーションがない");
+            return false;
+        }
+
+        // ロケーションマップを生成して遷移
+        var generator = new LocationMapGenerator();
+        var locationMap = generator.GenerateForLocation(location);
+
+        _worldMapSystem.IsOnSurface = false;
+        _isInLocationMap = true;
+        _currentMapName = location.Id;
+
+        Map = locationMap;
+        var startPos = locationMap.StairsUpPosition ?? locationMap.EntrancePosition ?? new Position(5, 5);
+        Player.Position = startPos;
+
+        Enemies.Clear();
+        GroundItems.Clear();
+
+        // フィールドのみ敵を配置
+        if (location.Type == LocationType.Field)
+        {
+            SpawnEnemies();
+        }
+
+        Map.ComputeFov(Player.Position, 8);
+
+        AddMessage($"【{location.Name}】に入った");
+        OnSymbolMapEnterTown?.Invoke();
         OnStateChanged?.Invoke();
         return true;
     }
 
-    /// <summary>街を出る</summary>
+    /// <summary>街を出る（ロケーションマップからシンボルマップへ帰還）</summary>
     private bool TryLeaveTown()
     {
-        AddMessage("街を出た");
+        if (_worldMapSystem.IsOnSurface)
+        {
+            AddMessage("すでに地上にいる");
+            return false;
+        }
+
+        if (!_isInLocationMap)
+        {
+            AddMessage("ダンジョンから出るには<キーを使用");
+            return false;
+        }
+
+        // ロケーションマップからシンボルマップに帰還
+        _worldMapSystem.IsOnSurface = true;
+        _isInLocationMap = false;
+        GenerateSymbolMap();
+
+        var locationPos = _symbolMapSystem.FindLocationPosition(_currentMapName);
+        if (locationPos.HasValue)
+        {
+            Player.Position = locationPos.Value;
+            Map.ComputeFov(Player.Position, 12);
+        }
+
+        var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
+        AddMessage($"{territoryName}のシンボルマップに戻った");
         OnStateChanged?.Invoke();
         return true;
     }
@@ -2980,16 +3393,43 @@ public class GameController
         return result.Success;
     }
 
-    /// <summary>ダンジョンに入る（地上→地下）</summary>
+    /// <summary>ダンジョン/ロケーションに入る（シンボルマップ→地下/ロケーション内部）</summary>
     public bool TryEnterDungeon()
     {
         if (!_worldMapSystem.IsOnSurface)
         {
-            AddMessage("すでにダンジョン内にいる");
+            AddMessage("すでにダンジョン/ロケーション内にいる");
             return false;
         }
 
+        // シンボルマップ上のダンジョン入口にいるか確認
+        if (_symbolMapSystem.IsDungeonEntrance(Player.Position))
+        {
+            var location = _symbolMapSystem.GetLocationAt(Player.Position);
+            if (location != null)
+            {
+                _worldMapSystem.IsOnSurface = false;
+                _isInLocationMap = false;
+                _currentMapName = location.Id;
+                CurrentFloor = 1;
+                GenerateFloor();
+                AddMessage($"【{location.Name}】─ ダンジョン第{CurrentFloor}層に足を踏み入れた...");
+                OnSymbolMapEnterDungeon?.Invoke(location);
+                OnStateChanged?.Invoke();
+                return true;
+            }
+        }
+
+        // ダンジョン以外のロケーション（町・施設・宗教施設・フィールド）の場合
+        var loc = _symbolMapSystem.GetLocationAt(Player.Position);
+        if (loc != null && loc.Type != LocationType.Dungeon)
+        {
+            return TryEnterTown();
+        }
+
+        // ロケーション外では汎用ダンジョン入場
         _worldMapSystem.IsOnSurface = false;
+        _isInLocationMap = false;
         CurrentFloor = 1;
         GenerateFloor();
         AddMessage("ダンジョンに足を踏み入れた...");
@@ -2997,7 +3437,7 @@ public class GameController
         return true;
     }
 
-    /// <summary>ダンジョンから脱出（地下→地上）</summary>
+    /// <summary>ダンジョン/ロケーションから脱出（地下→シンボルマップ）</summary>
     public bool TryExitDungeon()
     {
         if (_worldMapSystem.IsOnSurface)
@@ -3007,7 +3447,19 @@ public class GameController
         }
 
         _worldMapSystem.IsOnSurface = true;
-        AddMessage($"{_worldMapSystem.GetCurrentTerritoryInfo().Name}の地上に戻った");
+        _isInLocationMap = false;
+        GenerateSymbolMap();
+
+        // ロケーション位置にプレイヤーを配置
+        var locationPos = _symbolMapSystem.FindLocationPosition(_currentMapName);
+        if (locationPos.HasValue)
+        {
+            Player.Position = locationPos.Value;
+            Map.ComputeFov(Player.Position, 12);
+        }
+
+        var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
+        AddMessage($"{territoryName}のシンボルマップに戻った");
         OnStateChanged?.Invoke();
         return true;
     }
@@ -3738,6 +4190,167 @@ public class GameController
 
     /// <summary>グリッドインベントリシステム</summary>
     public GridInventorySystem GetGridInventorySystem() => _gridInventorySystem;
+
+    #endregion
+
+    #region Ver.prt.0.5 ゲーム完走フロー
+
+    /// <summary>NG+でゲームを開始する</summary>
+    public void InitializeNewGamePlus(string playerName, Race race, Core.CharacterClass characterClass,
+        Background background, DifficultyLevel difficulty, NewGamePlusTier tier)
+    {
+        _ngPlusTier = tier;
+        Initialize(playerName, race, characterClass, background, difficulty);
+
+        var config = NewGamePlusSystem.GetConfig(tier);
+        if (config != null)
+        {
+            AddMessage(NewGamePlusSystem.GetStartMessage(tier));
+            var carryOverItems = NewGamePlusSystem.GetCarryOverItems(tier);
+            AddMessage($"⚔ 引き継ぎ項目: {string.Join(", ", carryOverItems)}");
+        }
+    }
+
+    /// <summary>無限ダンジョンモードを開始する</summary>
+    public void StartInfiniteDungeon(string playerName, Race race, Core.CharacterClass characterClass,
+        Background background, DifficultyLevel difficulty)
+    {
+        if (!_hasCleared) return;
+        _infiniteDungeonMode = true;
+        _infiniteDungeonKills = 0;
+        Initialize(playerName, race, characterClass, background, difficulty);
+        AddMessage("♾ 無限ダンジョンに挑戦！ どこまで潜れるか試してみよう");
+    }
+
+    /// <summary>料理を実行する</summary>
+    public bool TryCook(string recipeName)
+    {
+        var recipe = CookingSystem.FindRecipe(recipeName);
+        if (recipe == null)
+        {
+            AddMessage("そのレシピは存在しない");
+            return false;
+        }
+
+        // 素材チェック（簡易版: インベントリにアイテム名で検索）
+        foreach (var ingredient in recipe.Ingredients)
+        {
+            if (!Player.Inventory.Items.Any(i => i.Name.Contains(ingredient)))
+            {
+                AddMessage($"素材が足りない: {ingredient}");
+                return false;
+            }
+        }
+
+        // 素材消費（各素材1つ消費）
+        foreach (var ingredient in recipe.Ingredients)
+        {
+            var item = Player.Inventory.Items.FirstOrDefault(i => i.Name.Contains(ingredient));
+            if (item is Item concreteItem)
+            {
+                ((Inventory)Player.Inventory).Remove(concreteItem);
+            }
+        }
+
+        // 料理結果の品質計算
+        float quality = CookingSystem.CalculateQuality(Player.Level * 2);
+        int hpRestore = (int)(recipe.HpRestore * quality);
+        int mpRestore = (int)(recipe.MpRestore * quality);
+
+        AddMessage($"🍳 {recipe.Name}を作った！ (HP+{hpRestore}, MP+{mpRestore})");
+        Player.Heal(hpRestore);
+
+        if (!string.IsNullOrEmpty(recipe.SpecialEffect))
+        {
+            AddMessage($"✨ 特殊効果: {recipe.SpecialEffect}");
+        }
+
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>スキル合成を実行する</summary>
+    public bool TryFuseSkills(string skillA, string skillB)
+    {
+        int proficiency = Player.Level * 3;
+
+        if (!SkillFusionSystem.CanFuse(skillA, skillB, proficiency))
+        {
+            int required = SkillFusionSystem.GetRequiredProficiency(skillA, skillB);
+            if (required < 0)
+            {
+                AddMessage("その組み合わせでは合成できない");
+            }
+            else
+            {
+                AddMessage($"熟練度が足りない（必要: {required}, 現在: {proficiency}）");
+            }
+            return false;
+        }
+
+        var result = SkillFusionSystem.ExecuteFusion(skillA, skillB, proficiency);
+        if (result != null)
+        {
+            AddMessage($"⚡ スキル合成成功！ {skillA} + {skillB} → {result}");
+            OnStateChanged?.Invoke();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>転職を実行する</summary>
+    public bool TryClassChange(Core.CharacterClass targetClass)
+    {
+        var completedQuests = new HashSet<string>(_questSystem.CompletedQuestIds);
+        if (!MultiClassSystem.CanClassChange(Player.CharacterClass, targetClass, Player.Level, completedQuests))
+        {
+            var req = MultiClassSystem.GetRequirement(Player.CharacterClass, targetClass);
+            if (req == null)
+            {
+                AddMessage("その転職先は存在しない");
+            }
+            else
+            {
+                AddMessage($"転職条件を満たしていない（Lv.{req.RequiredLevel}以上 + クエスト「{req.QuestFlag}」完了が必要）");
+            }
+            return false;
+        }
+
+        AddMessage($"🔄 {Player.CharacterClass} → {targetClass} に転職した！");
+        AddMessage($"サブクラス経験値倍率: {MultiClassSystem.GetSubclassExpRate():P0}");
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>拠点施設の効果を休息時に適用</summary>
+    public float GetBaseRestBonus()
+    {
+        return _baseConstructionSystem.GetRestHpRecoveryMultiplier();
+    }
+
+    /// <summary>拠点施設の製作ボーナスを取得</summary>
+    public float GetBaseCraftingBonus()
+    {
+        return _baseConstructionSystem.GetCraftingSuccessBonus();
+    }
+
+    /// <summary>ゲームオーバー選択肢を処理</summary>
+    public void ProcessGameOverChoice(GameOverSystem.GameOverChoice choice)
+    {
+        var result = GameOverSystem.ProcessChoice(choice, Player.Sanity);
+        AddMessage(result.Message);
+
+        if (result.ShouldReturnToTitle)
+        {
+            IsRunning = false;
+            OnGameOver?.Invoke();
+        }
+        else if (result.ShouldQuitGame)
+        {
+            IsRunning = false;
+            OnGameOver?.Invoke();
+        }
+    }
 
     #endregion
 }

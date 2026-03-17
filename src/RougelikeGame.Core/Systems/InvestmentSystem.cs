@@ -60,4 +60,13 @@ public class InvestmentSystem
 
     /// <summary>アクティブな投資数を取得</summary>
     public int GetActiveInvestments() => _investments.Count(i => !i.IsCompleted);
+
+    /// <summary>
+    /// 全投資を消去する（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、投資記録は全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        _investments.Clear();
+    }
 }

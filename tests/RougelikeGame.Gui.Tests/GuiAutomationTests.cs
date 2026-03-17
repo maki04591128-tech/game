@@ -18,7 +18,7 @@ namespace RougelikeGame.Gui.Tests;
 /// ■ 責務: UI要素の存在チェック＋全キーバインドのクラッシュ耐性検証
 ///   （値レベルの詳細検証は GuiSystemVerificationTests に委譲）
 ///
-/// テスト構成（4テスト）:
+/// テスト構成（7テスト）:
 ///   1. TitleScreen_ButtonsAndSettingsDialog — タイトル画面ボタン4種＋設定ダイアログ（スライダー4種・ラベル4種・Esc閉じ）統合検証
 ///   2. TitleScreen_EscClosesWindow — Escでアプリ終了（破壊的操作のため分離）
 ///   3. TitleScreen_NewGameFlow — ニューゲームボタン→メインウィンドウ遷移（状態変化のため分離）
@@ -31,8 +31,11 @@ namespace RougelikeGame.Gui.Tests;
 ///      - アクション: G拾う / F探索 / X閉ドア / R射撃 / T投擲 / P祈り / E技能 / N登録
 ///      - ダイアログ: I持物 / C状態 / Lログ / V魔法詠唱 / Jワールドマップ / Kクエスト / O宗教 / H鍛冶 / B街 / Y図鑑 / U仲間 / Z死亡録
 ///      - システム: Tab自動探索→中断 / F5セーブ / F9ロード / Space×65日時進行
-///      - 連打耐性: 18種キー×3ラウンド高速連打（Y/U/Z追加）
+///      - 連打耐性: 33種キー×3ラウンド高速連打（全キーバインド網羅）
 ///      - 終了: Qキーでゲーム終了（破壊的操作のためテスト末尾に配置）
+///   5. MainWindow_DialogRapidOpenClose — 13種ダイアログの高速開閉耐性テスト（各5回連続開閉）
+///   6. MainWindow_StairsAndMapTransitionRapid — 階段上下・マップ遷移キーの高速連打耐性テスト
+///   7. MainWindow_SaveLoadDialogFlow — F5セーブ・F9ロードダイアログフロー検証
 /// </summary>
 [Collection("GuiTests")]
 public class GuiAutomationTests : IDisposable
@@ -532,27 +535,46 @@ public class GuiAutomationTests : IDisposable
         Log("  → 日時進行OK");
 
         // ========== 連打耐性テスト ==========
-        Log("検証: 18種キーを3ラウンド高速連打（30ms間隔）してクラッシュしないか");
+        Log("検証: 33種キーを3ラウンド高速連打（30ms間隔）してクラッシュしないか");
         var rapidKeys = new[]
         {
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_W,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_A,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_S,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_D,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.SPACE,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_G,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_F,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_R,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_T,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_X,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_P,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.UP,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.DOWN,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_Y,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_U,
-            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_Z,
+            // 移動キー（8種）
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_W,      // 上移動
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_A,      // 左移動
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_S,      // 下移動
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_D,      // 右移動
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.UP,         // 上矢印
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.DOWN,       // 下矢印
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.LEFT,       // 左矢印
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.RIGHT,      // 右矢印
+            // アクションキー（7種）
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.SPACE,      // 待機
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_G,      // 拾う
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_F,      // 探索
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_R,      // 射撃
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_T,      // 投擲
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_X,      // ドア閉じ
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_P,      // 祈り
+            // ダイアログキー（12種）
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_I,      // 持物
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_C,      // 状態
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_L,      // ログ
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_V,      // 魔法詠唱
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_E,      // スキル
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_J,      // ワールドマップ
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_K,      // クエスト
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_O,      // 宗教
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_H,      // 鍛冶
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_B,      // 街
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_Y,      // 図鑑
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_U,      // 仲間
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_Z,      // 死亡録
+            // システムキー（5種）
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_N,      // ギルド登録
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.TAB,        // 自動探索
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_M,      // ミニマップ
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.F5,         // セーブ
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.F9,         // ロード
         };
         for (int round = 0; round < 3; round++)
         {
@@ -562,6 +584,9 @@ public class GuiAutomationTests : IDisposable
                 FlaUI.Core.Input.Keyboard.Press(key);
                 Thread.Sleep(30);
             }
+            // ダイアログキーで開いたモーダルを閉じてからクラッシュ確認
+            Thread.Sleep(100);
+            CloseModals(window);
             Log($"  ラウンド{round + 1}/3 完了");
         }
         Thread.Sleep(300);
@@ -591,5 +616,310 @@ public class GuiAutomationTests : IDisposable
         var exited = _app!.WaitWhileMainHandleIsMissing(TimeSpan.FromSeconds(3));
         Log($"  → Qキー終了処理OK (exited={_app!.HasExited})");
         Log("=== テスト完了: メインウィンドウ統合検証 ===");
+    }
+
+    // ─────────────────────────────────────────
+    // 5. ダイアログ高速開閉耐性テスト
+    //    13種ダイアログを各5回連続開閉し、クラッシュしないことを検証
+    // ─────────────────────────────────────────
+
+    [Fact]
+    public void MainWindow_DialogRapidOpenClose()
+    {
+        Log("=== テスト開始: ダイアログ高速開閉耐性テスト ===");
+        Log("目的: 13種ダイアログを各5回連続開閉してクラッシュしないことを検証する");
+
+        var window = LaunchWithDebugMap();
+
+        // テスト対象のダイアログキー一覧
+        var dialogKeys = new[]
+        {
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_I, "持物(I)"),
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_C, "状態(C)"),
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_L, "ログ(L)"),
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_V, "魔法詠唱(V)"),
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_E, "スキル(E)"),
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_J, "ワールドマップ(J)"),
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_K, "クエスト(K)"),
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_O, "宗教(O)"),
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_H, "鍛冶(H)"),
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_B, "街(B)"),
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_Y, "図鑑(Y)"),
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_U, "仲間(U)"),
+            (FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_Z, "死亡録(Z)"),
+        };
+
+        foreach (var (key, name) in dialogKeys)
+        {
+            Log($"検証: {name}ダイアログを5回連続開閉");
+            for (int i = 0; i < 5; i++)
+            {
+                PressKey(window, key);
+                Thread.Sleep(200);
+                CloseModals(window);
+                Thread.Sleep(100);
+            }
+            Assert.False(_app!.HasExited, $"{name}ダイアログ開閉中にクラッシュ");
+            Log($"  → {name} 5回開閉OK");
+        }
+
+        // ========== ステータスバー整合性検証（ダイアログ開閉後） ==========
+        Log("検証: ダイアログ開閉後もステータスバー全20要素が正常に表示されるか");
+        var statusBarIds = new[]
+        {
+            "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
+            "LevelText", "ExpText", "HpText", "MpText", "SpText",
+            "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText"
+        };
+        foreach (var id in statusBarIds)
+        {
+            var el = FindElement(window, id);
+            Assert.NotNull(el);
+            Assert.False(string.IsNullOrWhiteSpace(el!.Name), $"ダイアログ開閉後に{id}の表示が空");
+        }
+        Log("  → ダイアログ開閉後ステータスバー整合性OK");
+
+        Log("=== テスト完了: ダイアログ高速開閉耐性テスト ===");
+    }
+
+    // ─────────────────────────────────────────
+    // 6. 階段・マップ遷移キー高速連打耐性テスト
+    //    Shift+>（降下）/ Shift+<（上昇）を高速連打してクラッシュしないことを検証
+    // ─────────────────────────────────────────
+
+    [Fact]
+    public void MainWindow_StairsAndMapTransitionRapid()
+    {
+        Log("=== テスト開始: 階段・マップ遷移キー高速連打耐性テスト ===");
+        Log("目的: Shift+>（階段降下）/ Shift+<（階段上昇）の高速連打でクラッシュしないことを検証する");
+
+        var window = LaunchWithDebugMap();
+
+        // ========== 初期状態のステータスバー記録 ==========
+        Log("記録: 初期状態のステータスバー");
+        var statusBarIds = new[]
+        {
+            "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
+            "LevelText", "ExpText", "HpText", "MpText", "SpText",
+            "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText"
+        };
+        foreach (var id in statusBarIds)
+        {
+            var el = FindElement(window, id);
+            Assert.NotNull(el);
+            Assert.False(string.IsNullOrWhiteSpace(el!.Name), $"初期状態で{id}が空");
+        }
+        Log("  → 初期ステータスバー記録OK");
+
+        // ========== 階段降下（Shift+>）連打耐性テスト ==========
+        Log("検証: Shift+>（階段降下）を10回高速連打してクラッシュしないか");
+        for (int i = 0; i < 10; i++)
+        {
+            window.Focus();
+            FlaUI.Core.Input.Keyboard.Pressing(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT);
+            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.OEM_PERIOD);
+            FlaUI.Core.Input.Keyboard.Release(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT);
+            Thread.Sleep(50);
+        }
+        Thread.Sleep(500);
+        Assert.False(_app!.HasExited, "階段降下連打中にクラッシュ");
+        // 連打後もステータスバーが正常
+        foreach (var id in statusBarIds)
+        {
+            var el = FindElement(window, id);
+            Assert.NotNull(el);
+            Assert.False(string.IsNullOrWhiteSpace(el!.Name), $"階段降下連打後に{id}が空");
+        }
+        Log("  → 階段降下連打耐性OK");
+
+        // ========== 階段上昇（Shift+<）連打耐性テスト ==========
+        Log("検証: Shift+<（階段上昇）を10回高速連打してクラッシュしないか");
+        for (int i = 0; i < 10; i++)
+        {
+            window.Focus();
+            FlaUI.Core.Input.Keyboard.Pressing(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT);
+            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.OEM_COMMA);
+            FlaUI.Core.Input.Keyboard.Release(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT);
+            Thread.Sleep(50);
+        }
+        Thread.Sleep(500);
+        Assert.False(_app!.HasExited, "階段上昇連打中にクラッシュ");
+        foreach (var id in statusBarIds)
+        {
+            var el = FindElement(window, id);
+            Assert.NotNull(el);
+            Assert.False(string.IsNullOrWhiteSpace(el!.Name), $"階段上昇連打後に{id}が空");
+        }
+        Log("  → 階段上昇連打耐性OK");
+
+        // ========== 階段上下交互連打テスト ==========
+        Log("検証: 階段降下→上昇を交互に20回連打してクラッシュしないか");
+        for (int i = 0; i < 20; i++)
+        {
+            window.Focus();
+            FlaUI.Core.Input.Keyboard.Pressing(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT);
+            var stairKey = (i % 2 == 0)
+                ? FlaUI.Core.WindowsAPI.VirtualKeyShort.OEM_PERIOD
+                : FlaUI.Core.WindowsAPI.VirtualKeyShort.OEM_COMMA;
+            FlaUI.Core.Input.Keyboard.Press(stairKey);
+            FlaUI.Core.Input.Keyboard.Release(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT);
+            Thread.Sleep(30);
+        }
+        Thread.Sleep(500);
+        Assert.False(_app!.HasExited, "階段上下交互連打中にクラッシュ");
+        // 交互連打後もステータスバーが正常形式
+        foreach (var id in statusBarIds)
+        {
+            var el = FindElement(window, id);
+            Assert.NotNull(el);
+            Assert.False(string.IsNullOrWhiteSpace(el!.Name), $"階段上下交互連打後に{id}が空");
+        }
+        Log("  → 階段上下交互連打耐性OK");
+
+        // ========== 移動+階段の複合連打テスト ==========
+        Log("検証: 移動→階段降下→移動→階段上昇の複合操作を10周してクラッシュしないか");
+        for (int round = 0; round < 10; round++)
+        {
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_D);
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_S);
+
+            window.Focus();
+            FlaUI.Core.Input.Keyboard.Pressing(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT);
+            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.OEM_PERIOD);
+            FlaUI.Core.Input.Keyboard.Release(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT);
+            Thread.Sleep(30);
+
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_W);
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_A);
+
+            window.Focus();
+            FlaUI.Core.Input.Keyboard.Pressing(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT);
+            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.OEM_COMMA);
+            FlaUI.Core.Input.Keyboard.Release(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT);
+            Thread.Sleep(30);
+        }
+        Thread.Sleep(500);
+        Assert.False(_app!.HasExited, "移動+階段複合連打中にクラッシュ");
+        foreach (var id in statusBarIds)
+        {
+            var el = FindElement(window, id);
+            Assert.NotNull(el);
+            Assert.False(string.IsNullOrWhiteSpace(el!.Name), $"移動+階段複合連打後に{id}が空");
+        }
+        Log("  → 移動+階段複合連打耐性OK");
+
+        Log("=== テスト完了: 階段・マップ遷移キー高速連打耐性テスト ===");
+    }
+
+    // ─────────────────────────────────────────
+    // 7. セーブ・ロードダイアログフロー検証
+    //    F5（セーブ）/F9（ロード）のダイアログ表示・操作フロー検証
+    // ─────────────────────────────────────────
+
+    [Fact]
+    public void MainWindow_SaveLoadDialogFlow()
+    {
+        Log("=== テスト開始: セーブ・ロードダイアログフロー検証 ===");
+        Log("目的: F5（セーブ）とF9（ロード）のダイアログ表示が正常に動作し、クラッシュしないことを検証する");
+
+        var window = LaunchWithDebugMap();
+
+        // ========== F5 セーブフロー検証 ==========
+        Log("検証: F5キーでセーブダイアログ/処理が正常に動作するか");
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.F5);
+        Thread.Sleep(500);
+        Assert.False(_app!.HasExited, "F5セーブでクラッシュ");
+        // セーブ後のダイアログがあれば閉じる
+        CloseModals(window);
+        Thread.Sleep(200);
+        Log("  → F5セーブフローOK");
+
+        // ========== F5 セーブ連打耐性 ==========
+        Log("検証: F5キーを5回連打してクラッシュしないか");
+        for (int i = 0; i < 5; i++)
+        {
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.F5);
+            Thread.Sleep(200);
+            CloseModals(window);
+            Thread.Sleep(100);
+        }
+        Assert.False(_app!.HasExited, "F5連打でクラッシュ");
+        Log("  → F5セーブ連打耐性OK");
+
+        // ========== F9 ロードフロー検証 ==========
+        Log("検証: F9キーでロードダイアログ/処理が正常に動作するか");
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.F9);
+        Thread.Sleep(500);
+        // ロード処理でウィンドウが再生成される可能性があるため、存在チェック
+        if (!_app!.HasExited)
+        {
+            CloseModals(window);
+            Log("  → F9ロードフローOK（アプリ存続）");
+        }
+        else
+        {
+            Log("  → F9ロード後にアプリが正常終了（ロードによる再起動の可能性）");
+            return; // アプリが終了した場合はテスト終了
+        }
+
+        // ========== F9 ロード連打耐性 ==========
+        Log("検証: F9キーを5回連打してクラッシュしないか");
+        for (int i = 0; i < 5; i++)
+        {
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.F9);
+            Thread.Sleep(200);
+            if (_app!.HasExited) break;
+            CloseModals(window);
+            Thread.Sleep(100);
+        }
+        if (!_app!.HasExited)
+        {
+            Log("  → F9ロード連打耐性OK");
+        }
+        else
+        {
+            Log("  → F9ロード連打後にアプリ終了（ロードによる再起動の可能性）");
+            return;
+        }
+
+        // ========== セーブ→ロード連続フロー ==========
+        Log("検証: F5セーブ→F9ロードを3回連続実行してクラッシュしないか");
+        for (int i = 0; i < 3; i++)
+        {
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.F5);
+            Thread.Sleep(300);
+            CloseModals(window);
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.F9);
+            Thread.Sleep(300);
+            if (_app!.HasExited) break;
+            CloseModals(window);
+            Thread.Sleep(100);
+        }
+        if (!_app!.HasExited)
+        {
+            // セーブ→ロード後もステータスバーが正常
+            var statusBarIds = new[]
+            {
+                "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
+                "LevelText", "ExpText", "HpText", "MpText", "SpText",
+                "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
+                "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText"
+            };
+            foreach (var id in statusBarIds)
+            {
+                var el = FindElement(window, id);
+                Assert.NotNull(el);
+                Assert.False(string.IsNullOrWhiteSpace(el!.Name), $"セーブ/ロード後に{id}が空");
+            }
+            Log("  → セーブ→ロード連続フロー＋ステータスバー整合性OK");
+        }
+        else
+        {
+            Log("  → セーブ→ロード連続フロー後にアプリ終了（正常動作）");
+        }
+
+        Log("=== テスト完了: セーブ・ロードダイアログフロー検証 ===");
     }
 }

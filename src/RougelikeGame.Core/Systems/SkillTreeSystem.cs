@@ -200,4 +200,15 @@ public class SkillTreeSystem
             SkillNodeType.Passive, CharacterClass.Mage, 2, new[] { "mage_arcane_focus" },
             new() { ["MpCostReduction"] = 10 }));
     }
+
+    /// <summary>
+    /// 全ノードを解除しポイントをゼロにする（死に戻り＋正気度0時に呼び出し）。
+    /// 正気度0での死に戻りではスキル知識が消失するため、ツリーが完全リセットされる。
+    /// ノード定義（マスターデータ）は保持される。
+    /// </summary>
+    public void Reset()
+    {
+        _unlockedNodes.Clear();
+        _availablePoints = 0;
+    }
 }
