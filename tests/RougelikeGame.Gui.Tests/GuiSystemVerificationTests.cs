@@ -28,7 +28,7 @@ namespace RougelikeGame.Gui.Tests;
 ///      - 日時表示形式（'冒険暦XXXX年 ○○の月 X日 HH:MM'）・時間帯検証
 ///      - 季節・天候・渇き・カルマ・仲間数の新ステータスバー要素値検証
 ///      - 戦闘接触後HP形式維持、ドア閉じ(X)、射撃(R)・投擲(T)
-///      - 階段上昇(Shift+<)・降下(Shift+>)、スキルCD(20ターン)、詠唱ターン処理
+///      - 階段上昇(Shift+&lt;)・降下(Shift+&gt;)、スキルCD(20ターン)、詠唱ターン処理
 ///   2. SystemVerification_LongPlay_HungerAndEndurance — 長時間プレイ検証:
 ///      - 70ターン待機: 日付進行＋階層不変
 ///      - 800ターン待機: 満腹度減少確認

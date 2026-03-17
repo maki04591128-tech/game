@@ -1380,6 +1380,6 @@ public enum GamblingGameType
     Dice,
     /// <summary>丁半（偶数奇数）</summary>
     ChoHan,
-    /// <summary>カード（ハイ&ロー）</summary>
+    /// <summary>カード（ハイ&amp;ロー）</summary>
     Card
 }

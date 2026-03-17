@@ -18,7 +18,7 @@ public static class GamblingSystem
         return playerChoseCho == isCho;
     }
 
-    /// <summary>カード（ハイ&ロー）の結果を判定</summary>
+    /// <summary>カード（ハイ&amp;ロー）の結果を判定</summary>
     public static bool JudgeHighLow(bool playerChoseHigh, int currentCard, int nextCard)
     {
         if (currentCard == nextCard) return false; // 引き分けは負け
