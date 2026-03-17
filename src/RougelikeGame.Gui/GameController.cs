@@ -1830,6 +1830,8 @@ public class GameController
     /// 死に戻り（リバース）を実行する。
     /// 死に戻りはキャラクター作成直後への時間巻き戻しであるため、
     /// プレイヤーの肉体・世界の状態を全てリセットし、内面知識のみ引き継ぐ。
+    /// Player.Create()を使って同じ名前・種族・職業・素性のPlayerオブジェクトを
+    /// プログラム的に再生成する（キャラクター作成画面への遷移は発生しない）。
     /// </summary>
     private void ExecuteRebirth(TransferData transfer)
     {
@@ -1839,7 +1841,7 @@ public class GameController
         var background = Player.Background;
         bool isSanityZero = transfer.Sanity <= 0 || (transfer.LearnedWords.Count == 0 && transfer.LearnedSkills.Count == 0 && TotalDeaths > 0);
 
-        // プレイヤーを再作成（肉体リセット）
+        // プレイヤーを再作成（肉体リセット）— 同一キャラの時間巻き戻し。画面遷移なし。
         Player = Player.Create(Player.Name, race, charClass, background);
 
         // 引き継ぎデータを適用（知識系）
