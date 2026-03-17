@@ -97,6 +97,9 @@ public class GameController
     /// <summary>現在のマップ名（種族・素性に応じた開始マップ名等）</summary>
     private string _currentMapName = "capital_guild";
 
+    /// <summary>ロケーションマップ（非ダンジョン）内にいるか</summary>
+    private bool _isInLocationMap;
+
     /// <summary>引き継ぎデータ（死に戻り用）</summary>
     private TransferData? _transferData;
 
@@ -1928,6 +1931,7 @@ public class GameController
         _hasCleared = false;
         _infiniteDungeonMode = false;
         _infiniteDungeonKills = 0;
+        _isInLocationMap = false;
         _ngPlusTier = null;
         _clearRank = "";
 
@@ -3213,35 +3217,81 @@ public class GameController
         return result.Success;
     }
 
-    /// <summary>街に入る</summary>
+    /// <summary>街・施設・宗教施設・フィールドに入る（ロケーションマップ遷移）</summary>
     private bool TryEnterTown()
     {
         if (!_worldMapSystem.IsOnSurface)
         {
-            AddMessage("すでにダンジョン内にいる");
+            AddMessage("すでにロケーション内にいる");
             return false;
         }
 
-        // シンボルマップ上の街入口にいるか確認
-        if (_symbolMapSystem.IsTownEntrance(Player.Position))
+        // シンボルマップ上のロケーション（Dungeon以外）を判定
+        var location = _symbolMapSystem.GetLocationAt(Player.Position);
+        if (location == null || location.Type == LocationType.Dungeon)
         {
-            var location = _symbolMapSystem.GetLocationAt(Player.Position);
-            AddMessage($"【{location!.Name}】に入った");
-            OnSymbolMapEnterTown?.Invoke();
-        }
-        else
-        {
-            AddMessage($"{_worldMapSystem.GetCurrentTerritoryInfo().Name}の街に入った");
+            AddMessage("ここには入れるロケーションがない");
+            return false;
         }
 
+        // ロケーションマップを生成して遷移
+        var generator = new LocationMapGenerator();
+        var locationMap = generator.GenerateForLocation(location);
+
+        _worldMapSystem.IsOnSurface = false;
+        _isInLocationMap = true;
+        _currentMapName = location.Id;
+
+        Map = locationMap;
+        var startPos = locationMap.StairsUpPosition ?? locationMap.EntrancePosition ?? new Position(5, 5);
+        Player.Position = startPos;
+
+        Enemies.Clear();
+        GroundItems.Clear();
+
+        // フィールドのみ敵を配置
+        if (location.Type == LocationType.Field)
+        {
+            SpawnEnemies();
+        }
+
+        Map.ComputeFov(Player.Position, 8);
+
+        AddMessage($"【{location.Name}】に入った");
+        OnSymbolMapEnterTown?.Invoke();
         OnStateChanged?.Invoke();
         return true;
     }
 
-    /// <summary>街を出る</summary>
+    /// <summary>街を出る（ロケーションマップからシンボルマップへ帰還）</summary>
     private bool TryLeaveTown()
     {
-        AddMessage("街を出た");
+        if (_worldMapSystem.IsOnSurface)
+        {
+            AddMessage("すでに地上にいる");
+            return false;
+        }
+
+        if (!_isInLocationMap)
+        {
+            AddMessage("ダンジョンから出るには<キーを使用");
+            return false;
+        }
+
+        // ロケーションマップからシンボルマップに帰還
+        _worldMapSystem.IsOnSurface = true;
+        _isInLocationMap = false;
+        GenerateSymbolMap();
+
+        var locationPos = _symbolMapSystem.FindLocationPosition(_currentMapName);
+        if (locationPos.HasValue)
+        {
+            Player.Position = locationPos.Value;
+            Map.ComputeFov(Player.Position, 12);
+        }
+
+        var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
+        AddMessage($"{territoryName}のシンボルマップに戻った");
         OnStateChanged?.Invoke();
         return true;
     }
@@ -3343,12 +3393,12 @@ public class GameController
         return result.Success;
     }
 
-    /// <summary>ダンジョンに入る（シンボルマップ→地下）</summary>
+    /// <summary>ダンジョン/ロケーションに入る（シンボルマップ→地下/ロケーション内部）</summary>
     public bool TryEnterDungeon()
     {
         if (!_worldMapSystem.IsOnSurface)
         {
-            AddMessage("すでにダンジョン内にいる");
+            AddMessage("すでにダンジョン/ロケーション内にいる");
             return false;
         }
 
@@ -3359,6 +3409,7 @@ public class GameController
             if (location != null)
             {
                 _worldMapSystem.IsOnSurface = false;
+                _isInLocationMap = false;
                 _currentMapName = location.Id;
                 CurrentFloor = 1;
                 GenerateFloor();
@@ -3369,8 +3420,16 @@ public class GameController
             }
         }
 
-        // ダンジョン入口でない場合は汎用ダンジョン入場
+        // ダンジョン以外のロケーション（町・施設・宗教施設・フィールド）の場合
+        var loc = _symbolMapSystem.GetLocationAt(Player.Position);
+        if (loc != null && loc.Type != LocationType.Dungeon)
+        {
+            return TryEnterTown();
+        }
+
+        // ロケーション外では汎用ダンジョン入場
         _worldMapSystem.IsOnSurface = false;
+        _isInLocationMap = false;
         CurrentFloor = 1;
         GenerateFloor();
         AddMessage("ダンジョンに足を踏み入れた...");
@@ -3378,7 +3437,7 @@ public class GameController
         return true;
     }
 
-    /// <summary>ダンジョンから脱出（地下→シンボルマップ）</summary>
+    /// <summary>ダンジョン/ロケーションから脱出（地下→シンボルマップ）</summary>
     public bool TryExitDungeon()
     {
         if (_worldMapSystem.IsOnSurface)
@@ -3388,13 +3447,14 @@ public class GameController
         }
 
         _worldMapSystem.IsOnSurface = true;
+        _isInLocationMap = false;
         GenerateSymbolMap();
 
-        // ダンジョン入口位置にプレイヤーを配置
-        var dungeonPos = _symbolMapSystem.FindLocationPosition(_currentMapName);
-        if (dungeonPos.HasValue)
+        // ロケーション位置にプレイヤーを配置
+        var locationPos = _symbolMapSystem.FindLocationPosition(_currentMapName);
+        if (locationPos.HasValue)
         {
-            Player.Position = dungeonPos.Value;
+            Player.Position = locationPos.Value;
             Map.ComputeFov(Player.Position, 12);
         }
 
