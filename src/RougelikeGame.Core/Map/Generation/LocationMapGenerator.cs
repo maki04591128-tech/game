@@ -11,6 +11,10 @@ public class LocationMapGenerator
 {
     private readonly Random _random;
 
+    /// <summary>
+    /// コンストラクタ
+    /// </summary>
+    /// <param name="seed">乱数シード。null指定時はランダムなシードを使用（実行ごとに異なるマップが生成される）</param>
     public LocationMapGenerator(int? seed = null)
     {
         _random = seed.HasValue ? new Random(seed.Value) : new Random();
