@@ -3688,6 +3688,12 @@ public class GameController
     /// <summary>天候名を取得</summary>
     public string CurrentWeatherName => WeatherSystem.GetWeatherName(CurrentWeather);
 
+    /// <summary>プレイヤーの渇きレベル（将来Player拡張時に実プロパティに接続）</summary>
+    public ThirstLevel PlayerThirstLevel { get; private set; } = ThirstLevel.Hydrated;
+
+    /// <summary>渇きレベル名</summary>
+    public string PlayerThirstName => ThirstSystem.GetThirstName(PlayerThirstLevel);
+
     /// <summary>カルマ値</summary>
     public int PlayerKarma => _karmaSystem.KarmaValue;
 

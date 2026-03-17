@@ -375,8 +375,15 @@ public partial class MainWindow : Window
         };
 
         // 渇き表示
-        ThirstText.Text = ThirstSystem.GetThirstName(ThirstLevel.Hydrated);
-        ThirstText.Foreground = System.Windows.Media.Brushes.DeepSkyBlue;
+        ThirstText.Text = _gameController.PlayerThirstName;
+        ThirstText.Foreground = _gameController.PlayerThirstLevel switch
+        {
+            ThirstLevel.Hydrated => System.Windows.Media.Brushes.DeepSkyBlue,
+            ThirstLevel.Thirsty => System.Windows.Media.Brushes.Yellow,
+            ThirstLevel.Dehydrated => System.Windows.Media.Brushes.Orange,
+            ThirstLevel.SevereDehydration => System.Windows.Media.Brushes.Red,
+            _ => System.Windows.Media.Brushes.DeepSkyBlue
+        };
 
         // カルマ表示
         KarmaText.Text = KarmaSystem.GetKarmaRankName(_gameController.PlayerKarmaRank);
