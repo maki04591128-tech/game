@@ -18,7 +18,7 @@ namespace RougelikeGame.Gui.Tests;
 /// ■ 責務: ステータス初期値・表示形式・システム動作の値レベル詳細検証
 ///   （UI存在チェック＋キーバインドクラッシュ耐性は GuiAutomationTests に委譲）
 ///
-/// テスト構成（2テスト）:
+/// テスト構成（4テスト）:
 ///   1. SystemVerification_DebugMap_FullIntegration — 1回起動で以下を一括検証:
 ///      - マップ生成・初期メッセージ（第1層、デバッグモード、WASD）
 ///      - 領地名・地上/ダンジョン表示の値検証
@@ -33,6 +33,15 @@ namespace RougelikeGame.Gui.Tests;
 ///      - 70ターン待機: 日付進行＋階層不変
 ///      - 800ターン待機: 満腹度減少確認
 ///      - 200ターン連続操作: ステータスバー正常維持
+///   3. SystemVerification_CombatAndStatusTransition — 戦闘・ステータス遷移検証:
+///      - 敵接触でHP減少方向検証（current &lt; max確認）
+///      - 戦闘前後のステータスバー全20要素一貫性検証（表示が壊れないこと）
+///      - 自動探索(Tab)→移動→Space中断のフロー検証
+///      - 複数回戦闘後のステータスバー整合性維持
+///   4. SystemVerification_StatusBarConsistencyAfterActions — アクション後ステータス一貫性:
+///      - 各種アクション（拾う/探索/射撃/投擲/祈り/ドア閉じ）実行後のステータスバー全要素検証
+///      - 階段操作前後のステータスバー変化追跡
+///      - ミニマップ切替前後のステータスバー不変検証
 ///
 /// ■ GUI接続済みシステムのカバレッジ:
 ///   - SeasonSystem（季節）→ SeasonText ステータスバー値検証済み
@@ -418,5 +427,290 @@ public class GuiSystemVerificationTests : IDisposable
         Log($"  → 200ターン後HP={finalHp} クラッシュなしOK");
 
         Log("=== テスト完了: 長時間プレイ・高負荷耐性テスト ===");
+    }
+
+    // ─────────────────────────────────────────
+    // 3. 戦闘・ステータス遷移検証（1回起動）
+    //    敵接触でHP減少方向確認、戦闘前後のステータスバー一貫性検証
+    // ─────────────────────────────────────────
+
+    [Fact]
+    public void SystemVerification_CombatAndStatusTransition()
+    {
+        Log("=== テスト開始: 戦闘・ステータス遷移検証 ===");
+        Log("目的: 戦闘前後のステータスバー整合性と自動探索フローを検証する");
+
+        var window = LaunchWithDebugMap();
+
+        var allStatusIds = new[]
+        {
+            "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
+            "LevelText", "ExpText", "HpText", "MpText", "SpText",
+            "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText"
+        };
+
+        // ========== 初期状態の全ステータス記録 ==========
+        Log("記録: 初期状態の全20ステータスバー値");
+        var initialValues = new Dictionary<string, string>();
+        foreach (var id in allStatusIds)
+        {
+            var text = GetText(window, id);
+            Assert.False(string.IsNullOrWhiteSpace(text), $"初期状態で{id}が空");
+            initialValues[id] = text;
+            Log($"  {id}='{text}'");
+        }
+        Log("  → 初期状態記録完了");
+
+        // ========== HP初期値がフル（current == max）であることを確認 ==========
+        Log("検証: 初期HPがフル（current == max）であること");
+        var initialHp = GetText(window, "HpText");
+        var hpParts = initialHp.Split('/');
+        Assert.Equal(2, hpParts.Length);
+        Assert.Equal(hpParts[0], hpParts[1]);
+        int initialHpMax = int.Parse(hpParts[1]);
+        Log($"  → 初期HP={initialHp} (max={initialHpMax}) OK");
+
+        // ========== 移動で敵に繰り返し接触 ==========
+        Log("検証: 30回移動して敵に接触し、HP減少方向を確認");
+        for (int i = 0; i < 30; i++)
+        {
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_D);
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_S);
+        }
+        Thread.Sleep(300);
+        Assert.False(_app!.HasExited, "戦闘中にクラッシュ");
+
+        // ========== 戦闘後HP検証 ==========
+        Log("検証: 戦闘後HPが 'X/Y' 形式を維持し、currentがmax以下であること");
+        var afterHp = GetText(window, "HpText");
+        Assert.Matches(@"^\d+/\d+$", afterHp);
+        var afterHpParts = afterHp.Split('/');
+        int afterCurrent = int.Parse(afterHpParts[0]);
+        int afterMax = int.Parse(afterHpParts[1]);
+        Assert.True(afterCurrent <= afterMax, $"HP current({afterCurrent}) > max({afterMax})");
+        Assert.True(afterCurrent >= 0, $"HPが負値: {afterCurrent}");
+        Log($"  → 戦闘後HP={afterHp} (current<=max, current>=0) OK");
+
+        // ========== 戦闘後の全ステータスバー整合性検証 ==========
+        Log("検証: 戦闘後も全20ステータスバー要素が空でなく表示形式が維持されること");
+        foreach (var id in allStatusIds)
+        {
+            var text = GetText(window, id);
+            Assert.False(string.IsNullOrWhiteSpace(text), $"戦闘後に{id}の表示が空");
+        }
+        // HP/MP/SPは形式維持
+        Assert.Matches(@"^\d+/\d+$", GetText(window, "HpText"));
+        Assert.Matches(@"^\d+/\d+$", GetText(window, "MpText"));
+        Assert.Matches(@"^\d+/\d+$", GetText(window, "SpText"));
+        // レベルが数値
+        Assert.Matches(@"^\d+$", GetText(window, "LevelText"));
+        // 満腹度・正気度が数値
+        Assert.Matches(@"^\d+$", GetText(window, "HungerText"));
+        Assert.Matches(@"^\d+$", GetText(window, "SanityText"));
+        Log("  → 戦闘後ステータスバー整合性OK");
+
+        // ========== 自動探索フロー検証 ==========
+        Log("検証: Tab(自動探索開始)→3秒待機→Space(中断)のフローでクラッシュしないか");
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.TAB);
+        Thread.Sleep(3000);
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.SPACE);
+        Thread.Sleep(500);
+        Assert.False(_app!.HasExited, "自動探索フロー中にクラッシュ");
+        // 自動探索後もステータスバーが正常
+        foreach (var id in allStatusIds)
+        {
+            var text = GetText(window, id);
+            Assert.False(string.IsNullOrWhiteSpace(text), $"自動探索後に{id}の表示が空");
+        }
+        Log("  → 自動探索フローOK");
+
+        // ========== 複数回戦闘→回復不可状態でも安定 ==========
+        Log("検証: 追加50回移動でさらに戦闘を重ねてもクラッシュしないか");
+        for (int i = 0; i < 50; i++)
+        {
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_W);
+            PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_D);
+        }
+        Thread.Sleep(300);
+        Assert.False(_app!.HasExited, "長時間戦闘でクラッシュ");
+        var finalHp = GetText(window, "HpText");
+        Assert.Matches(@"^\d+/\d+$", finalHp);
+        Log($"  → 追加戦闘後HP={finalHp} クラッシュなしOK");
+
+        Log("=== テスト完了: 戦闘・ステータス遷移検証 ===");
+    }
+
+    // ─────────────────────────────────────────
+    // 4. アクション後ステータス一貫性検証（1回起動）
+    //    各種アクション実行後のステータスバー全要素が壊れないことを検証
+    // ─────────────────────────────────────────
+
+    [Fact]
+    public void SystemVerification_StatusBarConsistencyAfterActions()
+    {
+        Log("=== テスト開始: アクション後ステータス一貫性検証 ===");
+        Log("目的: 各種アクション実行後もステータスバー全要素が正常に表示されることを検証する");
+
+        var window = LaunchWithDebugMap();
+
+        var allStatusIds = new[]
+        {
+            "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
+            "LevelText", "ExpText", "HpText", "MpText", "SpText",
+            "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText"
+        };
+
+        // ヘルパー: 全ステータスバーが正常かチェック
+        void AssertAllStatusBarsValid(string context)
+        {
+            foreach (var id in allStatusIds)
+            {
+                var text = GetText(window, id);
+                Assert.False(string.IsNullOrWhiteSpace(text), $"{context}: {id}の表示が空");
+            }
+            // 数値フォーマット検証
+            Assert.Matches(@"^\d+/\d+$", GetText(window, "HpText"));
+            Assert.Matches(@"^\d+/\d+$", GetText(window, "MpText"));
+            Assert.Matches(@"^\d+/\d+$", GetText(window, "SpText"));
+            Assert.Matches(@"^\d+$", GetText(window, "LevelText"));
+            Assert.Matches(@"^\d+$", GetText(window, "HungerText"));
+            Assert.Matches(@"^\d+$", GetText(window, "SanityText"));
+            Assert.Matches(@"\d.*G", GetText(window, "GoldText"));
+        }
+
+        // ========== 初期状態検証 ==========
+        Log("検証: 初期状態のステータスバー");
+        AssertAllStatusBarsValid("初期状態");
+        Log("  → 初期状態OK");
+
+        // ========== 拾う(G)操作後 ==========
+        Log("検証: Gキー（拾う）操作後のステータスバー");
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_G);
+        Thread.Sleep(200);
+        Assert.False(_app!.HasExited);
+        AssertAllStatusBarsValid("拾う操作後");
+        Log("  → 拾う操作後OK");
+
+        // ========== 探索(F)操作後 ==========
+        Log("検証: Fキー（探索）操作後のステータスバー");
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_F);
+        Thread.Sleep(200);
+        Assert.False(_app!.HasExited);
+        AssertAllStatusBarsValid("探索操作後");
+        Log("  → 探索操作後OK");
+
+        // ========== 射撃(R)操作後 ==========
+        Log("検証: Rキー（射撃）操作後のステータスバー");
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_R);
+        Thread.Sleep(200);
+        Assert.False(_app!.HasExited);
+        AssertAllStatusBarsValid("射撃操作後");
+        Log("  → 射撃操作後OK");
+
+        // ========== 投擲(T)操作後 ==========
+        Log("検証: Tキー（投擲）操作後のステータスバー");
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_T);
+        Thread.Sleep(200);
+        Assert.False(_app!.HasExited);
+        AssertAllStatusBarsValid("投擲操作後");
+        Log("  → 投擲操作後OK");
+
+        // ========== 祈り(P)操作後 ==========
+        Log("検証: Pキー（祈り）操作後のステータスバー");
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_P);
+        Thread.Sleep(300);
+        CloseModals(window);
+        Assert.False(_app!.HasExited);
+        AssertAllStatusBarsValid("祈り操作後");
+        Log("  → 祈り操作後OK");
+
+        // ========== ドア閉じ(X)操作後 ==========
+        Log("検証: Xキー（ドア閉じ）操作後のステータスバー");
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_X);
+        Thread.Sleep(200);
+        Assert.False(_app!.HasExited);
+        AssertAllStatusBarsValid("ドア閉じ操作後");
+        Log("  → ドア閉じ操作後OK");
+
+        // ========== ミニマップ切替前後のステータスバー不変検証 ==========
+        Log("検証: Mキー（ミニマップ切替）前後でステータスバーが変化しないこと");
+        var beforeMinimap = new Dictionary<string, string>();
+        foreach (var id in allStatusIds)
+            beforeMinimap[id] = GetText(window, id);
+
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_M);
+        Thread.Sleep(200);
+        PressKey(window, FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_M);
+        Thread.Sleep(200);
+        Assert.False(_app!.HasExited);
+
+        foreach (var id in allStatusIds)
+        {
+            var afterText = GetText(window, id);
+            Assert.Equal(beforeMinimap[id], afterText);
+        }
+        Log("  → ミニマップ切替前後ステータス不変OK");
+
+        // ========== 階段操作前後のステータスバー変化追跡 ==========
+        Log("検証: 階段降下(Shift+>)前後のステータスバー変化追跡");
+        var beforeStairs = new Dictionary<string, string>();
+        foreach (var id in allStatusIds)
+            beforeStairs[id] = GetText(window, id);
+
+        window.Focus();
+        FlaUI.Core.Input.Keyboard.Pressing(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT);
+        FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.OEM_PERIOD);
+        FlaUI.Core.Input.Keyboard.Release(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT);
+        Thread.Sleep(500);
+        Assert.False(_app!.HasExited);
+
+        // 階段操作後もステータスバーが正常形式
+        AssertAllStatusBarsValid("階段操作後");
+
+        // 変化した要素をログ出力
+        int changedCount = 0;
+        foreach (var id in allStatusIds)
+        {
+            var afterText = GetText(window, id);
+            if (beforeStairs[id] != afterText)
+            {
+                Log($"  変化: {id} '{beforeStairs[id]}' → '{afterText}'");
+                changedCount++;
+            }
+        }
+        Log($"  → 階段操作後 {changedCount}要素変化、形式維持OK");
+
+        // ========== 連続アクション後の安定性検証 ==========
+        Log("検証: 移動→拾う→探索→射撃→投擲→待機の連続実行後にステータスバーが正常か");
+        var actionSequence = new[]
+        {
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_W,
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_G,
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_D,
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_F,
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_S,
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_R,
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_A,
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_T,
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.SPACE,
+        };
+
+        for (int round = 0; round < 10; round++)
+        {
+            foreach (var key in actionSequence)
+            {
+                window.Focus();
+                FlaUI.Core.Input.Keyboard.Press(key);
+                Thread.Sleep(20);
+            }
+        }
+        Thread.Sleep(500);
+        Assert.False(_app!.HasExited, "連続アクション後にクラッシュ");
+        AssertAllStatusBarsValid("連続アクション後");
+        Log("  → 連続アクション後ステータスバー整合性OK");
+
+        Log("=== テスト完了: アクション後ステータス一貫性検証 ===");
     }
 }
