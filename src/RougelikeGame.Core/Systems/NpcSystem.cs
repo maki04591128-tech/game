@@ -139,6 +139,15 @@ public class NpcSystem
         }
     }
 
+    /// <summary>
+    /// 全NPC状態をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、NPC好感度・出会い記録は全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        _npcStates.Clear();
+    }
+
     /// <summary>全NPC状態を取得（セーブ用）</summary>
     public IReadOnlyDictionary<string, NpcState> GetAllStates() => _npcStates;
 
@@ -289,6 +298,17 @@ public class DialogueSystem
     {
         _flags.Clear();
         foreach (var flag in flags) _flags.Add(flag);
+    }
+
+    /// <summary>
+    /// 全状態をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、会話フラグ・会話状態は全て消失する。
+    /// 会話ノード定義は保持される（マスターデータ）。
+    /// </summary>
+    public void Reset()
+    {
+        _flags.Clear();
+        CurrentNode = null;
     }
 }
 
@@ -589,6 +609,17 @@ public class QuestSystem
 
     /// <summary>メインクエストが完了しているか</summary>
     public bool IsMainQuestComplete => _completedQuests.Contains("main_quest_abyss");
+
+    /// <summary>
+    /// 全クエスト進行をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、クエスト進行は全て消失する。
+    /// クエスト定義（マスターデータ）は保持される。
+    /// </summary>
+    public void Reset()
+    {
+        _activeQuests.Clear();
+        _completedQuests.Clear();
+    }
 }/// <summary>
 /// クエストアクション結果
 /// </summary>
@@ -694,6 +725,16 @@ public class GuildSystem
 
     /// <summary>登録されているかどうか</summary>
     public bool IsRegistered => CurrentRank != GuildRank.None;
+
+    /// <summary>
+    /// 全状態をリセットする（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、ギルド登録・ポイントは全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        CurrentRank = GuildRank.None;
+        GuildPoints = 0;
+    }
 }
 
 /// <summary>

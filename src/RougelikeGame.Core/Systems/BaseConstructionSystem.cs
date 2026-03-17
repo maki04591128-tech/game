@@ -125,4 +125,13 @@ public class BaseConstructionSystem
     {
         return GetTotalBonus().ExtraCompanionSlots;
     }
+
+    /// <summary>
+    /// 全施設を撤去する（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、建設した施設は全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        _built.Clear();
+    }
 }

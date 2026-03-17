@@ -184,4 +184,13 @@ public class CompanionSystem
 
     /// <summary>生存仲間数</summary>
     public int AliveCount => _party.Count(c => c.IsAlive);
+
+    /// <summary>
+    /// 全仲間を解散する（死に戻り時に呼び出し）。
+    /// 死に戻りは時間巻き戻しであるため、仲間関係は全て消失する。
+    /// </summary>
+    public void Reset()
+    {
+        _party.Clear();
+    }
 }

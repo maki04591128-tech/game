@@ -1816,7 +1816,9 @@ public class GameController
     }
 
     /// <summary>
-    /// 死に戻り（リバース）を実行する
+    /// 死に戻り（リバース）を実行する。
+    /// 死に戻りはキャラクター作成直後への時間巻き戻しであるため、
+    /// プレイヤーの肉体・世界の状態を全てリセットし、内面知識のみ引き継ぐ。
     /// </summary>
     private void ExecuteRebirth(TransferData transfer)
     {
@@ -1824,6 +1826,7 @@ public class GameController
         var race = Player.Race;
         var charClass = Player.CharacterClass;
         var background = Player.Background;
+        bool isSanityZero = transfer.Sanity <= 0 || (transfer.LearnedWords.Count == 0 && transfer.LearnedSkills.Count == 0 && TotalDeaths > 0);
 
         // プレイヤーを再作成（肉体リセット）
         Player = Player.Create(Player.Name, race, charClass, background);
@@ -1847,20 +1850,74 @@ public class GameController
         // STRベースの最大重量を更新
         Player.UpdateMaxWeight();
 
-        // フロア1から再開
+        // === 世界状態の全リセット（キャラクター作成直後への時間巻き戻し） ===
+
+        // NPC関連リセット（好感度・出会い・会話フラグ・クエスト・ギルド）
+        _npcSystem.Reset();
+        _dialogueSystem.Reset();
+        _questSystem.Reset();
+        _guildSystem.Reset();
+
+        // メインクエストを再登録・受注
+        _questSystem.RegisterMainQuest();
+        _questSystem.AcceptQuest("main_quest_abyss", Player.Level, GuildRank.None);
+
+        // 社会的状態リセット（カルマ・評判・誓約・投資）
+        _karmaSystem.Reset();
+        _reputationSystem.Reset();
+        _oathSystem.Reset();
+        _investmentSystem.Reset();
+
+        // 仲間・拠点リセット
+        _companionSystem.Reset();
+        _baseConstructionSystem.Reset();
+
+        // グリッドインベントリリセット
+        _gridInventorySystem.Reset();
+
+        // 正気度0の場合、知識系システムも消失
+        if (isSanityZero)
+        {
+            _encyclopediaSystem.ResetDiscoveryLevels();
+            _skillTreeSystem.Reset();
+        }
+
+        // マップ・領地リセット（開始地点に帰還）
+        _currentMapName = StartingMapResolver.Resolve(race, background);
+        var startTerritory = StartingMapResolver.GetStartingTerritory(_currentMapName);
+        _worldMapSystem.Reset(startTerritory);
+        _symbolMapSystem.Clear();
+
+        // ゲーム進行フラグリセット
         CurrentFloor = 1;
         TurnCount = 0;
         GameTime.SetTotalTurns(0);
         _turnLimitExtended = false;
         _turnLimitRemoved = false;
         _lastTurnLimitWarningStage = 0;
+        _hasCleared = false;
+        _infiniteDungeonMode = false;
+        _infiniteDungeonKills = 0;
+        _ngPlusTier = null;
+        _clearRank = "";
+
+        // 敵・アイテム・マップリセット
         Enemies.Clear();
         GroundItems.Clear();
-        GenerateFloor();
+
+        // シンボルマップから再開（Initialize時と同じ状態）
+        GenerateSymbolMap();
 
         AddMessage($"\n━━ 死に戻り ({TotalDeaths}回目) ━━");
-        AddMessage($"ダンジョン第1層に戻った。正気度: {Player.Sanity}");
-        AddMessage($"経験と装備は失われたが、知識は残っている...");
+        AddMessage($"時は巻き戻り、冒険の始まりに戻った。正気度: {Player.Sanity}");
+        if (isSanityZero)
+        {
+            AddMessage("知識も技も全て失われた...白紙の状態で再び歩み出す。");
+        }
+        else
+        {
+            AddMessage("肉体と世界は初期化されたが、心に刻まれた知識は残っている...");
+        }
 
         OnStateChanged?.Invoke();
     }
