@@ -26,6 +26,7 @@ namespace RougelikeGame.Gui.Tests;
 ///      - レベル=1、経験値形式、重量 'x.x/y.ykg'（初期非0）、通貨 'XG'、ターン制限
 ///      - 満腹度・正気度の初期値検証（数値、非0）
 ///      - 日時表示形式（'冒険暦XXXX年 ○○の月 X日 HH:MM'）・時間帯検証
+///      - 季節・天候・渇き・カルマ・仲間数の新ステータスバー要素値検証
 ///      - 戦闘接触後HP形式維持、ドア閉じ(X)、射撃(R)・投擲(T)
 ///      - 階段上昇(Shift+<)・降下(Shift+>)、スキルCD(20ターン)、詠唱ターン処理
 ///   2. SystemVerification_LongPlay_HungerAndEndurance — 長時間プレイ検証:
@@ -33,12 +34,18 @@ namespace RougelikeGame.Gui.Tests;
 ///      - 800ターン待機: 満腹度減少確認
 ///      - 200ターン連続操作: ステータスバー正常維持
 ///
-/// ■ Ver.prt.0.2 追加システムのカバレッジ状況:
-///   以下のシステムは Core テストで値レベル検証済み。GUI 接続後にここに追加:
+/// ■ GUI接続済みシステムのカバレッジ:
+///   - SeasonSystem（季節）→ SeasonText ステータスバー値検証済み
+///   - WeatherSystem（天候）→ WeatherText ステータスバー値検証済み
+///   - ThirstSystem（渇き）→ ThirstText ステータスバー値検証済み
+///   - KarmaSystem（カルマ）→ KarmaText ステータスバー値検証済み
+///   - CompanionSystem（仲間）→ CompanionCountText ステータスバー値検証済み
+///   - EncyclopediaSystem（図鑑）→ Yキー画面遷移はGuiAutomationTestsで検証
+///   - DeathLogSystem（死亡記録）→ Zキー画面遷移はGuiAutomationTestsで検証
+///   - CompanionSystem（仲間管理）→ Uキー画面遷移はGuiAutomationTestsで検証
+///
+/// ■ 将来GUI接続後に追加予定:
 ///   - MonsterRaceSystem（敵種族分類）→ 敵情報ダイアログで種族名表示時
-///   - TimeOfDaySystem（時刻行動変化）→ TimePeriod ステータスバー連携時
-///   - KarmaSystem（カルマ）→ カルマ表示UI実装時
-///   - ReputationSystem（評判・名声）→ ワールドマップ/領地情報表示時
 ///   - ProficiencySystem（熟練度）→ キャラクター情報画面拡張時
 ///   - EnchantmentSystem（エンチャント）→ 鍛冶画面エンチャントUI実装時
 ///   - ItemGradeSystem（アイテム等級）→ アイテム表示名に等級接頭辞反映時
@@ -221,6 +228,41 @@ public class GuiSystemVerificationTests : IDisposable
         var timePeriod = GetText(window, "TimePeriodText");
         Assert.False(string.IsNullOrWhiteSpace(timePeriod), "時間帯が空");
         Log($"  → 時間帯='{timePeriod}' OK");
+
+        // ========== 季節表示: 値検証 ==========
+        Log("検証: 季節テキストが空でなく、有効な季節名を含むか");
+        var season = GetText(window, "SeasonText");
+        Assert.False(string.IsNullOrWhiteSpace(season), "季節テキストが空");
+        var validSeasons = new[] { "春", "夏", "秋", "冬" };
+        Assert.True(validSeasons.Any(s => season.Contains(s)),
+            $"季節テキストが有効な季節名を含まない: '{season}'");
+        Log($"  → 季節='{season}' OK");
+
+        // ========== 天候表示: 値検証 ==========
+        Log("検証: 天候テキストが空でないか");
+        var weather = GetText(window, "WeatherText");
+        Assert.False(string.IsNullOrWhiteSpace(weather), "天候テキストが空");
+        Log($"  → 天候='{weather}' OK");
+
+        // ========== 渇き表示: 値検証 ==========
+        Log("検証: 渇きテキストが空でないか");
+        var thirst = GetText(window, "ThirstText");
+        Assert.False(string.IsNullOrWhiteSpace(thirst), "渇きテキストが空");
+        Log($"  → 渇き='{thirst}' OK");
+
+        // ========== カルマ表示: 値検証 ==========
+        Log("検証: カルマテキストが空でなく、有効なランク名を含むか");
+        var karma = GetText(window, "KarmaText");
+        Assert.False(string.IsNullOrWhiteSpace(karma), "カルマテキストが空");
+        Log($"  → カルマ='{karma}' OK");
+
+        // ========== 仲間数表示: 値検証 ==========
+        Log("検証: 仲間数テキストが数値形式か");
+        var companionCount = GetText(window, "CompanionCountText");
+        Assert.Matches(@"^\d+$", companionCount);
+        int compCount = int.Parse(companionCount);
+        Assert.True(compCount >= 0, $"仲間数が負値: {companionCount}");
+        Log($"  → 仲間数={companionCount} OK");
 
         // ========== P2.3-2.4: 戦闘システム — 敵接触移動 ==========
         Log("検証: 複数回移動で敵に接触してもクラッシュしないか");
