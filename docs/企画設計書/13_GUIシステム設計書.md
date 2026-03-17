@@ -299,6 +299,9 @@ Render(map, player, enemies, groundItems)
 | O | OpenReligion | 宗教画面表示 |
 | H | OpenCrafting | 合成・鍛冶画面表示 |
 | B | EnterTown | 街入場 |
+| Y | OpenEncyclopedia | 図鑑画面表示 |
+| U | OpenCompanion | 仲間管理画面表示 |
+| Z | OpenDeathLog | 死亡記録画面表示 |
 | Shift + . | UseStairs | 階段を降りる |
 | Shift + , | AscendStairs | 階段を上る |
 | F5 | Save | セーブ |
