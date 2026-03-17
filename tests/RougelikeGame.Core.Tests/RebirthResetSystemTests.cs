@@ -720,4 +720,49 @@ public class RebirthResetSystemTests
     }
 
     #endregion
+
+    #region StartingMapResolver — 死に戻り時の初期スポーン場所
+
+    [Fact]
+    public void Rebirth_SpawnLocation_HumanAdventurer_ReturnsCapitalGuild()
+    {
+        var mapName = StartingMapResolver.Resolve(Race.Human, Background.Adventurer);
+        Assert.Equal("capital_guild", mapName);
+        Assert.Equal("王都・冒険者ギルド", StartingMapResolver.GetDisplayName(mapName));
+    }
+
+    [Fact]
+    public void Rebirth_SpawnLocation_ElfAdventurer_ReturnsForestVillage()
+    {
+        var mapName = StartingMapResolver.Resolve(Race.Elf, Background.Adventurer);
+        Assert.Equal("forest_village", mapName);
+        Assert.Equal(TerritoryId.Forest, StartingMapResolver.GetStartingTerritory(mapName));
+    }
+
+    [Fact]
+    public void Rebirth_SpawnLocation_NobleBackground_ReturnsCapitalManor()
+    {
+        // 素性が優先される（種族に関わらず貴族は王都貴族邸）
+        var mapNameHuman = StartingMapResolver.Resolve(Race.Human, Background.Noble);
+        var mapNameElf = StartingMapResolver.Resolve(Race.Elf, Background.Noble);
+        Assert.Equal("capital_manor", mapNameHuman);
+        Assert.Equal("capital_manor", mapNameElf);
+    }
+
+    [Fact]
+    public void Rebirth_SpawnLocation_DwarfAdventurer_ReturnsMountainHold()
+    {
+        var mapName = StartingMapResolver.Resolve(Race.Dwarf, Background.Adventurer);
+        Assert.Equal("mountain_hold", mapName);
+        Assert.Equal(TerritoryId.Mountain, StartingMapResolver.GetStartingTerritory(mapName));
+    }
+
+    [Fact]
+    public void Rebirth_SpawnLocation_SoldierBackground_ReturnsCapitalBarracks()
+    {
+        var mapName = StartingMapResolver.Resolve(Race.Human, Background.Soldier);
+        Assert.Equal("capital_barracks", mapName);
+    }
+
+    #endregion
 }

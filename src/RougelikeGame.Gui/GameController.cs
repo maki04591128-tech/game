@@ -1850,13 +1850,14 @@ public class GameController
         // イベント再購読
         SubscribePlayerEvents();
 
-        // 初期装備を支給
+        // 初期装備を支給（Initialize時と同一の内容）
         var sword = ItemFactory.CreateIronSword();
         var armor = ItemFactory.CreateLeatherArmor();
         ((Inventory)Player.Inventory).Add(sword);
         ((Inventory)Player.Inventory).Add(armor);
         Player.Equipment.Equip(sword, Player);
         Player.Equipment.Equip(armor, Player);
+        ((Inventory)Player.Inventory).Add(ItemFactory.CreateHealingPotion());
         ((Inventory)Player.Inventory).Add(ItemFactory.CreateHealingPotion());
         ((Inventory)Player.Inventory).Add(ItemFactory.CreateBread());
 
@@ -1937,11 +1938,12 @@ public class GameController
         Enemies.Clear();
         GroundItems.Clear();
 
-        // シンボルマップから再開（Initialize時と同じ状態）
+        // シンボルマップから再開（Initialize時と同じ初期スポーン場所）
         GenerateSymbolMap();
 
+        var startLocationName = StartingMapResolver.GetDisplayName(_currentMapName);
         AddMessage($"\n━━ 死に戻り ({TotalDeaths}回目) ━━");
-        AddMessage($"時は巻き戻り、冒険の始まりに戻った。正気度: {Player.Sanity}");
+        AddMessage($"時は巻き戻り、{startLocationName}に戻った。正気度: {Player.Sanity}");
         if (isSanityZero)
         {
             AddMessage("知識も技も全て失われた...白紙の状態で再び歩み出す。");
