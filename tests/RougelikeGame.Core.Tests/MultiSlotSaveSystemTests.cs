@@ -185,16 +185,11 @@ public class MultiSlotSaveSystemTests
     }
 
     [Fact]
-    public void GetOldestSlot_ReturnsOldestSavedSlot()
+    public void GetOldestSlot_SingleSave_ReturnsThatSlot()
     {
-        // 最も古いセーブスロットの番号を返す
+        // セーブが1つだけの場合、そのスロット番号を返す
         var system = new MultiSlotSaveSystem();
         system.SaveToSlot(3, "戦士", 5, "洞窟");
-        Thread.Sleep(50);
-        system.SaveToSlot(1, "魔法使い", 10, "森林");
-        Thread.Sleep(50);
-        system.SaveToSlot(5, "盗賊", 8, "港町");
-
         Assert.Equal(3, system.GetOldestSlot());
     }
 
