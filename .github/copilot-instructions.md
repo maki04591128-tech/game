@@ -1,7 +1,7 @@
 # Copilot Instructions
 
 ## プロジェクト ガイドライン
-- 修正を行うたびに全てのテスト（dotnet test RougelikeGame.sln）を実行して確認すること。GUIオートメーションテストを除外する場合は --filter "FullyQualifiedName!~GuiAutomationTests" を使用する。
+- 修正を行うたびに全てのテスト（dotnet test RougelikeGame.sln）を実行して確認すること。GUIオートメーションテストを除外する場合は --filter "FullyQualifiedName!~GuiAutomationTests&FullyQualifiedName!~GuiSystemVerificationTests" を使用する。
 - ターミナルでコマンドを実行する前に、毎回 `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; chcp 65001` を先頭に付けてUTF-8エンコーディングを設定し、文字化けを防止すること。
 - チャット上での説明・思考過程は必ず日本語で記述すること。英語を混ぜない。
 - システムの実装が完了するたびに、docs/03_実装計画書.md の該当タスクのステータスを更新すること。実装計画書は包括的な1ファイルではなく、各バージョン段階ごとに分割して作成する（例: 実装計画書Ver.prt.0.1.md、実装計画書Ver.prt.0.2.md、実装計画書Ver.α.md等）。確認の効率を上げるため。

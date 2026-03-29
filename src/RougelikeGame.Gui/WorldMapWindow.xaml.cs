@@ -15,9 +15,6 @@ public partial class WorldMapWindow : Window
     /// <summary>移動先の領地ID（確定時に設定）</summary>
     public TerritoryId? TravelDestination { get; private set; }
 
-    /// <summary>街に入るリクエスト</summary>
-    public bool EnterTownRequested { get; private set; }
-
     public WorldMapWindow(GameController controller)
     {
         InitializeComponent();
@@ -26,7 +23,6 @@ public partial class WorldMapWindow : Window
         LoadAdjacentTerritories();
         LoadFacilities();
         LoadLocationsAndDungeons();
-        UpdateEnterTownButton();
     }
 
     private void LoadCurrentTerritory()
@@ -84,14 +80,6 @@ public partial class WorldMapWindow : Window
         DungeonList.ItemsSource = dungeons;
     }
 
-    private void UpdateEnterTownButton()
-    {
-        bool hasTownFacilities = TerritoryDefinition.Get(_controller.CurrentTerritory)
-            .AvailableFacilities.Length > 0;
-        bool isOnSurface = _controller.IsOnSurface;
-        EnterTownButton.IsEnabled = hasTownFacilities && isOnSurface;
-    }
-
     private void TerritoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (TerritoryList.SelectedItem is not TerritoryViewModel selected)
@@ -119,13 +107,6 @@ public partial class WorldMapWindow : Window
 
     private void TravelButton_Click(object sender, RoutedEventArgs e) => ExecuteTravel();
 
-    private void EnterTownButton_Click(object sender, RoutedEventArgs e)
-    {
-        EnterTownRequested = true;
-        DialogResult = true;
-        Close();
-    }
-
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         DialogResult = false;
@@ -144,13 +125,6 @@ public partial class WorldMapWindow : Window
             case Key.Enter:
                 ExecuteTravel();
                 e.Handled = true;
-                break;
-            case Key.T:
-                if (EnterTownButton.IsEnabled)
-                {
-                    EnterTownButton_Click(sender, e);
-                    e.Handled = true;
-                }
                 break;
         }
     }

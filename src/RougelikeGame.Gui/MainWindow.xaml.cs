@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Linq;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,6 +11,19 @@ using RougelikeGame.Engine.Magic;
 using RougelikeGame.Gui.Audio;
 
 namespace RougelikeGame.Gui;
+
+/// <summary>
+/// ゲーム終了時の理由
+/// </summary>
+public enum GameExitReason
+{
+    /// <summary>アプリケーション終了</summary>
+    Quit,
+    /// <summary>タイトル画面に戻る</summary>
+    ReturnToTitle,
+    /// <summary>NG+を開始する</summary>
+    StartNewGamePlus
+}
 
 /// <summary>
 /// メインゲームウィンドウ
@@ -28,10 +42,18 @@ public partial class MainWindow : Window
     private readonly RougelikeGame.Core.Background _playerBackground;
     private readonly DifficultyLevel _difficulty;
     private readonly int _saveSlot;
+    private readonly NewGamePlusTier? _ngPlusTier;
+
+    /// <summary>ゲーム終了時の理由</summary>
+    public GameExitReason ExitReason { get; private set; } = GameExitReason.Quit;
+
+    /// <summary>NG+開始時の段階（ExitReason=StartNewGamePlusの場合に使用）</summary>
+    public NewGamePlusTier? NgPlusTier { get; private set; }
     private readonly List<string> _messageHistory = new();
     private const int MaxMessages = 50;
     private bool _minimapVisible = true;
     private DispatcherTimer? _autoExploreTimer;
+    private readonly HashSet<Key> _heldMovementKeys = new();
 
     public MainWindow() : this(GameSettings.CreateDefault(), new SilentAudioManager(), false, false)
     {
@@ -42,7 +64,8 @@ public partial class MainWindow : Window
         RougelikeGame.Core.CharacterClass playerClass = RougelikeGame.Core.CharacterClass.Fighter,
         RougelikeGame.Core.Background playerBackground = RougelikeGame.Core.Background.Adventurer,
         DifficultyLevel difficulty = DifficultyLevel.Normal,
-        int saveSlot = 0)
+        int saveSlot = 0,
+        NewGamePlusTier? ngPlusTier = null)
     {
         InitializeComponent();
 
@@ -56,6 +79,7 @@ public partial class MainWindow : Window
         _playerBackground = playerBackground;
         _difficulty = difficulty;
         _saveSlot = saveSlot;
+        _ngPlusTier = ngPlusTier;
 
         _gameController = new GameController();
         _renderer = new GameRenderer(GameCanvas);
@@ -76,15 +100,26 @@ public partial class MainWindow : Window
         _gameController.OnSpellPreviewUpdated += OnSpellPreviewUpdated;
         _gameController.OnShowWorldMap += ShowWorldMapDialog;
         _gameController.OnShowDialogue += OnShowDialogue;
+        _gameController.OnOpenShop += OnOpenShop;
         _gameController.OnQuestUpdated += OnQuestUpdated;
         _gameController.OnGuildRankUp += OnGuildRankUp;
-        _gameController.OnShowCrafting += ShowCraftingDialog;
         _gameController.OnCraftingResult += OnCraftingResult;
         _gameController.OnEnhancementResult += OnEnhancementResult;
         _gameController.OnEnchantmentResult += OnEnchantmentResult;
         _gameController.OnShowTutorial += OnShowTutorial;
         _gameController.OnReligionChanged += OnReligionChanged;
         _gameController.OnTerritoryChanged += OnTerritoryChanged;
+
+        // ゲームクリアイベント購読
+        _gameController.OnGameClear += OnGameClear;
+
+        // シンボルマップイベント購読
+        _gameController.OnLocationArrived += OnLocationArrived;
+        _gameController.OnSymbolMapEnterTown += OnSymbolMapEnterTown;
+        _gameController.OnSymbolMapEnterDungeon += OnSymbolMapEnterDungeon;
+
+        // ウィンドウ再アクティブ時にキー状態をリセット（ShowDialog後の斜め移動バグ防止）
+        Activated += (_, _) => _heldMovementKeys.Clear();
 
         // 新システム画面イベント購読
         _gameController.OnShowEncyclopedia += ShowEncyclopediaDialog;
@@ -93,6 +128,8 @@ public partial class MainWindow : Window
         _gameController.OnShowCompanion += ShowCompanionDialog;
         _gameController.OnShowCooking += ShowCookingDialog;
         _gameController.OnShowBaseConstruction += ShowBaseConstructionDialog;
+        _gameController.OnShowRecruitCompanion += ShowRecruitCompanionDialog;
+        _gameController.OnShowQuestBoard += ShowQuestBoardDialog;
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -100,6 +137,8 @@ public partial class MainWindow : Window
         // デバッグマップモードの場合は小さい固定マップで初期化
         if (_debugMap)
             _gameController.InitializeDebug();
+        else if (_ngPlusTier.HasValue)
+            _gameController.InitializeNewGamePlus(_playerName, _playerRace, _playerClass, _playerBackground, _difficulty, _ngPlusTier.Value);
         else
             _gameController.Initialize(_playerName, _playerRace, _playerClass, _playerBackground, _difficulty);
 
@@ -132,39 +171,45 @@ public partial class MainWindow : Window
     {
         GameAction? action = null;
 
-        // WASD斜め移動判定（同時押し）
+        // 移動キーの押下状態を追跡
+        if (e.Key is Key.W or Key.A or Key.S or Key.D or Key.Up or Key.Down or Key.Left or Key.Right)
+        {
+            _heldMovementKeys.Add(e.Key);
+        }
+
+        // WASD斜め移動判定（同時押し：自前追跡で判定）
         if (e.Key == Key.W || e.Key == Key.Up)
         {
-            if (Keyboard.IsKeyDown(Key.A) || Keyboard.IsKeyDown(Key.Left))
+            if (_heldMovementKeys.Contains(Key.A) || _heldMovementKeys.Contains(Key.Left))
                 action = GameAction.MoveUpLeft;
-            else if (Keyboard.IsKeyDown(Key.D) || Keyboard.IsKeyDown(Key.Right))
+            else if (_heldMovementKeys.Contains(Key.D) || _heldMovementKeys.Contains(Key.Right))
                 action = GameAction.MoveUpRight;
             else
                 action = GameAction.MoveUp;
         }
         else if (e.Key == Key.S || e.Key == Key.Down)
         {
-            if (Keyboard.IsKeyDown(Key.A) || Keyboard.IsKeyDown(Key.Left))
+            if (_heldMovementKeys.Contains(Key.A) || _heldMovementKeys.Contains(Key.Left))
                 action = GameAction.MoveDownLeft;
-            else if (Keyboard.IsKeyDown(Key.D) || Keyboard.IsKeyDown(Key.Right))
+            else if (_heldMovementKeys.Contains(Key.D) || _heldMovementKeys.Contains(Key.Right))
                 action = GameAction.MoveDownRight;
             else
                 action = GameAction.MoveDown;
         }
         else if (e.Key == Key.A || e.Key == Key.Left)
         {
-            if (Keyboard.IsKeyDown(Key.W) || Keyboard.IsKeyDown(Key.Up))
+            if (_heldMovementKeys.Contains(Key.W) || _heldMovementKeys.Contains(Key.Up))
                 action = GameAction.MoveUpLeft;
-            else if (Keyboard.IsKeyDown(Key.S) || Keyboard.IsKeyDown(Key.Down))
+            else if (_heldMovementKeys.Contains(Key.S) || _heldMovementKeys.Contains(Key.Down))
                 action = GameAction.MoveDownLeft;
             else
                 action = GameAction.MoveLeft;
         }
         else if (e.Key == Key.D || e.Key == Key.Right)
         {
-            if (Keyboard.IsKeyDown(Key.W) || Keyboard.IsKeyDown(Key.Up))
+            if (_heldMovementKeys.Contains(Key.W) || _heldMovementKeys.Contains(Key.Up))
                 action = GameAction.MoveUpRight;
-            else if (Keyboard.IsKeyDown(Key.S) || Keyboard.IsKeyDown(Key.Down))
+            else if (_heldMovementKeys.Contains(Key.S) || _heldMovementKeys.Contains(Key.Down))
                 action = GameAction.MoveDownRight;
             else
                 action = GameAction.MoveRight;
@@ -187,18 +232,31 @@ public partial class MainWindow : Window
                 Key.F => GameAction.Search,
                 Key.X => GameAction.CloseDoor,
                 Key.R => GameAction.RangedAttack,
-                Key.T => GameAction.ThrowItem,
+                Key.T => _gameController.IsOnSurface ? GameAction.EnterTown : GameAction.ThrowItem,
                 Key.V => GameAction.StartCasting,
                 Key.P => GameAction.Pray,
-                Key.E => GameAction.UseSkill,
+                Key.E => GameAction.OpenSkillTree,
                 Key.J => GameAction.OpenWorldMap,
-                Key.H => GameAction.OpenCrafting,
-                Key.N => GameAction.RegisterGuild,
                 Key.Y => GameAction.OpenEncyclopedia,
                 Key.U => GameAction.OpenCompanion,
                 Key.Z => GameAction.OpenDeathLog,
                 _ => null
             };
+
+            // スキルスロット実行（1-6キー）
+            if (e.Key >= Key.D1 && e.Key <= Key.D6)
+            {
+                int slotIndex = e.Key - Key.D1;
+                int slotCost;
+                bool slotUsed = _gameController.TryUseSkillSlot(slotIndex, out slotCost);
+                if (slotUsed)
+                {
+                    _gameController.AdvanceTurnFromSkillSlot(slotCost);
+                }
+                UpdateDisplay();
+                e.Handled = true;
+                return;
+            }
 
             // クエストログ（直接ダイアログ表示）
             if (e.Key == Key.K)
@@ -212,14 +270,6 @@ public partial class MainWindow : Window
             if (e.Key == Key.O)
             {
                 ShowReligionDialog();
-                e.Handled = true;
-                return;
-            }
-
-            // 街入場（直接ダイアログ表示）
-            if (e.Key == Key.B)
-            {
-                ShowTownDialog();
                 e.Handled = true;
                 return;
             }
@@ -249,6 +299,11 @@ public partial class MainWindow : Window
                 StopAutoExploreTimer();
             }
         }
+    }
+
+    private void Window_KeyUp(object sender, KeyEventArgs e)
+    {
+        _heldMovementKeys.Remove(e.Key);
     }
 
     private void UpdateDisplay()
@@ -402,6 +457,18 @@ public partial class MainWindow : Window
             ? System.Windows.Media.Brushes.Gold
             : System.Windows.Media.Brushes.Gray;
 
+        // スキルスロット表示
+        var slots = _gameController.GetSkillSlots();
+        var slotParts = new string[5];
+        for (int i = 0; i < 5; i++)
+        {
+            slotParts[i] = slots[i] != null ? $"[{i + 1}:{slots[i]}]" : $"[{i + 1}:-]";
+        }
+        SkillSlotText.Text = string.Join("", slotParts);
+        SkillSlotText.Foreground = slots.Any(s => s != null)
+            ? System.Windows.Media.Brushes.LightGreen
+            : System.Windows.Media.Brushes.Gray;
+
         // マップ描画
         _renderer.Render(
             _gameController.Map,
@@ -446,7 +513,6 @@ public partial class MainWindow : Window
         }
         else if (_gameController.IsGameOver && _gameController.Player.IsAlive)
         {
-            // ターン制限超過などによるゲームオーバー（プレイヤーは生存中）
             result = $"ゲームオーバー\n\n時間切れ — 世界の崩壊に巻き込まれた...\n到達階層: 第{_gameController.CurrentFloor}層\n{_gameController.GameTime.ToFullString()}";
         }
         else
@@ -454,20 +520,121 @@ public partial class MainWindow : Window
             result = $"冒険終了\n\n到達階層: 第{_gameController.CurrentFloor}層\n{_gameController.GameTime.ToFullString()}";
         }
 
-        MessageBox.Show(result, "ローグライクゲーム", MessageBoxButton.OK, MessageBoxImage.Information);
+        var choice = MessageBox.Show(
+            $"{result}\n\nタイトル画面に戻りますか？\n（「いいえ」を選ぶとゲームを終了します）",
+            "ローグライクゲーム",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Information);
+
+        if (choice == MessageBoxResult.Yes)
+        {
+            ExitReason = GameExitReason.ReturnToTitle;
+        }
+        else
+        {
+            ExitReason = GameExitReason.Quit;
+        }
         Close();
+    }
+
+    private void OnGameClear(GameClearSystem.ClearScore score)
+    {
+        _audioManager.StopBgm();
+
+        bool unlocksNgPlus = GameClearSystem.UnlocksNewGamePlus(score.Rank);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("🏆 ゲームクリア！！ 🏆");
+        sb.AppendLine();
+        sb.AppendLine($"スコア: {score.TotalScore}");
+        sb.AppendLine($"ランク: {score.Rank}");
+        sb.AppendLine($"ターンボーナス: +{score.TurnBonus}");
+        sb.AppendLine($"死亡ペナルティ: -{score.DeathPenalty}");
+        sb.AppendLine($"レベルボーナス: +{score.LevelBonus}");
+        sb.AppendLine($"フロアボーナス: +{score.FloorBonus}");
+        sb.AppendLine();
+        sb.AppendLine($"プレイヤー: {_gameController.Player.Name} ({_gameController.Player.Race}/{_gameController.Player.CharacterClass})");
+        sb.AppendLine($"レベル: {_gameController.Player.Level} | 死亡回数: {_gameController.TotalDeaths}");
+        sb.AppendLine($"日時: {_gameController.GameTime.ToFullString()}");
+
+        if (unlocksNgPlus)
+        {
+            sb.AppendLine();
+            sb.AppendLine("⚔ NG+（周回プレイ）が解放されました！");
+
+            var ngChoice = MessageBox.Show(
+                $"{sb}\n\nNG+（周回プレイ）を開始しますか？\n（「いいえ」を選ぶとタイトル画面に戻ります）",
+                "ゲームクリア",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+
+            if (ngChoice == MessageBoxResult.Yes)
+            {
+                // 現在のNG+段階を1段階進める
+                var currentTier = _gameController.CurrentNgPlusTier;
+                NgPlusTier = currentTier.HasValue
+                    ? (NewGamePlusTier)Math.Min((int)currentTier.Value + 1, (int)NewGamePlusTier.Plus5)
+                    : NewGamePlusTier.Plus1;
+                ExitReason = GameExitReason.StartNewGamePlus;
+                Close();
+                return;
+            }
+        }
+        else
+        {
+            MessageBox.Show(sb.ToString(), "ゲームクリア", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        ExitReason = GameExitReason.ReturnToTitle;
+        Close();
+    }
+
+    private void OnLocationArrived(LocationDefinition location)
+    {
+        // ロケーション到着時のBGM切替等（将来拡張用）
+    }
+
+    private void OnSymbolMapEnterTown()
+    {
+        _audioManager.StopBgm();
+        _audioManager.PlayBgm(BgmIds.Town);
+    }
+
+    private void OnSymbolMapEnterDungeon(LocationDefinition location)
+    {
+        _audioManager.StopBgm();
+        _audioManager.PlayBgm(BgmIds.DungeonNormal);
     }
 
     private void ShowInventoryDialog(List<Item> items)
     {
         StopAutoExploreTimer();
-        var dialog = new InventoryWindow(items, _gameController.Player);
-        dialog.Owner = this;
 
-        if (dialog.ShowDialog() == true && dialog.SelectedIndex >= 0)
+        Func<List<Item>> getItems = () =>
         {
-            _gameController.UseItem(dialog.SelectedIndex);
-        }
+            var inv = (RougelikeGame.Core.Entities.Inventory)_gameController.Player.Inventory;
+            return inv.Items.ToList();
+        };
+
+        Action<int> onDropItem = (int index) =>
+        {
+            var inv = (RougelikeGame.Core.Entities.Inventory)_gameController.Player.Inventory;
+            var itemsList = inv.Items.ToList();
+            if (index >= 0 && index < itemsList.Count)
+            {
+                var item = itemsList[index];
+                inv.Remove(item);
+                _gameController.GroundItems.Add((item, _gameController.Player.Position));
+                _gameController.AddMessage($"{item.GetDisplayName()}を地面に置いた");
+            }
+        };
+
+        var dialog = new InventoryWindow(items, _gameController.Player,
+            onUseItem: (int idx) => _gameController.UseItem(idx),
+            onDropItem: onDropItem,
+            getItems: getItems);
+        dialog.Owner = this;
+        dialog.ShowDialog();
 
         Focus();
     }
@@ -601,11 +768,7 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog() == true)
         {
-            if (dialog.EnterTownRequested)
-            {
-                ShowTownDialog();
-            }
-            else if (dialog.TravelDestination.HasValue)
+            if (dialog.TravelDestination.HasValue)
             {
                 _gameController.TryTravelTo(dialog.TravelDestination.Value);
             }
@@ -630,6 +793,16 @@ public partial class MainWindow : Window
         Focus();
     }
 
+    private void OnOpenShop(FacilityType shopType)
+    {
+        StopAutoExploreTimer();
+
+        var shopWindow = new ShopWindow(_gameController, shopType);
+        shopWindow.Owner = this;
+        shopWindow.ShowDialog();
+        Focus();
+    }
+
     private void OnQuestUpdated(string questId)
     {
         AddMessage($"📋 クエスト更新: {questId}");
@@ -649,15 +822,6 @@ public partial class MainWindow : Window
             _ => newRank.ToString()
         };
         AddMessage($"🎉 ギルドランクが{rankName}に昇格した！");
-    }
-
-    private void ShowCraftingDialog()
-    {
-        StopAutoExploreTimer();
-        var dialog = new CraftingWindow(_gameController);
-        dialog.Owner = this;
-        dialog.ShowDialog();
-        Focus();
     }
 
     private void OnCraftingResult(CraftingResult result)
@@ -703,43 +867,6 @@ public partial class MainWindow : Window
         _audioManager.PlaySe("territory_change");
     }
 
-    private void ShowTownDialog()
-    {
-        if (!_gameController.IsOnSurface)
-        {
-            AddMessage("※ ダンジョン内から街に入ることはできません");
-            return;
-        }
-
-        var territory = TerritoryDefinition.Get(_gameController.CurrentTerritory);
-        if (territory.AvailableFacilities.Length == 0)
-        {
-            AddMessage("※ この領地には街の施設がありません");
-            return;
-        }
-
-        StopAutoExploreTimer();
-        var dialog = new TownWindow(_gameController);
-        dialog.Owner = this;
-        dialog.ShowDialog();
-
-        // TownWindowからの店開きリクエスト処理
-        if (dialog.OpenShopRequest.HasValue)
-        {
-            var shopDialog = new ShopWindow(_gameController, dialog.OpenShopRequest.Value);
-            shopDialog.Owner = this;
-            shopDialog.ShowDialog();
-        }
-
-        // ダンジョン入場リクエスト処理
-        if (dialog.EnterDungeonRequested)
-        {
-            _gameController.ProcessInput(GameAction.UseStairs);
-        }
-
-        Focus();
-    }
-
     private void ShowQuestLogDialog()
     {
         StopAutoExploreTimer();
@@ -765,80 +892,32 @@ public partial class MainWindow : Window
     private void ShowEncyclopediaDialog()
     {
         StopAutoExploreTimer();
-        var enc = _gameController.GetEncyclopediaSystem();
-        var sb = new StringBuilder();
-        sb.AppendLine("【図鑑】");
-        sb.AppendLine($"総エントリ数: {enc.TotalEntries}");
-        foreach (var cat in Enum.GetValues<EncyclopediaCategory>())
-        {
-            var entries = enc.GetByCategory(cat);
-            if (entries.Count > 0)
-            {
-                float rate = enc.GetDiscoveryRate(cat);
-                sb.AppendLine($"  {cat}: {entries.Count}件 (発見率: {rate:P0})");
-            }
-        }
-        MessageBox.Show(sb.ToString(), "図鑑", MessageBoxButton.OK, MessageBoxImage.Information);
+        var dialog = new EncyclopediaWindow(_gameController) { Owner = this };
+        dialog.ShowDialog();
         Focus();
     }
 
     private void ShowDeathLogDialog()
     {
         StopAutoExploreTimer();
-        var log = _gameController.GetDeathLogSystem();
-        var sb = new StringBuilder();
-        sb.AppendLine("【死亡記録】");
-        sb.AppendLine($"総死亡回数: {log.TotalDeaths}");
-        if (log.TotalDeaths > 0)
-        {
-            sb.AppendLine($"最高到達レベル: {log.GetHighestLevel()}");
-            sb.AppendLine($"最深到達階層: {log.GetDeepestFloor()}");
-            sb.AppendLine($"平均生存ターン: {log.GetAverageSurvivalTurns():F0}");
-            var common = log.GetMostCommonCause();
-            if (common.HasValue)
-                sb.AppendLine($"最多死因: {common.Value}");
-        }
-        foreach (var entry in log.AllLogs.TakeLast(5))
-        {
-            sb.AppendLine($"  #{entry.RunNumber} {entry.CharacterName}(Lv{entry.Level}) - {entry.CauseDetail} @{entry.Location} B{entry.Floor}F");
-        }
-        MessageBox.Show(sb.ToString(), "死亡記録", MessageBoxButton.OK, MessageBoxImage.Information);
+        var dialog = new DeathLogWindow(_gameController) { Owner = this };
+        dialog.ShowDialog();
         Focus();
     }
 
     private void ShowSkillTreeDialog()
     {
         StopAutoExploreTimer();
-        var tree = _gameController.GetSkillTreeSystem();
-        var sb = new StringBuilder();
-        sb.AppendLine("【スキルツリー】");
-        sb.AppendLine($"利用可能スキルポイント: {tree.AvailablePoints}");
-        sb.AppendLine($"解放済みノード数: {tree.UnlockedCount}");
-        foreach (var nodeId in tree.UnlockedNodes)
-        {
-            if (tree.AllNodes.TryGetValue(nodeId, out var node))
-            {
-                sb.AppendLine($"  ✓ {node.Name} ({node.NodeType})");
-            }
-        }
-        MessageBox.Show(sb.ToString(), "スキルツリー", MessageBoxButton.OK, MessageBoxImage.Information);
+        var dialog = new SkillTreeWindow(_gameController) { Owner = this };
+        dialog.ShowDialog();
         Focus();
     }
 
     private void ShowCompanionDialog()
     {
         StopAutoExploreTimer();
-        var comp = _gameController.GetCompanionSystem();
-        var sb = new StringBuilder();
-        sb.AppendLine("【仲間一覧】");
-        sb.AppendLine($"パーティ: {comp.Party.Count}/{CompanionSystem.MaxPartySize}");
-        foreach (var c in comp.Party)
-        {
-            sb.AppendLine($"  {c.Name} (Lv{c.Level}) - {CompanionSystem.GetTypeName(c.Type)} / AI:{c.AIMode} / 忠誠:{c.Loyalty}");
-        }
-        if (comp.Party.Count == 0)
-            sb.AppendLine("  仲間はまだいません");
-        MessageBox.Show(sb.ToString(), "仲間管理", MessageBoxButton.OK, MessageBoxImage.Information);
+        var dialog = new CompanionWindow(_gameController) { Owner = this };
+        dialog.ShowDialog();
         Focus();
     }
 
@@ -873,6 +952,24 @@ public partial class MainWindow : Window
         if (baseSys.BuiltFacilities.Count == 0)
             sb.AppendLine("  まだ施設がありません");
         MessageBox.Show(sb.ToString(), "拠点管理", MessageBoxButton.OK, MessageBoxImage.Information);
+        Focus();
+    }
+
+    private void ShowRecruitCompanionDialog(List<CompanionSystem.CompanionData> candidates)
+    {
+        StopAutoExploreTimer();
+        var dialog = new RecruitCompanionWindow(_gameController, candidates);
+        dialog.Owner = this;
+        dialog.ShowDialog();
+        Focus();
+    }
+
+    private void ShowQuestBoardDialog()
+    {
+        StopAutoExploreTimer();
+        var dialog = new QuestBoardWindow(_gameController);
+        dialog.Owner = this;
+        dialog.ShowDialog();
         Focus();
     }
 

@@ -45,7 +45,7 @@ public class SymbolMapSystemTests
     [Fact]
     public void Generate_Capital_PlacesCorrectNumberOfLocations()
     {
-        var locations = LocationDefinition.GetByTerritory(TerritoryId.Capital);
+        var locations = LocationDefinition.GetSymbolLocations(TerritoryId.Capital);
         var generator = new SymbolMapGenerator();
         var result = generator.Generate(TerritoryId.Capital);
 
@@ -426,7 +426,7 @@ public class SymbolMapSystemTests
                 $"Territory {territory} should have locations");
 
             // 各ロケーションが正しく配置されている
-            var locations = LocationDefinition.GetByTerritory(territory);
+            var locations = LocationDefinition.GetSymbolLocations(territory);
             Assert.Equal(locations.Count, system.LocationCount);
         }
     }

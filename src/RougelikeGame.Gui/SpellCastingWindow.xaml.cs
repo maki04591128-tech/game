@@ -64,15 +64,6 @@ public partial class SpellCastingWindow : Window
             }
         }
 
-        // 習得済みが0件の場合は全ルーン語を表示（デバッグ・チュートリアル用）
-        if (_availableWords.Count == 0)
-        {
-            foreach (var word in words.OrderBy(w => w.Difficulty).ThenBy(w => w.Category))
-            {
-                _availableWords.Add(new RuneWordViewModel(word));
-            }
-        }
-
         RuneWordList.ItemsSource = null;
         RuneWordList.ItemsSource = _availableWords;
     }
@@ -107,6 +98,7 @@ public partial class SpellCastingWindow : Window
     {
         switch (e.Key)
         {
+            case Key.V:
             case Key.Escape:
                 DialogResult = false;
                 Close();

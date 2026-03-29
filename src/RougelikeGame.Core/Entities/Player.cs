@@ -363,7 +363,10 @@ public class Player : Character, IPlayer, IInventoryHolder
     /// </summary>
     public void ApplyTransferData(TransferData data)
     {
-        if (data.Sanity > 0)  // 正気度0でない場合のみ引き継ぎ
+        // 正気度を引き継ぐ（死に戻り後の減少値を反映）
+        _sanity = Math.Clamp(data.Sanity, 0, GameConstants.MaxSanity);
+
+        if (data.Sanity > 0)  // 正気度0でない場合のみ知識を引き継ぎ
         {
             foreach (var (wordId, mastery) in data.LearnedWords)
             {

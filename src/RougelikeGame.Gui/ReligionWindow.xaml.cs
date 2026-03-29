@@ -44,7 +44,6 @@ public partial class ReligionWindow : Window
 
             PrayButton.Visibility = Visibility.Visible;
             LeaveButton.Visibility = Visibility.Visible;
-            JoinButton.Visibility = Visibility.Collapsed;
 
             // 背教呪い警告
             if (player.HasApostasyCurse)
@@ -60,27 +59,11 @@ public partial class ReligionWindow : Window
             FaithPointsText.Text = "";
             ReligionTitleText.Text = "";
 
-            // 利用可能な宗教一覧
-            var religions = new[]
-            {
-                ReligionId.LightTemple, ReligionId.DarkCult, ReligionId.NatureWorship,
-                ReligionId.DeathFaith, ReligionId.ChaosCult, ReligionId.Atheism
-            };
-
-            var items = religions.Select(id =>
-            {
-                var def = ReligionDatabase.GetAll().FirstOrDefault(r => r.Id == id);
-                return def != null
-                    ? new BenefitViewModel(def.Name, def.Description, $"神: {def.GodName}", "⛪")
-                    : null;
-            }).Where(x => x != null).ToList();
-
-            BenefitList.ItemsSource = items;
-            ListTitle.Text = "入信可能な宗教";
+            BenefitList.ItemsSource = null;
+            ListTitle.Text = "信仰なし — 宗教施設のNPCに話しかけて入信できます";
 
             PrayButton.Visibility = Visibility.Collapsed;
             LeaveButton.Visibility = Visibility.Collapsed;
-            JoinButton.Visibility = Visibility.Visible;
 
             if (player.HasApostasyCurse)
             {
@@ -93,27 +76,6 @@ public partial class ReligionWindow : Window
     private void PrayButton_Click(object sender, RoutedEventArgs e)
     {
         _controller.ProcessInput(GameAction.Pray);
-        LoadReligionStatus();
-    }
-
-    private void JoinButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (BenefitList.SelectedItem is not BenefitViewModel selected) return;
-
-        // 宗教名からIDを逆引き
-        var allReligions = ReligionDatabase.GetAll();
-        var match = allReligions.FirstOrDefault(r => r.Name == selected.Name);
-        if (match == null) return;
-
-        var result = _controller.TryJoinReligion(match.Id);
-        if (result.Success)
-        {
-            MessageBox.Show(result.Message, "入信", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-        else
-        {
-            MessageBox.Show(result.Message, "入信失敗", MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
         LoadReligionStatus();
     }
 
@@ -142,6 +104,7 @@ public partial class ReligionWindow : Window
     {
         switch (e.Key)
         {
+            case Key.O:
             case Key.Escape:
                 DialogResult = false;
                 Close();

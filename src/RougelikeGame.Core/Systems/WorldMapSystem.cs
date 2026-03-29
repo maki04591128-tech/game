@@ -25,11 +25,15 @@ public record LocationDefinition(
     LocationType Type,
     TerritoryId Territory,
     int MinLevel = 1,
-    int DangerLevel = 1)
+    int DangerLevel = 1,
+    string[]? SubLocationIds = null)
 {
     private static readonly Dictionary<string, LocationDefinition> All = new()
     {
-        // 王都領
+        // 王都領 ── 統合: 非ダンジョンを「王都」に集約
+        ["capital_town"] = new("capital_town", "王都", "王国の中心都市。王城、冒険者ギルド本部、賢者院、大聖堂、中央市場、闘技場、貧民街が存在する",
+            LocationType.Town, TerritoryId.Capital,
+            SubLocationIds: new[] { "capital_castle", "capital_guild", "capital_academy", "capital_cathedral", "capital_market", "capital_arena", "capital_slum" }),
         ["capital_castle"] = new("capital_castle", "王城", "国王への謁見、メインクエスト関連", LocationType.Facility, TerritoryId.Capital),
         ["capital_guild"] = new("capital_guild", "冒険者ギルド本部", "クエスト受注、ランク昇格試験", LocationType.Facility, TerritoryId.Capital),
         ["capital_academy"] = new("capital_academy", "賢者院", "魔法言語の学習、魔法書購入", LocationType.Facility, TerritoryId.Capital),
@@ -40,8 +44,11 @@ public record LocationDefinition(
         ["capital_catacombs"] = new("capital_catacombs", "王都地下墓地", "中難易度、アンデッド多数", LocationType.Dungeon, TerritoryId.Capital, MinLevel: 3, DangerLevel: 3),
         ["capital_rift"] = new("capital_rift", "始まりの裂け目", "高難易度、最初に出現したダンジョン", LocationType.Dungeon, TerritoryId.Capital, MinLevel: 8, DangerLevel: 4),
 
-        // 森林領
-        ["forest_city"] = new("forest_city", "緑樹の都", "エルフの首都、樹上都市", LocationType.Town, TerritoryId.Forest),
+        // 森林領 ── 統合: 非ダンジョンを「緑樹の都」に集約
+        ["forest_town"] = new("forest_town", "緑樹の都", "エルフの首都。薬師の村、世界樹の根元、深緑の森、精霊の泉が周辺に広がる",
+            LocationType.Town, TerritoryId.Forest,
+            SubLocationIds: new[] { "forest_city", "forest_herbalist", "forest_worldtree", "forest_deep", "forest_spring" }),
+        ["forest_city"] = new("forest_city", "緑樹の都中心部", "エルフの首都、樹上都市", LocationType.Town, TerritoryId.Forest),
         ["forest_herbalist"] = new("forest_herbalist", "薬師の村", "薬草・ポーション販売", LocationType.Village, TerritoryId.Forest),
         ["forest_worldtree"] = new("forest_worldtree", "世界樹の根元", "自然崇拝の聖地", LocationType.ReligiousSite, TerritoryId.Forest),
         ["forest_deep"] = new("forest_deep", "深緑の森", "迷いやすい、幻惑効果", LocationType.Field, TerritoryId.Forest, DangerLevel: 3),
@@ -49,8 +56,11 @@ public record LocationDefinition(
         ["forest_corruption"] = new("forest_corruption", "腐敗の森", "高難易度、汚染された区域", LocationType.Dungeon, TerritoryId.Forest, MinLevel: 10, DangerLevel: 4),
         ["forest_ruins"] = new("forest_ruins", "古代エルフの遺跡", "高難易度、古代魔法の罠", LocationType.Dungeon, TerritoryId.Forest, MinLevel: 12, DangerLevel: 5),
 
-        // 山岳領
-        ["mountain_fortress"] = new("mountain_fortress", "鉄床城", "ドワーフの首都、最高の鍛冶屋", LocationType.Town, TerritoryId.Mountain),
+        // 山岳領 ── 統合: 非ダンジョンを「鉄床城」に集約
+        ["mountain_town"] = new("mountain_town", "鉄床城", "ドワーフの首都。坑夫の村、山頂の祠、山岳街道が周辺に広がる",
+            LocationType.Town, TerritoryId.Mountain,
+            SubLocationIds: new[] { "mountain_fortress", "mountain_miner", "mountain_shrine", "mountain_road" }),
+        ["mountain_fortress"] = new("mountain_fortress", "鉄床城中心部", "ドワーフの首都、最高の鍛冶屋", LocationType.Town, TerritoryId.Mountain),
         ["mountain_miner"] = new("mountain_miner", "坑夫の村", "鉱山入口、採掘依頼", LocationType.Village, TerritoryId.Mountain),
         ["mountain_shrine"] = new("mountain_shrine", "山頂の祠", "死神信仰の隠れ聖地", LocationType.ReligiousSite, TerritoryId.Mountain),
         ["mountain_road"] = new("mountain_road", "山岳街道", "険しい道、落石注意", LocationType.Field, TerritoryId.Mountain, DangerLevel: 3),
@@ -58,24 +68,33 @@ public record LocationDefinition(
         ["mountain_lava"] = new("mountain_lava", "溶岩洞", "高難易度、火属性の敵", LocationType.Dungeon, TerritoryId.Mountain, MinLevel: 15, DangerLevel: 4),
         ["mountain_dragon"] = new("mountain_dragon", "竜の巣", "最高難易度、ドラゴン", LocationType.Dungeon, TerritoryId.Mountain, MinLevel: 25, DangerLevel: 5),
 
-        // 海岸領
-        ["coast_port"] = new("coast_port", "港町マリーナ", "海運、船の購入、海外商品", LocationType.Town, TerritoryId.Coast),
+        // 海岸領 ── 統合: 非ダンジョンを「港町マリーナ」に集約
+        ["coast_town"] = new("coast_town", "港町マリーナ", "海運の要所。ぶどう畑の村、麦畑地帯、闇の礼拝堂が周辺に広がる",
+            LocationType.Town, TerritoryId.Coast,
+            SubLocationIds: new[] { "coast_port", "coast_vineyard", "coast_field", "coast_darkchapel" }),
+        ["coast_port"] = new("coast_port", "港町マリーナ中心部", "海運、船の購入、海外商品", LocationType.Town, TerritoryId.Coast),
         ["coast_vineyard"] = new("coast_vineyard", "ぶどう畑の村", "ワイン生産、のどかな農村", LocationType.Village, TerritoryId.Coast),
         ["coast_field"] = new("coast_field", "麦畑地帯", "平和だが時折盗賊出没", LocationType.Field, TerritoryId.Coast, DangerLevel: 1),
+        ["coast_darkchapel"] = new("coast_darkchapel", "闇の礼拝堂", "闇の教団の拠点", LocationType.ReligiousSite, TerritoryId.Coast, MinLevel: 10, DangerLevel: 3),
         ["coast_cave"] = new("coast_cave", "海岸洞窟", "低難易度、海賊の隠れ家", LocationType.Dungeon, TerritoryId.Coast, MinLevel: 5, DangerLevel: 2),
         ["coast_wreck"] = new("coast_wreck", "沈没船", "中難易度、水棲モンスター", LocationType.Dungeon, TerritoryId.Coast, MinLevel: 8, DangerLevel: 3),
-        ["coast_darkchapel"] = new("coast_darkchapel", "闇の礼拝堂", "闇の教団の拠点", LocationType.ReligiousSite, TerritoryId.Coast, MinLevel: 10, DangerLevel: 3),
 
-        // 南部領
-        ["southern_castle"] = new("southern_castle", "サンライト城", "領主の城、華やかな貴族社会", LocationType.Town, TerritoryId.Southern),
+        // 南部領 ── 統合: 非ダンジョンを「サンライト城」に集約
+        ["southern_town"] = new("southern_town", "サンライト城", "領主の城下町。雪原の村、狩人の集落、凍てつく平原が周辺に広がる",
+            LocationType.Town, TerritoryId.Southern,
+            SubLocationIds: new[] { "southern_castle", "southern_village", "southern_hunter", "southern_plain" }),
+        ["southern_castle"] = new("southern_castle", "サンライト城中心部", "領主の城、華やかな貴族社会", LocationType.Town, TerritoryId.Southern),
         ["southern_village"] = new("southern_village", "雪原の村", "休息、補給、情報収集", LocationType.Village, TerritoryId.Southern),
         ["southern_hunter"] = new("southern_hunter", "狩人の集落", "獣人が住む、特殊装備入手", LocationType.Village, TerritoryId.Southern),
         ["southern_plain"] = new("southern_plain", "凍てつく平原", "広大な雪原、野生動物", LocationType.Field, TerritoryId.Southern, DangerLevel: 3),
         ["southern_icecave"] = new("southern_icecave", "氷の洞窟", "中難易度、氷属性の敵", LocationType.Dungeon, TerritoryId.Southern, MinLevel: 15, DangerLevel: 3),
         ["southern_battlefield"] = new("southern_battlefield", "古戦場跡", "中難易度、アンデッド兵士", LocationType.Dungeon, TerritoryId.Southern, MinLevel: 15, DangerLevel: 3),
 
-        // 辺境領
-        ["frontier_fort"] = new("frontier_fort", "辺境砦", "かろうじて秩序が保たれた拠点", LocationType.Town, TerritoryId.Frontier),
+        // 辺境領 ── 統合: 非ダンジョンを「辺境砦」に集約
+        ["frontier_town"] = new("frontier_town", "辺境砦", "かろうじて秩序が保たれた拠点。ならず者の集落、廃墟の街、荒野、混沌の祭壇が周辺に広がる",
+            LocationType.Town, TerritoryId.Frontier,
+            SubLocationIds: new[] { "frontier_fort", "frontier_outlaw", "frontier_ruins_city", "frontier_wasteland", "frontier_chaos_altar" }),
+        ["frontier_fort"] = new("frontier_fort", "辺境砦中心部", "かろうじて秩序が保たれた拠点", LocationType.Town, TerritoryId.Frontier),
         ["frontier_outlaw"] = new("frontier_outlaw", "ならず者の集落", "無法者の溜まり場、闇市場", LocationType.Village, TerritoryId.Frontier),
         ["frontier_ruins_city"] = new("frontier_ruins_city", "廃墟の街", "かつての都市の残骸", LocationType.Field, TerritoryId.Frontier, DangerLevel: 4),
         ["frontier_wasteland"] = new("frontier_wasteland", "荒野", "魔物が徘徊する危険地帯", LocationType.Field, TerritoryId.Frontier, DangerLevel: 4),
@@ -90,8 +109,18 @@ public record LocationDefinition(
     public static IReadOnlyList<LocationDefinition> GetByTerritory(TerritoryId territory) =>
         All.Values.Where(l => l.Territory == territory).ToList();
 
+    /// <summary>シンボルマップ上に表示するロケーション（統合街 + ダンジョン）のみ取得</summary>
+    public static IReadOnlyList<LocationDefinition> GetSymbolLocations(TerritoryId territory) =>
+        All.Values.Where(l => l.Territory == territory && (l.SubLocationIds != null || l.Type == LocationType.Dungeon)).ToList();
+
     public static IReadOnlyList<LocationDefinition> GetDungeonsByTerritory(TerritoryId territory) =>
         All.Values.Where(l => l.Territory == territory && l.Type == LocationType.Dungeon).ToList();
+
+    /// <summary>サブロケーション定義を取得</summary>
+    public IReadOnlyList<LocationDefinition> GetSubLocations() =>
+        SubLocationIds?.Select(id => All.TryGetValue(id, out var loc) ? loc : null!)
+            .Where(l => l != null).Cast<LocationDefinition>().ToList()
+        ?? new List<LocationDefinition>();
 }
 
 /// <summary>

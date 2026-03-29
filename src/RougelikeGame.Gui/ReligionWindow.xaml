@@ -76,9 +76,6 @@
             <Button x:Name="PrayButton" Content="祈る [P]" Width="80" Margin="5"
                     Click="PrayButton_Click"
                     Background="#0f3460" Foreground="White" BorderBrush="#4ecca3" Padding="5,3"/>
-            <Button x:Name="JoinButton" Content="入信" Width="80" Margin="5"
-                    Click="JoinButton_Click" Visibility="Collapsed"
-                    Background="#0f3460" Foreground="White" BorderBrush="#4ecca3" Padding="5,3"/>
             <Button x:Name="LeaveButton" Content="棄教" Width="80" Margin="5"
                     Click="LeaveButton_Click" Visibility="Collapsed"
                     Background="#0f3460" Foreground="White" BorderBrush="#e94560" Padding="5,3"/>

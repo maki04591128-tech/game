@@ -4,6 +4,11 @@
 >
 > 本書に記載のGUI要素は全て `RougelikeGame.Gui` プロジェクトで実装済みです。
 > Phase 6 でタイトル画面、設定画面、BGM/SE管理、描画最適化が追加されました。
+> Ver.prt.0.7 でNPC隣接インタラクト、ウィンドウトグル操作、魔法詠唱ターン遅延、D&Dドロップ修正、フロアキャッシュ分離、町脱出改善が追加されました。
+> Ver.prt.0.9 でインベントリ常時表示化（コールバックパターン）・自動ソート・グリッド外ドロップ、ショップD&D統合・スクロール数量、仲間募集ウィンドウ（RecruitCompanionWindow）、クエストボード（QuestBoardWindow）が追加されました。
+> Ver.prt.0.10 でインベントリウィンドウに装備パネル（11スロット）+ステータス表示を追加（850px幅化）、ソート状態維持修正（_isSortedフラグ）、スキルツリーウィンドウに「習得済み/スロット」タブとD&Dスキルスロット（6スロット）を追加、SpellCastingWindowからルーン学習ボタンを撤去しました。
+> Ver.prt.0.11 でスキルスロットを1-5→1-6キーに拡張（SkillTreeSystem.MaxSkillSlots=6と統一）しました。
+> Ver.prt.0.12 でタイトル画面を「タイトル未定」/「ろーぐらいくげーむ」に変更、インベントリ装備パネルをPoE風Canvas身体配置（11スロット空間配置、身体シルエットガイドライン）に全面改修、ショップウィンドウをリスト表示形式に全面書き換え、スキルツリーにTier制（1-4）・レベル制限（Lv1/5/10/15）を導入しGrimDawn風UIに改修しました。
 > 未実装の画面・機能は「将来計画」セクションに記載しています。
 
 ---
@@ -104,18 +109,24 @@
 | CharacterCreationWindow | CharacterCreationWindow.xaml/.cs | ニューゲーム時 | キャラクター作成（10種族/10職業/10素性選択、名前入力、ステータスプレビュー） |
 | DifficultySelectWindow | DifficultySelectWindow.xaml/.cs | ニューゲーム時 | 難易度選択（Easy/Normal/Hard/Nightmare/Ironman） |
 | StatusWindow | StatusWindow.xaml/.cs | C | 基本9ステータス、戦闘パラメータ、装備、状態異常の詳細表示 |
-| InventoryWindow | InventoryWindow.xaml/.cs | I | アイテム一覧、装備/使用/ドロップ操作、数字キー選択 |
+| InventoryWindow | InventoryWindow.xaml/.cs | I | PoE風グリッドインベントリ（10×6グリッド、アイテムサイズ自動判定、レアリティ色分け、装備マーク、D&D移動・位置保持、コールバックパターンで使用後も開放維持、Sキー自動ソート、グリッド外D&Dでアイテムドロップ、右カラムにPoE風Canvas身体配置装備パネル11スロット（Head/Neck/Back/MainHand/Body/OffHand/Hands/Ring1/Waist/Ring2/Feet）+身体シルエットガイドライン+ステータス表示、850px幅） |
 | MessageLogWindow | MessageLogWindow.xaml/.cs | L | メッセージログの履歴閲覧、フィルタリング |
-| ShopWindow | ShopWindow.xaml/.cs | ショップ選択時 | アイテム売買 |
-| CraftingWindow | CraftingWindow.xaml/.cs | H | 合成・強化・エンチャント操作 |
-| SpellCastingWindow | SpellCastingWindow.xaml/.cs | V | ルーン語による魔法詠唱 |
-| DialogueWindow | DialogueWindow.xaml/.cs | NPC会話時 | NPC会話・選択肢表示 |
-| QuestLogWindow | QuestLogWindow.xaml/.cs | K | クエスト一覧・進捗確認 |
-| ReligionWindow | ReligionWindow.xaml/.cs | O | 宗教情報・入信・離脱・祈り |
-| TownWindow | TownWindow.xaml/.cs | B（街にいるとき） | 街施設メニュー（宿屋/教会/銀行/鍛冶屋/ギルド/神殿等） |
-| WorldMapWindow | WorldMapWindow.xaml/.cs | J | ワールドマップ・領地移動・ロケーション選択 |
+| ShopWindow | ShopWindow.xaml/.cs | ショップ選択時 | リスト表示形式のアイテム売買（購入/売却タブ切替、アイテム一覧リスト表示、選択で購入/売却実行） |
+| CraftingWindow | CraftingWindow.xaml/.cs | —（キー削除済） | 合成・強化・エンチャント操作（内部イベント経由のみ） |
+| SpellCastingWindow | SpellCastingWindow.xaml/.cs | V | ルーン語による魔法詠唱（習得済みルーン一覧表示、未習得時は空表示） |
+| DialogueWindow | DialogueWindow.xaml/.cs | NPC隣接時に方向キー押下 | NPC会話・選択肢表示（NPCの隣接タイルから方向キーで発動） |
+| QuestLogWindow | QuestLogWindow.xaml/.cs | K | クエスト進捗確認（受注済みのみ、詳細表示専用） |
+| ReligionWindow | ReligionWindow.xaml/.cs | O | 宗教情報表示・祈り（入信はNPC経由のみ） |
+| TownWindow | TownWindow.xaml/.cs | —（キー削除済、シンボルマップ階段経由） | 街施設メニュー（宿屋/教会/銀行/鍛冶屋/ギルド/神殿等） |
+| WorldMapWindow | WorldMapWindow.xaml/.cs | J | 領地移動画面（町入場ボタン削除済、移動先選択のみ） |
 | TravelEventWindow | TravelEventWindow.xaml/.cs | 領地間移動時 | 移動イベント（強行/交渉/回避の選択） |
 | SaveDataSelectWindow | SaveDataSelectWindow.xaml/.cs | F5/F9 | セーブスロット選択 |
+| SkillTreeWindow | SkillTreeWindow.xaml/.cs | E | GrimDawn風スキルツリー（Tier 1-4段階表示、レベル制限Lv1/5/10/15、ノード一覧Tier順ソート・🔒レベルロック表示・解放・リスペック・キーストーン確認、「習得済み/スロット」タブでD&Dスキルスロット6枚配置） |
+| EncyclopediaWindow | EncyclopediaWindow.xaml/.cs | Y | 図鑑（カテゴリタブ切替・発見度表示・エントリ詳細） |
+| CompanionWindow | CompanionWindow.xaml/.cs | U | 仲間管理（パーティ一覧・AIモード変更・解雇・忠誠度警告） |
+| DeathLogWindow | DeathLogWindow.xaml/.cs | Z | 死亡録（統計表示・死因内訳・死亡記録一覧） |
+| RecruitCompanionWindow | RecruitCompanionWindow.xaml/.cs | ギルド受付「仲間を募集する」選択時 | 仲間募集候補一覧（候補ごとに名前・タイプ・レベル・ステータス・雇用コスト表示、雇うボタンでゴールド消費→AddCompanion） |
+| QuestBoardWindow | QuestBoardWindow.xaml/.cs | ギルド受付「クエストを確認する」選択時 | クエストボード3タブ（受注可能/進行中/完了済み）。受注ボタン・報告ボタンでQuestSystem API呼び出し |
 
 ---
 
@@ -292,13 +303,14 @@ Render(map, player, enemies, groundItems)
 | T | ThrowItem | アイテム投擲 |
 | V | StartCasting | 魔法詠唱画面表示 |
 | P | Pray | 祈り（宗教行動） |
-| E | UseSkill | スキル使用 |
-| N | RegisterGuild | ギルド登録 |
+| E | OpenSkillTree | スキルツリー画面表示（スロット割当） |
+| ~~N~~ | ~~RegisterGuild~~ | ~~ギルド登録~~（削除済：NPC会話選択肢に統合 Ver.prt.0.8） |
 | J | OpenWorldMap | ワールドマップ画面表示 |
 | K | ViewQuestLog | クエストログ画面表示 |
 | O | OpenReligion | 宗教画面表示 |
-| H | OpenCrafting | 合成・鍛冶画面表示 |
-| B | EnterTown | 街入場 |
+| ~~H~~ | ~~OpenCrafting~~ | ~~合成・鍛冶画面表示~~（削除済：内部イベント経由のみ） |
+| ~~B~~ | ~~EnterTown~~ | ~~街入場~~（削除済：シンボルマップ階段経由） |
+| 1-6 | UseSkillSlot | スキルスロット1〜6使用 |
 | Y | OpenEncyclopedia | 図鑑画面表示 |
 | U | OpenCompanion | 仲間管理画面表示 |
 | Z | OpenDeathLog | 死亡記録画面表示 |
@@ -307,7 +319,7 @@ Render(map, player, enemies, groundItems)
 | F5 | Save | セーブ |
 | F9 | Load | ロード |
 | Q | Quit | ゲーム終了 |
-| Esc | — | ダイアログ閉じる |
+| Esc | — | ダイアログ閉じる（各ウィンドウは開くキーでも閉じるトグル対応） |
 
 ### 6.2 斜め移動（同時押し検出）
 
@@ -352,6 +364,11 @@ Render(map, player, enemies, groundItems)
 | OnGameOver | ゲームオーバー処理 |
 | OnShowInventory | インベントリ画面表示要求 |
 | OnShowStatus | ステータス画面表示要求 |
+| OnShowDialogue | NPC会話ダイアログ表示要求（隣接インタラクト時、選択肢付き） |
+| OnOpenShop | ショップウィンドウ表示要求（NPC会話選択肢からFacilityType指定） |
+| OnCastingStarted | 魔法詠唱開始通知（詠唱ターン数表示） |
+| OnShowRecruitCompanion | 仲間募集ウィンドウ表示要求（候補リスト付き） |
+| OnShowQuestBoard | クエストボードウィンドウ表示要求 |
 
 ### 7.4 処理フロー
 
@@ -359,8 +376,12 @@ Render(map, player, enemies, groundItems)
 ProcessInput(GameAction)
   │
   ├─ 移動 → TryMove → 敵がいれば攻撃
+  │   ├─ NPC隣接判定（IsNpcTile）→ HandleNpcTile → OnShowDialogue（選択肢付き）
+  │   │   └─ 選択肢アクション: DispatchNpcAction（ギルド登録/入信/売買/宿泊/祈り）
+  │   ├─ 町マップ端判定（_isInLocationMap）→ TryLeaveTown
+  │   └─ BlocksMovement判定
   ├─ 待機 → AdvanceTurns(1)
-  ├─ アイテム拾う → TryPickupItem
+  ├─ アイテム拾う → TryPickupItem（CanFitInGrid容量チェック + 図鑑自動登録）
   ├─ インベントリ → OnShowInventory
   ├─ ステータス → OnShowStatus
   ├─ 階段 → DescendStairs → GenerateNewFloor
@@ -368,6 +389,7 @@ ProcessInput(GameAction)
   │
   ├─ ProcessEnemyTurns（敵AI処理、ActiveRange=10内のみ）
   ├─ ProcessTurnEffects（飢餓減少、HP/SP自然回復、状態異常ティック）
+  │   └─ ProcessChanting（詠唱カウントダウン、完了時魔法発動）
   ├─ FOV再計算
   └─ OnStateChanged（UI更新通知）
 ```
@@ -446,6 +468,12 @@ src/RougelikeGame.Gui/Audio/
 | 設定画面 | Phase 6 | 音量調整、フォントサイズ | ✅ 実装済み |
 | BGM/SE管理 | Phase 6 | AudioManager、10BGM+21SE定義 | ✅ 実装済み |
 | 描画最適化 | Phase 6 | プーリング、Visibility切替 | ✅ 実装済み |
+| NPC隣接インタラクト | Ver.prt.0.7 | 方向キーでNPC対話（タイル踏み不要） | ✅ 実装済み |
+| ウィンドウトグル操作 | Ver.prt.0.7 | 8ウィンドウを開くキーで閉じる | ✅ 実装済み |
+| 魔法詠唱ターン遅延 | Ver.prt.0.7 | TurnCost>1で詠唱状態、毎ターンログ | ✅ 実装済み |
+| D&Dドロップ位置保持 | Ver.prt.0.7 | ドラッグ後のグリッド位置が正しく保存 | ✅ 実装済み |
+| フロアキャッシュ分離 | Ver.prt.0.7 | ダンジョン別にレイアウト・探索状態を分離 | ✅ 実装済み |
+| 町脱出方式変更 | Ver.prt.0.7 | マップ端移動で脱出（階段方式から変更） | ✅ 実装済み |
 | キャラクター作成GUI画面 | Ver.α | 種族・職業選択、ステータス振り分け | ⬜ |
 | アニメーション | Ver.α | 攻撃エフェクト、画面遷移 | ⬜ |
 | 実際のBGM/SE音声ファイル | Ver.β | suno生成BGM、フリー素材SE配置 | ⬜ |

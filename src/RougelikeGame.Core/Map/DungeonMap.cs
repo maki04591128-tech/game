@@ -101,6 +101,22 @@ public class DungeonMap : IMap
         return _rooms.FirstOrDefault(r => r.Type == RoomType.Boss);
     }
 
+    /// <summary>部屋リストをクリアし、マップタイルを壁にリセット</summary>
+    public void ClearRooms()
+    {
+        _rooms.Clear();
+        StairsUpPosition = null;
+        StairsDownPosition = null;
+        EntrancePosition = null;
+        for (int x = 0; x < Width; x++)
+        {
+            for (int y = 0; y < Height; y++)
+            {
+                _tiles[x, y] = Tile.FromType(TileType.Wall);
+            }
+        }
+    }
+
     #endregion
 
     #region Stairs

@@ -384,6 +384,45 @@ public static class CorridorGenerator
             !map[pos.X, pos.Y - 1].BlocksMovement &&
             !map[pos.X, pos.Y + 1].BlocksMovement;
 
-        return (northSouthWalls && eastWestOpen) || (eastWestWalls && northSouthOpen);
+        if (!((northSouthWalls && eastWestOpen) || (eastWestWalls && northSouthOpen)))
+            return false;
+
+        // 追加バリデーション: ドアの通路方向の先に実際に部屋/通路が続いているか確認
+        // 壁方向のさらに先に通路可能タイルがなければ無意味なドア
+        if (northSouthWalls && eastWestOpen)
+        {
+            // 東西方向に通路が開いている → 壁（南北）の向こう側にも通路があるか確認
+            bool northHasPath = HasWalkableBeyondWall(map, pos.X, pos.Y - 1, 0, -1);
+            bool southHasPath = HasWalkableBeyondWall(map, pos.X, pos.Y + 1, 0, 1);
+            if (!northHasPath && !southHasPath)
+                return false; // 壁の向こう側にまったく通路がない = 無意味なドア
+        }
+        else if (eastWestWalls && northSouthOpen)
+        {
+            bool westHasPath = HasWalkableBeyondWall(map, pos.X - 1, pos.Y, -1, 0);
+            bool eastHasPath = HasWalkableBeyondWall(map, pos.X + 1, pos.Y, 1, 0);
+            if (!westHasPath && !eastHasPath)
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// 壁の向こう側に歩行可能なタイルがあるか確認（最大3タイル先まで走査）
+    /// </summary>
+    private static bool HasWalkableBeyondWall(DungeonMap map, int startX, int startY, int dx, int dy)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            int x = startX + dx * i;
+            int y = startY + dy * i;
+            if (x < 0 || x >= map.Width || y < 0 || y >= map.Height)
+                return false;
+            var t = map[x, y];
+            if (!t.BlocksMovement && i > 0) // 壁を越えた先に通路がある
+                return true;
+        }
+        return false;
     }
 }

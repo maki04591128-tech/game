@@ -70,15 +70,15 @@
         <!-- タイトル表示エリア -->
         <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
             <!-- ゲームタイトル -->
-            <TextBlock Text="— Abyss Reborn —"
-                       FontFamily="Consolas"
+            <TextBlock Text="タイトル未定"
+                       FontFamily="Yu Gothic UI"
                        FontSize="52"
                        FontWeight="Bold"
                        Foreground="#e94560"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,5"/>
             <!-- サブタイトル -->
-            <TextBlock Text="深淵より蘇りし者"
+            <TextBlock Text="ろーぐらいくげーむ"
                        FontFamily="Yu Gothic UI"
                        FontSize="20"
                        Foreground="#6060a0"

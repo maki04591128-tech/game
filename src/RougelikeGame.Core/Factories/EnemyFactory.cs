@@ -793,6 +793,30 @@ public static class EnemyDefinitions
     }
 
     /// <summary>
+    /// ダンジョンIDに対応するボスを取得（最深部ボス）
+    /// </summary>
+    public static EnemyDefinition GetDungeonBoss(string dungeonId)
+    {
+        return dungeonId switch
+        {
+            "capital_catacombs" => FloorBoss5,     // 王都地下墓地 - ゴブリンキング
+            "capital_rift" => FloorBoss15,         // 始まりの裂け目 - スケルトンロード
+            "forest_corruption" => FloorBoss10,    // 腐敗の森 - ゴブリンキング
+            "forest_ruins" => FloorBoss20,         // 古代エルフの遺跡 - ダークエルフ将軍
+            "mountain_mine" => FloorBoss10,        // 採掘坑 - ゴブリンキング
+            "mountain_lava" => FloorBoss25,        // 溶岩洞 - 炎竜ヴァルグレス
+            "mountain_dragon" => FloorBoss30,      // 竜の巣 - 深淵の王
+            "coast_cave" => FloorBoss5,            // 海岸洞窟 - スライムキング
+            "coast_wreck" => FloorBoss15,          // 沈没船 - スケルトンロード
+            "southern_icecave" => FloorBoss15,     // 氷の洞窟 - スケルトンロード
+            "southern_battlefield" => FloorBoss20, // 古戦場跡 - ダークエルフ将軍
+            "frontier_great_rift" => FloorBoss30,  // 大裂け目 - 深淵の王
+            "frontier_ancient_ruins" => FloorBoss25, // 滅びた王国の遺跡 - 炎竜ヴァルグレス
+            _ => FloorBoss5                        // デフォルト
+        };
+    }
+
+    /// <summary>
     /// 階層に応じた敵リストを取得
     /// </summary>
     public static IReadOnlyList<EnemyDefinition> GetEnemiesForDepth(int depth)

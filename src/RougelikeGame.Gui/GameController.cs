@@ -118,6 +118,21 @@ public class GameController
     /// <summary>無限ダンジョン撃破数</summary>
     private int _infiniteDungeonKills = 0;
 
+    /// <summary>スキルスロット（1-6キー割当、最大6スロット）</summary>
+    private readonly string?[] _skillSlots = new string?[6];
+
+    /// <summary>ダンジョンフロアキャッシュ（ダンジョン名+階層をキーとして各ダンジョンで分離）</summary>
+    private readonly Dictionary<(string DungeonName, int Floor), FloorCache> _floorCache = new();
+
+    /// <summary>フロアキャッシュの有効期間（ゲーム内24時間 = 24*60*60ターン）</summary>
+    private const int FloorCacheExpiry = 24 * 60 * 60;
+
+    /// <summary>詠唱中の残りターン数（0=詠唱中でない）</summary>
+    private int _chantRemainingTurns;
+
+    /// <summary>詠唱中の魔法効果（詠唱完了時に適用）</summary>
+    private SpellCastResult? _pendingSpellResult;
+
     /// <summary>累計死亡回数</summary>
     public int TotalDeaths { get; private set; } = 0;
 
@@ -179,6 +194,7 @@ public class GameController
     public event Action? OnShowWorldMap;
     public event Action<TerritoryId>? OnTerritoryChanged;
     public event Action<DialogueNode>? OnShowDialogue;
+    public event Action<FacilityType>? OnOpenShop;
     public event Action<string>? OnQuestUpdated;
     public event Action<GuildRank>? OnGuildRankUp;
     public event Action? OnShowCrafting;
@@ -194,6 +210,8 @@ public class GameController
     public event Action? OnShowCompanion;
     public event Action? OnShowCooking;
     public event Action? OnShowBaseConstruction;
+    public event Action<List<CompanionSystem.CompanionData>>? OnShowRecruitCompanion;
+    public event Action? OnShowQuestBoard;
 
     /// <summary>シンボルマップでのロケーション到着通知</summary>
     public event Action<LocationDefinition>? OnLocationArrived;
@@ -515,8 +533,42 @@ public class GameController
         symbolMap.ComputeFov(Player.Position, 12);
     }
 
+    /// <summary>現在のフロアのアイテム状態をキャッシュに保存</summary>
+    private void SaveFloorItemsToCache()
+    {
+        var floorKey = (_currentMapName, CurrentFloor);
+        if (_floorCache.TryGetValue(floorKey, out var cached))
+        {
+            _floorCache[floorKey] = cached with { GroundItems = new List<(Item, Position)>(GroundItems) };
+        }
+    }
+
     private void GenerateFloor()
     {
+        // フロアキャッシュ確認（有効期限内ならマップ構造を再利用）
+        var floorKey = (_currentMapName, CurrentFloor);
+        if (_floorCache.TryGetValue(floorKey, out var cached)
+            && (GameTime.TotalTurns - cached.CreatedAtTurn) < FloorCacheExpiry)
+        {
+            Map = cached.Map;
+            Map.Name = _currentMapName;
+
+            // キャッシュから復帰時は上り階段位置に配置
+            var cachedStartPos = Map.StairsUpPosition ?? Map.EntrancePosition ?? new Position(5, 5);
+            Player.Position = cachedStartPos;
+
+            // 敵は再生成（動的要素）
+            Enemies.Clear();
+            SpawnEnemies();
+
+            // アイテムはキャッシュから復元（24h毎のリセット時にのみ再生成）
+            GroundItems.Clear();
+            GroundItems.AddRange(cached.GroundItems);
+
+            Map.ComputeFov(Player.Position, 8);
+            return;
+        }
+
         var parameters = new DungeonGenerationParameters
         {
             Width = 60,
@@ -541,6 +593,9 @@ public class GameController
         // アイテムを配置
         GroundItems.Clear();
         SpawnItems();
+
+        // 新規生成したマップとアイテムをキャッシュ
+        _floorCache[floorKey] = new FloorCache(Map, GameTime.TotalTurns, new List<(Item, Position)>(GroundItems));
 
         // 視界計算
         Map.ComputeFov(Player.Position, 8);
@@ -588,6 +643,28 @@ public class GameController
                 if (bossPos.HasValue)
                 {
                     var boss = _enemyFactory.CreateEnemy(bossDef, bossPos.Value, bonus);
+                    Enemies.Add(boss);
+                }
+            }
+        }
+
+        // ダンジョン最深部（MaxDungeonFloor）にダンジョン固有ボスを必ず配置
+        if (CurrentFloor == GameConstants.MaxDungeonFloor
+            && !_isInLocationMap
+            && !string.IsNullOrEmpty(_currentMapName))
+        {
+            // 5の倍数でない場合のみ追加（5の倍数なら上のロジックで配置済み）
+            if (CurrentFloor % GameConstants.BossFloorInterval != 0 || EnemyDefinitions.GetFloorBoss(CurrentFloor) == null)
+            {
+                var dungeonBoss = EnemyDefinitions.GetDungeonBoss(_currentMapName);
+                var bossRoom = Map.GetBossRoom();
+                var bossPos = bossRoom != null
+                    ? new Position(bossRoom.X + bossRoom.Width / 2, bossRoom.Y + bossRoom.Height / 2)
+                    : GetRandomFloorPosition();
+
+                if (bossPos.HasValue)
+                {
+                    var boss = _enemyFactory.CreateEnemy(dungeonBoss, bossPos.Value, bonus);
                     Enemies.Add(boss);
                 }
             }
@@ -907,6 +984,11 @@ public class GameController
     {
         if (newPos.X < 0 || newPos.X >= Map.Width || newPos.Y < 0 || newPos.Y >= Map.Height)
         {
+            // ロケーションマップ（町内）で外周部から外へ移動しようとした場合は町を出る
+            if (_isInLocationMap)
+            {
+                return TryLeaveTown();
+            }
             return false;
         }
 
@@ -950,6 +1032,13 @@ public class GameController
             Map.SetTile(newPos.X, newPos.Y, TileType.DoorOpen);
             AddMessage("ドアを開けた");
             _lastMoveActionCost = TurnCosts.OpenDoor;
+            return true;
+        }
+
+        // NPCタイルへの移動: 隣接してNPC方向へ移動キーを押した場合はインタラクション
+        if (IsNpcTile(tile.Type))
+        {
+            HandleNpcTile(tile);
             return true;
         }
 
@@ -1080,6 +1169,13 @@ public class GameController
         if (enemy.ExperienceReward >= 80)
         {
             _clearSystem.IncrementFlag("boss_kills");
+
+            // ボス撃破時: その場に脱出口を生成
+            if (!_worldMapSystem.IsOnSurface && !_isInLocationMap)
+            {
+                Map.SetTile(enemy.Position, TileType.StairsUp);
+                AddMessage("⚡ ボスを倒した！ 脱出口が出現した！ [Shift+<]キーで脱出できる");
+            }
         }
 
         // クエスト自動進行（敵撃破）
@@ -1127,6 +1223,9 @@ public class GameController
                 }
             }
         }
+
+        // 図鑑更新（モンスター）
+        RegisterAndDiscoverEncyclopedia(EncyclopediaCategory.Monster, enemy.EnemyTypeId, enemy.Name);
     }
 
     /// <summary>ゲームクリア処理</summary>
@@ -1354,6 +1453,9 @@ public class GameController
 
     private void ProcessTurnEffects()
     {
+        // 詠唱中の処理
+        ProcessChanting();
+
         // 満腹度減少（HungerDecayInterval ターンごとに1減少）
         // アンデッド「食事不要」特性: 満腹度が減少しない
         if (TurnCount > 0 && TurnCount % TimeConstants.HungerDecayInterval == 0)
@@ -1453,9 +1555,20 @@ public class GameController
                 return false;
             }
 
+            // グリッド容量チェック
+            if (!CanFitInGrid(inventory, itemOnGround.Item))
+            {
+                AddMessage($"グリッドに空きがなく{itemOnGround.Item.GetDisplayName()}を拾えない！");
+                return false;
+            }
+
             GroundItems.Remove(itemOnGround);
             inventory.Add(itemOnGround.Item);
             AddMessage($"{itemOnGround.Item.GetDisplayName()}を拾った（{inventory.TotalWeight:F1}/{Player.CalculateMaxWeight():F1}kg）");
+
+            // 図鑑更新（アイテム）
+            RegisterAndDiscoverEncyclopedia(EncyclopediaCategory.Item, itemOnGround.Item.ItemId, itemOnGround.Item.Name);
+
             return true;
         }
         else
@@ -1463,6 +1576,59 @@ public class GameController
             AddMessage("ここには何もない");
             return false;
         }
+    }
+
+    /// <summary>グリッドインベントリに新しいアイテムが収まるかシミュレート</summary>
+    private static bool CanFitInGrid(Inventory inventory, Item newItem)
+    {
+        const int GridWidth = 10;
+        const int GridHeight = 6;
+        var placed = new bool[GridWidth, GridHeight];
+
+        // 既存アイテムを順番に配置
+        foreach (var item in inventory.Items)
+        {
+            var (w, h) = GridInventorySystem.GetDimensions(GetItemGridSize(item));
+            var pos = FindFreeGridPosition(placed, w, h, GridWidth, GridHeight);
+            if (pos == null) continue;
+            for (int dx = 0; dx < w; dx++)
+                for (int dy = 0; dy < h; dy++)
+                    placed[pos.Value.X + dx, pos.Value.Y + dy] = true;
+        }
+
+        // 新アイテムが配置可能か判定
+        var (nw, nh) = GridInventorySystem.GetDimensions(GetItemGridSize(newItem));
+        return FindFreeGridPosition(placed, nw, nh, GridWidth, GridHeight) != null;
+    }
+
+    /// <summary>グリッドの空き位置を検索</summary>
+    private static (int X, int Y)? FindFreeGridPosition(bool[,] placed, int w, int h, int gridWidth, int gridHeight)
+    {
+        for (int y = 0; y <= gridHeight - h; y++)
+            for (int x = 0; x <= gridWidth - w; x++)
+            {
+                bool fits = true;
+                for (int dx = 0; dx < w && fits; dx++)
+                    for (int dy = 0; dy < h && fits; dy++)
+                        if (placed[x + dx, y + dy])
+                            fits = false;
+                if (fits) return (x, y);
+            }
+        return null;
+    }
+
+    /// <summary>アイテムのグリッドサイズを決定</summary>
+    internal static GridItemSize GetItemGridSize(Item item)
+    {
+        return item switch
+        {
+            Weapon { IsTwoHanded: true } => GridItemSize.Size2x3,
+            Weapon => GridItemSize.Size1x2,
+            Shield => GridItemSize.Size2x2,
+            Armor => GridItemSize.Size2x3,
+            EquipmentItem => GridItemSize.Size1x2,
+            _ => GridItemSize.Size1x1
+        };
     }
 
     private bool TryDescendStairs()
@@ -1486,6 +1652,12 @@ public class GameController
             }
         }
 
+        // シンボルマップ上の町・施設シンボルから入場
+        if (_worldMapSystem.IsOnSurface && _symbolMapSystem.IsTownEntrance(Player.Position))
+        {
+            return TryEnterTown();
+        }
+
         if (tile.Type == TileType.StairsDown)
         {
             if (CurrentFloor >= GameConstants.MaxDungeonFloor)
@@ -1496,6 +1668,7 @@ public class GameController
                 return false;
             }
 
+            SaveFloorItemsToCache();
             CurrentFloor++;
             GenerateFloor();
             AddMessage($"第{CurrentFloor}層に降りた");
@@ -1538,6 +1711,12 @@ public class GameController
             return false;
         }
 
+        // ロケーションマップ（町・施設）の場合は町脱出処理に委譲
+        if (_isInLocationMap)
+        {
+            return TryLeaveTown();
+        }
+
         if (CurrentFloor <= 1)
         {
             // 1層目の上り階段 → シンボルマップに帰還
@@ -1561,6 +1740,7 @@ public class GameController
         else
         {
             // 上の階へ移動
+            SaveFloorItemsToCache();
             CurrentFloor--;
             GenerateFloor();
             // 上昇時はプレイヤーを下り階段位置に配置
@@ -2429,6 +2609,86 @@ public class GameController
         return true;
     }
 
+    /// <summary>スキルスロットにスキルを割り当て（0-4のインデックス、1-5キーに対応）</summary>
+    public bool AssignSkillSlot(int slotIndex, string skillId)
+    {
+        if (slotIndex < 0 || slotIndex >= _skillSlots.Length) return false;
+        if (!Player.LearnedSkills.Contains(skillId)) return false;
+        var skill = SkillDatabase.GetById(skillId);
+        if (skill == null || skill.Category == SkillCategory.Passive) return false;
+        _skillSlots[slotIndex] = skillId;
+        AddMessage($"スロット{slotIndex + 1}に{skill.Name}を割り当てた");
+        return true;
+    }
+
+    /// <summary>スキルスロットの割り当てを解除</summary>
+    public void ClearSkillSlot(int slotIndex)
+    {
+        if (slotIndex >= 0 && slotIndex < _skillSlots.Length)
+            _skillSlots[slotIndex] = null;
+    }
+
+    /// <summary>スキルスロットの情報を取得</summary>
+    public IReadOnlyList<string?> GetSkillSlots() => _skillSlots;
+
+    /// <summary>スキルスロット使用後のターン進行（MainWindowから呼ぶ）</summary>
+    public void AdvanceTurnFromSkillSlot(int actionCost)
+    {
+        int finalCost = Math.Max(1, actionCost);
+        TurnCount += finalCost;
+        GameTime.AdvanceTurn(finalCost);
+        ProcessEnemyTurns();
+        ProcessTurnEffects();
+        CheckTurnLimitWarnings();
+        Map.ComputeFov(Player.Position, 8);
+
+        if (!Player.IsAlive)
+        {
+            HandlePlayerDeath(_lastDamageCause);
+        }
+        else if (CheckTurnLimitExceeded())
+        {
+            HandleTurnLimitExceeded();
+        }
+
+        OnStateChanged?.Invoke();
+    }
+
+    /// <summary>スキルスロットのスキルを実行（1-6キー用）</summary>
+    public bool TryUseSkillSlot(int slotIndex, out int actionCost)
+    {
+        actionCost = TurnCosts.MoveNormal;
+        if (slotIndex < 0 || slotIndex >= _skillSlots.Length) return false;
+        var skillId = _skillSlots[slotIndex];
+        if (skillId == null)
+        {
+            AddMessage($"スロット{slotIndex + 1}にスキルが割り当てられていない");
+            return false;
+        }
+
+        var skill = SkillDatabase.GetById(skillId);
+        if (skill == null) return false;
+
+        var result = _skillSystem.Use(skillId, Player.CurrentMp, Player.CurrentSp);
+        if (!result.Success)
+        {
+            AddMessage(result.Message);
+            return false;
+        }
+
+        if (result.MpCost > 0) Player.ConsumeMp(result.MpCost);
+        if (result.SpCost > 0) Player.ConsumeSp(result.SpCost);
+        ApplySkillEffect(skill);
+        actionCost = Math.Max(1, result.TurnCost);
+        return true;
+    }
+
+    /// <summary>現在の職業のスキルツリーを取得</summary>
+    public IReadOnlyList<SkillTreeNode> GetCurrentClassSkillTree()
+    {
+        return SkillDatabase.GetSkillTree(Player.CharacterClass);
+    }
+
     /// <summary>
     /// スキル効果をゲーム内に適用する
     /// </summary>
@@ -2736,9 +2996,19 @@ public class GameController
             return result.TurnCost > 0;
         }
 
-        // 成功時: 効果を解決して適用
+        // 詠唱ターンが2以上の場合、詠唱状態に入る（毎ターンカウントダウン）
+        if (result.TurnCost > 1)
+        {
+            _chantRemainingTurns = result.TurnCost - 1; // 今のターン分を差し引く
+            _pendingSpellResult = result;
+            AddMessage($"詠唱を開始した… (残り{_chantRemainingTurns}ターン)");
+            actionCost = TurnCosts.SpellMinimum;
+            return true;
+        }
+
+        // 即時発動（TurnCost <= 1）
         AddMessage(result.Message);
-        actionCost = result.TurnCost;
+        actionCost = Math.Max(1, result.TurnCost);
 
         var effect = SpellEffectResolver.Resolve(result);
         if (!effect.IsNone)
@@ -2748,6 +3018,38 @@ public class GameController
 
         return true;
     }
+
+    /// <summary>詠唱中の毎ターン処理</summary>
+    private void ProcessChanting()
+    {
+        if (_chantRemainingTurns <= 0 || _pendingSpellResult == null)
+            return;
+
+        _chantRemainingTurns--;
+
+        if (_chantRemainingTurns > 0)
+        {
+            AddMessage($"…詠唱中… (残り{_chantRemainingTurns}ターン)");
+            return;
+        }
+
+        // 詠唱完了 — 効果を発動
+        var result = _pendingSpellResult;
+        _pendingSpellResult = null;
+
+        AddMessage(result.Message);
+
+        var effect = SpellEffectResolver.Resolve(result);
+        if (!effect.IsNone)
+        {
+            ApplySpellEffect(effect);
+        }
+
+        AddMessage("詠唱が完了した！");
+    }
+
+    /// <summary>詠唱中かどうか（移動や他行動の制限に使用可能）</summary>
+    public bool IsChanting => _chantRemainingTurns > 0;
 
     /// <summary>魔法効果をゲームに適用</summary>
     private void ApplySpellEffect(SpellEffect effect)
@@ -2779,7 +3081,7 @@ public class GameController
                 ApplySpellBuff(effect);
                 break;
             case SpellEffectType.Stealth:
-                AddMessage("姿を隠した");
+                ApplySpellStealth(effect);
                 break;
             case SpellEffectType.Control:
                 ApplySpellControl(effect);
@@ -2791,22 +3093,22 @@ public class GameController
                 ApplySpellUnlock(effect);
                 break;
             case SpellEffectType.Teleport:
-                AddMessage("空間が歪み、別の場所に転送された");
+                ApplySpellTeleport(effect);
                 break;
             case SpellEffectType.Summon:
-                AddMessage("召喚の魔法が発動した…（未実装）");
+                ApplySpellSummon(effect);
                 break;
             case SpellEffectType.Copy:
-                AddMessage("複写の魔法が発動した…（未実装）");
+                ApplySpellCopy(effect);
                 break;
             case SpellEffectType.Reverse:
-                AddMessage("反転の魔法が発動した…（未実装）");
+                ApplySpellReverse(effect);
                 break;
             case SpellEffectType.Seal:
-                AddMessage("封印の魔法が発動した…（未実装）");
+                ApplySpellSeal(effect);
                 break;
             case SpellEffectType.Resurrect:
-                AddMessage("蘇生の魔法が発動した…（未実装）");
+                ApplySpellResurrect(effect);
                 break;
         }
     }
@@ -2980,6 +3282,175 @@ public class GameController
             }
         }
         AddMessage(unlocked > 0 ? $"{unlocked}個の錠前が開いた" : "解錠対象が見つからない");
+    }
+
+    /// <summary>魔法テレポートの適用</summary>
+    private void ApplySpellTeleport(SpellEffect effect)
+    {
+        var teleportPos = Map.GetRandomWalkablePosition(_random);
+        if (teleportPos.HasValue)
+        {
+            Player.Position = teleportPos.Value;
+            Map.ComputeFov(Player.Position, GameConstants.DefaultViewRadius);
+            AddMessage("空間が歪み、別の場所に転送された");
+        }
+        else
+        {
+            AddMessage("転送先が見つからなかった");
+        }
+    }
+
+    /// <summary>魔法ステルスの適用</summary>
+    private void ApplySpellStealth(SpellEffect effect)
+    {
+        int duration = Math.Max(effect.Duration, 5);
+        Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Invisibility, duration));
+        AddMessage($"姿を隠した（{duration}ターン）");
+    }
+
+    /// <summary>魔法召喚の適用</summary>
+    private void ApplySpellSummon(SpellEffect effect)
+    {
+        // プレイヤー周囲の空きマスを探す
+        Position? summonPos = null;
+        for (int dy = -2; dy <= 2 && summonPos == null; dy++)
+        {
+            for (int dx = -2; dx <= 2 && summonPos == null; dx++)
+            {
+                if (dx == 0 && dy == 0) continue;
+                var candidate = new Position(Player.Position.X + dx, Player.Position.Y + dy);
+                if (!Map.IsInBounds(candidate) || !Map.IsWalkable(candidate)) continue;
+                if (Enemies.Any(e => e.IsAlive && e.Position == candidate)) continue;
+                if (Player.Position == candidate) continue;
+                summonPos = candidate;
+            }
+        }
+
+        if (summonPos == null)
+        {
+            AddMessage("召喚する空間がない");
+            return;
+        }
+
+        var definitions = EnemyDefinitions.GetEnemiesForDepth(CurrentFloor);
+        if (definitions.Count == 0)
+        {
+            AddMessage("召喚できる存在がいない");
+            return;
+        }
+
+        var def = definitions[_random.Next(definitions.Count)];
+        var summoned = _enemyFactory.CreateEnemy(def, summonPos.Value, null);
+        summoned.Faction = Faction.Friendly;
+        summoned.Name = $"召喚{def.Name}";
+        Enemies.Add(summoned);
+        AddMessage($"{summoned.Name}を召喚した！");
+    }
+
+    /// <summary>魔法複写の適用</summary>
+    private void ApplySpellCopy(SpellEffect effect)
+    {
+        var concreteInventory = (Inventory)Player.Inventory;
+        var lastItem = concreteInventory.Items.LastOrDefault();
+        if (lastItem == null)
+        {
+            AddMessage("複写する対象がない");
+            return;
+        }
+
+        var copy = ItemDefinitions.Create(lastItem.ItemId);
+        if (copy == null)
+        {
+            AddMessage("この品は複写できない");
+            return;
+        }
+
+        concreteInventory.Add(copy);
+        AddMessage($"{copy.Name}を複写した！");
+    }
+
+    /// <summary>魔法反転の適用</summary>
+    private void ApplySpellReverse(SpellEffect effect)
+    {
+        var negativeEffects = Player.StatusEffects
+            .Where(e => e.Type is StatusEffectType.Poison or StatusEffectType.Burn
+                or StatusEffectType.Freeze or StatusEffectType.Paralysis
+                or StatusEffectType.Blind or StatusEffectType.Confusion
+                or StatusEffectType.Slow or StatusEffectType.Weakness
+                or StatusEffectType.Vulnerability or StatusEffectType.Silence
+                or StatusEffectType.Curse)
+            .ToList();
+
+        if (negativeEffects.Count == 0)
+        {
+            AddMessage("反転すべき状態異常がない");
+            return;
+        }
+
+        foreach (var neg in negativeEffects)
+        {
+            Player.RemoveStatusEffect(neg.Type);
+        }
+        // デバフ反転のボーナスとして一時的な強化を付与
+        Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Regeneration, Math.Max(effect.Duration, 5)));
+        AddMessage($"{negativeEffects.Count}個の状態異常を反転し、再生効果を得た！");
+    }
+
+    /// <summary>魔法封印の適用</summary>
+    private void ApplySpellSeal(SpellEffect effect)
+    {
+        int duration = Math.Max(effect.Duration, 5);
+        switch (effect.TargetType)
+        {
+            case SpellTargetType.SingleEnemy:
+            case SpellTargetType.Forward:
+                var target = GetNearestEnemy();
+                if (target != null)
+                {
+                    target.ApplyStatusEffect(new StatusEffect(StatusEffectType.Silence, duration));
+                    AddMessage($"{target.Name}の能力を封印した（{duration}ターン）");
+                }
+                else
+                {
+                    AddMessage("封印の対象が見つからない");
+                }
+                break;
+            case SpellTargetType.AllEnemies:
+            case SpellTargetType.All:
+                var targets = GetEnemiesInRange(effect.Range);
+                foreach (var enemy in targets)
+                {
+                    enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Silence, duration));
+                }
+                AddMessage(targets.Count > 0 ? $"{targets.Count}体の敵を封印した" : "範囲内に敵がいない");
+                break;
+            default:
+                AddMessage("封印の魔法が虚空に消えた");
+                break;
+        }
+    }
+
+    /// <summary>魔法蘇生の適用</summary>
+    private void ApplySpellResurrect(SpellEffect effect)
+    {
+        int healAmount = Math.Max(effect.Power, 1) + Player.EffectiveStats.Mind;
+        int oldHp = Player.CurrentHp;
+        Player.Heal(Player.MaxHp);
+        int actualHeal = Player.CurrentHp - oldHp;
+
+        // 負の状態異常も全て除去
+        var negativeEffects = Player.StatusEffects
+            .Where(e => e.Type is StatusEffectType.Poison or StatusEffectType.Burn
+                or StatusEffectType.Freeze or StatusEffectType.Paralysis
+                or StatusEffectType.Blind or StatusEffectType.Confusion
+                or StatusEffectType.Curse)
+            .ToList();
+        foreach (var neg in negativeEffects)
+        {
+            Player.RemoveStatusEffect(neg.Type);
+        }
+
+        AddMessage($"蘇生の光に包まれ、HPが{actualHeal}回復し状態異常が浄化された！");
     }
 
     /// <summary>最も近い生存敵を取得</summary>
@@ -3243,7 +3714,7 @@ public class GameController
         _currentMapName = location.Id;
 
         Map = locationMap;
-        var startPos = locationMap.StairsUpPosition ?? locationMap.EntrancePosition ?? new Position(5, 5);
+        var startPos = locationMap.EntrancePosition ?? locationMap.StairsUpPosition ?? new Position(5, 5);
         Player.Position = startPos;
 
         Enemies.Clear();
@@ -3261,6 +3732,90 @@ public class GameController
         OnSymbolMapEnterTown?.Invoke();
         OnStateChanged?.Invoke();
         return true;
+    }
+
+    /// <summary>タイルがNPCタイルかどうか判定</summary>
+    private static bool IsNpcTile(TileType type) => type is
+        TileType.NpcGuildReceptionist or
+        TileType.NpcPriest or
+        TileType.NpcShopkeeper or
+        TileType.NpcBlacksmith or
+        TileType.NpcInnkeeper;
+
+    /// <summary>町内NPCタイルに隣接して話しかけた際のインタラクション</summary>
+    private void HandleNpcTile(Tile tile)
+    {
+        var (speakerName, text, choices) = tile.Type switch
+        {
+            TileType.NpcGuildReceptionist when !IsGuildRegistered
+                => ("ギルド受付", "冒険者ギルドへようこそ！ 登録しますか？",
+                    new[]
+                    {
+                        new DialogueChoice("ギルドに登録する", "action:register_guild", 5),
+                        new DialogueChoice("やめておく", "action:close")
+                    }),
+            TileType.NpcGuildReceptionist
+                => ("ギルド受付", "お帰りなさい、冒険者さん。何かお手伝いしましょうか？",
+                    new[]
+                    {
+                        new DialogueChoice("クエストを確認する", "action:view_quests"),
+                        new DialogueChoice("仲間を募集する", "action:recruit_companion"),
+                        new DialogueChoice("話を聞く", "action:close")
+                    }),
+            TileType.NpcPriest when Player.CurrentReligion == null
+                => ("神父", "信仰の道へようこそ。どの神に仕えますか？",
+                    new[]
+                    {
+                        new DialogueChoice("光の神殿に入信する", "action:join_religion_LightTemple", 3),
+                        new DialogueChoice("闇の教団に入信する", "action:join_religion_DarkCult", 3),
+                        new DialogueChoice("自然信仰に入信する", "action:join_religion_NatureWorship", 3),
+                        new DialogueChoice("死の信仰に入信する", "action:join_religion_DeathFaith", 3),
+                    }),
+            TileType.NpcPriest
+                => ("神父", $"ようこそ、信徒よ。今日はどうされましたか？",
+                    new[]
+                    {
+                        new DialogueChoice("祈りを捧げる", "action:pray", 1),
+                        new DialogueChoice("信仰情報を見る", "action:view_religion"),
+                        new DialogueChoice("何もしない", "action:close")
+                    }),
+            TileType.NpcShopkeeper
+                => ("商人", "いらっしゃい！何をお探しで？",
+                    new[]
+                    {
+                        new DialogueChoice("商品を見る", "action:open_shop_GeneralShop"),
+                        new DialogueChoice("立ち去る", "action:close")
+                    }),
+            TileType.NpcBlacksmith
+                => ("鍛冶屋", "おう、いらっしゃい！武器や防具なら任せろ！",
+                    new[]
+                    {
+                        new DialogueChoice("武器を見る", "action:open_shop_WeaponShop"),
+                        new DialogueChoice("防具を見る", "action:open_shop_ArmorShop"),
+                        new DialogueChoice("立ち去る", "action:close")
+                    }),
+            TileType.NpcInnkeeper
+                => ("宿屋主人", "疲れたら休んでいきなさい。食料もあるよ。",
+                    new[]
+                    {
+                        new DialogueChoice("宿に泊まる", "action:use_inn"),
+                        new DialogueChoice("食料を買う", "action:open_shop_GeneralShop"),
+                        new DialogueChoice("立ち去る", "action:close")
+                    }),
+            _ => ("", "", Array.Empty<DialogueChoice>())
+        };
+
+        if (!string.IsNullOrEmpty(speakerName))
+        {
+            var dialogueNode = new DialogueNode(
+                $"npc_{tile.Type}",
+                speakerName,
+                text,
+                choices);
+            _dialogueSystem.RegisterNode(dialogueNode);
+            _dialogueSystem.StartDialogue(dialogueNode.Id);
+            OnShowDialogue?.Invoke(dialogueNode);
+        }
     }
 
     /// <summary>街を出る（ロケーションマップからシンボルマップへ帰還）</summary>
@@ -3378,6 +3933,18 @@ public class GameController
     {
         double discount = ShopSystem.CalculateCharismaDiscount(Player.EffectiveStats.Charisma);
         var result = _shopSystem.Buy(Player, shopType, index, discount);
+        if (result.Success && result.ItemId is not null)
+        {
+            var newItem = ItemDefinitions.Create(result.ItemId);
+            if (newItem != null)
+            {
+                var inventory = (Inventory)Player.Inventory;
+                if (!inventory.Add(newItem))
+                {
+                    AddMessage("インベントリが一杯のため、アイテムを受け取れなかった");
+                }
+            }
+        }
         AddMessage(result.Message);
         OnStateChanged?.Invoke();
         return result.Success;
@@ -3545,6 +4112,30 @@ public class GameController
     /// <summary>会話の選択肢を選ぶ</summary>
     public bool TrySelectDialogueChoice(int choiceIndex, string npcId)
     {
+        // アクション用NextNodeIdを事前に取得（SelectChoice後はCurrentNodeが変わるため）
+        var currentNode = _dialogueSystem.CurrentNode;
+        string? actionNodeId = null;
+        if (currentNode?.HasChoices == true && currentNode.Choices != null
+            && choiceIndex >= 0 && choiceIndex < currentNode.Choices.Length)
+        {
+            actionNodeId = currentNode.Choices[choiceIndex].NextNodeId;
+        }
+
+        // "action:"プレフィックスの場合はNPCアクションをディスパッチ
+        if (actionNodeId != null && actionNodeId.StartsWith("action:"))
+        {
+            // 好感度変更を先に適用
+            var choice = currentNode!.Choices![choiceIndex];
+            if (choice.AffinityChange != 0)
+            {
+                _npcSystem.ModifyAffinity(npcId, choice.AffinityChange);
+            }
+
+            _dialogueSystem.EndDialogue();
+            DispatchNpcAction(actionNodeId["action:".Length..]);
+            return true;
+        }
+
         var result = _dialogueSystem.SelectChoice(choiceIndex);
         if (result == null) return false;
 
@@ -3562,6 +4153,52 @@ public class GameController
             AddMessage("会話が終了した");
         }
         return result.Success;
+    }
+
+    /// <summary>NPC会話選択肢からのアクションディスパッチ</summary>
+    private void DispatchNpcAction(string action)
+    {
+        switch (action)
+        {
+            case "register_guild":
+                TryRegisterGuild();
+                break;
+            case "view_quests":
+                OnShowQuestBoard?.Invoke();
+                break;
+            case "recruit_companion":
+                HandleRecruitCompanion();
+                break;
+            case "pray":
+                TryPray();
+                break;
+            case "view_religion":
+                AddMessage("信仰情報を確認した");
+                OnReligionChanged?.Invoke();
+                break;
+            case "use_inn":
+                TryUseInn();
+                break;
+            case "close":
+                // 何もせず会話を終了
+                break;
+            default:
+                // ショップ系: open_shop_{FacilityType}
+                if (action.StartsWith("open_shop_") && Enum.TryParse<FacilityType>(action["open_shop_".Length..], out var shopType))
+                {
+                    OnOpenShop?.Invoke(shopType);
+                }
+                // 入信系: join_religion_{ReligionId}
+                else if (action.StartsWith("join_religion_") && Enum.TryParse<ReligionId>(action["join_religion_".Length..], out var religionId))
+                {
+                    TryJoinReligion(religionId);
+                }
+                else
+                {
+                    AddMessage($"不明なアクション: {action}");
+                }
+                break;
+        }
     }
 
     /// <summary>会話を終了する</summary>
@@ -3586,6 +4223,101 @@ public class GameController
     public string GetNpcAffinityRank(string npcId)
     {
         return NpcDefinition.GetAffinityRank(_npcSystem.GetNpcState(npcId).Affinity);
+    }
+
+    /// <summary>仲間募集処理</summary>
+    private void HandleRecruitCompanion()
+    {
+        if (_companionSystem.Party.Count >= CompanionSystem.MaxPartySize)
+        {
+            AddMessage("パーティが満員だ！（最大4人）");
+            return;
+        }
+
+        var candidates = GenerateCompanionCandidates();
+        if (candidates.Count == 0)
+        {
+            AddMessage("現在募集できる仲間はいない");
+            return;
+        }
+
+        OnShowRecruitCompanion?.Invoke(candidates);
+    }
+
+    /// <summary>ギルドランクとプレイヤーレベルに基づいて仲間候補を生成</summary>
+    private List<CompanionSystem.CompanionData> GenerateCompanionCandidates()
+    {
+        var candidates = new List<CompanionSystem.CompanionData>();
+        var rank = _guildSystem.CurrentRank;
+        int playerLevel = Player.Level;
+
+        // ランクに応じた候補数と最大レベル
+        int maxCandidates = rank switch
+        {
+            >= GuildRank.Gold => 4,
+            >= GuildRank.Silver => 3,
+            _ => 2
+        };
+        int maxLevel = Math.Min(playerLevel + 2, (int)rank * 5 + 5);
+
+        string[] mercenaryNames = { "ガレス", "ブリン", "セルディン", "ヴァルク", "オルガ", "ザイン", "レナス", "ドルク" };
+        string[] allyNames = { "リーナ", "エルミア", "カイト", "ソフィア", "ハルト", "ミーア", "ジーク", "ユリア" };
+        string[] petNames = { "ポチ", "タマ", "クロ", "シロ", "モモ", "レオ", "リュウ", "ハヤテ" };
+
+        var existingNames = _companionSystem.Party.Select(c => c.Name).ToHashSet();
+
+        for (int i = 0; i < maxCandidates; i++)
+        {
+            var type = (CompanionType)(i % 3);
+            int level = Math.Max(1, _random.Next(Math.Max(1, playerLevel - 3), maxLevel + 1));
+            int hireCost = CompanionSystem.CalculateHireCost(type, level);
+
+            var namePool = type switch
+            {
+                CompanionType.Mercenary => mercenaryNames,
+                CompanionType.Ally => allyNames,
+                _ => petNames
+            };
+
+            string name = namePool[_random.Next(0, namePool.Length)];
+            if (existingNames.Contains(name)) continue;
+            existingNames.Add(name);
+
+            candidates.Add(new CompanionSystem.CompanionData(
+                Name: name,
+                Type: type,
+                AIMode: CompanionAIMode.Aggressive,
+                Level: level,
+                Loyalty: 50,
+                HireCost: hireCost,
+                Hp: 80 + level * 20,
+                MaxHp: 80 + level * 20,
+                Attack: 5 + level * 3,
+                Defense: 3 + level * 2
+            ));
+        }
+
+        return candidates;
+    }
+
+    /// <summary>仲間を雇用する</summary>
+    public bool TryHireCompanion(CompanionSystem.CompanionData companion)
+    {
+        if (Player.Gold < companion.HireCost)
+        {
+            AddMessage($"お金が足りない！（必要: {companion.HireCost}G）");
+            return false;
+        }
+
+        if (!_companionSystem.AddCompanion(companion))
+        {
+            AddMessage("仲間を追加できなかった");
+            return false;
+        }
+
+        Player.AddGold(-companion.HireCost);
+        AddMessage($"{companion.Name}が仲間になった！（{companion.HireCost}G）");
+        return true;
     }
 
     /// <summary>ギルドに登録</summary>
@@ -3700,6 +4432,27 @@ public class GameController
             return false;
         }
 
+        // 次の移動先が閉じたドアなら開ける
+        var nextTile = Map.GetTile(nextStep.Value);
+        if (nextTile.Type == TileType.DoorClosed)
+        {
+            if (nextTile.IsLocked)
+            {
+                // 施錠ドアは自動探索では開けない（停止）
+                _autoExploring = false;
+                AddMessage("施錠されたドアがある");
+                return false;
+            }
+            Map.SetTile(nextStep.Value.X, nextStep.Value.Y, TileType.DoorOpen);
+            AddMessage("ドアを開けた");
+            _lastMoveActionCost = TurnCosts.OpenDoor;
+            TurnCount += _lastMoveActionCost;
+            GameTime.AdvanceTurn(_lastMoveActionCost);
+            ProcessEnemyTurns();
+            OnStateChanged?.Invoke();
+            return true;
+        }
+
         // 1マス移動
         return TryMove(nextStep.Value);
     }
@@ -3750,10 +4503,15 @@ public class GameController
         foreach (var (dx, dy) in dirs)
         {
             var neighbor = new Position(Player.Position.X + dx, Player.Position.Y + dy);
-            if (Map.IsInBounds(neighbor) && !Map.GetTile(neighbor).BlocksMovement && !IsOccupied(neighbor))
+            if (Map.IsInBounds(neighbor))
             {
-                visited.Add(neighbor);
-                queue.Enqueue((neighbor, neighbor));
+                var nTile = Map.GetTile(neighbor);
+                bool passable = !nTile.BlocksMovement || (nTile.Type == TileType.DoorClosed && !nTile.IsLocked);
+                if (passable && !IsOccupied(neighbor))
+                {
+                    visited.Add(neighbor);
+                    queue.Enqueue((neighbor, neighbor));
+                }
             }
         }
 
@@ -3777,7 +4535,9 @@ public class GameController
                 var next = new Position(current.X + dx, current.Y + dy);
                 if (!Map.IsInBounds(next)) continue;
                 if (visited.Contains(next)) continue;
-                if (Map.GetTile(next).BlocksMovement) continue;
+                var nxTile = Map.GetTile(next);
+                bool passable = !nxTile.BlocksMovement || (nxTile.Type == TileType.DoorClosed && !nxTile.IsLocked);
+                if (!passable) continue;
 
                 visited.Add(next);
                 queue.Enqueue((next, firstStep));
@@ -3796,7 +4556,7 @@ public class GameController
         return StepAutoExplore();
     }
 
-    private void AddMessage(string message)
+    public void AddMessage(string message)
     {
         var formattedMessage = $"[{TurnCount}] {message}";
         _messageHistory.Add(formattedMessage);
@@ -4164,6 +4924,28 @@ public class GameController
     /// <summary>図鑑システム</summary>
     public EncyclopediaSystem GetEncyclopediaSystem() => _encyclopediaSystem;
 
+    /// <summary>図鑑エントリを自動登録し発見レベルを上昇させる</summary>
+    private void RegisterAndDiscoverEncyclopedia(EncyclopediaCategory category, string id, string name)
+    {
+        if (_encyclopediaSystem.GetEntry(id) == null)
+        {
+            _encyclopediaSystem.RegisterEntry(category, id, name, 3, new Dictionary<int, string>
+            {
+                { 1, $"{name}を発見した。" },
+                { 2, $"{name}についてより深く知った。" },
+                { 3, $"{name}の全てを理解した。" }
+            });
+        }
+        if (_encyclopediaSystem.IncrementDiscovery(id))
+        {
+            var entry = _encyclopediaSystem.GetEntry(id);
+            if (entry != null && entry.DiscoveryLevel == 1)
+            {
+                AddMessage($"📖 図鑑に{name}が記録された！");
+            }
+        }
+    }
+
     /// <summary>死亡ログシステム</summary>
     public DeathLogSystem GetDeathLogSystem() => _deathLogSystem;
 
@@ -4354,6 +5136,11 @@ public class GameController
 
     #endregion
 }
+
+/// <summary>
+/// ダンジョンフロアキャッシュ（マップ構造と生成時刻を保持）
+/// </summary>
+public record FloorCache(DungeonMap Map, int CreatedAtTurn, List<(Item Item, Position Position)> GroundItems);
 
 public enum GameAction
 {

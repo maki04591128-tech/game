@@ -1,402 +1,144 @@
-# GUIオートテスト説明書
+﻿# GUIオートテスト説明書
 
-## 概要
-
-GUIオートテストは、FlaUI（UI Automation）を使ってWPFアプリケーションを実際に起動し、ユーザー操作をシミュレートして画面要素の表示・動作を検証する自動テストスイートである。以下の2つのテストクラスで構成される。
-
-### テストクラス一覧
-
-| クラス名 | xUnitテストメソッド数 | 内部検証項目数 | 目的 | ファイル |
-|---|---|---|---|---|
-| `GuiAutomationTests` | 7メソッド | 約65項目 | UI要素の存在・全キーバインドのクラッシュ耐性検証・ダイアログ開閉耐性・階段連打耐性・セーブ/ロードフロー | `GuiAutomationTests.cs` |
-| `GuiSystemVerificationTests` | 5メソッド | 約60項目 | 全システムのGUI上での動作・値レベル詳細検証・戦闘遷移・アクション後一貫性・新ステータスバーフォーマット検証 | `GuiSystemVerificationTests.cs` |
-| **合計** | **12メソッド** | **約125項目** | | |
-
-> **注記**: アプリケーション起動コスト削減のため、1つのテストメソッド内に複数の検証項目をまとめて実行する構成です。xUnit上のテスト数は12件ですが、検証網羅性は約125項目です。
-
-**テストフレームワーク**: xUnit 2.7.0 + FlaUI.UIA3 4.0.0  
-**テストディレクトリ**: `tests/RougelikeGame.Gui.Tests/`
+本書は FlaUI.UIA3 を使用した GUIオートメーションテストの詳細仕様を記述する。
 
 ---
 
-## デバッグマップによる高速化
+## 1. 概要
 
-### 課題
+| 項目 | 値 |
+|------|-----|
+| テストフレームワーク | xUnit 2.7.0 + FlaUI.UIA3 4.0.0 |
+| テストファイル | GuiAutomationTests.cs / GuiSystemVerificationTests.cs |
+| テストメソッド数 | 11（オートメーション6 + システム検証5） |
+| 検証項目数（Assert行） | 約230（オートメーション約108 + システム検証約121） |
+| 起動方式 | デバッグマップ（固定シード） + `--skip-title` で高速起動 |
+| テスト間分離 | `[Collection("GuiTests")]` で直列実行（GUI競合回避） |
 
-通常起動では以下の処理が発生し、テスト1件あたり数秒〜十数秒のオーバーヘッドが生じる：
+### 設計方針
 
-- タイトル画面（`TitleWindow`）の表示・ユーザー操作待ち
-- 60×30マップ（BSP部屋生成、敵・罠・アイテム配置、廊下接続）の生成
+- **起動コスト削減**: アプリ起動は高コストなため、1メソッド内で多数の検証項目をまとめて実行する
+- **責務分離**: GuiAutomationTests = UI存在チェック＋クラッシュ耐性、GuiSystemVerificationTests = 値レベル詳細検証
+- **重複排除**: 両テストクラス間で検証内容が重複しないよう役割を明確に分離
 
-### 解決策
+---
+
+## 2. GuiAutomationTests（6メソッド・約108検証項目）
+
+UI要素の存在チェック＋全キーバインドのクラッシュ耐性を検証する。
+
+| # | メソッド名 | 検証項目数 | テスト内容 |
+|---|-----------|-----------|-----------|
+| 1 | TitleScreen_ButtonsAndSettingsDialog | 約15項目 | タイトル画面ボタン4種存在確認、設定ダイアログ開閉、音量スライダー4種・ラベル4種確認、Escでダイアログ閉じる |
+| 2 | TitleScreen_EscClosesWindow | 1項目 | タイトル画面でEscキーでアプリ終了（破壊的操作のため分離） |
+| 3 | TitleScreen_NewGameFlow_CharacterCreation | 約10項目 | ニューゲーム→難易度選択→キャラクター作成画面のUI要素検証＋キャンセル動作 |
+| 4 | TitleScreen_SettingsParameterChanges | 約10項目 | 設定ダイアログ内スライダー操作による値変化確認＋初期値リセット |
+| 5 | MainWindow_FullIntegration | 約65項目 | デバッグマップ1回起動で全検証（下記詳細参照） |
+| 6 | TitleScreen_ContinueFlow_SaveDataSelect | 約7項目 | セーブ後コンティニュー→セーブデータ選択画面検証 |
+
+### 2.1 MainWindow_FullIntegration 詳細
+
+デバッグマップ1回起動で以下を一括検証する最大のテストメソッド：
+
+**初期値・表示形式検証**:
+- ウィンドウタイトル・サイズ・メッセージログ初期表示（第1層、デバッグモード、WASD）
+- 操作説明テキスト(KeyHelpText)存在＋内容チェック
+- 領地名・地上/ダンジョン表示の値検証
+- HP/MP/SP初期値フル（current==max）、形式 'X/Y'
+- レベル=1、経験値形式、重量 'x.x/y.ykg'（初期非0）、通貨 'XG'、ターン制限
+- 満腹度・正気度の初期値検証（数値、非0）
+- 日時表示形式（'冒険暦XXXX年 ○○の月 X日 HH:MM'）・時間帯検証
+
+**アイテム拾い・インベントリ・ドアインタラクト**:
+- 地面アイテム位置へ移動→Gで拾取→Iでインベントリ確認
+- ドア方向へ移動→ドア開放→Xでドア閉じ
+
+**NPC対話・地形効果**:
+- NPC位置へ移動→対話確認、水タイル移動
+
+**各ダイアログ・キー操作**:
+- ミニマップ切替（M）、ステータスバー全15要素
+- ダイアログ: C/L/V/J/K/O/H/B/E/P/N、探索F、自動探索Tab
+
+**移動・戦闘・階段・日時進行**:
+- WASD/矢印/斜め、戦闘→HP確認、R射撃/T投擲、階段Shift+</>
+- Space×65日付進行、スキルCD20ターン、詠唱ターン処理
+
+**連打耐性・セーブロード・終了**:
+- 15種キー×3ラウンド高速連打、F5/F9、Qキー終了
+---
+
+## 3. GuiSystemVerificationTests（5メソッド・約121検証項目）
+
+各ゲームシステムがGUI上で正しく動作しているかを「値レベル」で検証する。
+
+| # | メソッド名 | 検証項目数 | テスト内容 |
+|---|-----------|-----------|-----------|
+| 1 | SystemVerification_DebugMap_FullIntegration | 約21項目 | マップ生成・領地名・HP/MP/SP初期値・レベル/経験値形式・重量形式・通貨形式・ターン制限・満腹度/正気度初期値・日時表示形式・季節/天候/渇き/カルマ/仲間数の値検証・戦闘接触後HP・ドア開閉・射撃/投擲・階段上昇/降下・スキルCD・魔法詠唱 |
+| 2 | SystemVerification_LongPlay_HungerAndEndurance | 約3項目 | 70ターン待機（日付進行+階層不変）、800ターン待機（満腹度減少）、200ターン連続操作（ステータスバー正常維持） |
+| 3 | SystemVerification_CombatAndStatusTransition | 約12項目 | 初期ステータス全20要素記録、HP初期フル確認、30回移動戦闘、HP減少方向検証、戦闘後ステータスバー形式維持、自動探索(Tab)→3秒→中断(Space)フロー、追加50回移動安定性 |
+| 4 | SystemVerification_StatusBarConsistencyAfterActions | 約10項目 | 拾う(G)/探索(F)/射撃(R)/投擲(T)/祈り(P)/ドア閉じ(X)各操作後ステータスバー全要素形式検証、ミニマップ(M)前後不変検証、階段(Shift+>)前後変化追跡、連続アクション90回後安定性 |
+| 5 | SystemVerification_NewStatusBarFormats | 約14項目 | Season/Weather/Thirst/Karma/CompanionCountの初期値フォーマット検証、初期仲間数=0、100ターン後フォーマット維持、50回移動後フォーマット維持、全20要素最終整合性 |
+
+### 3.1 GUI接続済みシステムのカバレッジ
+
+| システム | ステータスバー要素 | 検証種別 |
+|---------|-------------------|---------|
+| SeasonSystem（季節） | SeasonText | 値検証（SystemVerification） |
+| WeatherSystem（天候） | WeatherText | 値検証（SystemVerification） |
+| ThirstSystem（渇き） | ThirstText | 値検証（SystemVerification） |
+| KarmaSystem（カルマ） | KarmaText | 値検証（SystemVerification） |
+| CompanionSystem（仲間） | CompanionCountText | 値検証（SystemVerification） |
+| EncyclopediaSystem（図鑑） | Yキー画面遷移 | UI存在チェック（Automation） |
+| DeathLogSystem（死亡記録） | Zキー画面遷移 | UI存在チェック（Automation） |
+| CompanionSystem（仲間管理） | Uキー画面遷移 | UI存在チェック（Automation） |
+---
+
+## 4. デバッグマップによる高速化
 
 コマンドライン引数でテスト専用モードを提供：
 
 | 引数 | 効果 |
 |---|---|
 | `--skip-title` | タイトル画面をスキップし、即座にメインウィンドウを起動 |
-| `--debug-map` | 32×24の手動構築テストアリーナで初期化（通常60×30の約1/3のサイズ） |
-
-### デバッグマップの仕様
-
-| パラメータ | 値 | 通常マップとの比較 |
-|---|---|---|
-| マップ幅 | 32 | 60（約1/2） |
-| マップ高さ | 24 | 30（約4/5） |
-| メインルーム | (2,2)〜(29,21)の大部屋（28×20） | BSP生成（6+階層数部屋） |
-| プレイヤー初期位置 | (16, 12) — 部屋中央付近 | ランダム部屋内 |
-| 敵数 | 5体（Slime, Goblin, Skeleton, Orc, GiantSpider） | 密度ベース（多数） |
-| 罠 | 2個（隠し罠・可視罠） | 0.005+階層×0.001 |
-| 地面アイテム | 13個（ポーション3、食料3、巻物3、装備3、アクセサリ1） | 密度ベース（多数） |
-| 特殊地形 | ドア2、階段2、祭壇、泉、宝箱、水3、柱2 | ランダム配置 |
-| デバッグタイル | 4個（敵スポーンE、AI切替A、日数進行D、NPC対話N） | なし |
-
-### 関連コード変更
-
-| ファイル | 変更内容 |
-|---|---|
-| `GameController.cs` | `InitializeDebug()` / `GenerateDebugFloor()` メソッド追加 |
-| `App.xaml.cs` | `--skip-title` / `--debug-map` 引数パース、`StartMainWindow` に `debugMap` パラメータ追加 |
-| `MainWindow.xaml.cs` | `_debugMap` フィールド追加、`Window_Loaded` で分岐 |
+| `--debug-map` | 32×24の手動構築テストアリーナで初期化 |
+| `--race <Race>` | 種族を指定（例: `--race Elf`） |
+| `--class <Class>` | 職業を指定（例: `--class Mage`） |
+| `--background <Bg>` | 素性を指定（例: `--background Scholar`） |
 
 ---
 
-## 起動方式
+## 5. 実行方法
 
-テストでは2種類の起動方式を使い分ける：
+### 5.1 GUIオートメーションテストのみ実行
 
-### 1. 通常起動（`LaunchAndGetTitleWindow`）
-
-```
-Application.Launch(exePath)  →  タイトル画面を取得
-```
-
-**用途**: タイトル画面・設定画面のテスト（7検証項目）
-
-### 2. デバッグマップ起動（`LaunchWithDebugMap`）
-
-```
-Application.Launch(exePath, "--skip-title --debug-map")  →  メインウィンドウを即取得
-```
-
-**用途**: メインウィンドウ・キー操作・メッセージログのテスト（30検証項目）
-
----
-
-## テスト一覧
-
-> **注記**: 以下の検証項目は、実際のコードでは起動コスト削減のため少数のテストメソッドにまとめられています。
-> - カテゴリ1〜2 → `TitleScreen_ButtonsAndSettingsDialog` メソッド（+ `TitleScreen_EscClosesWindow` / `TitleScreen_NewGameFlow`）
-> - カテゴリ3〜5 → `MainWindow_FullIntegration` メソッド
->
-> 以下の一覧は**検証項目レベル**の記述です。
-
-### カテゴリ1: タイトル画面テスト（4検証項目）
-
-タイトル画面の各ボタン表示、キーボード操作、画面遷移を検証する。通常起動を使用。
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `Title_HasAllButtons` | タイトル画面に4つのボタン（NewGameButton, ContinueButton, SettingsButton, QuitButton）が全て存在するか確認 | UI要素の存在確認。AutomationIdによる要素探索が正常に動作すること |
-| `Title_EscClosesWindow` | Escキーを押してタイトル画面が閉じ、アプリケーションが終了するか確認 | キーボードショートカットによるウィンドウ終了処理。`_app.HasExited == true` を検証 |
-| `Title_SettingsOpensDialog` | 設定ボタン（SettingsButton）をクリックして設定ダイアログがモーダルウィンドウとして開くか確認 | ボタンのInvokeパターン、モーダルダイアログの表示。`window.ModalWindows.Length > 0` を検証 |
-| `Title_NewGameNavigatesToMainWindow` | ニューゲームボタンにフォーカスしてEnterキーを押し、メインウィンドウ（タイトル「ローグライクゲーム」）に遷移するか確認 | 画面遷移フロー。ボタンのフォーカス＋キーボード操作、メインウィンドウのタイトル検証。プロセスが正常終了した場合も許容 |
-
-### カテゴリ2: 設定画面テスト（3検証項目）
-
-タイトル画面から設定ダイアログを開き、各スライダーやラベルの存在・動作を検証する。通常起動を使用。
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `Settings_HasVolumeSliders` | 設定ダイアログに4つのスライダー（MasterVolumeSlider, BgmVolumeSlider, SeVolumeSlider, FontSizeSlider）が全て存在するか確認 | 設定UIの完全性。各スライダーのAutomationId検索 |
-| `Settings_HasVolumeLabels` | 設定ダイアログの4つの値表示ラベル（MasterVolumeText, BgmVolumeText, SeVolumeText, FontSizeText）が存在し、それぞれ数値を含むか確認 | ラベルとスライダーのバインディング。正規表現 `\d+` で数値表示を検証 |
-| `Settings_EscClosesDialog` | 設定ダイアログを開いた状態でEscキーを押し、ダイアログが閉じるか確認 | モーダルダイアログのキーボード操作による終了。閉じた後 `window.ModalWindows` が空であることを検証 |
-
-### カテゴリ3: メインウィンドウUI要素テスト（21検証項目）
-
-デバッグマップで高速起動し、ステータスバーの各要素やゲーム画面の構成要素を検証する。
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `MainWindow_HasCorrectTitle` | ウィンドウタイトルが「ローグライクゲーム」であるか確認 | `Window.Title` プロパティの正確性 |
-| `MainWindow_StatusBar_ShowsFloor` | FloorText要素が存在し、「第1層」を含むか確認 | 階層表示の初期値。デバッグマップは常に第1層 |
-| `MainWindow_StatusBar_ShowsDate` | DateText要素が存在し、日付形式（「歴」「年」「の月」「日」「:」を含む）であるか確認 | カレンダーシステムの表示形式。「冒険歴1024年 緑風の月 15日 08:00」等 |
-| `MainWindow_StatusBar_ShowsTimePeriod` | TimePeriodText要素が存在し、有効な時間帯名（明け方/朝/午前/昼/午後/夕方/夜/深夜のいずれか）を表示しているか確認 | 時間帯表示システムの動作 |
-| `MainWindow_StatusBar_ShowsLevel` | LevelText要素が存在し、数値（レベル値）を含むか確認 | レベル表示。XAMLの「Lv:」ラベルは別TextBlockなので、LevelTextは数値のみ |
-| `MainWindow_StatusBar_ShowsExp` | ExpText要素が存在し、「/」（現在値/最大値形式）を含むか確認 | 経験値バーの表示形式（例: "0/100"） |
-| `MainWindow_StatusBar_ShowsHpMpSp` | HpText, MpText, SpText要素が全て存在し、各々「/」（現在値/最大値形式）を含むか確認 | HP・MP・SPの3つのステータス値が正しい形式で表示されること |
-| `MainWindow_StatusBar_ShowsHunger` | HungerText要素が存在し、空白でない文字列が表示されているか確認 | 満腹度表示。値は数値のみ（例: "100"） |
-| `MainWindow_StatusBar_ShowsSanity` | SanityText要素が存在し、数値を含むか確認 | 正気度表示。値は数値のみ（例: "100"） |
-| `MainWindow_StatusBar_ShowsGold` | GoldText要素が存在し、空白でない文字列が表示されているか確認 | 所持金表示（例: "0G"） |
-| `MainWindow_StatusBar_ShowsWeight` | WeightText要素が存在し、「/」（現在値/最大値形式）を含むか確認 | 重量表示形式（例: "3.5/50.0kg"） |
-| `MainWindow_StatusBar_ShowsTurnLimit` | TurnLimitText要素が存在し、空白でない文字列が表示されているか確認 | ターン制限表示（例: "残り365日" または "制限なし"） |
-| `MainWindow_HasGameCanvas` | ウィンドウの幅が800px以上、高さが500px以上であるか確認 | WPF Canvasは UIオートメーションツリーに直接公開されないため、ウィンドウサイズで間接確認 |
-| `MainWindow_HasMinimap` | Mキー（ミニマップ切替）を2回押してクラッシュしないか確認 | Canvas/Border要素はUIオートメーション非対応のため、Mキー操作で間接的にミニマップの存在を確認 |
-| `MainWindow_HasMessageLog` | MessageLog要素が存在するか確認 | メッセージログ表示領域のAutomationId検索 |
-| `MainWindow_WindowSize_IsPositive` | ウィンドウの幅・高さが0より大きいか確認 | ウィンドウが正常に描画されていることの基本確認 |
-| `MainWindow_StatusBar_ShowsSeason` | SeasonText要素が存在し、空白でない文字列が表示されているか確認 | 季節表示（例: "春""夏""秋""冬"） |
-| `MainWindow_StatusBar_ShowsWeather` | WeatherText要素が存在し、空白でない文字列が表示されているか確認 | 天候表示（例: "晴""雨""雪"等） |
-| `MainWindow_StatusBar_ShowsThirst` | ThirstText要素が存在し、空白でない文字列が表示されているか確認 | 渇き表示（例: "潤沢""渇き"等） |
-| `MainWindow_StatusBar_ShowsKarma` | KarmaText要素が存在し、空白でない文字列が表示されているか確認 | カルマ表示（例: "中立""善人""悪人"等） |
-| `MainWindow_StatusBar_ShowsCompanionCount` | CompanionCountText要素が存在し、数値が表示されているか確認 | 仲間数表示（例: "0"） |
-
-### カテゴリ4: キー操作テスト（24検証項目）
-
-デバッグマップで高速起動し、各種キーボード入力でクラッシュや異常終了が発生しないことを検証する。
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `Key_Wait_AdvancesDate` | Space（待機）キーを65回連続押下し、日時表示が変化するか確認 | ターン処理の動作確認。60ターン=1分なので65回で必ず分の値が変わる。初期値と比較して`Assert.NotEqual` |
-| `Key_WASD_Movement_NoCrash` | W, S, A, Dキーを順に押下してクラッシュしないか確認 | WASD移動入力のハンドリング。壁にぶつかっても例外が発生しないこと |
-| `Key_ArrowKeys_Movement_NoCrash` | ↑, ↓, ←, →キーを順に押下してクラッシュしないか確認 | 矢印キー移動入力のハンドリング |
-| `Key_Inventory_OpensDialog` | Iキーを押下してインベントリ画面が開くか確認（空の場合はダイアログなしも許容） | インベントリ表示処理。モーダルダイアログが表示された場合は閉じる |
-| `Key_Status_OpensDialog` | Cキーを押下してステータス画面が開くか確認 | キャラクターステータス表示処理 |
-| `Key_MessageLog_OpensDialog` | Lキーを押下してメッセージログ画面が開くか確認 | メッセージログ表示処理 |
-| `Key_Pickup_NoCrash` | Gキー（アイテム拾い）を押下してクラッシュしないか確認 | 足元にアイテムがない場合でもエラーにならないこと |
-| `Key_Search_NoCrash` | Fキー（探索）を押下してクラッシュしないか確認 | 周囲に特殊タイルがない場合でもエラーにならないこと |
-| `Key_AutoExplore_NoCrash` | Tabキー（自動探索開始）→Spaceキー（キャンセル）を押下してクラッシュしないか確認 | 自動探索の開始・停止処理 |
-| `Key_Save_NoCrash` | F5キー（セーブ）を押下してクラッシュしないか確認 | セーブ処理のエラーハンドリング |
-| `Key_Load_NoCrash` | F9キー（ロード）を押下してクラッシュしないか確認 | ロード処理のエラーハンドリング |
-| `Key_SpellCasting_NoCrash` | Vキー（魔法詠唱）を押下してクラッシュしないか確認 | 魔法詠唱ダイアログの表示。モーダルダイアログが表示された場合は閉じる |
-| `Key_Skill_NoCrash` | Eキー（スキル使用）を押下してクラッシュしないか確認 | スキル使用処理のエラーハンドリング |
-| `Key_Pray_NoCrash` | Pキー（祈り）を押下してクラッシュしないか確認 | 宗教祈りコマンドのエラーハンドリング |
-| `Key_WorldMap_OpensDialog` | Jキーでワールドマップダイアログが開き、閉じてもクラッシュしないか確認 | ワールドマップ表示処理 |
-| `Key_QuestLog_OpensDialog` | Kキーでクエストログダイアログが開き、閉じてもクラッシュしないか確認 | クエストログ表示処理 |
-| `Key_Religion_OpensDialog` | Oキーで宗教画面ダイアログが開き、閉じてもクラッシュしないか確認 | 宗教画面表示処理 |
-| `Key_Smithing_OpensDialog` | Hキーで鍛冶画面ダイアログが開き、閉じてもクラッシュしないか確認 | 鍛冶画面表示処理 |
-| `Key_Town_NoCrash` | Bキー（街画面）を押下してクラッシュしないか確認 | ダンジョン内では入場不可メッセージ表示 |
-| `Key_GuildRegister_NoCrash` | Nキー（ギルド登録）を押下してクラッシュしないか確認 | ギルド登録処理のエラーハンドリング |
-| `Key_Encyclopedia_OpensDialog` | Yキーで図鑑ダイアログが開き、閉じてもクラッシュしないか確認 | 図鑑表示処理（Ver.prt.0.3追加） |
-| `Key_Companion_OpensDialog` | Uキーで仲間管理ダイアログが開き、閉じてもクラッシュしないか確認 | 仲間管理表示処理（Ver.prt.0.4追加） |
-| `Key_DeathLog_OpensDialog` | Zキーで死亡記録ダイアログが開き、閉じてもクラッシュしないか確認 | 死亡記録表示処理（Ver.prt.0.3追加） |
-| `Key_RapidInput_NoCrash` | 33種類のキー（W/A/S/D/↑↓←→/Space/G/F/R/T/X/P/I/C/L/V/E/J/K/O/H/B/Y/U/Z/N/Tab/M/F5/F9）を3周×各30ms間隔で高速連打し、クラッシュしないか確認 | 高速連打耐性テスト。入力キューの溢れや競合状態が発生しないこと。ダイアログキーを含むため各ラウンド後にCloseModals実行 |
-| `Key_DiagonalMovement_NoCrash` | Home, PageUp, End, PageDownキー（斜め移動）を押下してクラッシュしないか確認 | 斜め移動入力のハンドリング |
-
-### カテゴリ5: メッセージログ統合テスト（2検証項目）
-
-デバッグマップで高速起動し、メッセージログの初期表示と更新を検証する。
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `MessageLog_ShowsInitialMessages` | MessageLog要素が「デバッグモード」を含むか確認 | `InitializeDebug()` が出力する「【デバッグモード】テストマップに入った！」メッセージの表示 |
-| `MessageLog_UpdatesAfterWait` | Space（待機）を5回押下した後にクラッシュしないか確認 | メッセージログが複数ターン経過後も正常に更新されること |
-
-### カテゴリ5b: ダイアログ高速開閉耐性テスト（`MainWindow_DialogRapidOpenClose` — 約14検証項目）
-
-デバッグマップで高速起動し、13種ダイアログの高速開閉によるクラッシュ耐性と開閉後のステータスバー整合性を検証する。
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `Dialog_Inventory_RapidOpenClose` | Iキー（持物）ダイアログを5回連続開閉してクラッシュしないか | インベントリダイアログの繰り返し開閉耐性 |
-| `Dialog_Status_RapidOpenClose` | Cキー（状態）ダイアログを5回連続開閉 | ステータスダイアログの繰り返し開閉耐性 |
-| `Dialog_MessageLog_RapidOpenClose` | Lキー（ログ）ダイアログを5回連続開閉 | メッセージログダイアログの繰り返し開閉耐性 |
-| `Dialog_SpellCasting_RapidOpenClose` | Vキー（魔法詠唱）ダイアログを5回連続開閉 | 魔法詠唱ダイアログの繰り返し開閉耐性 |
-| `Dialog_Skill_RapidOpenClose` | Eキー（スキル）を5回連続開閉 | スキルダイアログの繰り返し開閉耐性 |
-| `Dialog_WorldMap_RapidOpenClose` | Jキー（ワールドマップ）ダイアログを5回連続開閉 | ワールドマップダイアログの繰り返し開閉耐性 |
-| `Dialog_QuestLog_RapidOpenClose` | Kキー（クエスト）ダイアログを5回連続開閉 | クエストログダイアログの繰り返し開閉耐性 |
-| `Dialog_Religion_RapidOpenClose` | Oキー（宗教）ダイアログを5回連続開閉 | 宗教画面ダイアログの繰り返し開閉耐性 |
-| `Dialog_Smithing_RapidOpenClose` | Hキー（鍛冶）ダイアログを5回連続開閉 | 鍛冶画面ダイアログの繰り返し開閉耐性 |
-| `Dialog_Town_RapidOpenClose` | Bキー（街）を5回連続開閉 | 街画面の繰り返し操作耐性 |
-| `Dialog_Encyclopedia_RapidOpenClose` | Yキー（図鑑）ダイアログを5回連続開閉 | 図鑑ダイアログの繰り返し開閉耐性 |
-| `Dialog_Companion_RapidOpenClose` | Uキー（仲間）ダイアログを5回連続開閉 | 仲間管理ダイアログの繰り返し開閉耐性 |
-| `Dialog_DeathLog_RapidOpenClose` | Zキー（死亡録）ダイアログを5回連続開閉 | 死亡記録ダイアログの繰り返し開閉耐性 |
-| `PostDialogOpenClose_StatusBarIntegrity` | 13種ダイアログ開閉後にステータスバー全20要素が空でなく正常に表示されるか | ダイアログ開閉操作がステータスバーの表示を破壊しないこと |
-
-### カテゴリ6: システム値検証テスト（GuiSystemVerificationTests — 約60検証項目）
-
-デバッグマップで高速起動し、各ゲームシステムの初期値・表示形式・動作を値レベルで検証する。
-
-#### デバッグマップ統合検証（21検証項目）
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `P2.7-2.8_MapGeneration` | デバッグマップの読み込み確認（第1層表示、初期メッセージにデバッグモード/WASD） | マップ生成・FOVの基本動作 |
-| `Territory_SurfaceDisplay` | 領地名が空でないか、地上/ダンジョン表示が「地上」「B」「F」のいずれかか | 領地・地上/ダンジョン表示の値検証 |
-| `P1.2-1.3_PlayerStats` | HP/MP/SPが'current/max'形式で初期状態がフル（current==max）か | Player・Stats基盤の値検証 |
-| `P4.7_LevelExp` | 初期レベルが1、経験値が'current/max'形式か | レベル・経験値表示形式 |
-| `P2.6_ItemWeight` | 初期装備により重量が0でなく'x.x/y.ykg'形式で表示されるか | アイテムシステムの重量表示 |
-| `P4.24_Currency` | 所持金がXG形式で表示されるか | 通貨システム |
-| `P4.16_TurnLimit` | ターン制限表示が'残りX日'または'制限なし'か | ターン制限表示 |
-| `HungerSanity_InitialValues` | 満腹度と正気度が数値で表示され、初期値が0でないか | 満腹度・正気度の初期値 |
-| `DateTime_Format` | 日付が'冒険歴XXXX年 ○○の月 X日 HH:MM'形式、時間帯が空でないか | 日時表示形式検証 |
-| `Season_Display` | 季節テキストが空でなく、有効な季節名（春/夏/秋/冬）を含むか | 季節システムのGUI接続検証 |
-| `Weather_Display` | 天候テキストが空でないか | 天候システムのGUI接続検証 |
-| `Thirst_Display` | 渇きテキストが空でないか | 渇きシステムのGUI接続検証 |
-| `Karma_Display` | カルマテキストが空でなく、有効なランク名を含むか | カルマシステムのGUI接続検証 |
-| `CompanionCount_Display` | 仲間数テキストが数値形式（0以上）か | 仲間システムのGUI接続検証 |
-| `P2.3-2.4_Combat` | 複数回移動で敵に接触してもクラッシュしないか、HP形式維持 | 戦闘システム動作 |
-| `P4.20_DoorClose` | Xキー（ドア閉じ）でクラッシュしないか | ドア開閉機能 |
-| `P4.21_RangedAttack` | Rキー（射撃）とTキー（投擲）でクラッシュしないか | 射撃・投擲システム |
-| `P4.14_StairsUp` | Shift+<（階段上昇）でクラッシュしないか | 階段上昇機能 |
-| `P4.14_StairsDown` | Shift+>（階段降下）でクラッシュしないか | 階段降下機能 |
-| `P5.4_SkillCooldown` | 20ターン待機でスキルクールダウンTick処理がクラッシュしないか | スキルシステム統合 |
-| `P5.6_SpellCasting` | 移動+待機の繰り返しでIsCasting状態管理がクラッシュしないか | 魔法言語詠唱処理 |
-
-#### 長時間プレイ検証（3検証項目）
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `LongPlay_DateAdvance` | 70ターン待機後に日時が進行し、階層は変化しないか | 日時進行＋階層不変の確認 |
-| `LongPlay_HungerDecrease` | 800ターン待機で満腹度が減少するか（飢餓減少は600ターン毎） | 満腹度変化システムの動作 |
-| `LongPlay_Endurance` | 200ターン連続操作（WASD+Space）後もクラッシュせずステータスバー正常か | 長時間プレイ耐性 |
-
-#### 戦闘・ステータス遷移検証（`SystemVerification_CombatAndStatusTransition` — 約12検証項目）
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `InitialStatus_AllElements` | 初期状態の全20ステータスバー要素を記録し、全て空でないか確認 | 全ステータスバー要素の初期状態検証 |
-| `InitialHP_Full` | 初期HPがフル（current == max）であること | HP初期値の正確性 |
-| `Combat_HPDirection` | 30回移動で敵に接触し、HP currentがmax以下であること | 戦闘によるHP減少方向の検証 |
-| `Combat_HPFormat` | 戦闘後HPが'X/Y'形式を維持すること | 戦闘後の表示形式維持 |
-| `PostCombat_AllStatusBars` | 戦闘後も全20ステータスバー要素が空でなく形式を維持すること | 戦闘操作がステータスバーを破壊しないこと |
-| `PostCombat_HPMPSPFormat` | 戦闘後HP/MP/SPが'X/Y'形式を維持すること | 数値ステータスの表示形式維持 |
-| `PostCombat_LevelHungerSanityFormat` | 戦闘後レベル/満腹度/正気度が数値形式を維持すること | ステータスの数値表示維持 |
-| `AutoExplore_Flow` | Tab(自動探索)→3秒待機→Space(中断)のフローでクラッシュしないか | 自動探索の開始・実行・中断フロー |
-| `PostAutoExplore_StatusBars` | 自動探索後も全ステータスバー要素が正常か | 自動探索がステータスバーを破壊しないこと |
-| `ExtendedCombat_Stability` | 追加50回移動でさらに戦闘を重ねてもクラッシュしないか | 長時間戦闘の安定性 |
-| `ExtendedCombat_HPFormat` | 追加戦闘後もHP形式維持 | 戦闘を重ねても表示形式が壊れないこと |
-
-#### アクション後ステータス一貫性検証（`SystemVerification_StatusBarConsistencyAfterActions` — 約10検証項目）
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `PostPickup_StatusBars` | Gキー（拾う）操作後ステータスバー全要素が正常形式か | 拾う操作がステータスバーを破壊しないこと |
-| `PostSearch_StatusBars` | Fキー（探索）操作後ステータスバー全要素が正常形式か | 探索操作がステータスバーを破壊しないこと |
-| `PostRangedAttack_StatusBars` | Rキー（射撃）操作後ステータスバー全要素が正常形式か | 射撃操作がステータスバーを破壊しないこと |
-| `PostThrow_StatusBars` | Tキー（投擲）操作後ステータスバー全要素が正常形式か | 投擲操作がステータスバーを破壊しないこと |
-| `PostPray_StatusBars` | Pキー（祈り）操作後ステータスバー全要素が正常形式か | 祈り操作がステータスバーを破壊しないこと |
-| `PostDoorClose_StatusBars` | Xキー（ドア閉じ）操作後ステータスバー全要素が正常形式か | ドア閉じ操作がステータスバーを破壊しないこと |
-| `MinimapToggle_StatusBarInvariant` | Mキー（ミニマップ）2回切替前後で全ステータスバー値が不変か | ミニマップ切替がステータスバーに影響しないこと |
-| `Stairs_StatusBarTracking` | 階段操作(Shift+>)前後のステータスバー変化を追跡、形式維持 | 階段操作がステータスバーの形式を壊さないこと |
-| `ActionSequence_Stability` | 移動→拾う→探索→射撃→投擲→待機を10周（90回）連続実行後のステータスバー | 連続アクションの安定性。入力キューの溢れがないこと |
-
-### カテゴリ5c: 階段・マップ遷移キー高速連打耐性テスト（`MainWindow_StairsAndMapTransitionRapid` — 約5検証項目）
-
-デバッグマップで高速起動し、Shift+>（階段降下）/ Shift+<（階段上昇）の高速連打によるクラッシュ耐性を検証する。
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `StairsDown_RapidPress` | Shift+>（階段降下）を10回高速連打してクラッシュしないか、後ステータスバー整合性 | 階段降下の連打耐性 |
-| `StairsUp_RapidPress` | Shift+<（階段上昇）を10回高速連打してクラッシュしないか、後ステータスバー整合性 | 階段上昇の連打耐性 |
-| `StairsAlternate_RapidPress` | 階段降下→上昇を交互に20回連打してクラッシュしないか、後ステータスバー整合性 | 上下交互操作の競合耐性 |
-| `MovementAndStairs_Composite` | 移動→階段降下→移動→階段上昇の複合操作を10周してクラッシュしないか | 移動+階段の複合操作耐性 |
-
-### カテゴリ5d: セーブ・ロードダイアログフロー検証（`MainWindow_SaveLoadDialogFlow` — 約8検証項目）
-
-デバッグマップで高速起動し、F5（セーブ）/F9（ロード）のダイアログ表示・操作フローを検証する。
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `Save_SingleExecution` | F5キーでセーブ処理が正常に動作するか | セーブフローのクラッシュ耐性 |
-| `Save_RapidPress` | F5キーを5回連打してクラッシュしないか | セーブの連打耐性 |
-| `Load_SingleExecution` | F9キーでロード処理が正常に動作するか | ロードフローのクラッシュ耐性 |
-| `Load_RapidPress` | F9キーを5回連打してクラッシュしないか | ロードの連打耐性 |
-| `SaveLoad_Sequential` | F5セーブ→F9ロードを3回連続実行してクラッシュしないか | セーブ→ロード連続フロー |
-| `PostSaveLoad_StatusBarIntegrity` | セーブ/ロード後にステータスバー全20要素が正常に表示されるか | セーブ/ロード操作がステータスバーを破壊しないこと |
-
-#### 新ステータスバー要素フォーマット詳細検証（`SystemVerification_NewStatusBarFormats` — 約14検証項目）
-
-| テスト名 | テスト内容 | 検証観点 |
-|---|---|---|
-| `Season_ValidName` | SeasonTextが有効な季節名（春/夏/秋/冬）であること | 季節テキストの値レベル検証 |
-| `Weather_ValidName` | WeatherTextが1〜4文字の有効な天候名であること | 天候テキストの値レベル検証 |
-| `Thirst_ValidLevel` | ThirstTextが1〜6文字の有効な渇きレベルであること | 渇きテキストの値レベル検証 |
-| `Karma_ValidRank` | KarmaTextが1〜6文字の有効なカルマ表記であること | カルマテキストの値レベル検証 |
-| `CompanionCount_NonNegativeInt` | CompanionCountTextが非負整数であること | 仲間数テキストの値レベル検証 |
-| `InitialCompanion_Zero` | 初期状態で仲間数=0であること | 初期値の相互整合性 |
-| `After100Turns_SeasonFormat` | 100ターン後もSeasonTextが有効な季節名であること | ターン経過後のフォーマット維持 |
-| `After100Turns_WeatherFormat` | 100ターン後もWeatherTextが有効な天候名であること | ターン経過後のフォーマット維持 |
-| `After100Turns_ThirstFormat` | 100ターン後もThirstTextが有効な渇きレベルであること | ターン経過後のフォーマット維持 |
-| `After100Turns_KarmaFormat` | 100ターン後もKarmaTextが有効なカルマ表記であること | ターン経過後のフォーマット維持 |
-| `After100Turns_CompanionFormat` | 100ターン後もCompanionCountTextが非負整数であること | ターン経過後のフォーマット維持 |
-| `AfterMovement_AllNewStatusBars` | 50回移動後もSeason/Weather/Thirst/Karma/CompanionCountが全て正常か | 移動操作後のフォーマット維持 |
-| `FinalIntegrity_All20StatusBars` | テスト終了時に全20ステータスバー要素が正常形式であること | 全ステータスバーの最終整合性 |
-
----
-
-## テスト実行方法
-
-### GUIオートテスト全件実行（GuiAutomationTests + GuiSystemVerificationTests）
-
-```bash
-dotnet test RougelikeGame.sln --filter "FullyQualifiedName~GuiAutomationTests|FullyQualifiedName~GuiSystemVerificationTests"
-```
-
-### UI要素テストのみ実行（GuiAutomationTests）
-
-```bash
+```powershell
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; chcp 65001
+cd C:\Users\maki0\source\repos\game
 dotnet test RougelikeGame.sln --filter "FullyQualifiedName~GuiAutomationTests"
 ```
 
-### システム検証テストのみ実行（GuiSystemVerificationTests）
+### 5.2 GUIシステム検証テストのみ実行
 
-```bash
+```powershell
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; chcp 65001
+cd C:\Users\maki0\source\repos\game
 dotnet test RougelikeGame.sln --filter "FullyQualifiedName~GuiSystemVerificationTests"
 ```
 
-### GUIオートテストを除外して実行
+### 5.3 GUIテストを除外した実行（推奨）
 
-```bash
+```powershell
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; chcp 65001
+cd C:\Users\maki0\source\repos\game
 dotnet test RougelikeGame.sln --filter "FullyQualifiedName!~GuiAutomationTests&FullyQualifiedName!~GuiSystemVerificationTests"
 ```
 
-### 全テスト実行
-
-```bash
-dotnet test RougelikeGame.sln
-```
-
 ---
 
-## テスト技術メモ
+## 6. 注意事項
 
-### FlaUI の要素探索
-
-WPFの `x:Name` 属性は自動的に `AutomationId` としてUIオートメーションツリーに公開される。テストでは `FindFirstDescendant(cf => cf.ByAutomationId(...))` で要素を検索する。
-
-ただし、以下の制約がある：
-
-- **Canvas要素**: WPFの `Canvas` はUIオートメーションツリーに公開されないことがある（子要素が動的描画のため）。`GameCanvas` と `MinimapCanvas` はこの制約に該当するため、間接的な検証方法を採用している
-- **タイムアウト**: 要素探索は最大5秒のリトライ（250ms間隔）で実行。起動直後の描画完了を待つため
-
-### ボタン操作の注意点
-
-`Button.Invoke()` はWPFのコマンドバインディングを直接呼び出すが、タイトル画面の `NewGameButton` のように `ShowDialog()` フローを中断する場合がある。そのため `Title_NewGameNavigatesToMainWindow` では `Focus()` + `Enter` キー送信を使用している。
-
-### テストの独立性
-
-各テストは独自のアプリケーションインスタンスを起動・終了する（`IDisposable` で `_app.Close()` / `_app.Dispose()`）。テスト間の状態共有はない。テストコレクション `[Collection("GuiTests")]` により直列実行を保証している。
-
----
-
-## テスト結果サマリ
-
-### GuiAutomationTests（7メソッド / 約65検証項目）
-
-| メソッド名 | 検証項目数 | 起動方式 | 平均所要時間 |
-|---|---|---|---|
-| TitleScreen_ButtonsAndSettingsDialog | 5項目（タイトル画面+設定画面） | 通常起動 | 約5〜10秒 |
-| TitleScreen_EscClosesWindow | 1項目 | 通常起動 | 約2〜3秒 |
-| TitleScreen_NewGameFlow | 1項目 | 通常起動 | 約3〜5秒 |
-| MainWindow_FullIntegration | 約31項目（UI要素+キー操作+33種連打耐性） | デバッグマップ | 約30〜60秒 |
-| MainWindow_DialogRapidOpenClose | 約14項目（13種ダイアログ×5回開閉+ステータスバー整合性） | デバッグマップ | 約30〜60秒 |
-| MainWindow_StairsAndMapTransitionRapid | 約5項目（階段降下/上昇各10回連打+交互20回+複合10周+ステータス整合性） | デバッグマップ | 約20〜40秒 |
-| MainWindow_SaveLoadDialogFlow | 約8項目（F5セーブ/F9ロードフロー+連打耐性+連続フロー+ステータス整合性） | デバッグマップ | 約20〜40秒 |
-| **小計** | **約65検証項目** | — | **約3〜5分** |
-
-### GuiSystemVerificationTests（5メソッド / 約60検証項目）
-
-| メソッド名 | 検証項目数 | 起動方式 | 平均所要時間 |
-|---|---|---|---|
-| SystemVerification_DebugMap_FullIntegration | 21項目（全システム検証+季節/天候/渇き/カルマ/仲間数） | デバッグマップ | 約1〜2分 |
-| SystemVerification_LongPlay_HungerAndEndurance | 3項目（長時間プレイ検証） | デバッグマップ | 約1〜2分 |
-| SystemVerification_CombatAndStatusTransition | 約12項目（戦闘HP検証+自動探索フロー+ステータス一貫性） | デバッグマップ | 約1〜2分 |
-| SystemVerification_StatusBarConsistencyAfterActions | 約10項目（6種アクション後検証+ミニマップ不変+階段追跡+連続操作安定性） | デバッグマップ | 約1〜2分 |
-| SystemVerification_NewStatusBarFormats | 約14項目（Season/Weather/Thirst/Karma/CompanionCountフォーマット検証+ターン後維持+移動後維持+全20要素最終整合性） | デバッグマップ | 約1〜2分 |
-| **小計** | **約60検証項目** | — | **約5〜10分** |
-
-### 合計
-
-| | xUnitテストメソッド数 | 検証項目数 | 合計所要時間 |
-|---|---|---|---|
-| **GUIオートテスト全体** | **12メソッド** | **約125検証項目** | **約8〜15分** |
+- GUIテストは実際にアプリケーションウィンドウを起動するため、テスト実行中はマウス/キーボード操作を避けること
+- `[Collection("GuiTests")]` により全GUIテストは直列実行される（並列実行不可）
+- テスト失敗時はログ出力を `ITestOutputHelper` で確認可能
+- 実行時間: 全11メソッドで約5～6分（環境依存）

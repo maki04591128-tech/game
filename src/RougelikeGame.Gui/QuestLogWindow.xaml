@@ -26,14 +26,9 @@
             <TextBlock x:Name="GuildInfoText" Foreground="#ffd93d" FontSize="14" VerticalAlignment="Center" Margin="15,0,0,0"/>
         </StackPanel>
 
-        <!-- タブ切替 -->
+        <!-- タブヘッダー -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,5">
-            <Button x:Name="ActiveTab" Content="進行中" Width="80" Margin="0,0,5,0"
-                    Click="ActiveTab_Click"
-                    Background="#4ecca3" Foreground="White" BorderBrush="#4ecca3" Padding="5,3"/>
-            <Button x:Name="AvailableTab" Content="受注可能" Width="80" Margin="0,0,5,0"
-                    Click="AvailableTab_Click"
-                    Background="#0f3460" Foreground="White" BorderBrush="#0f3460" Padding="5,3"/>
+            <TextBlock Text="受注中クエスト" Foreground="#4ecca3" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
             <TextBlock x:Name="CompletedCountText" Foreground="#808080" FontSize="12" VerticalAlignment="Center" Margin="15,0,0,0"/>
         </StackPanel>
 
@@ -69,12 +64,6 @@
 
         <!-- ボタン -->
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
-            <Button x:Name="AcceptButton" Content="受注 [Enter]" Width="100" Margin="5"
-                    Click="AcceptButton_Click" IsEnabled="False" Visibility="Collapsed"
-                    Background="#0f3460" Foreground="White" BorderBrush="#4ecca3" Padding="5,3"/>
-            <Button x:Name="TurnInButton" Content="納品 [Enter]" Width="100" Margin="5"
-                    Click="TurnInButton_Click" IsEnabled="False" Visibility="Collapsed"
-                    Background="#0f3460" Foreground="White" BorderBrush="#4ecca3" Padding="5,3"/>
             <Button Content="閉じる [Esc]" Width="100" Margin="5"
                     Click="CloseButton_Click"
                     Background="#0f3460" Foreground="White" BorderBrush="#e94560" Padding="5,3"/>

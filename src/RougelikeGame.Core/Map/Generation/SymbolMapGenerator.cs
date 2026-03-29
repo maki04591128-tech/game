@@ -22,7 +22,7 @@ public class SymbolMapGenerator
     /// <returns>生成されたマップとロケーション配置情報</returns>
     public SymbolMapResult Generate(TerritoryId territory)
     {
-        var locations = LocationDefinition.GetByTerritory(territory);
+        var locations = LocationDefinition.GetSymbolLocations(territory);
         var random = new Random(GetTerritorySeed(territory));
 
         var map = new DungeonMap(MapWidth, MapHeight)

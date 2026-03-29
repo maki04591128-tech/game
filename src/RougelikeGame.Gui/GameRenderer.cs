@@ -51,6 +51,12 @@ public class GameRenderer
         { TileType.DebugAIToggle, (new SolidColorBrush(Color.FromRgb(20, 60, 80)), Brushes.DeepSkyBlue) },
         { TileType.DebugDayAdvance, (new SolidColorBrush(Color.FromRgb(60, 60, 20)), Brushes.Yellow) },
         { TileType.DebugNpc, (new SolidColorBrush(Color.FromRgb(20, 60, 40)), Brushes.SpringGreen) },
+        // 町内NPC用タイル
+        { TileType.NpcGuildReceptionist, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.Gold) },
+        { TileType.NpcPriest, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.White) },
+        { TileType.NpcShopkeeper, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.Cyan) },
+        { TileType.NpcBlacksmith, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.OrangeRed) },
+        { TileType.NpcInnkeeper, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.LightGreen) },
     };
 
     private static readonly Brush ExploredBackground = new SolidColorBrush(Color.FromRgb(15, 15, 20));
@@ -229,6 +235,7 @@ public class GameRenderer
         rect.Fill = background;
         Canvas.SetLeft(rect, x);
         Canvas.SetTop(rect, y);
+        Panel.SetZIndex(rect, 0);
         _tileRects[pos] = rect;
 
         // タイル文字
@@ -241,6 +248,7 @@ public class GameRenderer
             text.FontWeight = FontWeights.Normal;
             Canvas.SetLeft(text, x + 2);
             Canvas.SetTop(text, y);
+            Panel.SetZIndex(text, 1);
             _tileTexts[pos] = text;
         }
     }
@@ -261,6 +269,7 @@ public class GameRenderer
             highlightRect.StrokeThickness = 1;
             Canvas.SetLeft(highlightRect, x);
             Canvas.SetTop(highlightRect, y);
+            Panel.SetZIndex(highlightRect, 2);
         }
 
         var text = RentText();
@@ -270,6 +279,7 @@ public class GameRenderer
         text.FontWeight = FontWeights.Bold;
         Canvas.SetLeft(text, x + 2);
         Canvas.SetTop(text, y - 1);
+        Panel.SetZIndex(text, 3);
     }
 
     private static Brush GetEnemyColor(Enemy enemy)

@@ -49,8 +49,7 @@ public class LocationMapGenerator
         // 全体を草地で埋める
         FillAll(map, TileType.Grass);
 
-        // 外周を壁で囲む
-        DrawBorder(map);
+        // 外周は通行可能（端から外へ出ると町を出る）
 
         // 中央に十字の道路を敷く
         int midX = width / 2;
@@ -74,10 +73,21 @@ public class LocationMapGenerator
         PlaceBuilding(map, 3, midY + 3, 6, 5);
         PlaceBuilding(map, width - 10, midY + 3, 6, 5);
 
-        // 出入口（下端中央に上り階段 = シンボルマップへの帰還口）
-        var exitPos = new Position(midX, height - 2);
-        map.SetStairsUp(exitPos);
-        map.SetEntrance(exitPos);
+        // NPC配置（建物内部に配置）
+        // 左上建物（宿屋）: 宿屋主人
+        map.SetTile(new Position(6, 5), TileType.NpcInnkeeper);
+        // 右上建物（商店）: 商人
+        map.SetTile(new Position(width - 9, 5), TileType.NpcShopkeeper);
+        // 左下建物（鍛冶屋）: 鍛冶屋
+        map.SetTile(new Position(6, height - 8), TileType.NpcBlacksmith);
+        // 右下建物（ギルド）: ギルド受付
+        map.SetTile(new Position(width - 9, height - 8), TileType.NpcGuildReceptionist);
+        // 道路沿い右上建物: 神父
+        map.SetTile(new Position(midX + 6, 5), TileType.NpcPriest);
+
+        // 町の入口（南側道路中央）にスポーンポイントを設定
+        var entrancePos = new Position(midX, height - 2);
+        map.SetEntrance(entrancePos);
 
         return map;
     }
@@ -93,7 +103,8 @@ public class LocationMapGenerator
         var map = new DungeonMap(width, height) { Depth = 0, Name = locationId };
 
         FillAll(map, TileType.Grass);
-        DrawBorder(map);
+
+        // 外周は通行可能（端から外へ出ると村を出る）
 
         // 中央に小さな道
         int midX = width / 2;
@@ -119,10 +130,9 @@ public class LocationMapGenerator
         // 井戸（噴水タイル代用）
         map.SetTile(new Position(midX, midY - 2), TileType.Fountain);
 
-        // 出入口
-        var exitPos = new Position(midX, height - 2);
-        map.SetStairsUp(exitPos);
-        map.SetEntrance(exitPos);
+        // 村の入口（南側道路中央）にスポーンポイントを設定
+        var entrancePos = new Position(midX, height - 2);
+        map.SetEntrance(entrancePos);
 
         return map;
     }
@@ -138,6 +148,9 @@ public class LocationMapGenerator
         var map = new DungeonMap(width, height) { Depth = 0, Name = locationId };
 
         FillAll(map, TileType.Wall);
+
+        // 外周を通行可能にする（端から外へ出ると施設を出る）
+        DrawPassableBorder(map);
 
         // 大部屋（メインホール）
         FillRect(map, 2, 2, width - 4, height - 4, TileType.Floor);
@@ -161,11 +174,8 @@ public class LocationMapGenerator
         // 祭壇（施設の中心にオブジェクト）
         map.SetTile(new Position(midX, height / 2), TileType.Altar);
 
-        // 出入口（下端中央）
-        var exitPos = new Position(midX, height - 2);
-        map.SetTile(exitPos, TileType.Floor); // 確実に歩ける
-        map.SetStairsUp(exitPos);
-        map.SetEntrance(exitPos);
+        // 出口ドア（南側中央）
+        PlaceExitDoor(map, midX, height - 2);
 
         return map;
     }
@@ -181,6 +191,9 @@ public class LocationMapGenerator
         var map = new DungeonMap(width, height) { Depth = 0, Name = locationId };
 
         FillAll(map, TileType.Wall);
+
+        // 外周を通行可能にする（端から外へ出ると施設を出る）
+        DrawPassableBorder(map);
 
         // メイン回廊（中央の大通路）
         int midX = width / 2;
@@ -205,11 +218,8 @@ public class LocationMapGenerator
             map.SetTile(new Position(midX + 2, y), TileType.Pillar);
         }
 
-        // 出入口
-        var exitPos = new Position(midX, height - 2);
-        map.SetTile(exitPos, TileType.Floor);
-        map.SetStairsUp(exitPos);
-        map.SetEntrance(exitPos);
+        // 出口ドア（南側中央）
+        PlaceExitDoor(map, midX, height - 2);
 
         return map;
     }
@@ -265,11 +275,10 @@ public class LocationMapGenerator
         // 散策路
         DrawHorizontalRoad(map, height / 2, 2, width - 3);
 
-        // 出入口（左端中央）
-        var exitPos = new Position(1, height / 2);
-        map.SetTile(exitPos, TileType.Grass);
-        map.SetStairsUp(exitPos);
-        map.SetEntrance(exitPos);
+        // フィールドの入口（南側中央）にスポーンポイントを設定
+        int fieldMidX = width / 2;
+        var fieldEntrance = new Position(fieldMidX, height - 1);
+        map.SetEntrance(fieldEntrance);
 
         return map;
     }
@@ -330,17 +339,36 @@ public class LocationMapGenerator
         }
     }
 
-    private static void DrawBorder(DungeonMap map)
+    /// <summary>
+    /// 建物系ロケーションの出口ドアを配置（ドア + StairsUp）
+    /// プレイヤーがStairsUp上でShift+<を押すとロケーションを出る
+    /// </summary>
+    private static void PlaceExitDoor(DungeonMap map, int x, int y)
+    {
+        // ドアの前後を通行可能にする
+        map.SetTile(new Position(x, y - 1), TileType.Floor);
+        map.SetTile(new Position(x, y), TileType.DoorClosed);
+        map.SetTile(new Position(x, y + 1), TileType.Floor);
+        // ドアの先（出口側）にStairsUpを配置
+        map.SetStairsUp(new Position(x, y + 1));
+        map.SetEntrance(new Position(x, y + 1));
+    }
+
+    /// <summary>
+    /// ロケーションマップの外周を通行可能タイルにする（壁充填マップ用）
+    /// プレイヤーが外周端から外方向へ移動するとTryLeaveTownが発動する
+    /// </summary>
+    private static void DrawPassableBorder(DungeonMap map)
     {
         for (int x = 0; x < map.Width; x++)
         {
-            map.SetTile(new Position(x, 0), TileType.Wall);
-            map.SetTile(new Position(x, map.Height - 1), TileType.Wall);
+            map.SetTile(new Position(x, 0), TileType.Floor);
+            map.SetTile(new Position(x, map.Height - 1), TileType.Floor);
         }
         for (int y = 0; y < map.Height; y++)
         {
-            map.SetTile(new Position(0, y), TileType.Wall);
-            map.SetTile(new Position(map.Width - 1, y), TileType.Wall);
+            map.SetTile(new Position(0, y), TileType.Floor);
+            map.SetTile(new Position(map.Width - 1, y), TileType.Floor);
         }
     }
 

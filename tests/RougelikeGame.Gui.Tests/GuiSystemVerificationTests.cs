@@ -56,6 +56,18 @@ namespace RougelikeGame.Gui.Tests;
 ///   - EncyclopediaSystem（図鑑）→ Yキー画面遷移はGuiAutomationTestsで検証
 ///   - DeathLogSystem（死亡記録）→ Zキー画面遷移はGuiAutomationTestsで検証
 ///   - CompanionSystem（仲間管理）→ Uキー画面遷移はGuiAutomationTestsで検証
+///   - CharacterCreation（キャラ作成）→ 全種族/全素性の初期領地検証はGuiAutomationTests 8,9 で検証
+///   - SymbolMap/DungeonTransition（マップ遷移）→ シンボルマップ↔ダンジョン↔領地移動はGuiAutomationTests 10,11 で検証
+///   - SpellCasting（魔法詠唱）→ ルーン語組み合わせ・詠唱フローはGuiAutomationTests 12 で検証
+///   - Inventory/ItemUse（アイテム使用）→ 選択・使用・装備操作はGuiAutomationTests 13 で検証
+///   - StatusWindow（ステータス詳細）→ 全UI要素の存在・形式検証はGuiAutomationTests 14 で検証
+///   - TownWindow（街施設）→ 施設一覧・所持金・ダンジョンボタン検証はGuiAutomationTests 15 で検証
+///   - CraftingWindow（鍛冶・合成）→ 3タブ切替・リスト・アクションボタン検証はGuiAutomationTests 16 で検証
+///   - QuestLogWindow（クエスト）→ ギルド情報・タブ切替・一覧検証はGuiAutomationTests 17 で検証
+///   - ReligionWindow（宗教・信仰）→ 信仰名・恩恵リスト・ボタン検証はGuiAutomationTests 17 で検証
+///   - DifficultySelectWindow（難易度選択）→ リスト5件・詳細テキスト・Esc閉じはGuiAutomationTests 18 で検証
+///   - SaveDataSelectWindow（セーブデータ選択）→ ContinueButton状態・スロットリスト検証はGuiAutomationTests 19 で検証
+///   - ShopWindow（ショップ）→ 購入/売却タブ・商品リスト・ボタン検証はGuiAutomationTests 20 で検証
 ///
 /// ■ 将来GUI接続後に追加予定:
 ///   - MonsterRaceSystem（敵種族分類）→ 敵情報ダイアログで種族名表示時
@@ -451,11 +463,11 @@ public class GuiSystemVerificationTests : IDisposable
             "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
             "LevelText", "ExpText", "HpText", "MpText", "SpText",
             "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
-            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText"
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText", "SkillSlotText"
         };
 
         // ========== 初期状態の全ステータス記録 ==========
-        Log("記録: 初期状態の全20ステータスバー値");
+        Log("記録: 初期状態の全21ステータスバー値");
         var initialValues = new Dictionary<string, string>();
         foreach (var id in allStatusIds)
         {
@@ -564,7 +576,7 @@ public class GuiSystemVerificationTests : IDisposable
             "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
             "LevelText", "ExpText", "HpText", "MpText", "SpText",
             "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
-            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText"
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText", "SkillSlotText"
         };
 
         // ヘルパー: 全ステータスバーが正常かチェック
@@ -847,13 +859,13 @@ public class GuiSystemVerificationTests : IDisposable
         Log($"  → 移動後 Season='{seasonMove}' Weather='{weatherMove}' Thirst='{thirstMove}' Karma='{karmaMove}' Companion='{companionMove}' OK");
 
         // ========== 全20ステータスバー要素の最終整合性確認 ==========
-        Log("検証: テスト終了時に全20ステータスバー要素が正常に表示されること");
+        Log("検証: テスト終了時に全21ステータスバー要素が正常に表示されること");
         var allStatusIds = new[]
         {
             "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
             "LevelText", "ExpText", "HpText", "MpText", "SpText",
             "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
-            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText"
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText", "SkillSlotText"
         };
         foreach (var id in allStatusIds)
         {

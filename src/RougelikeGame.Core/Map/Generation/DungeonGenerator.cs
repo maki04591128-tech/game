@@ -67,23 +67,43 @@ public class DungeonGenerator : IMapGenerator
     /// </summary>
     private void GenerateRooms(DungeonMap map, DungeonGenerationParameters parameters)
     {
-        var bspTree = new BSPNode(2, 2, map.Width - 4, map.Height - 4);
+        const int MinRooms = 5;
+        const int MaxRetries = 5;
 
-        // BSPで空間を分割
-        SplitBSP(bspTree, parameters.RoomCount);
-
-        // 各リーフノードに部屋を作成
-        var leaves = bspTree.GetLeaves();
-        int roomId = 0;
-
-        foreach (var leaf in leaves)
+        for (int retry = 0; retry < MaxRetries; retry++)
         {
-            var room = CreateRoomInNode(leaf, roomId++);
-            if (room != null)
+            var bspTree = new BSPNode(2, 2, map.Width - 4, map.Height - 4);
+
+            // BSPで空間を分割（リトライ時はより積極的に分割）
+            SplitBSP(bspTree, parameters.RoomCount, forceMinRooms: retry > 0);
+
+            // 各リーフノードに部屋を作成
+            var leaves = bspTree.GetLeaves();
+            var rooms = new List<Room>();
+            int roomId = 0;
+
+            foreach (var leaf in leaves)
+            {
+                var room = CreateRoomInNode(leaf, roomId++);
+                if (room != null)
+                {
+                    rooms.Add(room);
+                }
+            }
+
+            // 最低部屋数を満たさない場合はリトライ（マップをリセット）
+            if (rooms.Count < MinRooms && retry < MaxRetries - 1)
+            {
+                map.ClearRooms();
+                continue;
+            }
+
+            foreach (var room in rooms)
             {
                 map.AddRoom(room);
                 CarveRoom(map, room);
             }
+            break;
         }
 
         // 最初の部屋を入口、最後の部屋をボス部屋に
@@ -108,15 +128,17 @@ public class DungeonGenerator : IMapGenerator
     /// <summary>
     /// BSPノードを再帰的に分割
     /// </summary>
-    private void SplitBSP(BSPNode node, int targetRooms, int depth = 0)
+    private void SplitBSP(BSPNode node, int targetRooms, int depth = 0, bool forceMinRooms = false)
     {
         const int MinSize = 8;
         const int MaxDepth = 6;
 
         if (depth >= MaxDepth) return;
 
-        // 分割するかどうかの確率
+        // 分割するかどうかの確率（forceMinRooms時は浅い階層で必ず分割）
         float splitChance = 1.0f - (depth * 0.15f);
+        if (forceMinRooms && depth < 3)
+            splitChance = 1.0f; // 浅い階層では必ず分割
         if (_random.NextDouble() > splitChance) return;
 
         // 分割方向を決定
@@ -144,8 +166,8 @@ public class DungeonGenerator : IMapGenerator
             node.Right = new BSPNode(node.X + split, node.Y, node.Width - split, node.Height);
         }
 
-        SplitBSP(node.Left, targetRooms, depth + 1);
-        SplitBSP(node.Right, targetRooms, depth + 1);
+        SplitBSP(node.Left, targetRooms, depth + 1, forceMinRooms);
+        SplitBSP(node.Right, targetRooms, depth + 1, forceMinRooms);
     }
 
     /// <summary>
@@ -153,7 +175,7 @@ public class DungeonGenerator : IMapGenerator
     /// </summary>
     private Room? CreateRoomInNode(BSPNode node, int roomId)
     {
-        const int MinRoomSize = 5;
+        const int MinRoomSize = 7; // 壁含みで7x7 → 内部歩行面5x5を保証
         const int Margin = 2;
 
         int maxWidth = node.Width - Margin * 2;

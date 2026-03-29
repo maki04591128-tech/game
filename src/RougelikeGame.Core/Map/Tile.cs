@@ -182,7 +182,34 @@ public enum TileType
     /// <summary>
     /// デバッグ: NPC対話マス（踏むとNPCと対話）
     /// </summary>
-    DebugNpc
+    DebugNpc,
+
+    // === 町内NPC用タイル ===
+
+    /// <summary>
+    /// ギルド受付（冒険者ギルド登録・クエスト受注）
+    /// </summary>
+    NpcGuildReceptionist,
+
+    /// <summary>
+    /// 神父（宗教入信・改宗）
+    /// </summary>
+    NpcPriest,
+
+    /// <summary>
+    /// 商人（ショップ）
+    /// </summary>
+    NpcShopkeeper,
+
+    /// <summary>
+    /// 鍛冶屋（装備強化・合成）
+    /// </summary>
+    NpcBlacksmith,
+
+    /// <summary>
+    /// 宿屋主人（休息）
+    /// </summary>
+    NpcInnkeeper
 }
 
 /// <summary>
@@ -362,6 +389,15 @@ public class Tile
                 tile.BlocksMovement = false;
                 break;
 
+            case TileType.NpcGuildReceptionist:
+            case TileType.NpcPriest:
+            case TileType.NpcShopkeeper:
+            case TileType.NpcBlacksmith:
+            case TileType.NpcInnkeeper:
+                tile.BlocksSight = false;
+                tile.BlocksMovement = false;
+                break;
+
             default:
                 tile.BlocksSight = true;
                 tile.BlocksMovement = true;
@@ -408,6 +444,11 @@ public class Tile
             TileType.SymbolFacility => '☆',
             TileType.SymbolShrine => '†',
             TileType.SymbolField => '◇',
+            TileType.NpcGuildReceptionist => 'G',
+            TileType.NpcPriest => 'P',
+            TileType.NpcShopkeeper => 'S',
+            TileType.NpcBlacksmith => 'B',
+            TileType.NpcInnkeeper => 'I',
             _ => '?'
         };
     }

@@ -12,7 +12,6 @@ namespace RougelikeGame.Gui;
 public partial class QuestLogWindow : Window
 {
     private readonly GameController _controller;
-    private bool _showActive = true;
     private List<QuestViewModel> _currentItems = new();
 
     public QuestLogWindow(GameController controller)
@@ -22,7 +21,6 @@ public partial class QuestLogWindow : Window
 
         UpdateGuildInfo();
         LoadActiveQuests();
-        UpdateTabVisuals();
         CompletedCountText.Text = $"完了: {_controller.CompletedQuestCount}件";
     }
 
@@ -50,23 +48,6 @@ public partial class QuestLogWindow : Window
             _currentItems.Add(new QuestViewModel(quest, progress, false));
         }
         RefreshList();
-        AcceptButton.Visibility = Visibility.Collapsed;
-        TurnInButton.Visibility = Visibility.Visible;
-        TurnInButton.IsEnabled = false;
-    }
-
-    private void LoadAvailableQuests()
-    {
-        _currentItems.Clear();
-        var quests = _controller.GetAvailableQuests();
-        foreach (var quest in quests)
-        {
-            _currentItems.Add(new QuestViewModel(quest, null, true));
-        }
-        RefreshList();
-        TurnInButton.Visibility = Visibility.Collapsed;
-        AcceptButton.Visibility = Visibility.Visible;
-        AcceptButton.IsEnabled = false;
     }
 
     private void RefreshList()
@@ -77,46 +58,12 @@ public partial class QuestLogWindow : Window
         QuestRewardText.Text = "";
     }
 
-    private void UpdateTabVisuals()
-    {
-        if (_showActive)
-        {
-            ActiveTab.Background = System.Windows.Media.Brushes.SeaGreen;
-            AvailableTab.Background = new System.Windows.Media.SolidColorBrush(
-                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#0f3460"));
-        }
-        else
-        {
-            AvailableTab.Background = System.Windows.Media.Brushes.SeaGreen;
-            ActiveTab.Background = new System.Windows.Media.SolidColorBrush(
-                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#0f3460"));
-        }
-    }
-
-    private void ActiveTab_Click(object sender, RoutedEventArgs e)
-    {
-        if (_showActive) return;
-        _showActive = true;
-        LoadActiveQuests();
-        UpdateTabVisuals();
-    }
-
-    private void AvailableTab_Click(object sender, RoutedEventArgs e)
-    {
-        if (!_showActive) return;
-        _showActive = false;
-        LoadAvailableQuests();
-        UpdateTabVisuals();
-    }
-
     private void QuestList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (QuestList.SelectedItem is not QuestViewModel selected)
         {
             QuestDetailText.Text = "クエストを選択してください";
             QuestRewardText.Text = "";
-            AcceptButton.IsEnabled = false;
-            TurnInButton.IsEnabled = false;
             return;
         }
 
@@ -129,34 +76,6 @@ public partial class QuestLogWindow : Window
         if (reward.Experience > 0) rewardParts.Add($"EXP {reward.Experience}");
         if (reward.GuildPoints > 0) rewardParts.Add($"GP {reward.GuildPoints}");
         QuestRewardText.Text = rewardParts.Count > 0 ? $"報酬: {string.Join(" / ", rewardParts)}" : "";
-
-        if (selected.IsAvailable)
-        {
-            AcceptButton.IsEnabled = true;
-        }
-        else if (selected.Progress?.IsComplete == true)
-        {
-            TurnInButton.IsEnabled = true;
-        }
-        else
-        {
-            TurnInButton.IsEnabled = false;
-        }
-    }
-
-    private void AcceptButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (QuestList.SelectedItem is not QuestViewModel selected) return;
-        _controller.TryAcceptQuest(selected.Quest.Id);
-        LoadAvailableQuests();
-    }
-
-    private void TurnInButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (QuestList.SelectedItem is not QuestViewModel selected) return;
-        _controller.TryTurnInQuest(selected.Quest.Id);
-        LoadActiveQuests();
-        CompletedCountText.Text = $"完了: {_controller.CompletedQuestCount}件";
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
@@ -169,15 +88,10 @@ public partial class QuestLogWindow : Window
     {
         switch (e.Key)
         {
+            case Key.K:
             case Key.Escape:
                 DialogResult = false;
                 Close();
-                break;
-            case Key.Enter:
-                if (_showActive && TurnInButton.IsEnabled)
-                    TurnInButton_Click(sender, e);
-                else if (!_showActive && AcceptButton.IsEnabled)
-                    AcceptButton_Click(sender, e);
                 break;
         }
         e.Handled = true;

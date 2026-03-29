@@ -1,0 +1,45 @@
+<Window x:Class="RougelikeGame.Gui.QuestBoardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="クエストボード" Height="600" Width="700"
+        Background="#1a1a2e"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        FontFamily="MS Gothic"
+        Foreground="White">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- タイトル -->
+        <TextBlock Grid.Row="0" Text="📋 クエストボード" FontSize="18" FontWeight="Bold"
+                   Foreground="#e94560" Margin="0,0,0,8"/>
+
+        <!-- タブ切替 -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button x:Name="AvailableTabButton" Content="受注可能" Width="100" Height="28"
+                    Background="#0f3460" Foreground="White" BorderBrush="#533483"
+                    Click="AvailableTab_Click" Margin="0,0,6,0"/>
+            <Button x:Name="ActiveTabButton" Content="進行中" Width="100" Height="28"
+                    Background="#16213e" Foreground="Gray" BorderBrush="#333"
+                    Click="ActiveTab_Click" Margin="0,0,6,0"/>
+            <Button x:Name="CompletedTabButton" Content="完了報告" Width="100" Height="28"
+                    Background="#16213e" Foreground="Gray" BorderBrush="#333"
+                    Click="CompletedTab_Click"/>
+        </StackPanel>
+
+        <!-- クエスト一覧 -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8">
+            <StackPanel x:Name="QuestPanel" />
+        </ScrollViewer>
+
+        <!-- 閉じるボタン -->
+        <Button Grid.Row="3" Content="閉じる" Width="100" Height="30"
+                Background="#0f3460" Foreground="White" BorderBrush="#533483"
+                Click="CloseButton_Click" HorizontalAlignment="Right"/>
+    </Grid>
+</Window>

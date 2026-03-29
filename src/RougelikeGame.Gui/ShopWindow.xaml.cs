@@ -1,22 +1,22 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using RougelikeGame.Core;
 using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Items;
+using RougelikeGame.Core.Systems;
 
 namespace RougelikeGame.Gui;
 
 /// <summary>
-/// ショップウィンドウ
+/// ショップウィンドウ — リスト表示ベースの購入/売却UI
 /// </summary>
 public partial class ShopWindow : Window
 {
     private readonly GameController _controller;
     private readonly FacilityType _shopType;
-    private bool _isBuyMode = true;
-    private List<ShopItemViewModel> _buyItems = new();
-    private List<ShopItemViewModel> _sellItems = new();
+    private int _tradeQuantity = 1;
 
     public ShopWindow(GameController controller, FacilityType shopType)
     {
@@ -24,163 +24,178 @@ public partial class ShopWindow : Window
         _controller = controller;
         _shopType = shopType;
 
-        ShopTitle.Text = $"【{GetShopName(shopType)}】";
+        ShopTitle.Text = string.Format("【{0}】", GetShopName(shopType));
         UpdateGold();
-        LoadBuyItems();
-        UpdateTabVisuals();
+        RenderBothLists();
     }
 
-    private void LoadBuyItems()
+    private void RenderBothLists()
     {
-        _buyItems.Clear();
+        RenderShopList();
+        RenderPlayerList();
+    }
+
+    private void RenderShopList()
+    {
         var items = _controller.InitializeAndGetShopItems(_shopType);
+        var viewModels = new List<ShopItemViewModel>();
         for (int i = 0; i < items.Count; i++)
         {
             var item = items[i];
-            _buyItems.Add(new ShopItemViewModel(i, item.Name, item.BasePrice, item.Stock, false));
+            if (item.Stock <= 0) continue;
+            viewModels.Add(new ShopItemViewModel
+            {
+                Index = i,
+                Name = item.Name,
+                Price = item.BasePrice,
+                PriceText = string.Format("{0}G", item.BasePrice),
+                StockText = string.Format("x{0}", item.Stock),
+                Stock = item.Stock,
+                IsShopItem = true
+            });
         }
-        RefreshList();
+        ShopListBox.ItemsSource = viewModels;
+        ShopGridLabel.Text = string.Format("ショップ商品 ({0})", viewModels.Count);
     }
 
-    private void LoadSellItems()
+    private void RenderPlayerList()
     {
-        _sellItems.Clear();
         var inventory = (Inventory)_controller.Player.Inventory;
-        int index = 0;
+        var viewModels = new List<ShopItemViewModel>();
+        int idx = 0;
         foreach (var item in inventory.Items)
         {
             int sellPrice = Math.Max(1, item.BasePrice / 2);
-            _sellItems.Add(new ShopItemViewModel(index, item.GetDisplayName(), sellPrice, 1, true));
-            index++;
+            viewModels.Add(new ShopItemViewModel
+            {
+                Index = idx,
+                Name = item.GetDisplayName(),
+                Price = sellPrice,
+                PriceText = string.Format("売:{0}G", sellPrice),
+                StockText = "",
+                Stock = 1,
+                IsShopItem = false,
+                NameColor = GetRarityBrush(item.Rarity),
+                PlayerItem = item
+            });
+            idx++;
         }
-        RefreshList();
+        PlayerListBox.ItemsSource = viewModels;
+        PlayerGridLabel.Text = string.Format("所持品 ({0} アイテム)", viewModels.Count);
     }
 
-    private void RefreshList()
+    private void ShopListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        ItemList.ItemsSource = null;
-        ItemList.ItemsSource = _isBuyMode ? _buyItems : _sellItems;
-        ActionButton.Content = _isBuyMode ? "購入 [Enter]" : "売却 [Enter]";
-        ActionButton.IsEnabled = false;
-        ItemInfoText.Text = "アイテムを選択してください";
-    }
-
-    private void UpdateGold()
-    {
-        GoldText.Text = $"{_controller.Player.Gold}G";
-    }
-
-    private void UpdateTabVisuals()
-    {
-        if (_isBuyMode)
+        if (ShopListBox.SelectedItem is ShopItemViewModel vm)
         {
-            BuyTab.Background = System.Windows.Media.Brushes.SeaGreen;
-            SellTab.Background = new System.Windows.Media.SolidColorBrush(
-                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#0f3460"));
+            PlayerListBox.SelectedItem = null;
+            BuyButton.IsEnabled = true;
+            SellButton.IsEnabled = false;
+            _tradeQuantity = 1;
+            QuantityText.Text = "1";
+            int totalPrice = vm.Price * _tradeQuantity;
+            bool canAfford = _controller.Player.Gold >= totalPrice;
+            ItemInfoText.Text = string.Format("{0} — {1}G x{2} = {3}G{4}", vm.Name, vm.Price, _tradeQuantity, totalPrice,
+                canAfford ? "" : " ⚠ 所持金が足りません");
         }
-        else
+    }
+
+    private void PlayerListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (PlayerListBox.SelectedItem is ShopItemViewModel vm)
         {
-            SellTab.Background = System.Windows.Media.Brushes.SeaGreen;
-            BuyTab.Background = new System.Windows.Media.SolidColorBrush(
-                (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#0f3460"));
+            ShopListBox.SelectedItem = null;
+            SellButton.IsEnabled = true;
+            BuyButton.IsEnabled = false;
+            _tradeQuantity = 1;
+            QuantityText.Text = "1";
+            ItemInfoText.Text = string.Format("{0} — 売値: {1}G", vm.Name, vm.Price);
         }
     }
 
-    private void BuyTab_Click(object sender, RoutedEventArgs e)
+    private void BuyButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_isBuyMode) return;
-        _isBuyMode = true;
-        LoadBuyItems();
-        UpdateTabVisuals();
-    }
-
-    private void SellTab_Click(object sender, RoutedEventArgs e)
-    {
-        if (!_isBuyMode) return;
-        _isBuyMode = false;
-        LoadSellItems();
-        UpdateTabVisuals();
-    }
-
-    private void ItemList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (ItemList.SelectedItem is not ShopItemViewModel selected)
+        if (ShopListBox.SelectedItem is not ShopItemViewModel vm) return;
+        for (int i = 0; i < _tradeQuantity; i++)
         {
-            ActionButton.IsEnabled = false;
-            ItemInfoText.Text = "アイテムを選択してください";
-            return;
+            bool success = _controller.TryBuyItem(_shopType, vm.Index);
+            if (!success) break;
         }
-
-        ActionButton.IsEnabled = true;
-
-        if (_isBuyMode)
-        {
-            bool canAfford = _controller.Player.Gold >= selected.Price;
-            ItemInfoText.Text = $"{selected.Name} — {selected.Price}G" +
-                (canAfford ? "" : " ⚠ 所持金が足りません");
-            ActionButton.IsEnabled = canAfford && selected.Stock > 0;
-        }
-        else
-        {
-            ItemInfoText.Text = $"{selected.Name} — 売値: {selected.Price}G";
-        }
+        _tradeQuantity = 1;
+        QuantityText.Text = "1";
+        BuyButton.IsEnabled = false;
+        UpdateGold();
+        RenderBothLists();
+        ItemInfoText.Text = "購入しました";
     }
 
-    private void ActionButton_Click(object sender, RoutedEventArgs e)
+    private void SellButton_Click(object sender, RoutedEventArgs e)
     {
-        ExecuteAction();
+        if (PlayerListBox.SelectedItem is not ShopItemViewModel vm) return;
+        var inventory = (Inventory)_controller.Player.Inventory;
+        if (vm.Index < inventory.Items.Count)
+        {
+            var item = inventory.Items[vm.Index];
+            bool success = _controller.TrySellItem(item.GetDisplayName(), item.BasePrice);
+            if (success)
+            {
+                inventory.Remove(item);
+                _tradeQuantity = 1;
+                QuantityText.Text = "1";
+                SellButton.IsEnabled = false;
+                UpdateGold();
+                RenderBothLists();
+                ItemInfoText.Text = "売却しました";
+            }
+        }
     }
 
-    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    private void QuantityUp_Click(object sender, RoutedEventArgs e)
     {
-        DialogResult = false;
-        Close();
+        if (ShopListBox.SelectedItem is ShopItemViewModel vm)
+        {
+            _tradeQuantity = Math.Min(_tradeQuantity + 1, vm.Stock);
+            QuantityText.Text = _tradeQuantity.ToString();
+            int totalPrice = vm.Price * _tradeQuantity;
+            bool canAfford = _controller.Player.Gold >= totalPrice;
+            ItemInfoText.Text = string.Format("{0} — {1}G x{2} = {3}G{4}", vm.Name, vm.Price, _tradeQuantity, totalPrice,
+                canAfford ? "" : " ⚠ 所持金が足りません");
+        }
     }
+
+    private void QuantityDown_Click(object sender, RoutedEventArgs e)
+    {
+        _tradeQuantity = Math.Max(1, _tradeQuantity - 1);
+        QuantityText.Text = _tradeQuantity.ToString();
+        if (ShopListBox.SelectedItem is ShopItemViewModel vm)
+        {
+            int totalPrice = vm.Price * _tradeQuantity;
+            bool canAfford = _controller.Player.Gold >= totalPrice;
+            ItemInfoText.Text = string.Format("{0} — {1}G x{2} = {3}G{4}", vm.Name, vm.Price, _tradeQuantity, totalPrice,
+                canAfford ? "" : " ⚠ 所持金が足りません");
+        }
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e) { DialogResult = false; Close(); }
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
-        switch (e.Key)
-        {
-            case Key.Escape:
-                DialogResult = false;
-                Close();
-                break;
-            case Key.Enter:
-                ExecuteAction();
-                break;
-        }
+        if (e.Key == Key.Escape) { DialogResult = false; Close(); }
         e.Handled = true;
     }
 
-    private void ExecuteAction()
-    {
-        if (ItemList.SelectedItem is not ShopItemViewModel selected) return;
+    private void UpdateGold() { GoldText.Text = string.Format("{0}G", _controller.Player.Gold); }
 
-        if (_isBuyMode)
-        {
-            bool success = _controller.TryBuyItem(_shopType, selected.Index);
-            if (success)
-            {
-                UpdateGold();
-                LoadBuyItems();
-            }
-        }
-        else
-        {
-            var inventory = (Inventory)_controller.Player.Inventory;
-            if (selected.Index < inventory.Items.Count)
-            {
-                var item = inventory.Items[selected.Index];
-                bool success = _controller.TrySellItem(item.GetDisplayName(), item.BasePrice);
-                if (success)
-                {
-                    inventory.Remove(item);
-                    UpdateGold();
-                    LoadSellItems();
-                }
-            }
-        }
-    }
+    private static Brush GetRarityBrush(ItemRarity rarity) => rarity switch
+    {
+        ItemRarity.Common => Brushes.White,
+        ItemRarity.Uncommon => new SolidColorBrush(Color.FromRgb(0x4e, 0xcc, 0xa3)),
+        ItemRarity.Rare => new SolidColorBrush(Color.FromRgb(0x53, 0x7b, 0xff)),
+        ItemRarity.Epic => new SolidColorBrush(Color.FromRgb(0xc0, 0x5e, 0xff)),
+        ItemRarity.Legendary => new SolidColorBrush(Color.FromRgb(0xff, 0xd9, 0x3d)),
+        ItemRarity.Unique => new SolidColorBrush(Color.FromRgb(0xff, 0x8c, 0x42)),
+        _ => Brushes.White
+    };
 
     private static string GetShopName(FacilityType shopType) => shopType switch
     {
@@ -190,24 +205,17 @@ public partial class ShopWindow : Window
         FacilityType.MagicShop => "魔法店",
         _ => "ショップ"
     };
+}
 
-    public class ShopItemViewModel
-    {
-        public int Index { get; }
-        public string Name { get; }
-        public int Price { get; }
-        public int Stock { get; }
-        public bool IsSellItem { get; }
-        public string PriceDisplay => $"{Price}G";
-        public string StockDisplay => IsSellItem ? "" : $"在庫: {Stock}";
-
-        public ShopItemViewModel(int index, string name, int price, int stock, bool isSellItem)
-        {
-            Index = index;
-            Name = name;
-            Price = price;
-            Stock = stock;
-            IsSellItem = isSellItem;
-        }
-    }
+public class ShopItemViewModel
+{
+    public int Index { get; set; }
+    public string Name { get; set; } = "";
+    public int Price { get; set; }
+    public string PriceText { get; set; } = "";
+    public string StockText { get; set; } = "";
+    public int Stock { get; set; }
+    public bool IsShopItem { get; set; }
+    public Brush NameColor { get; set; } = Brushes.White;
+    public Item? PlayerItem { get; set; }
 }
