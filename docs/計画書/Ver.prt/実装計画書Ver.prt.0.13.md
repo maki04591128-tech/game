@@ -150,6 +150,23 @@ MultiEndingSystem, GrowthSystem, ReligionSkillSystem, DungeonFactionSystem, Exte
 | ExecutionSystem | 8件 | HP閾値/経験値/ドロップ/カルマ/アニメーション |
 | 戦闘統合テスト | 7件 | スタンス+属性+疲労+処刑+時刻+熟練度連携 |
 | ターン効果連携テスト | 5件 | 疲労進行/衛生進行/感染/価格変動/グレード価格 |
-| アクティビティ連携テスト | 15件 | 野営/賭博/釣り/採集/鍛冶/ショートカット/密輸/闇市場 |
+| アクティビティ連携テスト | 15件 | 野営/賭博/釣り/採集/鍛冶/ショートカット/密輸/闘市場 |
 
-**テスト総数**: Core 5,041件(133ファイル) + GUI 148件(5ファイル) = **5,189件(138ファイル)**
+## テスト拡充Phase 9（最終フェーズ）
+
+**追加テスト**: SystemExpansionPhase9Tests.cs (290件)
+**対象**: 9システム統合・境界値・Enum網羅テスト
+
+| システム | テスト件数 | テスト内容 |
+|---------|-----------|-----------|
+| WeatherSystem | 25件 | 天候×属性×季節複合条件/視界/命中/移動コスト/足跡/天候決定 |
+| NpcSystem | 25件 | NPC定義/好感度/対話/クエスト受注/テリトリー別NPC/リセット |
+| WorldMapSystem | 25件 | テリトリー移動/隣接判定/ロケーション/施設/宿屋/銀行 |
+| ReligionSystem | 25件 | 信仰段階/祈祷/恩恵/タブー/入信/棄教/日次処理 |
+| SkillSystem | 25件 | スキル習得/使用/クールダウン/スキルツリー/カテゴリ別 |
+| PetSystem | 20件 | ペット追加/餌/訓練/騎乗/移動速度/空腹/服従率 |
+| SymbolMapSystem | 15件 | テリトリー別生成/ロケーション種別判定/到着メッセージ |
+| RacialBehaviors | 15件 | 6種族AI行動判定/優先度/不一致種族拒否/DecideAction |
+| Enum境界値網羅 | 20件 | Weather/Element/CombatStance/Territory/Religion/Pet/Season/TimePeriod/Class/Difficulty |
+
+**テスト総数**: Core 5,331件(134ファイル) + GUI 148件(5ファイル) = **5,479件(139ファイル)**
