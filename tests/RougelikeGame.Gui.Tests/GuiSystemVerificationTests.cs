@@ -858,14 +858,15 @@ public class GuiSystemVerificationTests : IDisposable
         Assert.Matches(@"^\d+$", companionMove);
         Log($"  → 移動後 Season='{seasonMove}' Weather='{weatherMove}' Thirst='{thirstMove}' Karma='{karmaMove}' Companion='{companionMove}' OK");
 
-        // ========== 全20ステータスバー要素の最終整合性確認 ==========
-        Log("検証: テスト終了時に全21ステータスバー要素が正常に表示されること");
+        // ========== 全ステータスバー要素の最終整合性確認 ==========
+        Log("検証: テスト終了時に全25ステータスバー要素が正常に表示されること");
         var allStatusIds = new[]
         {
             "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
             "LevelText", "ExpText", "HpText", "MpText", "SpText",
             "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
-            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText", "SkillSlotText"
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText", "SkillSlotText",
+            "StanceText", "FatigueText", "HygieneText", "DiseaseText"
         };
         foreach (var id in allStatusIds)
         {
