@@ -128,3 +128,28 @@ MultiEndingSystem, GrowthSystem, ReligionSkillSystem, DungeonFactionSystem, Exte
 | 疲労 | FatigueLevel名 | 元気=緑, 軽疲労=黄, 疲労=橙, 重疲労=赤 |
 | 衛生 | HygieneLevel名 | 清潔=青, 普通=緑, 汚れ=黄, 不衛生=橙 |
 | 病気 | DiseaseType名（罹患時のみ） | 赤 |
+
+## テスト拡充Phase 8
+
+**追加テスト**: SystemExpansionPhase8Tests.cs (287件)
+**対象**: GUI統合ロジックパスの包括テスト (15システム)
+
+| システム | テスト件数 | テスト内容 |
+|---------|-----------|-----------|
+| TimeOfDaySystem | 16件 | 時間帯判定/名前/視界修正/活動パターン/統計修正 |
+| ProficiencySystem | 11件 | 経験値獲得/レベルアップ/減衰/武器カテゴリマッピング |
+| ItemGradeSystem | 10件 | グレード情報/ステ倍率/価格倍率/ドロップ率/決定ロジック |
+| EnvironmentalPuzzleSystem | 6件 | パズル取得/タイプ名/成功率/試行可否 |
+| GamblingSystem | 14件 | サイコロ/丁半/ハイロー判定/配当/最低賭け金/中毒 |
+| CombatStanceSystem | 11件 | 攻撃/防御/回避/クリティカル修正/名前/トレードオフ |
+| BodyConditionSystem | 8件 | 疲労/衛生名前/修正値/感染リスク/傷 |
+| DiseaseSystem | 5件 | 全病気取得/感染/自然回復/治療コスト |
+| HarvestSystem | 4件 | 収穫可否/種族別/ランク別/アイテムリスト |
+| WeaponProficiencySystem | 5件 | プロファイル/スケーリングボーナス/ダメージ計算 |
+| ElementalAffinitySystem | 6件 | 耐性レベル/ダメージ倍率/武器攻撃タイプ/物理修正 |
+| ExecutionSystem | 8件 | HP閾値/経験値/ドロップ/カルマ/アニメーション |
+| 戦闘統合テスト | 7件 | スタンス+属性+疲労+処刑+時刻+熟練度連携 |
+| ターン効果連携テスト | 5件 | 疲労進行/衛生進行/感染/価格変動/グレード価格 |
+| アクティビティ連携テスト | 15件 | 野営/賭博/釣り/採集/鍛冶/ショートカット/密輸/闇市場 |
+
+**テスト総数**: Core 5,041件(133ファイル) + GUI 148件(5ファイル) = **5,189件(138ファイル)**
