@@ -258,12 +258,17 @@ public partial class SpellCastingWindow : Window
         LoadSelectedSavedSpell();
     }
 
+    private int GetSavedSpellIndex(SavedSpellViewModel vm)
+    {
+        return _controller.GetSavedSpells().ToList()
+            .FindIndex(s => s.Name == vm.Name && s.FormattedIncantation == vm.Incantation);
+    }
+
     private void LoadSelectedSavedSpell()
     {
         if (SavedSpellList.SelectedItem is not SavedSpellViewModel selected) return;
 
-        int index = _controller.GetSavedSpells().ToList()
-            .FindIndex(s => s.Name == selected.Name && s.FormattedIncantation == selected.Incantation);
+        int index = GetSavedSpellIndex(selected);
         if (index < 0) return;
 
         // 現在の詠唱文をクリア
@@ -292,8 +297,7 @@ public partial class SpellCastingWindow : Window
     {
         if (SavedSpellList.SelectedItem is not SavedSpellViewModel selected) return;
 
-        int index = _controller.GetSavedSpells().ToList()
-            .FindIndex(s => s.Name == selected.Name && s.FormattedIncantation == selected.Incantation);
+        int index = GetSavedSpellIndex(selected);
         if (index < 0) return;
 
         // 現在の詠唱文をクリア
@@ -324,8 +328,7 @@ public partial class SpellCastingWindow : Window
 
         if (result != MessageBoxResult.Yes) return;
 
-        int index = _controller.GetSavedSpells().ToList()
-            .FindIndex(s => s.Name == selected.Name && s.FormattedIncantation == selected.Incantation);
+        int index = GetSavedSpellIndex(selected);
         if (index >= 0)
         {
             _controller.RemoveSavedSpell(index);
