@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\RougelikeGame.Core\RougelikeGame.Core.csproj" />
     <ProjectReference Include="..\..\src\RougelikeGame.Engine\RougelikeGame.Engine.csproj" />
+    <ProjectReference Include="..\..\src\RougelikeGame.Data\RougelikeGame.Data.csproj" />
   </ItemGroup>
 
 </Project>

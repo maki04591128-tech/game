@@ -61,6 +61,27 @@ public class GameController
     private readonly FactionWarSystem _factionWarSystem = new();
     private readonly TerritoryInfluenceSystem _territoryInfluenceSystem = new();
 
+    // === GUI統合: 全システムGUI動作確認対応 ===
+    private readonly ProficiencySystem _proficiencySystem = new();
+    private readonly DungeonShortcutSystem _dungeonShortcutSystem = new();
+    private readonly SmithingSystem _smithingSystem = new();
+    private readonly AchievementSystem _achievementSystem = new();
+
+    /// <summary>プレイヤーの現在の戦闘スタンス</summary>
+    private CombatStance _playerStance = CombatStance.Balanced;
+
+    /// <summary>プレイヤーの疲労レベル</summary>
+    private FatigueLevel _playerFatigue = FatigueLevel.Fresh;
+
+    /// <summary>プレイヤーの衛生レベル</summary>
+    private HygieneLevel _playerHygiene = HygieneLevel.Clean;
+
+    /// <summary>プレイヤーの罹患中の病気（null=健康）</summary>
+    private DiseaseType? _playerDisease;
+
+    /// <summary>病気の残りターン数</summary>
+    private int _diseaseRemainingTurns;
+
     /// <summary>敵がアクティブになる描画範囲半径</summary>
     private const int ActiveRange = 10;
 
@@ -1121,20 +1142,87 @@ public class GameController
     {
         var result = _combatSystem.ExecuteAttack(Player, enemy, AttackType.Slash);
 
+        // === GUI統合: 戦闘システム修飾 ===
+        // スタンス修飾（CombatStanceSystem）
+        float stanceAttackMod = CombatStanceSystem.GetAttackModifier(_playerStance);
+
+        // 武器熟練度ボーナス（WeaponProficiencySystem）
+        int weaponDamageBonus = 0;
+        if (Player.Equipment.MainHand != null)
+        {
+            var weaponType = Player.Equipment.MainHand.WeaponType;
+            weaponDamageBonus = WeaponProficiencySystem.GetScalingBonus(weaponType, Player.EffectiveStats);
+
+            // 熟練度経験値獲得（ProficiencySystem）
+            var profCategory = ProficiencySystem.GetWeaponProficiencyCategory(weaponType);
+            _proficiencySystem.GainExperience(profCategory, 1);
+        }
+
+        // モンスター種族特性（MonsterRaceSystem）
+        var raceTraits = MonsterRaceSystem.GetTraits(enemy.Race);
+
+        // 属性相性（ElementalAffinitySystem）
+        float elementalMult = 1.0f;
+        if (Player.Equipment.MainHand?.Element != null && Player.Equipment.MainHand.Element != Element.None)
+        {
+            elementalMult = ElementalAffinitySystem.GetDamageMultiplier(
+                ElementalAffinitySystem.GetResistanceLevel(enemy.Race, Player.Equipment.MainHand.Element));
+        }
+
+        // 処刑判定（ExecutionSystem）
+        bool canExecute = !enemy.IsAlive ? false : ExecutionSystem.CanExecute(enemy.CurrentHp, enemy.MaxHp);
+
+        // 武器耐久度消耗（DurabilitySystem）
+        if (Player.Equipment.MainHand != null)
+        {
+            int wear = DurabilitySystem.CalculateWeaponWear(result.IsCritical);
+            Player.Equipment.MainHand.Durability = Math.Max(0, Player.Equipment.MainHand.Durability - wear);
+        }
+
         if (result.IsHit)
         {
+            // 追加ダメージ計算
+            int baseDmg = result.Damage?.Amount ?? 0;
+            int bonusDmg = (int)(baseDmg * (stanceAttackMod - 1.0f)) + weaponDamageBonus;
+            int elementalBonusDmg = (int)(baseDmg * (elementalMult - 1.0f));
+            int totalBonus = bonusDmg + elementalBonusDmg;
+
+            if (totalBonus > 0)
+            {
+                enemy.TakeDamage(Damage.Physical(totalBonus));
+            }
+
             var critStr = result.IsCritical ? " クリティカル！" : "";
-            AddMessage($"{enemy.Name}に{result.Damage?.Amount ?? 0}ダメージ！{critStr}");
+            var bonusStr = totalBonus > 0 ? $"(+{totalBonus})" : "";
+            AddMessage($"{enemy.Name}に{baseDmg + totalBonus}ダメージ！{critStr}{bonusStr}");
+
+            // 処刑チャンス
+            if (canExecute && enemy.IsAlive)
+            {
+                enemy.TakeDamage(Damage.Pure(enemy.CurrentHp));
+                int karmaChange = ExecutionSystem.GetExecutionKarmaPenalty(enemy.Race);
+                _karmaSystem.ModifyKarma(karmaChange, "処刑");
+                AddMessage($"⚔ 処刑！ {enemy.Name}にとどめを刺した！ (カルマ{karmaChange:+#;-#;0})");
+            }
 
             if (!enemy.IsAlive)
             {
                 // ゴールドドロップ（階層 × 5〜15 × 難易度倍率）
                 int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
                 int gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
+
+                // 処刑ボーナス
+                float executionDropBonus = canExecute ? ExecutionSystem.GetExecutionDropBonus() : 0;
+                gold = (int)(gold * (1.0f + executionDropBonus));
+
                 Player.AddGold(gold);
 
-                AddMessage($"{enemy.Name}を倒した！経験値+{enemy.ExperienceReward} 💰+{gold}G");
-                Player.GainExperience(enemy.ExperienceReward);
+                // 経験値（処刑ボーナス込み）
+                float executionExpBonus = canExecute ? ExecutionSystem.GetExecutionExpBonus() : 0;
+                int totalExp = (int)(enemy.ExperienceReward * (1.0f + executionExpBonus));
+
+                AddMessage($"{enemy.Name}を倒した！経験値+{totalExp} 💰+{gold}G");
+                Player.GainExperience(totalExp);
                 TryDropItem(enemy);
                 OnEnemyDefeated(enemy);
             }
@@ -1226,6 +1314,39 @@ public class GameController
 
         // 図鑑更新（モンスター）
         RegisterAndDiscoverEncyclopedia(EncyclopediaCategory.Monster, enemy.EnemyTypeId, enemy.Name);
+
+        // === GUI統合: 敵撃破時の追加システム処理 ===
+
+        // 素材収集（HarvestSystem）
+        if (HarvestSystem.CanHarvest(enemy.Race))
+        {
+            var harvestResult = HarvestSystem.Harvest(enemy.Race, EnemyRank.Common, _random);
+            if (harvestResult.Materials.Count > 0)
+            {
+                AddMessage($"🔪 {harvestResult.Message}");
+                foreach (var (itemId, qty) in harvestResult.Materials)
+                {
+                    AddMessage($"  素材獲得: {itemId} x{qty}");
+                }
+            }
+        }
+
+        // 秘密の通路発見チェック（SecretRoomSystem）
+        float discoveryChance = SecretRoomSystem.CalculateDiscoveryChance(
+            Player.EffectiveStats.Perception, false);
+        if (_random.NextDouble() < discoveryChance * 0.1f)
+        {
+            AddMessage("🔍 戦闘の衝撃で隠し通路が露わになった！");
+        }
+
+        // ダンジョン生態系更新（DungeonEcosystemSystem - 既存フィールド活用）
+        _dungeonEcosystemSystem.AddBattleTrace(
+            enemy.Position.X, enemy.Position.Y, CurrentFloor, enemy.ExperienceReward,
+            $"プレイヤーが{enemy.Name}を撃破", TurnCount);
+
+        // 実績チェック
+        _achievementSystem.Unlock($"kill_{enemy.EnemyTypeId}");
+        if (_infiniteDungeonKills >= 100) _achievementSystem.Unlock("infinite_100_kills");
     }
 
     /// <summary>ゲームクリア処理</summary>
@@ -1324,17 +1445,46 @@ public class GameController
 
     private void EnemyAttack(Enemy enemy)
     {
+        // === GUI統合: 時間帯による敵の活性度（TimeOfDaySystem）===
+        var currentTime = TimeOfDaySystem.GetTimePeriod(GameTime.Hour);
+        float activityMult = TimeOfDaySystem.GetActivityMultiplier(
+            TimeOfDaySystem.GetActivityPattern(enemy.Race), currentTime);
+
         var result = _combatSystem.ExecuteAttack(enemy, Player, AttackType.Slash);
+
+        // プレイヤーのスタンス防御修飾（CombatStanceSystem）
+        float stanceDefMod = CombatStanceSystem.GetDefenseModifier(_playerStance);
 
         if (result.IsHit)
         {
+            // 防御修飾によるダメージ軽減
+            int baseDmg = result.Damage?.Amount ?? 0;
+            int modifiedDmg = Math.Max(1, (int)(baseDmg * activityMult / stanceDefMod));
+
+            // 防具耐久度消耗（DurabilitySystem）
+            var bodyArmor = Player.Equipment[EquipmentSlot.Body];
+            if (bodyArmor != null)
+            {
+                int armorWear = DurabilitySystem.CalculateArmorWear(modifiedDmg, Element.None);
+                bodyArmor.Durability = Math.Max(0, bodyArmor.Durability - armorWear);
+            }
+
             var critStr = result.IsCritical ? " クリティカル！" : "";
-            AddMessage($"{enemy.Name}の攻撃！{result.Damage?.Amount ?? 0}ダメージ！{critStr}");
+            AddMessage($"{enemy.Name}の攻撃！{modifiedDmg}ダメージ！{critStr}");
             _lastDamageCause = DeathCause.Combat;
         }
         else
         {
-            AddMessage($"{enemy.Name}の攻撃は外れた");
+            // スタンスによる回避ボーナス表示
+            float evasionMod = CombatStanceSystem.GetEvasionModifier(_playerStance);
+            if (evasionMod > 1.0f)
+            {
+                AddMessage($"{enemy.Name}の攻撃を華麗に回避した");
+            }
+            else
+            {
+                AddMessage($"{enemy.Name}の攻撃は外れた");
+            }
         }
     }
 
@@ -1514,6 +1664,149 @@ public class GameController
 
         // スキルクールダウン進行
         _skillSystem.TickCooldowns();
+
+        // === GUI統合: ターン毎システム処理 ===
+
+        // 時間帯による視界範囲変動（TimeOfDaySystem）
+        var currentTimePeriod = TimeOfDaySystem.GetTimePeriod(GameTime.Hour);
+        float sightModifier = TimeOfDaySystem.GetSightRangeModifier(currentTimePeriod);
+        if (sightModifier < 1.0f && TurnCount % 600 == 0)
+        {
+            AddMessage($"🌙 {TimeOfDaySystem.GetTimePeriodName(currentTimePeriod)} — 視界が狭くなっている");
+        }
+
+        // 疲労蓄積（BodyConditionSystem: 300ターンごとに疲労上昇）
+        if (TurnCount > 0 && TurnCount % 300 == 0)
+        {
+            if (_playerFatigue < FatigueLevel.Exhausted)
+            {
+                _playerFatigue++;
+                float fatigueMod = BodyConditionSystem.GetFatigueModifier(_playerFatigue);
+                if (fatigueMod < 0.9f)
+                {
+                    AddMessage($"😓 疲労: {BodyConditionSystem.GetFatigueName(_playerFatigue)} — 行動効率{fatigueMod:P0}");
+                }
+            }
+        }
+
+        // 衛生低下（BodyConditionSystem: 1200ターンごとに衛生低下）
+        if (TurnCount > 0 && TurnCount % 1200 == 0 && _playerHygiene < HygieneLevel.Filthy)
+        {
+            _playerHygiene++;
+            float infectionRisk = BodyConditionSystem.GetHygieneInfectionRisk(_playerHygiene);
+            if (infectionRisk > 0.05f)
+            {
+                AddMessage($"🧼 衛生: {BodyConditionSystem.GetHygieneName(_playerHygiene)} — 感染リスク上昇");
+            }
+        }
+
+        // 病気進行（DiseaseSystem）
+        if (_playerDisease.HasValue)
+        {
+            _diseaseRemainingTurns--;
+            if (_diseaseRemainingTurns <= 0)
+            {
+                AddMessage($"💊 {DiseaseSystem.GetDisease(_playerDisease.Value)?.Name ?? "病気"}が治った！");
+                _playerDisease = null;
+            }
+            else if (DiseaseSystem.CheckNaturalRecovery(_playerDisease.Value, _diseaseRemainingTurns,
+                Player.EffectiveStats.Vitality))
+            {
+                AddMessage($"💪 免疫力により{DiseaseSystem.GetDisease(_playerDisease.Value)?.Name ?? "病気"}が回復した！");
+                _playerDisease = null;
+                _diseaseRemainingTurns = 0;
+            }
+            else if (TurnCount % 120 == 0)
+            {
+                var disease = DiseaseSystem.GetDisease(_playerDisease.Value);
+                if (disease != null)
+                {
+                    Player.TakeDamage(Damage.Pure(1));
+                    _lastDamageCause = DeathCause.Unknown;
+                }
+            }
+        }
+
+        // 衛生レベルによる感染判定（戦闘後に傷がある想定でチェック）
+        if (!_playerDisease.HasValue && _playerHygiene >= HygieneLevel.Dirty && TurnCount % 600 == 0)
+        {
+            float infectionRisk = BodyConditionSystem.GetHygieneInfectionRisk(_playerHygiene);
+            if (_random.NextDouble() < infectionRisk)
+            {
+                var diseases = DiseaseSystem.GetAllDiseases();
+                if (diseases.Count > 0)
+                {
+                    var diseaseList = diseases.Values.ToList();
+                    var disease = diseaseList[_random.Next(diseaseList.Count)];
+                    _playerDisease = disease.Type;
+                    _diseaseRemainingTurns = disease.DefaultDuration;
+                    AddMessage($"🤒 {disease.Name}に感染した！ ({disease.Description})");
+                }
+            }
+        }
+
+        // 装備耐久度チェック（DurabilitySystem: 戦闘中に警告）
+        if (TurnCount % 200 == 0 && Player.Equipment.MainHand != null)
+        {
+            var weapon = Player.Equipment.MainHand;
+            var stage = DurabilitySystem.GetStage(weapon.Durability, weapon.MaxDurability);
+            if (stage >= DurabilityStage.Worn)
+            {
+                float perf = DurabilitySystem.GetPerformanceMultiplier(stage);
+                AddMessage($"⚠ 武器「{weapon.Name}」の耐久度低下 — 性能{perf:P0}");
+            }
+        }
+
+        // NPC行動スケジュール更新（NpcRoutineSystem）
+        if (TurnCount % 600 == 0 && _isInLocationMap)
+        {
+            var availableNpcs = NpcRoutineSystem.GetNpcsAtLocation(_currentMapName, currentTimePeriod);
+            if (availableNpcs.Count > 0 && TurnCount % 1200 == 0)
+            {
+                AddMessage($"📋 現在の時間帯: {TimeOfDaySystem.GetTimePeriodName(currentTimePeriod)}");
+            }
+        }
+
+        // 未使用熟練度の減衰（ProficiencySystem: 600ターンごと）
+        if (TurnCount > 0 && TurnCount % 600 == 0)
+        {
+            _proficiencySystem.DecayUnusedProficiencies(new HashSet<ProficiencyCategory>());
+        }
+
+        // 天候変化（WeatherSystemは既存だが、季節に応じた変動を追加）
+        if (TurnCount % 300 == 0)
+        {
+            var newWeather = WeatherSystem.DetermineWeather(CurrentSeason, _random.NextDouble());
+            if (newWeather != CurrentWeather)
+            {
+                CurrentWeather = newWeather;
+                AddMessage($"🌤 天候が変化: {WeatherSystem.GetWeatherName(CurrentWeather)}");
+            }
+        }
+
+        // 渇き進行（ThirstSystem: 180ターンごとに渇き上昇）
+        if (TurnCount > 0 && TurnCount % 180 == 0)
+        {
+            if (PlayerThirstLevel < ThirstLevel.Dehydrated)
+            {
+                PlayerThirstLevel++;
+                if (PlayerThirstLevel >= ThirstLevel.Thirsty)
+                {
+                    AddMessage($"💧 渇き: {ThirstSystem.GetThirstName(PlayerThirstLevel)}");
+                }
+            }
+            if (PlayerThirstLevel == ThirstLevel.Dehydrated && TurnCount % 60 == 0)
+            {
+                int thirstDamage = Math.Max(1, Player.MaxHp / 80);
+                Player.TakeDamage(Damage.Pure(thirstDamage));
+                _lastDamageCause = DeathCause.Unknown;
+            }
+        }
+
+        // 実績チェック（AchievementSystem: 主要マイルストーン）
+        if (TurnCount == 1000) _achievementSystem.Unlock("turn_1000");
+        if (Player.Level >= 10) _achievementSystem.Unlock("level_10");
+        if (CurrentFloor >= 10) _achievementSystem.Unlock("floor_10");
 
         if (!Player.IsAlive)
         {
@@ -3932,6 +4225,13 @@ public class GameController
     public bool TryBuyItem(FacilityType shopType, int index)
     {
         double discount = ShopSystem.CalculateCharismaDiscount(Player.EffectiveStats.Charisma);
+
+        // === GUI統合: 価格変動（PriceFluctuationSystem）===
+        float reputationMod = PriceFluctuationSystem.GetReputationModifier(PlayerReputationRank, true);
+        float karmaMod = PriceFluctuationSystem.GetKarmaModifier(PlayerKarmaRank, true);
+        float territoryMod = PriceFluctuationSystem.GetTerritoryModifier(_worldMapSystem.CurrentTerritory, "general");
+        discount *= (double)(reputationMod * karmaMod * territoryMod);
+
         var result = _shopSystem.Buy(Player, shopType, index, discount);
         if (result.Success && result.ItemId is not null)
         {
@@ -3954,6 +4254,12 @@ public class GameController
     public bool TrySellItem(string itemName, int baseValue)
     {
         double charismaBonus = ShopSystem.CalculateCharismaDiscount(Player.EffectiveStats.Charisma);
+
+        // === GUI統合: 売却価格変動 ===
+        float reputationMod = PriceFluctuationSystem.GetReputationModifier(PlayerReputationRank, false);
+        float karmaMod = PriceFluctuationSystem.GetKarmaModifier(PlayerKarmaRank, false);
+        charismaBonus *= (double)(reputationMod * karmaMod);
+
         var result = _shopSystem.Sell(Player, itemName, baseValue, charismaBonus);
         AddMessage(result.Message);
         OnStateChanged?.Invoke();
@@ -5132,6 +5438,616 @@ public class GameController
             IsRunning = false;
             OnGameOver?.Invoke();
         }
+    }
+
+    #endregion
+
+    #region GUI統合: 全システムGUI動作確認対応 — アクティビティ＆新システムアクセス
+
+    // === スタンス切替 ===
+
+    /// <summary>現在の戦闘スタンス</summary>
+    public CombatStance PlayerStance => _playerStance;
+
+    /// <summary>スタンス名</summary>
+    public string PlayerStanceName => CombatStanceSystem.GetStanceName(_playerStance);
+
+    /// <summary>スタンスを切り替える</summary>
+    public void CycleCombatStance()
+    {
+        _playerStance = _playerStance switch
+        {
+            CombatStance.Balanced => CombatStance.Aggressive,
+            CombatStance.Aggressive => CombatStance.Defensive,
+            CombatStance.Defensive => CombatStance.Balanced,
+            _ => CombatStance.Balanced
+        };
+        AddMessage($"⚔ スタンス変更: {CombatStanceSystem.GetStanceName(_playerStance)} — {CombatStanceSystem.GetStanceDescription(_playerStance)}");
+        OnStateChanged?.Invoke();
+    }
+
+    // === 休憩 (RestSystem) ===
+
+    /// <summary>野営を試みる</summary>
+    public bool TryCamp(SleepQuality quality)
+    {
+        bool isIndoor = _isInLocationMap;
+        bool hasEnemyNearby = IsInCombat();
+
+        if (!RestSystem.CanCamp(isIndoor, hasEnemyNearby, CurrentFloor))
+        {
+            AddMessage("ここでは休めない（敵が近くにいるか、危険な場所だ）");
+            return false;
+        }
+
+        var (hpRecovery, mpRecovery, fatigueRecovery, sanityRecovery) = RestSystem.GetRecoveryRates(quality);
+        int sleepDuration = RestSystem.GetSleepDuration(quality);
+
+        // 襲撃チェック
+        float ambushChance = RestSystem.CalculateAmbushChance(CurrentFloor, false, _companionSystem.Party.Count > 0);
+        if (_random.NextDouble() < ambushChance)
+        {
+            AddMessage("⚠ 休息中に敵に襲撃された！");
+            SpawnEnemies();
+            OnStateChanged?.Invoke();
+            return false;
+        }
+
+        // 回復適用
+        int hpAmount = (int)(Player.MaxHp * hpRecovery);
+        Player.Heal(hpAmount);
+
+        // 疲労回復
+        if (fatigueRecovery > 0.5f) _playerFatigue = FatigueLevel.Fresh;
+        else if (fatigueRecovery > 0.2f && _playerFatigue > FatigueLevel.Mild) _playerFatigue--;
+
+        // 衛生回復（宿屋利用時）
+        if (quality >= SleepQuality.DeepSleep) _playerHygiene = HygieneLevel.Clean;
+
+        // 拠点休息ボーナス
+        float restBonus = GetBaseRestBonus();
+        if (restBonus > 1.0f) hpAmount = (int)(hpAmount * restBonus);
+
+        TurnCount += sleepDuration;
+        GameTime.AdvanceTurn(sleepDuration);
+
+        AddMessage($"💤 {RestSystem.GetQualityName(quality)}な休息をとった (HP+{hpAmount}, 疲労回復)");
+        AddMessage($"  {sleepDuration}ターン経過");
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    // === ギャンブル (GamblingSystem) ===
+
+    /// <summary>ギャンブルを行う</summary>
+    public bool TryGamble(GamblingGameType gameType, int betAmount, int playerGuess)
+    {
+        int minBet = GamblingSystem.GetMinimumBet(gameType);
+        if (Player.Gold < betAmount || betAmount < minBet)
+        {
+            AddMessage($"賭け金が足りない（最低{minBet}G必要）");
+            return false;
+        }
+
+        Player.AddGold(-betAmount);
+        bool won = false;
+
+        switch (gameType)
+        {
+            case GamblingGameType.Dice:
+                int diceResult = _random.Next(6) + 1;
+                won = GamblingSystem.JudgeDice(playerGuess, diceResult);
+                AddMessage($"🎲 サイコロの目: {diceResult}");
+                break;
+            case GamblingGameType.ChoHan:
+                int dice1 = _random.Next(6) + 1;
+                int dice2 = _random.Next(6) + 1;
+                won = GamblingSystem.JudgeChoHan(playerGuess == 0, dice1, dice2);
+                AddMessage($"🎲 丁半: {dice1}+{dice2}={dice1 + dice2} ({((dice1 + dice2) % 2 == 0 ? "丁" : "半")})");
+                break;
+            case GamblingGameType.Card:
+                int currentCard = _random.Next(13) + 1;
+                int nextCard = _random.Next(13) + 1;
+                won = GamblingSystem.JudgeHighLow(playerGuess == 1, currentCard, nextCard);
+                AddMessage($"🃏 ハイ＆ロー: {currentCard} → {nextCard}");
+                break;
+        }
+
+        if (won)
+        {
+            float payout = GamblingSystem.GetPayoutMultiplier(gameType);
+            float luckBonus = GamblingSystem.GetLuckBonus(Player.EffectiveStats.Luck);
+            int winAmount = (int)(betAmount * payout * (1.0f + luckBonus));
+            Player.AddGold(winAmount);
+            AddMessage($"🎉 勝利！ {winAmount}G獲得！");
+        }
+        else
+        {
+            AddMessage($"😞 残念... {betAmount}G失った");
+        }
+
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    // === 釣り (FishingSystem) ===
+
+    /// <summary>釣りを行う</summary>
+    public bool TryFish()
+    {
+        var currentTime = TimeOfDaySystem.GetTimePeriod(GameTime.Hour);
+        int fishingLevel = _proficiencySystem.GetLevel(ProficiencyCategory.Exploration);
+        var availableFish = FishingSystem.GetAvailableFish(CurrentSeason, currentTime, fishingLevel);
+
+        if (availableFish.Count == 0)
+        {
+            AddMessage("この時間帯・季節では魚が釣れないようだ");
+            return false;
+        }
+
+        // ジャンク判定
+        float junkRate = FishingSystem.CalculateJunkRate(fishingLevel);
+        if (_random.NextDouble() < junkRate)
+        {
+            AddMessage("🎣 ゴミを釣り上げた...");
+            _proficiencySystem.GainExperience(ProficiencyCategory.Exploration, 1);
+            TurnCount += 30;
+            GameTime.AdvanceTurn(30);
+            OnStateChanged?.Invoke();
+            return true;
+        }
+
+        // 宝判定
+        float treasureRate = FishingSystem.CalculateTreasureRate(fishingLevel, Player.EffectiveStats.Luck * 0.01f);
+        if (_random.NextDouble() < treasureRate)
+        {
+            AddMessage("🎣 ✨ 宝箱を釣り上げた！");
+            _proficiencySystem.GainExperience(ProficiencyCategory.Exploration, 5);
+            TurnCount += 30;
+            GameTime.AdvanceTurn(30);
+            OnStateChanged?.Invoke();
+            return true;
+        }
+
+        // 魚釣り
+        var fish = availableFish[_random.Next(availableFish.Count)];
+        float catchRate = FishingSystem.CalculateCatchRate(fish.Rarity, fishingLevel, Player.EffectiveStats.Luck * 0.01f);
+        if (_random.NextDouble() < catchRate)
+        {
+            AddMessage($"🎣 {fish.Name}を釣り上げた！ (レア度{fish.Rarity})");
+            _proficiencySystem.GainExperience(ProficiencyCategory.Exploration, fish.Rarity);
+        }
+        else
+        {
+            AddMessage("🎣 魚に逃げられた...");
+            _proficiencySystem.GainExperience(ProficiencyCategory.Exploration, 1);
+        }
+
+        TurnCount += 30;
+        GameTime.AdvanceTurn(30);
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    // === 採集 (GatheringSystem) ===
+
+    /// <summary>採集を行う</summary>
+    public bool TryGather(GatheringType gatheringType)
+    {
+        int profLevel = _proficiencySystem.GetLevel(ProficiencyCategory.Mining);
+
+        if (!GatheringSystem.CanGather(gatheringType, profLevel))
+        {
+            AddMessage("このタイプの採集にはもっと経験が必要だ");
+            return false;
+        }
+
+        float successRate = GatheringSystem.CalculateSuccessRate(gatheringType, profLevel, CurrentSeason);
+        int duration = GatheringSystem.CalculateGatheringDuration(gatheringType, profLevel);
+
+        if (_random.NextDouble() < successRate)
+        {
+            float rareChance = GatheringSystem.CalculateRareItemChance(profLevel, Player.EffectiveStats.Luck * 0.01f);
+            bool isRare = _random.NextDouble() < rareChance;
+            var node = GatheringSystem.GetNode(gatheringType);
+            string nodeName = node?.Name ?? gatheringType.ToString();
+            AddMessage($"🌿 {nodeName}から{(isRare ? "レアな" : "")}素材を採集した！");
+            _proficiencySystem.GainExperience(ProficiencyCategory.Mining, isRare ? 5 : 2);
+        }
+        else
+        {
+            AddMessage("🌿 採集に失敗した...");
+            _proficiencySystem.GainExperience(ProficiencyCategory.Mining, 1);
+        }
+
+        TurnCount += duration;
+        GameTime.AdvanceTurn(duration);
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    // === 鍛冶 (SmithingSystem) ===
+
+    /// <summary>武器強化</summary>
+    public bool TrySmithEnhance(string itemName, int currentEnhance)
+    {
+        var result = _smithingSystem.Enhance(Player, itemName, currentEnhance);
+        AddMessage(result.Message);
+        OnStateChanged?.Invoke();
+        return result.Success;
+    }
+
+    /// <summary>装備修理</summary>
+    public bool TrySmithRepair(string itemName, int durabilityLost)
+    {
+        var result = _smithingSystem.Repair(Player, itemName, durabilityLost);
+        AddMessage(result.Message);
+
+        // 自己修理判定（DurabilitySystem）
+        int smithingLevel = _proficiencySystem.GetLevel(ProficiencyCategory.Smithing);
+        if (DurabilitySystem.CanSelfRepair(smithingLevel))
+        {
+            int repairAmount = DurabilitySystem.CalculateSelfRepairAmount(smithingLevel);
+            AddMessage($"🔧 鍛冶スキルにより追加修理: +{repairAmount}");
+        }
+
+        OnStateChanged?.Invoke();
+        return result.Success;
+    }
+
+    // === エンチャント (EnchantmentSystem) ===
+
+    /// <summary>装備にエンチャント</summary>
+    public bool TryEnchant(EquipmentItem item, EnchantmentType enchantType, SoulGemQuality gem)
+    {
+        if (!EnchantmentSystem.CanEnchant(item, enchantType, gem))
+        {
+            AddMessage("このエンチャントはこの装備には適用できない");
+            return false;
+        }
+
+        var result = EnchantmentSystem.Enchant(item, enchantType, gem, _random);
+        AddMessage(result.Message);
+        if (result.Success)
+        {
+            AddMessage($"✨ {EnchantmentSystem.GetEnchantmentInfo(enchantType)?.Name ?? enchantType.ToString()}のエンチャント成功！");
+        }
+        OnStateChanged?.Invoke();
+        return result.Success;
+    }
+
+    // === ショートカット (DungeonShortcutSystem) ===
+
+    /// <summary>ダンジョンショートカット解放</summary>
+    public bool TryUnlockShortcut()
+    {
+        string dungeonId = _currentMapName;
+        int floor = CurrentFloor;
+        int targetFloor = Math.Max(1, floor - 5);
+
+        if (_dungeonShortcutSystem.IsUnlocked(dungeonId, floor, targetFloor))
+        {
+            AddMessage("すでにショートカットが解放されている");
+            return false;
+        }
+
+        if (_dungeonShortcutSystem.UnlockShortcut(dungeonId, targetFloor, floor))
+        {
+            AddMessage($"🚪 ショートカット解放！ {targetFloor}階 ↔ {floor}階");
+            OnStateChanged?.Invoke();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>ショートカット一覧を取得</summary>
+    public IReadOnlyList<(int FromFloor, int ToFloor)> GetDungeonShortcuts()
+    {
+        return _dungeonShortcutSystem.GetShortcuts(_currentMapName);
+    }
+
+    // === 密輸 (SmugglingSystem) ===
+
+    /// <summary>密輸を試みる</summary>
+    public bool TrySmuggle(string itemId)
+    {
+        var contrabands = SmugglingSystem.GetAllContrabands();
+        if (contrabands.Count == 0)
+        {
+            AddMessage("密輸品がない");
+            return false;
+        }
+
+        var contraband = contrabands[_random.Next(contrabands.Count)];
+        float detectionChance = 0.3f;
+        bool evaded = SmugglingSystem.CheckEvasion(detectionChance, Player.EffectiveStats.Dexterity, _random.NextDouble());
+
+        if (!evaded)
+        {
+            int penalty = SmugglingSystem.GetPenalty(contraband.Type);
+            Player.AddGold(-Math.Min(penalty, Player.Gold));
+            _karmaSystem.ModifyKarma(-5, "密輸");
+            AddMessage($"🚨 密輸が発覚！ 罰金{penalty}G、カルマ低下");
+        }
+        else
+        {
+            int profit = SmugglingSystem.CalculateProfit(contraband.Type);
+            Player.AddGold(profit);
+            AddMessage($"🤫 密輸成功！ {profit}G獲得");
+        }
+
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    // === 罠作成 (TrapCraftingSystem) ===
+
+    /// <summary>罠を作成して設置する</summary>
+    public bool TryCraftTrap(PlayerTrapType trapType)
+    {
+        var recipe = TrapCraftingSystem.GetRecipe(trapType);
+        if (recipe == null)
+        {
+            AddMessage("その罠は作成できない");
+            return false;
+        }
+
+        int smithingLevel = _proficiencySystem.GetLevel(ProficiencyCategory.Smithing);
+        if (!TrapCraftingSystem.CanCraft(trapType, Player.Gold, smithingLevel))
+        {
+            AddMessage($"素材または鍛冶レベルが足りない（必要Lv: {recipe.RequiredSmithing}）");
+            return false;
+        }
+
+        Player.AddGold(-recipe.MaterialCost);
+        float efficiency = TrapCraftingSystem.CalculateEfficiency(trapType, smithingLevel);
+        Map.SetTile(Player.Position.X, Player.Position.Y, TileType.TrapHidden);
+        _proficiencySystem.GainExperience(ProficiencyCategory.Smithing, 3);
+        AddMessage($"🪤 {recipe.Name}を設置した！ (効率{efficiency:P0})");
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    // === 闇市場 (BlackMarketSystem) ===
+
+    /// <summary>闇市場のアイテムを取得</summary>
+    public IReadOnlyList<BlackMarketSystem.BlackMarketItem> GetBlackMarketItems()
+    {
+        return BlackMarketSystem.GetAvailableItems(_karmaSystem.KarmaValue);
+    }
+
+    /// <summary>闇市場にアクセス可能か</summary>
+    public bool CanAccessBlackMarket() => BlackMarketSystem.CanAccess(_karmaSystem.KarmaValue);
+
+    /// <summary>闇市場で購入</summary>
+    public bool TryBlackMarketBuy(BlackMarketSystem.BlackMarketItem item)
+    {
+        if (Player.Gold < item.Price)
+        {
+            AddMessage("ゴールドが足りない");
+            return false;
+        }
+
+        Player.AddGold(-item.Price);
+        _karmaSystem.ModifyKarma(-2, "闇市場");
+        AddMessage($"🏴 闇市場: {item.Name}を{item.Price}Gで購入（カルマ低下）");
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    // === パズル (EnvironmentalPuzzleSystem) ===
+
+    /// <summary>パズルに挑戦</summary>
+    public bool TryAttemptPuzzle(PuzzleType puzzleType)
+    {
+        int intelligence = Player.EffectiveStats.Intelligence;
+        if (!EnvironmentalPuzzleSystem.CanAttempt(puzzleType, intelligence, Player.Level))
+        {
+            AddMessage($"この{EnvironmentalPuzzleSystem.GetTypeName(puzzleType)}は今の知力では解けそうにない");
+            return false;
+        }
+
+        var puzzles = EnvironmentalPuzzleSystem.GetByType(puzzleType);
+        if (puzzles.Count == 0) return false;
+        var puzzle = puzzles[_random.Next(puzzles.Count)];
+
+        float successRate = EnvironmentalPuzzleSystem.CalculateSuccessRate(puzzle.Difficulty, intelligence);
+        if (_random.NextDouble() < successRate)
+        {
+            AddMessage($"🧩 {puzzle.Name}を解いた！ {puzzle.RewardDescription}");
+            Player.GainExperience(puzzle.Difficulty * 5);
+        }
+        else
+        {
+            AddMessage($"🧩 {puzzle.Name}を解けなかった...");
+        }
+
+        TurnCount += 10;
+        GameTime.AdvanceTurn(10);
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    // === 新システムプロパティアクセス ===
+
+    /// <summary>疲労レベル</summary>
+    public FatigueLevel PlayerFatigueLevel => _playerFatigue;
+
+    /// <summary>疲労名</summary>
+    public string PlayerFatigueName => BodyConditionSystem.GetFatigueName(_playerFatigue);
+
+    /// <summary>衛生レベル</summary>
+    public HygieneLevel PlayerHygieneLevel => _playerHygiene;
+
+    /// <summary>衛生名</summary>
+    public string PlayerHygieneName => BodyConditionSystem.GetHygieneName(_playerHygiene);
+
+    /// <summary>罹患中の病気</summary>
+    public DiseaseType? PlayerDisease => _playerDisease;
+
+    /// <summary>病気名（罹患中のみ）</summary>
+    public string? PlayerDiseaseName => _playerDisease.HasValue
+        ? DiseaseSystem.GetDisease(_playerDisease.Value)?.Name : null;
+
+    /// <summary>現在の時間帯</summary>
+    public TimePeriod CurrentTimePeriod => TimeOfDaySystem.GetTimePeriod(GameTime.Hour);
+
+    /// <summary>時間帯名</summary>
+    public string CurrentTimePeriodName => TimeOfDaySystem.GetTimePeriodName(CurrentTimePeriod);
+
+    /// <summary>熟練度システム</summary>
+    public ProficiencySystem GetProficiencySystem() => _proficiencySystem;
+
+    /// <summary>鍛冶システム</summary>
+    public SmithingSystem GetSmithingSystem() => _smithingSystem;
+
+    /// <summary>ショートカットシステム</summary>
+    public DungeonShortcutSystem GetDungeonShortcutSystem() => _dungeonShortcutSystem;
+
+    /// <summary>実績システム</summary>
+    public AchievementSystem GetAchievementSystem() => _achievementSystem;
+
+    /// <summary>アイテム等級情報を取得（ItemGradeSystem）</summary>
+    public static string GetItemGradePrefix(ItemGrade grade) => ItemGradeSystem.GetGradeDisplayPrefix(grade);
+
+    /// <summary>秘密の部屋検索チャンスを取得（SecretRoomSystem）</summary>
+    public float GetSecretRoomSearchChance()
+    {
+        return SecretRoomSystem.CalculateSearchChance(Player.EffectiveStats.Perception,
+            _proficiencySystem.GetLevel(ProficiencyCategory.Exploration));
+    }
+
+    /// <summary>マルチエンディング判定（MultiEndingSystem）</summary>
+    public MultiEndingSystem.EndingResult DetermineEnding()
+    {
+        return MultiEndingSystem.DetermineEnding(
+            _hasCleared, TotalDeaths, _karmaSystem.KarmaValue,
+            false, _clearRank);
+    }
+
+    /// <summary>エンディングタイプ名取得</summary>
+    public static string GetEndingTypeName(EndingType ending) => MultiEndingSystem.GetEndingTypeName(ending);
+
+    /// <summary>レベルアップ時の成長ボーナスを取得（GrowthSystem）</summary>
+    public StatModifier GetLevelUpBonus()
+    {
+        return GrowthSystem.CalculateLevelUpBonus(Player.Race, Player.CharacterClass, Player.Level);
+    }
+
+    /// <summary>アクセシビリティ設定（AccessibilitySystem）</summary>
+    private readonly AccessibilitySystem _accessibilitySystem = new();
+
+    /// <summary>アクセシビリティ設定を取得</summary>
+    public AccessibilitySystem GetAccessibilitySystem() => _accessibilitySystem;
+
+    /// <summary>コンテキストヘルプシステム（ContextHelpSystem）</summary>
+    private readonly ContextHelpSystem _contextHelpSystem = new();
+
+    /// <summary>コンテキストヘルプを取得</summary>
+    public ContextHelpSystem GetContextHelpSystem() => _contextHelpSystem;
+
+    /// <summary>宗教スキルを取得（ReligionSkillSystem）</summary>
+    public IReadOnlyList<ReligionSkillBonus> GetReligionSkills()
+    {
+        var religion = Player.CurrentReligion;
+        if (religion == null) return Array.Empty<ReligionSkillBonus>();
+        if (Enum.TryParse<ReligionId>(religion, out var religionId))
+        {
+            return ReligionSkillSystem.GetGrantedSkillBonuses(religionId, FaithRank.Devout);
+        }
+        return Array.Empty<ReligionSkillBonus>();
+    }
+
+    /// <summary>モンスター種族特性を取得（MonsterRaceSystem）</summary>
+    public static MonsterRaceTraits GetMonsterTraits(MonsterRace race)
+    {
+        return MonsterRaceSystem.GetTraits(race);
+    }
+
+    /// <summary>ダンジョン派閥の敵対関係確認（DungeonFactionSystem）</summary>
+    public static bool AreFactionHostile(MonsterRace race1, MonsterRace race2)
+    {
+        return DungeonFactionSystem.AreHostile(race1, race2);
+    }
+
+    /// <summary>NPC行動スケジュール確認（NpcRoutineSystem）</summary>
+    public bool IsNpcAvailableNow(string npcType)
+    {
+        return NpcRoutineSystem.IsNpcAvailable(npcType, CurrentTimePeriod);
+    }
+
+    /// <summary>拡張ステータス効果を取得（ExtendedStatusEffectSystem）</summary>
+    public static IReadOnlyList<ExtendedStatusEffect> GetActiveBuffs()
+    {
+        return ExtendedStatusEffectSystem.GetBuffs();
+    }
+
+    /// <summary>ModularHudSystemの要素情報取得</summary>
+    private readonly ModularHudSystem _modularHudSystem = new();
+
+    /// <summary>ModularHudSystem取得</summary>
+    public ModularHudSystem GetModularHudSystem() => _modularHudSystem;
+
+    /// <summary>RenderOptimizationSystemの視界最適化計算</summary>
+    public static (int MinX, int MinY, int MaxX, int MaxY) CalculateRenderViewport(
+        int playerX, int playerY, int viewportWidth, int viewportHeight)
+    {
+        return RenderOptimizationSystem.CalculateViewport(playerX, playerY, viewportWidth, viewportHeight);
+    }
+
+    /// <summary>テンプレートマップ一覧取得（TemplateMapSystem）</summary>
+    public static IReadOnlyList<TemplateMapSystem.TemplateDefinition> GetAvailableMapTemplates()
+    {
+        return TemplateMapSystem.GetAllTemplates();
+    }
+
+    /// <summary>シンボルマップイベント情報取得（SymbolMapEventSystem）</summary>
+    public IReadOnlyList<SymbolMapEventSystem.MapEvent> GetMapEvents()
+    {
+        return SymbolMapEventSystem.GetAvailableEvents(CurrentSeason, _worldMapSystem.CurrentTerritory);
+    }
+
+    /// <summary>自動探索の停止条件チェック（AutoExploreSystem）</summary>
+    public AutoExploreSystem.StopReason? CheckAutoExploreStop()
+    {
+        bool hasEnemyNearby = IsInCombat();
+        float hpRatio = (float)Player.CurrentHp / Player.MaxHp;
+        float hungerRatio = (float)Player.Hunger / 100f;
+        bool itemOnTile = GroundItems.Any(i => i.Position == Player.Position);
+        var tile = Map.GetTile(Player.Position);
+        bool stairsNearby = tile.Type is TileType.StairsDown or TileType.StairsUp;
+        return AutoExploreSystem.CheckStopConditions(true, hasEnemyNearby, itemOnTile, stairsNearby, false, hpRatio, hungerRatio);
+    }
+
+    /// <summary>フラグ条件評価（FlagConditionSystem）</summary>
+    public bool EvaluateFlag(string conditionText)
+    {
+        var condition = FlagConditionSystem.ParseCondition(conditionText);
+        if (condition == null) return false;
+        var context = new Dictionary<string, string>
+        {
+            { "level", Player.Level.ToString() },
+            { "floor", CurrentFloor.ToString() },
+            { "karma", _karmaSystem.KarmaValue.ToString() },
+            { "gold", Player.Gold.ToString() }
+        };
+        return FlagConditionSystem.EvaluateCondition(condition, context);
+    }
+
+    /// <summary>ステータスフラグ評価（StatFlagSystem）</summary>
+    public IReadOnlyList<StatFlagResult> GetActiveStatFlags()
+    {
+        var stats = new Dictionary<string, int>
+        {
+            { "str", Player.EffectiveStats.Strength },
+            { "dex", Player.EffectiveStats.Dexterity },
+            { "int", Player.EffectiveStats.Intelligence },
+            { "vit", Player.EffectiveStats.Vitality },
+            { "per", Player.EffectiveStats.Perception },
+            { "cha", Player.EffectiveStats.Charisma },
+            { "luk", Player.EffectiveStats.Luck }
+        };
+        return StatFlagSystem.EvaluateAll(stats);
     }
 
     #endregion

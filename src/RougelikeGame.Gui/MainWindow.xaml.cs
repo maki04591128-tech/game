@@ -282,6 +282,15 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 return;
             }
+
+            // スタンス切替（Nキー）
+            if (e.Key == Key.N)
+            {
+                _gameController.CycleCombatStance();
+                UpdateDisplay();
+                e.Handled = true;
+                return;
+            }
         }
 
         if (action.HasValue)
@@ -456,6 +465,45 @@ public partial class MainWindow : Window
         CompanionCountText.Foreground = _gameController.CompanionCount > 0
             ? System.Windows.Media.Brushes.Gold
             : System.Windows.Media.Brushes.Gray;
+
+        // === GUI統合: 新システムステータス表示 ===
+
+        // スタンス表示
+        StanceText.Text = _gameController.PlayerStanceName;
+        StanceText.Foreground = _gameController.PlayerStance switch
+        {
+            CombatStance.Aggressive => System.Windows.Media.Brushes.OrangeRed,
+            CombatStance.Defensive => System.Windows.Media.Brushes.DeepSkyBlue,
+            _ => System.Windows.Media.Brushes.LightGreen
+        };
+
+        // 疲労表示
+        FatigueText.Text = _gameController.PlayerFatigueName;
+        FatigueText.Foreground = _gameController.PlayerFatigueLevel switch
+        {
+            FatigueLevel.Fresh => System.Windows.Media.Brushes.LimeGreen,
+            FatigueLevel.Mild => System.Windows.Media.Brushes.Yellow,
+            FatigueLevel.Tired => System.Windows.Media.Brushes.Orange,
+            FatigueLevel.Exhausted => System.Windows.Media.Brushes.Red,
+            _ => System.Windows.Media.Brushes.DarkRed
+        };
+
+        // 衛生表示
+        HygieneText.Text = _gameController.PlayerHygieneName;
+        HygieneText.Foreground = _gameController.PlayerHygieneLevel switch
+        {
+            HygieneLevel.Clean => System.Windows.Media.Brushes.LightBlue,
+            HygieneLevel.Normal => System.Windows.Media.Brushes.LightGreen,
+            HygieneLevel.Dirty => System.Windows.Media.Brushes.Yellow,
+            HygieneLevel.Filthy => System.Windows.Media.Brushes.Orange,
+            _ => System.Windows.Media.Brushes.Red
+        };
+
+        // 病気表示
+        DiseaseText.Text = _gameController.PlayerDiseaseName != null
+            ? $"🤒{_gameController.PlayerDiseaseName}"
+            : "";
+        DiseaseText.Foreground = System.Windows.Media.Brushes.OrangeRed;
 
         // スキルスロット表示
         var slots = _gameController.GetSkillSlots();

@@ -73,6 +73,14 @@
                     <TextBlock Text="仲間:" Foreground="White" FontSize="14"/>
                     <TextBlock x:Name="CompanionCountText" Text="0" Foreground="#FFD700" FontSize="14" FontWeight="Bold"/>
                     <TextBlock Text=" | " Foreground="Gray" FontSize="14"/>
+                    <TextBlock Text="構え:" Foreground="White" FontSize="14"/>
+                    <TextBlock x:Name="StanceText" Text="均衡" Foreground="#87CEEB" FontSize="14" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <TextBlock Text="疲労:" Foreground="White" FontSize="14"/>
+                    <TextBlock x:Name="FatigueText" Text="元気" Foreground="#90EE90" FontSize="14" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <TextBlock Text="衛生:" Foreground="White" FontSize="14"/>
+                    <TextBlock x:Name="HygieneText" Text="清潔" Foreground="#87CEEB" FontSize="14" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="DiseaseText" Text="" Foreground="#FF4500" FontSize="14" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <TextBlock Text=" | " Foreground="Gray" FontSize="14"/>
                     <TextBlock Text="技:" Foreground="White" FontSize="14"/>
                     <TextBlock x:Name="SkillSlotText" Text="[-][-][-][-][-]" Foreground="#a0a0a0" FontSize="14" FontWeight="Bold"/>
                 </StackPanel>

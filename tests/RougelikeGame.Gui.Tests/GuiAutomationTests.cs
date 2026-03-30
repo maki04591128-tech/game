@@ -38,13 +38,13 @@ namespace RougelikeGame.Gui.Tests;
 ///      === NPC対話・地形効果 ===
 ///      - NPC位置へ移動→対話確認、水タイル移動
 ///      === 各ダイアログ・キー操作 ===
-///      - ミニマップ切替（M）、ステータスバー全15要素
+///      - ミニマップ切替（M）、ステータスバー全19要素（構え/疲労/衛生/病気追加）
 ///      - ダイアログ: C/L/V/J/K/O/H/B/E/P/N、探索F、自動探索Tab
 ///      === 移動・戦闘・階段・日時進行 ===
 ///      - WASD/矢印/斜め、戦闘→HP確認、R射撃/T投擲、階段Shift+&lt;/&gt;
 ///      - Space×65日付進行、スキルCD20ターン、詠唱ターン処理
 ///      === 連打耐性・セーブロード・終了 ===
-///      - 21種キー×3ラウンド高速連打（移動WASD・Space・アイテムGFR・戦闘TX・方向キー4種・スキルスロット1-6）、F5/F9、Qキー終了
+///      - 22種キー×3ラウンド高速連打（移動WASD・Space・アイテムGFR・戦闘TX・方向キー4種・スキルスロット1-6・Nスタンス切替）、F5/F9、Qキー終了
 ///   6. TitleScreen_ContinueFlow_SaveDataSelect — セーブ後コンティニュー→セーブデータ選択画面検証
 /// </summary>
 [Collection("GuiTests")]
@@ -516,7 +516,8 @@ public class GuiAutomationTests : IDisposable
         {
             "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
             "LevelText", "ExpText", "HpText", "MpText", "SpText",
-            "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText"
+            "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
+            "StanceText", "FatigueText", "HygieneText", "DiseaseText"
         };
         foreach (var id in statusBarIds)
         {
@@ -524,7 +525,7 @@ public class GuiAutomationTests : IDisposable
             Assert.NotNull(el);
             Assert.False(string.IsNullOrWhiteSpace(el!.Name), $"{id}が空");
         }
-        Log("  → ステータスバー全15要素OK");
+        Log("  → ステータスバー全19要素OK");
 
         var dialogKeys = new[]
         {
@@ -681,6 +682,7 @@ public class GuiAutomationTests : IDisposable
             FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_4,
             FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_5,
             FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_6,
+            FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_N,
         };
         for (int round = 0; round < 3; round++)
         {
