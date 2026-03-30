@@ -3312,6 +3312,49 @@ public class GameController
     /// <summary>現在の詠唱プレビューを取得</summary>
     public SpellPreview GetSpellPreview() => _spellCastingSystem.GetPreview(Player);
 
+    /// <summary>現在の詠唱文のルーン語ID一覧を取得</summary>
+    public IReadOnlyList<string> GetCurrentIncantation() => _spellCastingSystem.CurrentIncantation.AsReadOnly();
+
+    /// <summary>記録済み呪文一覧を取得</summary>
+    public IReadOnlyList<SavedSpellRecipe> GetSavedSpells() => _spellCastingSystem.SavedSpells;
+
+    /// <summary>現在の詠唱文を呪文として記録する</summary>
+    public SavedSpellRecipe? SaveCurrentSpell(string name)
+    {
+        var recipe = _spellCastingSystem.SaveCurrentSpell(name, Player);
+        if (recipe != null)
+            AddMessage($"呪文「{name}」を記録しました");
+        else
+            AddMessage("呪文の記録に失敗しました");
+        return recipe;
+    }
+
+    /// <summary>記録済み呪文を削除する</summary>
+    public bool RemoveSavedSpell(int index)
+    {
+        bool removed = _spellCastingSystem.RemoveSavedSpell(index);
+        if (removed)
+            AddMessage("記録済み呪文を削除しました");
+        return removed;
+    }
+
+    /// <summary>記録済み呪文を詠唱文にロードする</summary>
+    public bool LoadSavedSpell(int index)
+    {
+        bool loaded = _spellCastingSystem.LoadSavedSpell(index, Player);
+        if (loaded)
+        {
+            var preview = _spellCastingSystem.GetPreview(Player);
+            OnSpellPreviewUpdated?.Invoke(preview);
+            AddMessage("記録済み呪文を読み込みました");
+        }
+        else
+        {
+            AddMessage("呪文の読み込みに失敗しました");
+        }
+        return loaded;
+    }
+
     /// <summary>詠唱実行</summary>
     private bool TryCastSpell(out int actionCost)
     {
