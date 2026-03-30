@@ -839,6 +839,23 @@ public enum SkillNodeType
 }
 
 /// <summary>
+/// スキルツリータブ分類（PoE風5タブ）
+/// </summary>
+public enum SkillTreeTab
+{
+    /// <summary>種族タブ</summary>
+    Race,
+    /// <summary>職業タブ</summary>
+    Class,
+    /// <summary>素性タブ</summary>
+    Background,
+    /// <summary>武器タブ</summary>
+    Weapon,
+    /// <summary>魔法タブ</summary>
+    Magic
+}
+
+/// <summary>
 /// 攻撃方向（正面/側面/背面）
 /// </summary>
 public enum AttackDirection
