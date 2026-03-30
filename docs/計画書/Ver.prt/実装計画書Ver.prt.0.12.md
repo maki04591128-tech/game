@@ -1,9 +1,9 @@
 # 実装計画書 Ver.prt.0.12（UI刷新・システム改善・ロケーション統合）
 
 **目標**: タイトル画面変更、町システム改善、自動探索強化、バグ修正、ダンジョン品質改善、売買システム修正、PoE風装備パネル、GrimDawn風スキルツリー、ロケーション統合
-**状態**: ✅ 全タスク完了 — テスト全体3,508件（GUIオートテスト除外）全合格
+**状態**: ✅ 全タスク完了 — テスト全体3,645件（GUIオートテスト除外）全合格
 **前提**: Ver.prt.0.11（スキルスロット6拡張・未実装魔法エフェクト7種実装）完了済み
-**完了時テスト数**: 全体 = 3,508件（Core 3,360 + GUI 148）
+**完了時テスト数**: 全体 = 3,645件（Core 3,497 + GUI 148）
 
 ---
 
@@ -243,7 +243,7 @@ Phase 12の実装に伴い、以下のテストを修正した:
 |------|-----|
 | 総タスク数 | 9 |
 | 完了タスク | 9 |
-| テスト総数 | 3,508（Core 3,360 + GUI 148） |
+| テスト総数 | 3,645（Core 3,497 + GUI 148） |
 | ビルドエラー | 0 |
 | 変更ファイル数 | 15 |
 | 主要変更ファイル | GameController.cs, LocationMapGenerator.cs, WorldMapSystem.cs, SkillTreeSystem.cs, InventoryWindow.xaml/cs, SkillTreeWindow.xaml/cs, ShopWindow.xaml/cs, TitleWindow.xaml, Player.cs, DungeonGenerator.cs, SymbolMapGenerator.cs |
