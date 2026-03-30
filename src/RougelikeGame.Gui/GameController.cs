@@ -711,7 +711,7 @@ public class GameController
             var pos = GetRandomFloorPosition();
             if (pos.HasValue)
             {
-                var item = _itemFactory.GenerateRandomItem(CurrentFloor);
+                var item = _itemFactory.GenerateDungeonFloorItem(CurrentFloor);
                 GroundItems.Add((item, pos.Value));
             }
         }
@@ -1005,11 +1005,20 @@ public class GameController
     {
         if (newPos.X < 0 || newPos.X >= Map.Width || newPos.Y < 0 || newPos.Y >= Map.Height)
         {
-            // ロケーションマップ（町内）で外周部から外へ移動しようとした場合は町を出る
+            // ロケーションマップ（町内・フィールド）で外周部から外へ移動しようとした場合は出る
             if (_isInLocationMap)
             {
                 return TryLeaveTown();
             }
+
+            // シンボルマップの外周から外へ移動しようとした場合はワールドマップを表示
+            if (_worldMapSystem.IsOnSurface)
+            {
+                AddMessage("領地の境界に到達した。ワールドマップを開く…");
+                OnShowWorldMap?.Invoke();
+                return false;
+            }
+
             return false;
         }
 
@@ -1207,21 +1216,26 @@ public class GameController
 
             if (!enemy.IsAlive)
             {
-                // ゴールドドロップ（階層 × 5〜15 × 難易度倍率）
-                int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
-                int gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
+                // ゴールドドロップ（人型の敵のみ）
+                int gold = 0;
+                if (enemy.Race == MonsterRace.Humanoid)
+                {
+                    int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
+                    gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
 
-                // 処刑ボーナス
-                float executionDropBonus = canExecute ? ExecutionSystem.GetExecutionDropBonus() : 0;
-                gold = (int)(gold * (1.0f + executionDropBonus));
+                    // 処刑ボーナス
+                    float executionDropBonus = canExecute ? ExecutionSystem.GetExecutionDropBonus() : 0;
+                    gold = (int)(gold * (1.0f + executionDropBonus));
 
-                Player.AddGold(gold);
+                    Player.AddGold(gold);
+                }
 
                 // 経験値（処刑ボーナス込み）
                 float executionExpBonus = canExecute ? ExecutionSystem.GetExecutionExpBonus() : 0;
                 int totalExp = (int)(enemy.ExperienceReward * (1.0f + executionExpBonus));
 
-                AddMessage($"{enemy.Name}を倒した！経験値+{totalExp} 💰+{gold}G");
+                string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                AddMessage($"{enemy.Name}を倒した！経験値+{totalExp}{goldStr}");
                 Player.GainExperience(totalExp);
                 TryDropItem(enemy);
                 OnEnemyDefeated(enemy);
@@ -1242,7 +1256,7 @@ public class GameController
         int dropChance = 25 + CurrentFloor * 2;
         if (_random.Next(100) < dropChance)
         {
-            var item = _itemFactory.GenerateRandomItem(CurrentFloor);
+            var item = _itemFactory.GenerateEnemyDropItem(CurrentFloor, enemy.Race);
             GroundItems.Add((item, enemy.Position));
             AddMessage($"{enemy.Name}が{item.GetDisplayName()}を落とした！");
         }
@@ -2761,10 +2775,15 @@ public class GameController
 
             if (!target.IsAlive)
             {
-                int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
-                int gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
-                Player.AddGold(gold);
-                AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward} 💰+{gold}G");
+                int gold = 0;
+                if (target.Race == MonsterRace.Humanoid)
+                {
+                    int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
+                    gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
+                    Player.AddGold(gold);
+                }
+                string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                 Player.GainExperience(target.ExperienceReward);
                 TryDropItem(target);
                 OnEnemyDefeated(target);
@@ -2826,10 +2845,15 @@ public class GameController
 
             if (!target.IsAlive)
             {
-                int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
-                int gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
-                Player.AddGold(gold);
-                AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward} 💰+{gold}G");
+                int gold = 0;
+                if (target.Race == MonsterRace.Humanoid)
+                {
+                    int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
+                    gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
+                    Player.AddGold(gold);
+                }
+                string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                 Player.GainExperience(target.ExperienceReward);
                 TryDropItem(target);
                 OnEnemyDefeated(target);
@@ -3024,9 +3048,14 @@ public class GameController
                 AddMessage($"⚔ {skill.Name}！ {target.Name}に{damage}ダメージ！");
                 if (!target.IsAlive)
                 {
-                    int gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
-                    Player.AddGold(gold);
-                    AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward} 💰+{gold}G");
+                    int gold = 0;
+                    if (target.Race == MonsterRace.Humanoid)
+                    {
+                        gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
+                        Player.AddGold(gold);
+                    }
+                    string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                    AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                     Player.GainExperience(target.ExperienceReward);
                     TryDropItem(target);
                     OnEnemyDefeated(target);
@@ -3049,9 +3078,14 @@ public class GameController
                     AddMessage($"  {target.Name}に{damage}ダメージ！");
                     if (!target.IsAlive)
                     {
-                        int gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
-                        Player.AddGold(gold);
-                        AddMessage($"  {target.Name}を倒した！経験値+{target.ExperienceReward} 💰+{gold}G");
+                        int gold = 0;
+                        if (target.Race == MonsterRace.Humanoid)
+                        {
+                            gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
+                            Player.AddGold(gold);
+                        }
+                        string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                        AddMessage($"  {target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                         Player.GainExperience(target.ExperienceReward);
                         TryDropItem(target);
                         OnEnemyDefeated(target);
@@ -3107,9 +3141,14 @@ public class GameController
                 }
                 if (!target.IsAlive)
                 {
-                    int gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
-                    Player.AddGold(gold);
-                    AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward} 💰+{gold}G");
+                    int gold = 0;
+                    if (target.Race == MonsterRace.Humanoid)
+                    {
+                        gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
+                        Player.AddGold(gold);
+                    }
+                    string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                    AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                     Player.GainExperience(target.ExperienceReward);
                     TryDropItem(target);
                     OnEnemyDefeated(target);
@@ -3127,9 +3166,14 @@ public class GameController
                     AddMessage($"  {target.Name}に{damage}ダメージ！");
                     if (!target.IsAlive)
                     {
-                        int gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
-                        Player.AddGold(gold);
-                        AddMessage($"  {target.Name}を倒した！経験値+{target.ExperienceReward} 💰+{gold}G");
+                        int gold = 0;
+                        if (target.Race == MonsterRace.Humanoid)
+                        {
+                            gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
+                            Player.AddGold(gold);
+                        }
+                        string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                        AddMessage($"  {target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                         Player.GainExperience(target.ExperienceReward);
                         TryDropItem(target);
                         OnEnemyDefeated(target);

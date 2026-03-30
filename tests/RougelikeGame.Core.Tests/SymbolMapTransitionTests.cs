@@ -356,17 +356,19 @@ public class SymbolMapSystemTests
     }
 
     [Fact]
-    public void SymbolMountain_IsImpassable()
+    public void SymbolMountain_IsPassableWithHighMovementCost()
     {
         var tile = Tile.FromType(TileType.SymbolMountain);
-        Assert.True(tile.BlocksMovement);
+        Assert.False(tile.BlocksMovement);
+        Assert.True(tile.MovementCost >= 2.0f);
     }
 
     [Fact]
-    public void SymbolWater_IsImpassable()
+    public void SymbolWater_IsPassableWithHighMovementCost()
     {
         var tile = Tile.FromType(TileType.SymbolWater);
-        Assert.True(tile.BlocksMovement);
+        Assert.False(tile.BlocksMovement);
+        Assert.True(tile.MovementCost >= 1.5f);
     }
 
     [Fact]

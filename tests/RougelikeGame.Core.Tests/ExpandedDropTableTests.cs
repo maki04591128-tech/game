@@ -141,10 +141,11 @@ public class ExpandedDropTableTests
     }
 
     [Fact]
-    public void GenerateLoot_InvalidTableId_ReturnsEmptyResult()
+    public void GenerateLoot_InvalidTableId_ReturnsEmptyBaseResult()
     {
-        var random = new TestRandomProvider(0.0);
-        var result = DropTableSystem.GenerateLoot("nonexistent_table", 1, AI.EnemyRank.Common, random, MonsterRace.Beast);
+        var random = new TestRandomProvider(0.5, 5);
+        // ベースのGenerateLoot（テーブルなし）では空結果を返す
+        var result = DropTableSystem.GenerateLoot("nonexistent_table", 1, AI.EnemyRank.Common, random);
 
         Assert.Empty(result.Items);
         Assert.Equal(0, result.Gold);
