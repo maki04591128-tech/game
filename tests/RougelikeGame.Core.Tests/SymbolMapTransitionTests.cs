@@ -602,6 +602,7 @@ public class SymbolMapSystemTests
         var generator = new LocationMapGenerator(42);
         var map = generator.GenerateTerrainFieldMap(TileType.SymbolForest, new Position(10, 15));
 
+        Assert.Contains("forest", map.Name);
         Assert.Contains("10", map.Name);
         Assert.Contains("15", map.Name);
     }

@@ -289,7 +289,16 @@ public class LocationMapGenerator
     /// </summary>
     public DungeonMap GenerateTerrainFieldMap(TileType symbolTileType, Position symbolPosition)
     {
-        string mapId = $"field_{symbolTileType}_{symbolPosition.X}_{symbolPosition.Y}";
+        string terrainKey = symbolTileType switch
+        {
+            TileType.SymbolGrass => "grassland",
+            TileType.SymbolForest => "forest",
+            TileType.SymbolMountain => "mountain",
+            TileType.SymbolWater => "waterfront",
+            TileType.SymbolRoad => "road",
+            _ => "grassland"
+        };
+        string mapId = $"field_{terrainKey}_{symbolPosition.X}_{symbolPosition.Y}";
         return symbolTileType switch
         {
             TileType.SymbolGrass => GenerateGrasslandMap(mapId),
