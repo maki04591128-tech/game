@@ -1,0 +1,246 @@
+using Xunit;
+using RougelikeGame.Core;
+using RougelikeGame.Core.Factories;
+using RougelikeGame.Core.AI;
+
+namespace RougelikeGame.Core.Tests;
+
+/// <summary>
+/// EnemyFactory/EnemyDefinitionsのユニットテスト
+/// </summary>
+public class EnemyFactoryExtendedTests
+{
+    private readonly EnemyFactory _factory = new();
+
+    #region CreateEnemy基本
+
+    [Fact]
+    public void CreateEnemy_WithDefinition_SetsNameCorrectly()
+    {
+        var enemy = _factory.CreateEnemy(EnemyDefinitions.Slime, new Position(5, 5));
+        Assert.Equal("スライム", enemy.Name);
+    }
+
+    [Fact]
+    public void CreateEnemy_WithDefinition_SetsPositionCorrectly()
+    {
+        var pos = new Position(10, 20);
+        var enemy = _factory.CreateEnemy(EnemyDefinitions.Goblin, pos);
+        Assert.Equal(pos, enemy.Position);
+        Assert.Equal(pos, enemy.HomePosition);
+    }
+
+    [Fact]
+    public void CreateEnemy_WithDefinition_SetsFactionToEnemy()
+    {
+        var enemy = _factory.CreateEnemy(EnemyDefinitions.Skeleton, new Position(3, 3));
+        Assert.Equal(Faction.Enemy, enemy.Faction);
+    }
+
+    [Fact]
+    public void CreateEnemy_WithDefinition_SetsBehavior()
+    {
+        var enemy = _factory.CreateEnemy(EnemyDefinitions.Slime, new Position(0, 0));
+        Assert.NotNull(enemy.Behavior);
+    }
+
+    [Fact]
+    public void CreateEnemy_WithFloorBonus_AppliesStatModifier()
+    {
+        var bonus = new StatModifier(Strength: 5, Vitality: 5, Agility: 2);
+        var normal = _factory.CreateEnemy(EnemyDefinitions.Slime, new Position(0, 0));
+        var boosted = _factory.CreateEnemy(EnemyDefinitions.Slime, new Position(0, 0), bonus);
+
+        Assert.True(boosted.BaseStats.MaxHp > normal.BaseStats.MaxHp);
+    }
+
+    [Fact]
+    public void CreateEnemy_WithoutFloorBonus_UsesBaseStats()
+    {
+        var enemy = _factory.CreateEnemy(EnemyDefinitions.Goblin, new Position(0, 0));
+        Assert.Equal(EnemyDefinitions.Goblin.BaseStats.MaxHp, enemy.BaseStats.MaxHp);
+    }
+
+    #endregion
+
+    #region 個別敵生成メソッド
+
+    [Fact]
+    public void CreateSlime_ReturnsSlimeEnemy()
+    {
+        var enemy = _factory.CreateSlime(new Position(5, 5));
+        Assert.Equal("スライム", enemy.Name);
+        Assert.Equal(MonsterRace.Amorphous, enemy.Race);
+    }
+
+    [Fact]
+    public void CreateGoblin_ReturnsGoblinEnemy()
+    {
+        var enemy = _factory.CreateGoblin(new Position(5, 5));
+        Assert.Equal("ゴブリン", enemy.Name);
+        Assert.Equal(MonsterRace.Humanoid, enemy.Race);
+    }
+
+    [Fact]
+    public void CreateSkeleton_ReturnsSkeletonEnemy()
+    {
+        var enemy = _factory.CreateSkeleton(new Position(5, 5));
+        Assert.Equal("スケルトン", enemy.Name);
+        Assert.Equal(MonsterRace.Undead, enemy.Race);
+    }
+
+    #endregion
+
+    #region EnemyDefinitions
+
+    [Fact]
+    public void EnemyDefinitions_GetAllEnemies_ReturnsMultiple()
+    {
+        var all = EnemyDefinitions.GetAllEnemies();
+        Assert.True(all.Count >= 20);
+    }
+
+    [Fact]
+    public void EnemyDefinitions_GetAllBosses_ReturnsMultiple()
+    {
+        var bosses = EnemyDefinitions.GetAllBosses();
+        Assert.True(bosses.Count >= 5);
+    }
+
+    [Fact]
+    public void EnemyDefinitions_GetEnemiesForDepth_Shallow_ReturnsWeakEnemies()
+    {
+        var enemies = EnemyDefinitions.GetEnemiesForDepth(1);
+        Assert.True(enemies.Count >= 2);
+    }
+
+    [Fact]
+    public void EnemyDefinitions_GetEnemiesForDepth_Deep_ReturnsStrongEnemies()
+    {
+        var enemies = EnemyDefinitions.GetEnemiesForDepth(25);
+        Assert.True(enemies.Count >= 2);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(5)]
+    [InlineData(10)]
+    [InlineData(15)]
+    [InlineData(20)]
+    [InlineData(25)]
+    public void EnemyDefinitions_GetEnemiesForDepth_AllDepths_ReturnNonEmpty(int depth)
+    {
+        var enemies = EnemyDefinitions.GetEnemiesForDepth(depth);
+        Assert.True(enemies.Count > 0);
+    }
+
+    [Theory]
+    [InlineData(TerritoryId.Capital)]
+    [InlineData(TerritoryId.Forest)]
+    [InlineData(TerritoryId.Mountain)]
+    [InlineData(TerritoryId.Coast)]
+    [InlineData(TerritoryId.Southern)]
+    [InlineData(TerritoryId.Frontier)]
+    public void EnemyDefinitions_GetEnemiesForTerritory_ReturnsNonEmpty(TerritoryId territory)
+    {
+        var enemies = EnemyDefinitions.GetEnemiesForTerritory(territory);
+        Assert.True(enemies.Count > 0);
+    }
+
+    [Theory]
+    [InlineData(TerritoryId.Forest)]
+    [InlineData(TerritoryId.Mountain)]
+    [InlineData(TerritoryId.Coast)]
+    [InlineData(TerritoryId.Southern)]
+    [InlineData(TerritoryId.Frontier)]
+    public void EnemyDefinitions_GetBossForTerritory_ReturnsNonNull(TerritoryId territory)
+    {
+        var boss = EnemyDefinitions.GetBossForTerritory(territory);
+        Assert.NotNull(boss);
+    }
+
+    [Theory]
+    [InlineData("capital_catacombs")]
+    [InlineData("forest_corruption")]
+    [InlineData("mountain_mine")]
+    [InlineData("mountain_dragon")]
+    [InlineData("frontier_great_rift")]
+    public void EnemyDefinitions_GetDungeonBoss_ReturnsNonNull(string dungeonId)
+    {
+        var boss = EnemyDefinitions.GetDungeonBoss(dungeonId);
+        Assert.NotNull(boss);
+    }
+
+    [Fact]
+    public void EnemyDefinitions_FloorBosses_HaveBossType()
+    {
+        // FloorBoss定義の確認
+        Assert.Equal(EnemyType.Boss, EnemyDefinitions.FloorBoss5.EnemyType);
+        Assert.Equal(EnemyType.Boss, EnemyDefinitions.FloorBoss10.EnemyType);
+        Assert.Equal(EnemyType.Boss, EnemyDefinitions.FloorBoss15.EnemyType);
+        Assert.Equal(EnemyType.Boss, EnemyDefinitions.FloorBoss20.EnemyType);
+        Assert.Equal(EnemyType.Boss, EnemyDefinitions.FloorBoss25.EnemyType);
+        Assert.Equal(EnemyType.Boss, EnemyDefinitions.FloorBoss30.EnemyType);
+    }
+
+    [Fact]
+    public void EnemyDefinitions_AllEnemies_HaveValidNames()
+    {
+        foreach (var def in EnemyDefinitions.GetAllEnemies())
+        {
+            Assert.False(string.IsNullOrEmpty(def.Name), $"敵定義にNameがない: {def.TypeId}");
+        }
+    }
+
+    [Fact]
+    public void EnemyDefinitions_AllEnemies_HavePositiveBaseStats()
+    {
+        foreach (var def in EnemyDefinitions.GetAllEnemies())
+        {
+            Assert.True(def.BaseStats.MaxHp > 0, $"{def.Name}のMaxHP <= 0");
+            Assert.True(def.BaseStats.PhysicalAttack >= 0, $"{def.Name}のPhysicalAttack < 0");
+        }
+    }
+
+    [Fact]
+    public void EnemyDefinitions_AllEnemies_HaveValidExperienceReward()
+    {
+        foreach (var def in EnemyDefinitions.GetAllEnemies())
+        {
+            Assert.True(def.ExperienceReward > 0, $"{def.Name}のExpReward <= 0");
+        }
+    }
+
+    #endregion
+
+    #region AIビヘイビア割当
+
+    [Fact]
+    public void CreateEnemy_NormalType_HasFleeBehavior()
+    {
+        var def = EnemyDefinitions.Slime;
+        var enemy = _factory.CreateEnemy(def, new Position(0, 0));
+        Assert.NotNull(enemy.Behavior);
+    }
+
+    [Fact]
+    public void CreateEnemy_BossType_HasBerserkerBehavior()
+    {
+        var enemy = _factory.CreateEnemy(EnemyDefinitions.FloorBoss5, new Position(0, 0));
+        Assert.NotNull(enemy.Behavior);
+    }
+
+    [Fact]
+    public void CreateEnemy_AllEnemyTypes_CanBeCreated()
+    {
+        foreach (var def in EnemyDefinitions.GetAllEnemies())
+        {
+            var enemy = _factory.CreateEnemy(def, new Position(5, 5));
+            Assert.NotNull(enemy);
+            Assert.Equal(def.Name, enemy.Name);
+            Assert.NotNull(enemy.Behavior);
+        }
+    }
+
+    #endregion
+}
