@@ -477,4 +477,227 @@ public class SymbolMapSystemTests
     }
 
     #endregion
+
+    #region Terrain Field Entry Tests (Elona-style)
+
+    [Theory]
+    [InlineData(TileType.SymbolGrass)]
+    [InlineData(TileType.SymbolForest)]
+    [InlineData(TileType.SymbolMountain)]
+    [InlineData(TileType.SymbolWater)]
+    [InlineData(TileType.SymbolRoad)]
+    public void IsEnterableTerrainTile_ReturnsTrue_ForTerrainTiles(TileType type)
+    {
+        Assert.True(SymbolMapSystem.IsEnterableTerrainTile(type));
+    }
+
+    [Theory]
+    [InlineData(TileType.SymbolTown)]
+    [InlineData(TileType.SymbolDungeon)]
+    [InlineData(TileType.SymbolFacility)]
+    [InlineData(TileType.SymbolShrine)]
+    [InlineData(TileType.SymbolField)]
+    [InlineData(TileType.Floor)]
+    [InlineData(TileType.Wall)]
+    public void IsEnterableTerrainTile_ReturnsFalse_ForNonTerrainTiles(TileType type)
+    {
+        Assert.False(SymbolMapSystem.IsEnterableTerrainTile(type));
+    }
+
+    [Theory]
+    [InlineData(TileType.SymbolGrass, "草原")]
+    [InlineData(TileType.SymbolForest, "森林")]
+    [InlineData(TileType.SymbolMountain, "山岳地帯")]
+    [InlineData(TileType.SymbolWater, "水辺")]
+    [InlineData(TileType.SymbolRoad, "街道")]
+    public void GetTerrainName_ReturnsCorrectName(TileType type, string expectedName)
+    {
+        Assert.Equal(expectedName, SymbolMapSystem.GetTerrainName(type));
+    }
+
+    [Fact]
+    public void CanEnterField_ReturnsTrue_ForTerrainTileWithoutLocation()
+    {
+        var system = new SymbolMapSystem();
+        system.GenerateForTerritory(TerritoryId.Capital);
+
+        // シンボルマップ上でロケーション未配置の草原タイルを探す
+        var map = system.CurrentMap!;
+        Position? grassPos = null;
+        for (int x = 1; x < map.Width - 1; x++)
+        {
+            for (int y = 1; y < map.Height - 1; y++)
+            {
+                var pos = new Position(x, y);
+                var tile = map.GetTile(pos);
+                if (SymbolMapSystem.IsEnterableTerrainTile(tile.Type)
+                    && system.GetLocationAt(pos) == null)
+                {
+                    grassPos = pos;
+                    break;
+                }
+            }
+            if (grassPos.HasValue) break;
+        }
+
+        Assert.NotNull(grassPos);
+        Assert.True(system.CanEnterField(grassPos.Value));
+    }
+
+    [Fact]
+    public void CanEnterField_ReturnsFalse_ForDungeonLocation()
+    {
+        var system = new SymbolMapSystem();
+        system.GenerateForTerritory(TerritoryId.Capital);
+
+        var allPositions = system.GetAllLocationPositions();
+        var dungeon = allPositions.FirstOrDefault(p => p.Value.Type == LocationType.Dungeon);
+
+        if (dungeon.Value != null)
+        {
+            Assert.False(system.CanEnterField(dungeon.Key));
+        }
+    }
+
+    [Fact]
+    public void CanEnterField_ReturnsTrue_ForTownLocation()
+    {
+        var system = new SymbolMapSystem();
+        system.GenerateForTerritory(TerritoryId.Capital);
+
+        var allPositions = system.GetAllLocationPositions();
+        var town = allPositions.FirstOrDefault(p =>
+            p.Value.Type is LocationType.Town or LocationType.Village);
+
+        if (town.Value != null)
+        {
+            Assert.True(system.CanEnterField(town.Key));
+        }
+    }
+
+    #endregion
+
+    #region LocationMapGenerator Terrain Field Map Tests
+
+    [Theory]
+    [InlineData(TileType.SymbolGrass)]
+    [InlineData(TileType.SymbolForest)]
+    [InlineData(TileType.SymbolMountain)]
+    [InlineData(TileType.SymbolWater)]
+    [InlineData(TileType.SymbolRoad)]
+    public void GenerateTerrainFieldMap_ReturnsValidMap(TileType type)
+    {
+        var generator = new LocationMapGenerator(42);
+        var map = generator.GenerateTerrainFieldMap(type, new Position(5, 5));
+
+        Assert.NotNull(map);
+        Assert.Equal(60, map.Width);
+        Assert.Equal(30, map.Height);
+        Assert.NotNull(map.EntrancePosition);
+    }
+
+    [Fact]
+    public void GenerateTerrainFieldMap_MapNameContainsPosition()
+    {
+        var generator = new LocationMapGenerator(42);
+        var map = generator.GenerateTerrainFieldMap(TileType.SymbolForest, new Position(10, 15));
+
+        Assert.Contains("10", map.Name);
+        Assert.Contains("15", map.Name);
+    }
+
+    [Fact]
+    public void GenerateGrasslandMap_HasSparseVegetation()
+    {
+        var generator = new LocationMapGenerator(42);
+        var map = generator.GenerateGrasslandMap("test_grass");
+
+        int treeCount = 0;
+        int grassCount = 0;
+        for (int x = 0; x < map.Width; x++)
+        {
+            for (int y = 0; y < map.Height; y++)
+            {
+                var tile = map.GetTile(new Position(x, y));
+                if (tile.Type == TileType.Tree) treeCount++;
+                if (tile.Type == TileType.Grass) grassCount++;
+            }
+        }
+
+        Assert.True(grassCount > treeCount, "草原マップは草地が木よりも多いはず");
+    }
+
+    [Fact]
+    public void GenerateForestMap_HasDenseVegetation()
+    {
+        var generator = new LocationMapGenerator(42);
+        var map = generator.GenerateForestMap("test_forest");
+
+        int treeCount = 0;
+        for (int x = 0; x < map.Width; x++)
+        {
+            for (int y = 0; y < map.Height; y++)
+            {
+                if (map.GetTile(new Position(x, y)).Type == TileType.Tree) treeCount++;
+            }
+        }
+
+        Assert.True(treeCount > 100, $"森林マップは木が100本以上あるはず（実際: {treeCount}）");
+    }
+
+    [Fact]
+    public void GenerateMountainMap_HasWallTerrain()
+    {
+        var generator = new LocationMapGenerator(42);
+        var map = generator.GenerateMountainMap("test_mountain");
+
+        int wallCount = 0;
+        for (int x = 0; x < map.Width; x++)
+        {
+            for (int y = 0; y < map.Height; y++)
+            {
+                if (map.GetTile(new Position(x, y)).Type == TileType.Wall) wallCount++;
+            }
+        }
+
+        Assert.True(wallCount > 50, $"山岳マップは壁が50以上あるはず（実際: {wallCount}）");
+    }
+
+    [Fact]
+    public void GenerateWaterfrontMap_HasWater()
+    {
+        var generator = new LocationMapGenerator(42);
+        var map = generator.GenerateWaterfrontMap("test_water");
+
+        int waterCount = 0;
+        for (int x = 0; x < map.Width; x++)
+        {
+            for (int y = 0; y < map.Height; y++)
+            {
+                if (map.GetTile(new Position(x, y)).Type == TileType.Water) waterCount++;
+            }
+        }
+
+        Assert.True(waterCount > 200, $"水辺マップは水タイルが200以上あるはず（実際: {waterCount}）");
+    }
+
+    [Fact]
+    public void GenerateRoadFieldMap_HasFloorRoad()
+    {
+        var generator = new LocationMapGenerator(42);
+        var map = generator.GenerateRoadFieldMap("test_road");
+
+        int floorCount = 0;
+        for (int x = 0; x < map.Width; x++)
+        {
+            for (int y = 0; y < map.Height; y++)
+            {
+                if (map.GetTile(new Position(x, y)).Type == TileType.Floor) floorCount++;
+            }
+        }
+
+        Assert.True(floorCount > 50, $"道沿いマップはFloorタイルが50以上あるはず（実際: {floorCount}）");
+    }
+
+    #endregion
 }

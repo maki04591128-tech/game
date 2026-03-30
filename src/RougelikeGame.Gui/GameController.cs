@@ -121,6 +121,9 @@ public class GameController
     /// <summary>ロケーションマップ（非ダンジョン）内にいるか</summary>
     private bool _isInLocationMap;
 
+    /// <summary>フィールドマップからシンボルマップへ帰還する際の復帰位置</summary>
+    private Position? _symbolMapReturnPosition;
+
     /// <summary>引き継ぎデータ（死に戻り用）</summary>
     private TransferData? _transferData;
 
@@ -1126,6 +1129,12 @@ public class GameController
                 }
                 OnLocationArrived?.Invoke(location);
             }
+        }
+        // シンボルマップ上の地形タイル到着処理（ロケーション未配置）
+        else if (_worldMapSystem.IsOnSurface && SymbolMapSystem.IsEnterableTerrainTile(tile.Type))
+        {
+            var terrainName = SymbolMapSystem.GetTerrainName(tile.Type);
+            AddMessage($"【{terrainName}】に到着した。（Tキーでフィールドに入る）");
         }
 
         // 階段メッセージ
@@ -4025,7 +4034,7 @@ public class GameController
         return result.Success;
     }
 
-    /// <summary>街・施設・宗教施設・フィールドに入る（ロケーションマップ遷移）</summary>
+    /// <summary>街・施設・宗教施設・フィールド・地形タイルに入る（ロケーションマップ遷移）</summary>
     private bool TryEnterTown()
     {
         if (!_worldMapSystem.IsOnSurface)
@@ -4036,16 +4045,30 @@ public class GameController
 
         // シンボルマップ上のロケーション（Dungeon以外）を判定
         var location = _symbolMapSystem.GetLocationAt(Player.Position);
-        if (location == null || location.Type == LocationType.Dungeon)
+
+        // ロケーションがある場合（既存の町・施設・フィールド等）
+        if (location != null && location.Type != LocationType.Dungeon)
         {
-            AddMessage("ここには入れるロケーションがない");
-            return false;
+            return EnterLocationMap(location);
         }
 
-        // ロケーションマップを生成して遷移
+        // ロケーション未配置タイルでも地形タイルならフィールドマップに遷移
+        if (_symbolMapSystem.CanEnterField(Player.Position))
+        {
+            return EnterTerrainFieldMap();
+        }
+
+        AddMessage("ここには入れるロケーションがない");
+        return false;
+    }
+
+    /// <summary>ロケーション定義に基づくマップに遷移</summary>
+    private bool EnterLocationMap(LocationDefinition location)
+    {
         var generator = new LocationMapGenerator();
         var locationMap = generator.GenerateForLocation(location);
 
+        _symbolMapReturnPosition = Player.Position;
         _worldMapSystem.IsOnSurface = false;
         _isInLocationMap = true;
         _currentMapName = location.Id;
@@ -4066,6 +4089,38 @@ public class GameController
         Map.ComputeFov(Player.Position, 8);
 
         AddMessage($"【{location.Name}】に入った");
+        OnSymbolMapEnterTown?.Invoke();
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>シンボルマップの地形タイルに応じたフィールドマップに遷移（Elona風）</summary>
+    private bool EnterTerrainFieldMap()
+    {
+        var tile = Map.GetTile(Player.Position);
+        var terrainName = SymbolMapSystem.GetTerrainName(tile.Type);
+
+        var generator = new LocationMapGenerator();
+        var fieldMap = generator.GenerateTerrainFieldMap(tile.Type, Player.Position);
+
+        _symbolMapReturnPosition = Player.Position;
+        _worldMapSystem.IsOnSurface = false;
+        _isInLocationMap = true;
+        _currentMapName = fieldMap.Name;
+
+        Map = fieldMap;
+        var startPos = fieldMap.EntrancePosition ?? new Position(fieldMap.Width / 2, fieldMap.Height - 1);
+        Player.Position = startPos;
+
+        Enemies.Clear();
+        GroundItems.Clear();
+
+        // フィールドマップには敵を配置
+        SpawnEnemies();
+
+        Map.ComputeFov(Player.Position, 8);
+
+        AddMessage($"【{terrainName}】に足を踏み入れた（Tキーで脱出）");
         OnSymbolMapEnterTown?.Invoke();
         OnStateChanged?.Invoke();
         return true;
@@ -4175,12 +4230,17 @@ public class GameController
         _isInLocationMap = false;
         GenerateSymbolMap();
 
-        var locationPos = _symbolMapSystem.FindLocationPosition(_currentMapName);
-        if (locationPos.HasValue)
+        // 帰還位置を決定（保存された復帰位置 > ロケーションID検索 > デフォルト）
+        Position? returnPos = _symbolMapReturnPosition
+            ?? _symbolMapSystem.FindLocationPosition(_currentMapName);
+
+        if (returnPos.HasValue)
         {
-            Player.Position = locationPos.Value;
+            Player.Position = returnPos.Value;
             Map.ComputeFov(Player.Position, 12);
         }
+
+        _symbolMapReturnPosition = null;
 
         var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
         AddMessage($"{territoryName}のシンボルマップに戻った");
