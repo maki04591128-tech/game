@@ -746,6 +746,36 @@ public class GameController
     {
         if (IsGameOver || !IsRunning) return;
 
+        // 行動不可状態チェック（スタン/凍結/睡眠/石化）
+        if (Player.HasStatusEffect(StatusEffectType.Stun)
+            || Player.HasStatusEffect(StatusEffectType.Freeze)
+            || Player.HasStatusEffect(StatusEffectType.Sleep)
+            || Player.HasStatusEffect(StatusEffectType.Petrification))
+        {
+            var blockingEffect = Player.StatusEffects.First(e =>
+                e.Type is StatusEffectType.Stun or StatusEffectType.Freeze
+                    or StatusEffectType.Sleep or StatusEffectType.Petrification);
+            AddMessage($"⚠ {blockingEffect.Name}状態のため行動できない！（残り{blockingEffect.Duration}ターン）");
+
+            // ターンを消費して状態異常を進行させる
+            TurnCount += 1;
+            GameTime.AdvanceTurn(1);
+            ProcessEnemyTurns();
+            ProcessTurnEffects();
+            CheckTurnLimitWarnings();
+
+            if (!Player.IsAlive)
+            {
+                HandlePlayerDeath(_lastDamageCause);
+            }
+            else if (CheckTurnLimitExceeded())
+            {
+                HandleTurnLimitExceeded();
+            }
+            OnStateChanged?.Invoke();
+            return;
+        }
+
         // 自動探索中に何か操作したら中断
         if (_autoExploring && action != GameAction.AutoExplore)
         {
@@ -982,6 +1012,13 @@ public class GameController
                 actionCost = (int)Math.Ceiling(actionCost * 1.5);
             }
 
+            // 状態異常によるターンコスト修正（麻痺: 1.5倍等）
+            float turnModifier = Player.GetStatusEffectTurnModifier();
+            if (turnModifier > 1.0f && turnModifier < float.MaxValue)
+            {
+                actionCost = (int)Math.Ceiling(actionCost * turnModifier);
+            }
+
             // 行動コスト分のターンを消費（最低1）
             int finalCost = Math.Max(1, actionCost);
             TurnCount += finalCost;
@@ -1201,6 +1238,15 @@ public class GameController
         {
             // 追加ダメージ計算
             int baseDmg = result.Damage?.Amount ?? 0;
+
+            // 状態異常による攻撃力修正（麻痺: 0.7倍、火傷: 0.85倍等）
+            float statusAttackMult = 1.0f;
+            foreach (var eff in Player.StatusEffects)
+            {
+                statusAttackMult *= eff.AttackMultiplier;
+            }
+            baseDmg = Math.Max(1, (int)(baseDmg * statusAttackMult));
+
             int bonusDmg = (int)(baseDmg * (stanceAttackMod - 1.0f)) + weaponDamageBonus;
             int elementalBonusDmg = (int)(baseDmg * (elementalMult - 1.0f));
             int totalBonus = bonusDmg + elementalBonusDmg;
@@ -1448,6 +1494,15 @@ public class GameController
             // 描画範囲外の敵は処理しない
             if (distance > ActiveRange) continue;
 
+            // 行動不可状態の敵はスキップ（スタン/凍結/睡眠/石化）
+            if (enemy.HasStatusEffect(StatusEffectType.Stun)
+                || enemy.HasStatusEffect(StatusEffectType.Freeze)
+                || enemy.HasStatusEffect(StatusEffectType.Sleep)
+                || enemy.HasStatusEffect(StatusEffectType.Petrification))
+            {
+                continue;
+            }
+
             if (distance <= enemy.SightRange)
             {
                 if (distance == 1)
@@ -1482,6 +1537,15 @@ public class GameController
         {
             // 防御修飾によるダメージ軽減
             int baseDmg = result.Damage?.Amount ?? 0;
+
+            // 敵の状態異常による攻撃力修正（麻痺: 0.7倍等）
+            float enemyStatusAttackMult = 1.0f;
+            foreach (var eff in enemy.StatusEffects)
+            {
+                enemyStatusAttackMult *= eff.AttackMultiplier;
+            }
+            baseDmg = Math.Max(1, (int)(baseDmg * enemyStatusAttackMult));
+
             int modifiedDmg = Math.Max(1, (int)(baseDmg * activityMult / stanceDefMod));
 
             // 防具耐久度消耗（DurabilitySystem）
@@ -3057,6 +3121,13 @@ public class GameController
     /// <summary>スキルスロット使用後のターン進行（MainWindowから呼ぶ）</summary>
     public void AdvanceTurnFromSkillSlot(int actionCost)
     {
+        // 状態異常によるターンコスト修正（麻痺: 1.5倍等）
+        float turnModifier = Player.GetStatusEffectTurnModifier();
+        if (turnModifier > 1.0f && turnModifier < float.MaxValue)
+        {
+            actionCost = (int)Math.Ceiling(actionCost * turnModifier);
+        }
+
         int finalCost = Math.Max(1, actionCost);
         TurnCount += finalCost;
         GameTime.AdvanceTurn(finalCost);

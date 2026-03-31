@@ -346,7 +346,8 @@ public class StatusEffectSystem
     #region 状態異常効果判定
 
     /// <summary>
-    /// 麻痺による行動失敗を判定（50%）
+    /// 麻痺による行動失敗を判定（レガシー: 現在は攻撃力低下+ターンコスト増加で実装）
+    /// 後方互換性のため残存。新規コードではStatusEffect.AttackMultiplier/TurnCostModifierを使用。
     /// </summary>
     public bool CheckParalysisActionFail()
     {
