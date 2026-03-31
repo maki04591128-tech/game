@@ -1,5 +1,6 @@
 using RougelikeGame.Core.AI;
 using RougelikeGame.Core.Interfaces;
+using RougelikeGame.Core.Items;
 
 namespace RougelikeGame.Core.Entities;
 
@@ -18,6 +19,11 @@ public class Enemy : Character
     /// モンスター種族
     /// </summary>
     public MonsterRace Race { get; init; } = MonsterRace.Humanoid;
+
+    /// <summary>
+    /// 使用する武器種（武器を使う種族用、nullの場合は種族固有攻撃）
+    /// </summary>
+    public WeaponType? WeaponType { get; init; }
 
     /// <summary>
     /// 経験値報酬

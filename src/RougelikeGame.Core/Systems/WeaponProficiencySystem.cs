@@ -99,4 +99,38 @@ public static class WeaponProficiencySystem
     {
         return _profiles;
     }
+
+    /// <summary>
+    /// 武器種の攻撃タイプに基づく状態異常を取得
+    /// 斬撃→出血、刺突→出血（深傷）、打撃→麻痺、射撃→出血
+    /// </summary>
+    public static StatusEffectType GetWeaponStatusEffect(WeaponType weaponType)
+    {
+        var profile = GetWeaponProfile(weaponType);
+        return profile.PrimaryAttackType switch
+        {
+            AttackType.Slash => StatusEffectType.Bleeding,     // 斬撃: 出血
+            AttackType.Pierce => StatusEffectType.Bleeding,    // 刺突: 出血（深傷）
+            AttackType.Blunt => StatusEffectType.Paralysis,    // 打撃: 麻痺（衝撃）
+            AttackType.Ranged => StatusEffectType.Bleeding,    // 射撃: 出血（矢傷）
+            _ => StatusEffectType.Weakness                     // その他: 衰弱
+        };
+    }
+
+    /// <summary>
+    /// 武器種の攻撃タイプ名（日本語表示用）を取得
+    /// </summary>
+    public static string GetAttackTypeName(AttackType attackType)
+    {
+        return attackType switch
+        {
+            AttackType.Slash => "斬撃",
+            AttackType.Pierce => "刺突",
+            AttackType.Blunt => "打撃",
+            AttackType.Ranged => "射撃",
+            AttackType.Unarmed => "格闘",
+            AttackType.Magic => "魔法",
+            _ => "物理"
+        };
+    }
 }

@@ -1522,28 +1522,42 @@ public class GameController
         // 基礎確率15%（種族特性による状態異常付与）
         if (_random.NextDouble() >= 0.15) return;
 
-        // 種族ごとの状態異常（一部種族はランダムで複数パターン）
-        StatusEffectType? effectType = enemy.Race switch
+        StatusEffectType? effectType;
+        string? attackDescription = null;
+
+        // 武器を使う敵の場合、武器種に基づく状態異常を優先適用
+        if (enemy.WeaponType.HasValue)
         {
-            MonsterRace.Insect => StatusEffectType.Poison,          // 昆虫: 毒攻撃
-            MonsterRace.Undead => StatusEffectType.Weakness,         // 不死: 衰弱
-            MonsterRace.Demon => _random.NextDouble() < 0.9
-                ? StatusEffectType.Curse                             // 悪魔: 呪い（90%）
-                : StatusEffectType.InstantDeath,                     // 悪魔: 即死（10%）
-            MonsterRace.Dragon => _random.NextDouble() < 0.5
-                ? StatusEffectType.Burn                              // 竜: 火傷（50%）
-                : StatusEffectType.Freeze,                           // 竜: 凍結（50%）
-            MonsterRace.Plant => StatusEffectType.Paralysis,         // 植物: 麻痺（毒胞子）
-            MonsterRace.Spirit => _random.NextDouble() < 0.7
-                ? StatusEffectType.Blind                             // 精霊: 盲目（70%）
-                : StatusEffectType.Madness,                          // 精霊: 狂気（30%）
-            MonsterRace.Amorphous => StatusEffectType.Slow,          // 不定形: 減速（粘液）
-            MonsterRace.Beast => StatusEffectType.Bleeding,          // 獣: 出血（爪傷）
-            MonsterRace.Construct => _random.NextDouble() < 0.7
-                ? StatusEffectType.Vulnerability                     // 構造体: 脆弱化（70%）
-                : StatusEffectType.Petrification,                    // 構造体: 石化（30%）
-            _ => null
-        };
+            var profile = WeaponProficiencySystem.GetWeaponProfile(enemy.WeaponType.Value);
+            effectType = WeaponProficiencySystem.GetWeaponStatusEffect(enemy.WeaponType.Value);
+            attackDescription = WeaponProficiencySystem.GetAttackTypeName(profile.PrimaryAttackType);
+        }
+        else
+        {
+            // 種族ごとの固有状態異常（一部種族はランダムで複数パターン）
+            effectType = enemy.Race switch
+            {
+                MonsterRace.Insect => StatusEffectType.Poison,          // 昆虫: 毒攻撃
+                MonsterRace.Undead => StatusEffectType.Weakness,         // 不死: 衰弱
+                MonsterRace.Demon => _random.NextDouble() < 0.9
+                    ? StatusEffectType.Curse                             // 悪魔: 呪い（90%）
+                    : StatusEffectType.InstantDeath,                     // 悪魔: 即死（10%）
+                MonsterRace.Dragon => _random.NextDouble() < 0.5
+                    ? StatusEffectType.Burn                              // 竜: 火傷（50%）
+                    : StatusEffectType.Freeze,                           // 竜: 凍結（50%）
+                MonsterRace.Plant => StatusEffectType.Paralysis,         // 植物: 麻痺（毒胞子）
+                MonsterRace.Spirit => _random.NextDouble() < 0.7
+                    ? StatusEffectType.Blind                             // 精霊: 盲目（70%）
+                    : StatusEffectType.Madness,                          // 精霊: 狂気（30%）
+                MonsterRace.Amorphous => StatusEffectType.Slow,          // 不定形: 減速（粘液）
+                MonsterRace.Beast => StatusEffectType.Bleeding,          // 獣: 出血（爪傷）
+                MonsterRace.Construct => _random.NextDouble() < 0.7
+                    ? StatusEffectType.Vulnerability                     // 構造体: 脆弱化（70%）
+                    : StatusEffectType.Petrification,                    // 構造体: 石化（30%）
+                MonsterRace.Humanoid => StatusEffectType.Weakness,       // 人型（素手）: 衰弱
+                _ => null
+            };
+        }
 
         if (effectType == null) return;
 
@@ -1583,7 +1597,14 @@ public class GameController
         };
 
         Player.ApplyStatusEffect(new StatusEffect(effectType.Value, duration));
-        AddMessage($"⚠ {enemy.Name}の攻撃で{effectType.Value}状態になった！");
+        if (attackDescription != null)
+        {
+            AddMessage($"⚠ {enemy.Name}の{attackDescription}攻撃で{effectType.Value}状態になった！");
+        }
+        else
+        {
+            AddMessage($"⚠ {enemy.Name}の攻撃で{effectType.Value}状態になった！");
+        }
     }
 
     private void MoveEnemyTowardsPlayer(Enemy enemy)
