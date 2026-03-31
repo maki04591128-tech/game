@@ -1380,9 +1380,6 @@ public class GameController
             dropChance = (int)(dropChance * lootMult);
         }
 
-        // ミミック撃破ボーナス（MimicSystem）
-        float mimicReward = MimicSystem.GetMimicRewardMultiplier();
-
         if (_random.Next(100) < dropChance)
         {
             var item = _itemFactory.GenerateEnemyDropItem(CurrentFloor, enemy.Race);
