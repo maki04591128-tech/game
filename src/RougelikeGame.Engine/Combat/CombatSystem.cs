@@ -349,6 +349,7 @@ public class CombatSystem : ICombatSystem
             StatusEffectType.Burn => _statusEffectSystem.CreateBurn(),
             StatusEffectType.Freeze => _statusEffectSystem.CreateFreeze(),
             StatusEffectType.Paralysis => _statusEffectSystem.CreateParalysis(),
+            StatusEffectType.Stun => _statusEffectSystem.CreateStun(),
             StatusEffectType.Blind => _statusEffectSystem.CreateBlind(),
             StatusEffectType.Silence => _statusEffectSystem.CreateSilence(),
             StatusEffectType.Confusion => _statusEffectSystem.CreateConfusion(),

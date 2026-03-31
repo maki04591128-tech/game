@@ -114,6 +114,49 @@ public class SymbolMapSystem
     }
 
     /// <summary>
+    /// 指定位置がダンジョン以外の進入可能なシンボルマップタイルかどうか判定する。
+    /// ロケーション配置済みタイル（Dungeon以外）またはフィールド系地形タイルを含む。
+    /// </summary>
+    public bool CanEnterField(Position position)
+    {
+        // ロケーションが配置されている場合
+        var location = GetLocationAt(position);
+        if (location != null)
+            return location.Type != LocationType.Dungeon;
+
+        // ロケーション未配置でもシンボルマップの地形タイルなら進入可能
+        if (CurrentMap == null) return false;
+        var tile = CurrentMap.GetTile(position);
+        return IsEnterableTerrainTile(tile.Type);
+    }
+
+    /// <summary>
+    /// シンボルマップの地形タイルでフィールドとして進入可能かどうか判定する
+    /// </summary>
+    public static bool IsEnterableTerrainTile(TileType type)
+    {
+        return type is TileType.SymbolGrass or TileType.SymbolForest
+            or TileType.SymbolMountain or TileType.SymbolWater
+            or TileType.SymbolRoad;
+    }
+
+    /// <summary>
+    /// シンボルマップのタイル属性名を取得する（日本語表示用）
+    /// </summary>
+    public static string GetTerrainName(TileType type)
+    {
+        return type switch
+        {
+            TileType.SymbolGrass => "草原",
+            TileType.SymbolForest => "森林",
+            TileType.SymbolMountain => "山岳地帯",
+            TileType.SymbolWater => "水辺",
+            TileType.SymbolRoad => "街道",
+            _ => "野外"
+        };
+    }
+
+    /// <summary>
     /// 指定IDのロケーション位置を取得する
     /// </summary>
     public Position? FindLocationPosition(string locationId)

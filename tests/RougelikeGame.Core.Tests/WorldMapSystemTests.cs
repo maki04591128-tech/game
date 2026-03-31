@@ -960,4 +960,140 @@ public class WorldMapSystemTests
     }
 
     #endregion
+
+    #region Grid Shop Tests (PoE-style)
+
+    [Fact]
+    public void ShopSystem_ShopItem_HasGridSize()
+    {
+        var shop = new ShopSystem();
+        shop.InitializeShop(FacilityType.WeaponShop, TerritoryId.Capital, 1);
+
+        var items = shop.GetShopItems(FacilityType.WeaponShop);
+        var sword = items.FirstOrDefault(i => i.Name == "鉄の剣");
+        Assert.NotNull(sword);
+        Assert.Equal(GridItemSize.Size1x2, sword.GridSize);
+    }
+
+    [Fact]
+    public void ShopSystem_GeneralShop_ItemsHaveGridSize1x1()
+    {
+        var shop = new ShopSystem();
+        shop.InitializeShop(FacilityType.GeneralShop, TerritoryId.Capital, 1);
+
+        var items = shop.GetShopItems(FacilityType.GeneralShop);
+        var potion = items.FirstOrDefault(i => i.Name == "回復ポーション");
+        Assert.NotNull(potion);
+        Assert.Equal(GridItemSize.Size1x1, potion.GridSize);
+    }
+
+    [Fact]
+    public void ShopSystem_ArmorShop_ArmorHasLargeGridSize()
+    {
+        var shop = new ShopSystem();
+        shop.InitializeShop(FacilityType.ArmorShop, TerritoryId.Capital, 1);
+
+        var items = shop.GetShopItems(FacilityType.ArmorShop);
+        var armor = items.FirstOrDefault(i => i.Name == "革鎧");
+        Assert.NotNull(armor);
+        Assert.Equal(GridItemSize.Size2x3, armor.GridSize);
+    }
+
+    [Fact]
+    public void ShopSystem_ArmorShop_ShieldHasSize2x2()
+    {
+        var shop = new ShopSystem();
+        shop.InitializeShop(FacilityType.ArmorShop, TerritoryId.Capital, 1);
+
+        var items = shop.GetShopItems(FacilityType.ArmorShop);
+        var shield = items.FirstOrDefault(i => i.Name == "鉄の盾");
+        Assert.NotNull(shield);
+        Assert.Equal(GridItemSize.Size2x2, shield.GridSize);
+    }
+
+    [Fact]
+    public void ShopSystem_WeaponShop_BowHasSize2x3()
+    {
+        var shop = new ShopSystem();
+        shop.InitializeShop(FacilityType.WeaponShop, TerritoryId.Capital, 1);
+
+        var items = shop.GetShopItems(FacilityType.WeaponShop);
+        var bow = items.FirstOrDefault(i => i.Name == "短弓");
+        Assert.NotNull(bow);
+        Assert.Equal(GridItemSize.Size2x3, bow.GridSize);
+    }
+
+    [Fact]
+    public void ShopSystem_MagicShop_WandHasSize1x2()
+    {
+        var shop = new ShopSystem();
+        shop.InitializeShop(FacilityType.MagicShop, TerritoryId.Capital, 1);
+
+        var items = shop.GetShopItems(FacilityType.MagicShop);
+        var wand = items.FirstOrDefault(i => i.Name == "火の杖");
+        Assert.NotNull(wand);
+        Assert.Equal(GridItemSize.Size1x2, wand.GridSize);
+    }
+
+    [Fact]
+    public void ShopSystem_AllItems_HaveValidGridSize()
+    {
+        var shop = new ShopSystem();
+        foreach (var shopType in new[] { FacilityType.GeneralShop, FacilityType.WeaponShop, FacilityType.ArmorShop, FacilityType.MagicShop })
+        {
+            shop.InitializeShop(shopType, TerritoryId.Capital, 15);
+            var items = shop.GetShopItems(shopType);
+            foreach (var item in items)
+            {
+                var (w, h) = GridInventorySystem.GetDimensions(item.GridSize);
+                Assert.True(w >= 1 && w <= 3, $"グリッド幅が不正: {item.Name} (w={w})");
+                Assert.True(h >= 1 && h <= 3, $"グリッド高さが不正: {item.Name} (h={h})");
+            }
+        }
+    }
+
+    [Fact]
+    public void ShopSystem_GridShopItems_CanFitInGrid()
+    {
+        // 10x9のグリッドに全ショップアイテムが配置可能か検証
+        var shop = new ShopSystem();
+        shop.InitializeShop(FacilityType.WeaponShop, TerritoryId.Capital, 1);
+
+        var items = shop.GetShopItems(FacilityType.WeaponShop);
+        var grid = new GridInventorySystem(10, 9);
+        int placedCount = 0;
+
+        foreach (var item in items)
+        {
+            if (item.Stock <= 0) continue;
+            // 自動配置: 空き位置を探す
+            bool placed = false;
+            for (int y = 0; y <= 9 - GridInventorySystem.GetDimensions(item.GridSize).H; y++)
+            {
+                for (int x = 0; x <= 10 - GridInventorySystem.GetDimensions(item.GridSize).W; x++)
+                {
+                    if (grid.CanPlace(item.GridSize, x, y))
+                    {
+                        grid.PlaceItem(item.ItemId + placedCount, item.Name, item.GridSize, x, y);
+                        placed = true;
+                        placedCount++;
+                        break;
+                    }
+                }
+                if (placed) break;
+            }
+        }
+
+        Assert.True(placedCount > 0, "少なくとも1つのアイテムが配置できるはず");
+    }
+
+    [Fact]
+    public void ShopSystem_DefaultGridSize_IsSize1x1()
+    {
+        // ShopItemのGridSizeデフォルト値はSize1x1
+        var item = new ShopSystem.ShopItem("test", "テスト", 100, 1, FacilityType.GeneralShop);
+        Assert.Equal(GridItemSize.Size1x1, item.GridSize);
+    }
+
+    #endregion
 }

@@ -184,8 +184,11 @@ public static class DropTableSystem
     {
         var baseResult = GenerateLoot(tableId, depth, rank, random);
 
+        // 人型以外の敵はゴールドをドロップしない
+        int gold = (race == null || race == MonsterRace.Humanoid) ? baseResult.Gold : 0;
+
         if (race == null || !_raceBonusDrops.TryGetValue(race.Value, out var bonusEntries))
-            return baseResult;
+            return new DropResult(baseResult.Items, gold);
 
         var items = new List<Item>(baseResult.Items);
         double rankBonus = BalanceConfig.GetRankDropBonus(rank);
@@ -208,147 +211,148 @@ public static class DropTableSystem
             }
         }
 
-        return new DropResult(items, baseResult.Gold);
+        return new DropResult(items, gold);
     }
 
     #region Default Drop Tables Definitions
 
     private static void RegisterDefaultTables()
     {
-        // スライム
+        // スライム（不定形）
         RegisterTable(new DropTable("drop_slime",
             new List<DropTableEntry>
             {
-                new("potion_healing", 0.30),
-                new("food_bread", 0.15)
+                new("material_slime_gel", 0.40),
+                new("material_magic_crystal", 0.08)
             },
-            GoldMin: 1, GoldMax: 5));
+            GoldMin: 0, GoldMax: 0));
 
-        // ゴブリン
+        // ゴブリン（人型）
         RegisterTable(new DropTable("drop_goblin",
             new List<DropTableEntry>
             {
-                new("weapon_short_sword", 0.10),
-                new("armor_leather", 0.08),
-                new("potion_healing", 0.20),
-                new("food_bread", 0.15)
+                new("material_equipment_fragment", 0.20),
+                new("material_iron_fragment", 0.15),
+                new("weapon_iron_sword", 0.08),
+                new("armor_leather", 0.06)
             },
             GoldMin: 3, GoldMax: 12));
 
-        // スケルトン
+        // スケルトン（不死）
         RegisterTable(new DropTable("drop_skeleton",
             new List<DropTableEntry>
             {
-                new("weapon_iron_sword", 0.08),
-                new("armor_chainmail", 0.05),
-                new("scroll_identify", 0.10)
+                new("material_bone_fragment", 0.35),
+                new("material_cursed_essence", 0.10),
+                new("material_equipment_fragment", 0.15)
             },
-            GoldMin: 5, GoldMax: 15));
+            GoldMin: 0, GoldMax: 0));
 
-        // オーク
+        // オーク（人型）
         RegisterTable(new DropTable("drop_orc",
             new List<DropTableEntry>
             {
                 new("weapon_battle_axe", 0.10),
                 new("armor_chainmail", 0.08),
-                new("potion_healing", 0.25),
-                new("food_cooked_meat", 0.20)
+                new("material_beast_hide", 0.20),
+                new("material_iron_fragment", 0.15)
             },
             GoldMin: 8, GoldMax: 25));
 
-        // 大蜘蛛
+        // 大蜘蛛（昆虫）
         RegisterTable(new DropTable("drop_spider",
             new List<DropTableEntry>
             {
-                new("potion_antidote", 0.30),
-                new("material_spider_silk", 0.40)
+                new("material_spider_silk", 0.40),
+                new("material_venom_sac", 0.25),
+                new("material_insect_shell", 0.20)
             },
-            GoldMin: 2, GoldMax: 8));
+            GoldMin: 0, GoldMax: 0));
 
-        // ダークメイジ
+        // ダークメイジ（人型）
         RegisterTable(new DropTable("drop_dark_mage",
             new List<DropTableEntry>
             {
                 new("scroll_fireball", 0.15),
                 new("scroll_lightning", 0.12),
-                new("potion_mana", 0.25),
-                new("scroll_identify", 0.20)
+                new("material_magic_crystal", 0.20),
+                new("scroll_identify", 0.15)
             },
             GoldMin: 10, GoldMax: 30));
 
-        // 森の敵
+        // 森の敵（植物/獣）
         RegisterTable(new DropTable("drop_forest",
             new List<DropTableEntry>
             {
-                new("food_fruit", 0.30),
-                new("potion_healing", 0.20),
-                new("material_wood", 0.25)
+                new("material_herb", 0.35),
+                new("material_wood", 0.30),
+                new("material_beast_fang", 0.15)
             },
-            GoldMin: 3, GoldMax: 10));
+            GoldMin: 0, GoldMax: 0));
 
-        // 山の敵
+        // 山の敵（構造体/獣）
         RegisterTable(new DropTable("drop_mountain",
             new List<DropTableEntry>
             {
-                new("material_iron_ore", 0.30),
-                new("weapon_war_hammer", 0.08),
-                new("armor_iron_helm", 0.10)
+                new("material_iron_ore", 0.35),
+                new("material_iron_fragment", 0.25),
+                new("material_stone", 0.20)
             },
-            GoldMin: 8, GoldMax: 20));
+            GoldMin: 0, GoldMax: 0));
 
-        // 海岸の敵
+        // 海岸の敵（獣/昆虫）
         RegisterTable(new DropTable("drop_coast",
             new List<DropTableEntry>
             {
-                new("food_cooked_meat", 0.20),
-                new("potion_healing", 0.25),
-                new("material_pearl", 0.15)
+                new("material_pearl", 0.20),
+                new("material_insect_shell", 0.25),
+                new("material_beast_hide", 0.15)
             },
-            GoldMin: 5, GoldMax: 18));
+            GoldMin: 0, GoldMax: 0));
 
-        // 南方の敵
+        // 南方の敵（精霊/悪魔）
         RegisterTable(new DropTable("drop_southern",
             new List<DropTableEntry>
             {
-                new("scroll_remove_curse", 0.12),
-                new("potion_cure_all", 0.10),
-                new("material_ancient_relic", 0.08)
+                new("material_ancient_relic", 0.12),
+                new("material_spirit_essence", 0.15),
+                new("material_dark_crystal", 0.10)
             },
-            GoldMin: 12, GoldMax: 35));
+            GoldMin: 0, GoldMax: 0));
 
-        // 辺境の敵
+        // 辺境の敵（悪魔/竜）
         RegisterTable(new DropTable("drop_frontier",
             new List<DropTableEntry>
             {
-                new("weapon_greatsword", 0.06),
-                new("potion_healing_super", 0.12),
-                new("scroll_enchant", 0.08),
-                new("accessory_protection_amulet", 0.04)
+                new("material_demon_horn", 0.12),
+                new("material_dragon_scale", 0.06),
+                new("material_dark_crystal", 0.10),
+                new("material_elemental_core", 0.04)
             },
-            GoldMin: 15, GoldMax: 50));
+            GoldMin: 0, GoldMax: 0));
 
         // ボス共通
         RegisterTable(new DropTable("drop_boss",
             new List<DropTableEntry>
             {
-                new("potion_healing_super", 0.80),
-                new("scroll_enchant", 0.30),
-                new("accessory_protection_amulet", 0.20),
-                new("accessory_speed_cloak", 0.15)
+                new("material_magic_crystal", 0.80),
+                new("material_elemental_core", 0.30),
+                new("material_dragon_scale", 0.20),
+                new("accessory_protection_amulet", 0.15)
             },
-            GoldMin: 100, GoldMax: 500));
+            GoldMin: 0, GoldMax: 0));
 
         // 隠しボス
         RegisterTable(new DropTable("drop_hidden_boss",
             new List<DropTableEntry>
             {
-                new("potion_healing_super", 1.00),
-                new("scroll_enchant", 0.50),
-                new("accessory_protection_amulet", 0.40),
-                new("accessory_speed_cloak", 0.30),
-                new("accessory_iron_ring", 0.25)
+                new("material_dragon_fang", 0.50),
+                new("material_elemental_core", 0.50),
+                new("material_ancient_relic", 0.40),
+                new("accessory_speed_cloak", 0.20),
+                new("accessory_iron_ring", 0.15)
             },
-            GoldMin: 500, GoldMax: 2000));
+            GoldMin: 0, GoldMax: 0));
     }
 
     #endregion

@@ -929,6 +929,185 @@ public class ItemFactory
     }
 
     #endregion
+
+    #region Material Item Creation
+
+    private static Material CreateMaterialItem(string name, string description, MaterialCategory category, int basePrice, ItemRarity rarity = ItemRarity.Common, int quality = 50, float weight = 0.3f)
+    {
+        return new Material
+        {
+            Name = name,
+            Description = description,
+            Weight = weight,
+            BasePrice = basePrice,
+            Rarity = rarity,
+            Category = category,
+            Quality = quality
+        };
+    }
+
+    // 獣系素材
+    public static Item CreateBeastHide() => CreateMaterialItem("毛皮", "獣から剥ぎ取った毛皮。防具の素材になる", MaterialCategory.Leather, 30);
+    public static Item CreateBeastFang() => CreateMaterialItem("獣牙", "鋭い獣の牙。武器の素材になる", MaterialCategory.Monster, 25);
+
+    // 不死系素材
+    public static Item CreateBoneFragment() => CreateMaterialItem("骨片", "魔力を帯びた骨の欠片", MaterialCategory.Bone, 20);
+    public static Item CreateCursedEssence() => CreateMaterialItem("呪いのエッセンス", "不死の魔物から滲み出る呪いの結晶", MaterialCategory.Magical, 80, ItemRarity.Rare, 60);
+
+    // 竜系素材
+    public static Item CreateDragonScale() => CreateMaterialItem("竜鱗", "竜の硬い鱗。最高級の防具素材", MaterialCategory.Monster, 200, ItemRarity.Epic, 80);
+    public static Item CreateDragonFang() => CreateMaterialItem("竜牙", "竜の巨大な牙。伝説の武器素材", MaterialCategory.Monster, 250, ItemRarity.Epic, 85);
+
+    // 昆虫系素材
+    public static Item CreateInsectShell() => CreateMaterialItem("甲殻", "硬い虫の甲殻。軽量な防具素材", MaterialCategory.Monster, 20);
+    public static Item CreateVenomSac() => CreateMaterialItem("毒嚢", "毒を溜めた嚢。毒系アイテムの材料", MaterialCategory.Monster, 35, ItemRarity.Uncommon);
+
+    // 植物系素材
+    public static Item CreateHerb() => CreateMaterialItem("薬草", "ダンジョンに自生する薬草", MaterialCategory.Herb, 15);
+    public static Item CreateWoodMaterial() => CreateMaterialItem("樹液", "魔力を含んだ樹液", MaterialCategory.Wood, 20);
+
+    // 悪魔系素材
+    public static Item CreateDemonHorn() => CreateMaterialItem("魔角", "悪魔の角。闇の魔力が宿る", MaterialCategory.Monster, 120, ItemRarity.Rare, 65);
+    public static Item CreateDarkCrystal() => CreateMaterialItem("暗黒結晶", "闇の力が凝縮された結晶", MaterialCategory.Magical, 150, ItemRarity.Rare, 70);
+
+    // 精霊系素材
+    public static Item CreateSpiritEssence() => CreateMaterialItem("精霊のエッセンス", "精霊の残した魔力の結晶", MaterialCategory.Magical, 100, ItemRarity.Rare, 65);
+    public static Item CreateElementalCore() => CreateMaterialItem("元素核", "元素の力が凝縮された核。高級素材", MaterialCategory.Magical, 180, ItemRarity.Epic, 75);
+
+    // 構造体系素材
+    public static Item CreateGolemCore() => CreateMaterialItem("核", "ゴーレムの魔力核。貴重な素材", MaterialCategory.Magical, 160, ItemRarity.Rare, 70);
+    public static Item CreateIronFragment() => CreateMaterialItem("鉄片", "鉄の破片。鍛冶素材になる", MaterialCategory.Metal, 15);
+
+    // 不定形系素材
+    public static Item CreateSlimeGel() => CreateMaterialItem("ゼリー", "スライムの粘液。様々な用途がある", MaterialCategory.Monster, 10);
+    public static Item CreateMagicCrystal() => CreateMaterialItem("魔力結晶", "魔力が結晶化した希少な素材", MaterialCategory.Magical, 120, ItemRarity.Rare, 60);
+
+    // 蜘蛛系素材
+    public static Item CreateSpiderSilk() => CreateMaterialItem("蜘蛛糸", "強靭な蜘蛛の糸。布の素材になる", MaterialCategory.Cloth, 25);
+
+    // 鉱物・環境素材
+    public static Item CreateIronOre() => CreateMaterialItem("鉄鉱石", "鉄を含む鉱石。鍛冶の基本素材", MaterialCategory.Metal, 20);
+    public static Item CreatePearl() => CreateMaterialItem("真珠", "海辺の魔物が持つ真珠", MaterialCategory.Gem, 60, ItemRarity.Uncommon, 55);
+    public static Item CreateAncientRelic() => CreateMaterialItem("古代の遺物", "古代文明の遺物。研究価値が高い", MaterialCategory.Magical, 200, ItemRarity.Epic, 80);
+    public static Item CreateEquipmentFragment() => CreateMaterialItem("装備品の欠片", "朽ちた装備の残骸。鍛冶素材になる", MaterialCategory.Metal, 10);
+
+    // ダンジョン床用素材
+    public static Item CreateStone() => CreateMaterialItem("石ころ", "ダンジョンの壁から崩れ落ちた石片", MaterialCategory.Metal, 5, weight: 0.5f);
+    public static Item CreateMoss() => CreateMaterialItem("苔", "ダンジョンの湿った壁に生える苔", MaterialCategory.Herb, 8);
+    public static Item CreateDungeonMushroom() => CreateMaterialItem("ダンジョンキノコ", "暗所に自生する光るキノコ", MaterialCategory.Herb, 12);
+    public static Item CreateCrystalShard() => CreateMaterialItem("結晶片", "ダンジョンの壁面に露出した鉱物結晶", MaterialCategory.Gem, 40, ItemRarity.Uncommon, 45);
+
+    #endregion
+
+    #region Dungeon Floor & Enemy Drop Generation
+
+    /// <summary>
+    /// ダンジョン床に自然に落ちているアイテムを生成（素材・資源中心）
+    /// </summary>
+    public Item GenerateDungeonFloorItem(int depth)
+    {
+        // 深さに応じてアイテムプールを変える
+        var pool = GetDungeonFloorItemPool(depth);
+        string itemId = pool[_random.Next(pool.Count)];
+        return ItemDefinitions.Create(itemId) ?? CreateStone();
+    }
+
+    private List<string> GetDungeonFloorItemPool(int depth)
+    {
+        var pool = new List<string>();
+
+        // 共通（全階層）
+        pool.AddRange(new[] { "material_stone", "material_moss", "material_bone_fragment", "material_iron_fragment", "material_equipment_fragment" });
+
+        if (depth <= 10)
+        {
+            // 浅層: 基本的な素材
+            pool.AddRange(new[] { "material_mushroom", "material_herb", "material_stone", "material_moss" });
+        }
+
+        if (depth > 3)
+        {
+            // やや深い: 鉱物・蜘蛛糸
+            pool.AddRange(new[] { "material_iron_ore", "material_spider_silk", "material_insect_shell" });
+        }
+
+        if (depth > 8)
+        {
+            // 中層: 結晶・より希少な素材
+            pool.AddRange(new[] { "material_crystal", "material_slime_gel", "material_venom_sac" });
+        }
+
+        if (depth > 15)
+        {
+            // 深層: 希少素材
+            pool.AddRange(new[] { "material_magic_crystal", "material_cursed_essence", "material_dark_crystal" });
+        }
+
+        if (depth > 25)
+        {
+            // 最深部: 最希少素材
+            pool.AddRange(new[] { "material_spirit_essence", "material_elemental_core", "material_ancient_relic" });
+        }
+
+        return pool;
+    }
+
+    /// <summary>
+    /// 敵の種族に応じたドロップアイテムを生成
+    /// </summary>
+    public Item GenerateEnemyDropItem(int depth, MonsterRace race)
+    {
+        var pool = GetEnemyDropItemPool(race, depth);
+        string itemId = pool[_random.Next(pool.Count)];
+        return ItemDefinitions.Create(itemId) ?? CreateStone();
+    }
+
+    private static List<string> GetEnemyDropItemPool(MonsterRace race, int depth)
+    {
+        var pool = new List<string>();
+
+        switch (race)
+        {
+            case MonsterRace.Beast:
+                pool.AddRange(new[] { "material_beast_hide", "material_beast_fang", "material_beast_hide" });
+                break;
+            case MonsterRace.Humanoid:
+                pool.AddRange(new[] { "material_equipment_fragment", "material_iron_fragment" });
+                if (depth > 5) pool.Add("material_iron_ore");
+                break;
+            case MonsterRace.Amorphous:
+                pool.AddRange(new[] { "material_slime_gel", "material_slime_gel", "material_magic_crystal" });
+                break;
+            case MonsterRace.Undead:
+                pool.AddRange(new[] { "material_bone_fragment", "material_bone_fragment", "material_cursed_essence" });
+                break;
+            case MonsterRace.Demon:
+                pool.AddRange(new[] { "material_demon_horn", "material_dark_crystal" });
+                break;
+            case MonsterRace.Dragon:
+                pool.AddRange(new[] { "material_dragon_scale", "material_dragon_fang" });
+                break;
+            case MonsterRace.Plant:
+                pool.AddRange(new[] { "material_herb", "material_wood", "material_herb" });
+                break;
+            case MonsterRace.Insect:
+                pool.AddRange(new[] { "material_insect_shell", "material_venom_sac", "material_insect_shell" });
+                break;
+            case MonsterRace.Spirit:
+                pool.AddRange(new[] { "material_spirit_essence", "material_elemental_core" });
+                break;
+            case MonsterRace.Construct:
+                pool.AddRange(new[] { "material_iron_fragment", "material_golem_core", "material_iron_fragment" });
+                break;
+            default:
+                pool.Add("material_stone");
+                break;
+        }
+
+        return pool;
+    }
+
+    #endregion
 }
 
 /// <summary>
@@ -1000,7 +1179,40 @@ public static class ItemDefinitions
         ["scroll_remove_curse"] = ItemFactory.CreateScrollOfRemoveCurse,
         ["scroll_enchant"] = ItemFactory.CreateScrollOfEnchant,
         ["scroll_return"] = ItemFactory.CreateScrollOfReturn,
-        ["scroll_sanctuary"] = ItemFactory.CreateScrollOfSanctuary
+        ["scroll_sanctuary"] = ItemFactory.CreateScrollOfSanctuary,
+
+        // 素材 - 魔物素材
+        ["material_beast_hide"] = ItemFactory.CreateBeastHide,
+        ["material_beast_fang"] = ItemFactory.CreateBeastFang,
+        ["material_bone_fragment"] = ItemFactory.CreateBoneFragment,
+        ["material_cursed_essence"] = ItemFactory.CreateCursedEssence,
+        ["material_dragon_scale"] = ItemFactory.CreateDragonScale,
+        ["material_dragon_fang"] = ItemFactory.CreateDragonFang,
+        ["material_insect_shell"] = ItemFactory.CreateInsectShell,
+        ["material_venom_sac"] = ItemFactory.CreateVenomSac,
+        ["material_herb"] = ItemFactory.CreateHerb,
+        ["material_wood"] = ItemFactory.CreateWoodMaterial,
+        ["material_demon_horn"] = ItemFactory.CreateDemonHorn,
+        ["material_dark_crystal"] = ItemFactory.CreateDarkCrystal,
+        ["material_spirit_essence"] = ItemFactory.CreateSpiritEssence,
+        ["material_elemental_core"] = ItemFactory.CreateElementalCore,
+        ["material_golem_core"] = ItemFactory.CreateGolemCore,
+        ["material_iron_fragment"] = ItemFactory.CreateIronFragment,
+        ["material_slime_gel"] = ItemFactory.CreateSlimeGel,
+        ["material_magic_crystal"] = ItemFactory.CreateMagicCrystal,
+        ["material_spider_silk"] = ItemFactory.CreateSpiderSilk,
+        ["material_equipment_fragment"] = ItemFactory.CreateEquipmentFragment,
+
+        // 素材 - 環境資源
+        ["material_iron_ore"] = ItemFactory.CreateIronOre,
+        ["material_pearl"] = ItemFactory.CreatePearl,
+        ["material_ancient_relic"] = ItemFactory.CreateAncientRelic,
+
+        // 素材 - ダンジョン床用
+        ["material_stone"] = ItemFactory.CreateStone,
+        ["material_moss"] = ItemFactory.CreateMoss,
+        ["material_mushroom"] = ItemFactory.CreateDungeonMushroom,
+        ["material_crystal"] = ItemFactory.CreateCrystalShard
     };
 
     /// <summary>

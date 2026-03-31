@@ -1,5 +1,6 @@
 using RougelikeGame.Core.AI;
 using RougelikeGame.Core.Interfaces;
+using RougelikeGame.Core.Items;
 
 namespace RougelikeGame.Core.Entities;
 
@@ -20,6 +21,11 @@ public class Enemy : Character
     public MonsterRace Race { get; init; } = MonsterRace.Humanoid;
 
     /// <summary>
+    /// 使用する武器種（武器を使う種族用、nullの場合は種族固有攻撃）
+    /// </summary>
+    public WeaponType? WeaponType { get; init; }
+
+    /// <summary>
     /// 経験値報酬
     /// </summary>
     public int ExperienceReward { get; init; }
@@ -28,6 +34,11 @@ public class Enemy : Character
     /// ドロップテーブルID
     /// </summary>
     public string? DropTableId { get; init; }
+
+    /// <summary>
+    /// 敵ランク（Common/Elite/Rare/Boss/HiddenBoss）
+    /// </summary>
+    public EnemyRank Rank { get; init; } = EnemyRank.Common;
 
     /// <summary>
     /// 視界範囲

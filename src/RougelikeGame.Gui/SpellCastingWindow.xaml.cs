@@ -2,11 +2,12 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using RougelikeGame.Data.MagicLanguage;
+using RougelikeGame.Engine.Magic;
 
 namespace RougelikeGame.Gui;
 
 /// <summary>
-/// 魔法詠唱ウィンドウ
+/// 魔法詠唱ウィンドウ - 詠唱作成 + 記録済み呪文タブ
 /// </summary>
 public partial class SpellCastingWindow : Window
 {
@@ -25,6 +26,7 @@ public partial class SpellCastingWindow : Window
         InitializeCategories();
         UpdateCurrentMp();
         UpdatePreview();
+        RefreshSavedSpellList();
     }
 
     private void InitializeCategories()
@@ -104,17 +106,37 @@ public partial class SpellCastingWindow : Window
                 Close();
                 break;
             case Key.Enter:
-                AddSelectedWord();
+                if (MainTabControl.SelectedIndex == 1)
+                    LoadSelectedSavedSpell();
+                else
+                    AddSelectedWord();
                 break;
             case Key.Delete:
             case Key.Back:
-                RemoveLastWord();
+                if (MainTabControl.SelectedIndex == 1)
+                    DeleteSelectedSavedSpell();
+                else
+                    RemoveLastWord();
                 break;
             case Key.C:
                 ExecuteCast();
                 break;
+            case Key.S:
+                SaveCurrentSpell();
+                break;
+            case Key.L:
+                LoadAndCastSelectedSavedSpell();
+                break;
         }
         e.Handled = true;
+    }
+
+    private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.Source is TabControl && MainTabControl.SelectedIndex == 1)
+        {
+            RefreshSavedSpellList();
+        }
     }
 
     private void AddSelectedWord()
@@ -189,6 +211,275 @@ public partial class SpellCastingWindow : Window
         CurrentMpText.Text = $"{_controller.Player.CurrentMp}/{_controller.Player.MaxMp}";
     }
 
+    #region Saved Spells
+
+    private void SaveSpellButton_Click(object sender, RoutedEventArgs e)
+    {
+        SaveCurrentSpell();
+    }
+
+    private void SaveCurrentSpell()
+    {
+        if (_incantationWords.Count == 0)
+        {
+            MessageBox.Show("詠唱文が空です。", "記録エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var preview = _controller.GetSpellPreview();
+        if (!preview.IsValid)
+        {
+            MessageBox.Show("詠唱文が不完全です。効果語と対象語が必要です。", "記録エラー",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // 名前入力ダイアログ（シンプルなInputBox代替）
+        string defaultName = preview.FormattedIncantation;
+        string? name = ShowInputDialog("呪文の名前を入力してください", "呪文記録", defaultName);
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        var result = _controller.SaveCurrentSpell(name);
+        if (result != null)
+        {
+            MessageBox.Show($"呪文「{name}」を記録しました。\n記録済み呪文タブから即時呼び出しできます。",
+                "記録完了", MessageBoxButton.OK, MessageBoxImage.Information);
+            RefreshSavedSpellList();
+        }
+        else
+        {
+            MessageBox.Show("呪文の記録に失敗しました。記録上限に達しているか、詠唱文が無効です。",
+                "記録エラー", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void LoadSpellButton_Click(object sender, RoutedEventArgs e)
+    {
+        LoadSelectedSavedSpell();
+    }
+
+    private int GetSavedSpellIndex(SavedSpellViewModel vm)
+    {
+        return _controller.GetSavedSpells().ToList()
+            .FindIndex(s => s.Name == vm.Name && s.FormattedIncantation == vm.Incantation);
+    }
+
+    private void LoadSelectedSavedSpell()
+    {
+        if (SavedSpellList.SelectedItem is not SavedSpellViewModel selected) return;
+
+        int index = GetSavedSpellIndex(selected);
+        if (index < 0) return;
+
+        // 現在の詠唱文をクリア
+        while (_incantationWords.Count > 0)
+            RemoveLastWord();
+
+        bool loaded = _controller.LoadSavedSpell(index);
+        if (loaded)
+        {
+            // UIの詠唱文リストを再構築
+            RebuildIncantationFromController();
+            RefreshIncantationList();
+            UpdatePreview();
+
+            // 詠唱作成タブに切り替え
+            MainTabControl.SelectedIndex = 0;
+        }
+    }
+
+    private void LoadAndCastButton_Click(object sender, RoutedEventArgs e)
+    {
+        LoadAndCastSelectedSavedSpell();
+    }
+
+    private void LoadAndCastSelectedSavedSpell()
+    {
+        if (SavedSpellList.SelectedItem is not SavedSpellViewModel selected) return;
+
+        int index = GetSavedSpellIndex(selected);
+        if (index < 0) return;
+
+        // 現在の詠唱文をクリア
+        while (_incantationWords.Count > 0)
+            RemoveLastWord();
+
+        bool loaded = _controller.LoadSavedSpell(index);
+        if (loaded)
+        {
+            RebuildIncantationFromController();
+            RefreshIncantationList();
+            UpdatePreview();
+            ExecuteCast();
+        }
+    }
+
+    private void DeleteSpellButton_Click(object sender, RoutedEventArgs e)
+    {
+        DeleteSelectedSavedSpell();
+    }
+
+    private void DeleteSelectedSavedSpell()
+    {
+        if (SavedSpellList.SelectedItem is not SavedSpellViewModel selected) return;
+
+        var result = MessageBox.Show($"呪文「{selected.Name}」を削除しますか？",
+            "削除確認", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        int index = GetSavedSpellIndex(selected);
+        if (index >= 0)
+        {
+            _controller.RemoveSavedSpell(index);
+            RefreshSavedSpellList();
+            ClearSavedSpellDetail();
+        }
+    }
+
+    private void SavedSpellList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SavedSpellList.SelectedItem is SavedSpellViewModel selected)
+        {
+            SavedSpellNameText.Text = selected.Name;
+            SavedSpellIncantText.Text = selected.Incantation;
+            SavedSpellDescText.Text = selected.Description;
+            SavedSpellMpText.Text = $"MP消費: {selected.MpCost}";
+
+            // ルーン語一覧を取得
+            var savedSpells = _controller.GetSavedSpells();
+            int index = savedSpells.ToList()
+                .FindIndex(s => s.Name == selected.Name && s.FormattedIncantation == selected.Incantation);
+            if (index >= 0 && index < savedSpells.Count)
+            {
+                var recipe = savedSpells[index];
+                var wordNames = recipe.WordIds
+                    .Select(id => RuneWordDatabase.GetById(id))
+                    .Where(w => w != null)
+                    .Select(w => $"{w!.Pronunciation}({w.Meaning})")
+                    .ToList();
+                SavedSpellWordsText.Text = $"構成語: {string.Join(" → ", wordNames)}";
+            }
+        }
+    }
+
+    private void RefreshSavedSpellList()
+    {
+        if (SavedSpellList == null) return;
+
+        var savedSpells = _controller.GetSavedSpells();
+        var viewModels = savedSpells.Select(s => new SavedSpellViewModel
+        {
+            Name = s.Name,
+            Description = s.Description,
+            MpCost = s.MpCost,
+            MpCostText = $"MP:{s.MpCost}",
+            Incantation = s.FormattedIncantation
+        }).ToList();
+
+        SavedSpellList.ItemsSource = null;
+        SavedSpellList.ItemsSource = viewModels;
+    }
+
+    private void ClearSavedSpellDetail()
+    {
+        SavedSpellNameText.Text = "呪文を選択";
+        SavedSpellIncantText.Text = "";
+        SavedSpellDescText.Text = "";
+        SavedSpellMpText.Text = "";
+        SavedSpellWordsText.Text = "";
+    }
+
+    private void RebuildIncantationFromController()
+    {
+        _incantationWords.Clear();
+        var wordIds = _controller.GetCurrentIncantation();
+        foreach (var wordId in wordIds)
+        {
+            var word = RuneWordDatabase.GetById(wordId);
+            if (word != null)
+            {
+                _incantationWords.Add(new RuneWordViewModel(word));
+            }
+        }
+    }
+
+    private static string? ShowInputDialog(string prompt, string title, string defaultValue)
+    {
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 400,
+            Height = 160,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ResizeMode = ResizeMode.NoResize,
+            Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0x1a, 0x1a, 0x2e))
+        };
+
+        var grid = new Grid { Margin = new Thickness(15) };
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var label = new TextBlock
+        {
+            Text = prompt,
+            Foreground = System.Windows.Media.Brushes.White,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        Grid.SetRow(label, 0);
+        grid.Children.Add(label);
+
+        var textBox = new TextBox
+        {
+            Text = defaultValue,
+            Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0x16, 0x21, 0x3e)),
+            Foreground = System.Windows.Media.Brushes.White,
+            Padding = new Thickness(5, 3, 5, 3),
+            Margin = new Thickness(0, 0, 0, 10)
+        };
+        textBox.SelectAll();
+        Grid.SetRow(textBox, 1);
+        grid.Children.Add(textBox);
+
+        var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        var okBtn = new Button
+        {
+            Content = "OK",
+            Width = 80,
+            Margin = new Thickness(0, 0, 5, 0),
+            Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0x0f, 0x34, 0x60)),
+            Foreground = System.Windows.Media.Brushes.White,
+            Padding = new Thickness(5, 3, 5, 3)
+        };
+        okBtn.Click += (s, e) => { dialog.DialogResult = true; dialog.Close(); };
+        var cancelBtn = new Button
+        {
+            Content = "キャンセル",
+            Width = 80,
+            Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0x0f, 0x34, 0x60)),
+            Foreground = System.Windows.Media.Brushes.White,
+            Padding = new Thickness(5, 3, 5, 3)
+        };
+        cancelBtn.Click += (s, e) => { dialog.DialogResult = false; dialog.Close(); };
+        buttonPanel.Children.Add(okBtn);
+        buttonPanel.Children.Add(cancelBtn);
+        Grid.SetRow(buttonPanel, 2);
+        grid.Children.Add(buttonPanel);
+
+        dialog.Content = grid;
+
+        if (dialog.ShowDialog() == true)
+            return textBox.Text;
+        return null;
+    }
+
+    #endregion
+
     private record CategoryItem(string DisplayName, RuneWordCategory? Category);
 
     public class RuneWordViewModel
@@ -208,5 +499,14 @@ public partial class SpellCastingWindow : Window
         };
 
         public RuneWordViewModel(RuneWord word) => Word = word;
+    }
+
+    public class SavedSpellViewModel
+    {
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public int MpCost { get; set; }
+        public string MpCostText { get; set; } = "";
+        public string Incantation { get; set; } = "";
     }
 }

@@ -1,6 +1,7 @@
 using RougelikeGame.Core.AI;
 using RougelikeGame.Core.AI.Behaviors;
 using RougelikeGame.Core.Entities;
+using RougelikeGame.Core.Items;
 
 namespace RougelikeGame.Core.Factories;
 
@@ -36,11 +37,13 @@ public class EnemyFactory
             BaseStats = stats,
             ExperienceReward = definition.ExperienceReward,
             DropTableId = definition.DropTableId,
+            Rank = definition.Rank,
             SightRange = definition.SightRange,
             HearingRange = definition.HearingRange,
             GiveUpDistance = definition.GiveUpDistance,
             FleeThreshold = definition.FleeThreshold,
             Race = definition.Race,
+            WeaponType = definition.WeaponType,
             Position = position,
             HomePosition = position,
             Faction = Faction.Enemy
@@ -237,7 +240,8 @@ public record EnemyDefinition(
     int HearingRange = 5,
     int GiveUpDistance = 15,
     float FleeThreshold = 0.2f,
-    MonsterRace Race = MonsterRace.Humanoid
+    MonsterRace Race = MonsterRace.Humanoid,
+    WeaponType? WeaponType = null
 );
 
 /// <summary>
@@ -271,7 +275,8 @@ public static class EnemyDefinitions
         SightRange: 8,
         HearingRange: 6,
         FleeThreshold: 0.3f,
-        Race: MonsterRace.Humanoid
+        Race: MonsterRace.Humanoid,
+        WeaponType: Items.WeaponType.Dagger
     );
 
     public static readonly EnemyDefinition Skeleton = new(
@@ -284,7 +289,8 @@ public static class EnemyDefinitions
         ExperienceReward: 20,
         DropTableId: "drop_skeleton",
         FleeThreshold: 0.0f,
-        Race: MonsterRace.Undead
+        Race: MonsterRace.Undead,
+        WeaponType: Items.WeaponType.Sword
     );
 
     public static readonly EnemyDefinition Orc = new(
@@ -299,7 +305,8 @@ public static class EnemyDefinitions
         SightRange: 7,
         GiveUpDistance: 20,
         FleeThreshold: 0.15f,
-        Race: MonsterRace.Humanoid
+        Race: MonsterRace.Humanoid,
+        WeaponType: Items.WeaponType.Axe
     );
 
     public static readonly EnemyDefinition GiantSpider = new(
@@ -327,7 +334,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_dark_elf",
         SightRange: 12,
         FleeThreshold: 0.25f,
-        Race: MonsterRace.Humanoid
+        Race: MonsterRace.Humanoid,
+        WeaponType: Items.WeaponType.Sword
     );
 
     public static readonly EnemyDefinition Troll = new(
@@ -342,7 +350,8 @@ public static class EnemyDefinitions
         SightRange: 6,
         GiveUpDistance: 25,
         FleeThreshold: 0.0f,
-        Race: MonsterRace.Humanoid
+        Race: MonsterRace.Humanoid,
+        WeaponType: Items.WeaponType.Hammer
     );
 
     public static readonly EnemyDefinition Draugr = new(
@@ -356,7 +365,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_draugr",
         SightRange: 8,
         FleeThreshold: 0.0f,
-        Race: MonsterRace.Undead
+        Race: MonsterRace.Undead,
+        WeaponType: Items.WeaponType.Greatsword
     );
 
     #region Territory-Specific Enemies
@@ -583,7 +593,8 @@ public static class EnemyDefinitions
         SightRange: 10,
         GiveUpDistance: 30,
         FleeThreshold: 0.0f,
-        Race: MonsterRace.Undead
+        Race: MonsterRace.Undead,
+        WeaponType: Items.WeaponType.Greatsword
     );
 
     #endregion
@@ -705,7 +716,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_floor_boss_10",
         SightRange: 12,
         FleeThreshold: 0.0f,
-        Race: MonsterRace.Humanoid
+        Race: MonsterRace.Humanoid,
+        WeaponType: Items.WeaponType.Sword
     );
 
     /// <summary>15階ボス: スケルトンロード（不死系ボス）</summary>
@@ -720,7 +732,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_floor_boss_15",
         SightRange: 12,
         FleeThreshold: 0.0f,
-        Race: MonsterRace.Undead
+        Race: MonsterRace.Undead,
+        WeaponType: Items.WeaponType.Greatsword
     );
 
     /// <summary>20階ボス: ダークエルフ将軍（高速型ボス）</summary>
@@ -735,7 +748,8 @@ public static class EnemyDefinitions
         DropTableId: "drop_floor_boss_20",
         SightRange: 14,
         FleeThreshold: 0.0f,
-        Race: MonsterRace.Humanoid
+        Race: MonsterRace.Humanoid,
+        WeaponType: Items.WeaponType.Sword
     );
 
     /// <summary>25階ボス: ドラゴン（高HP・高火力）</summary>

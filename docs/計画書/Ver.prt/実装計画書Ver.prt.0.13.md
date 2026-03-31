@@ -169,4 +169,4 @@ MultiEndingSystem, GrowthSystem, ReligionSkillSystem, DungeonFactionSystem, Exte
 | RacialBehaviors | 15件 | 6種族AI行動判定/優先度/不一致種族拒否/DecideAction |
 | Enum境界値網羅 | 20件 | Weather/Element/CombatStance/Territory/Religion/Pet/Season/TimePeriod/Class/Difficulty |
 
-**テスト総数**: Core 5,331件(134ファイル) + GUI 148件(5ファイル) = **5,479件(139ファイル)**
+**テスト総数**: Core 5,409件(134ファイル) + GUI 148件(5ファイル) = **5,557件(139ファイル)**

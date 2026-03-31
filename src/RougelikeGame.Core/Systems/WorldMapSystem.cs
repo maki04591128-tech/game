@@ -450,13 +450,14 @@ public record TownActionResult(bool Success, string Message, int TurnCost = 0);
 /// </summary>
 public class ShopSystem
 {
-    /// <summary>ショップ商品定義</summary>
+    /// <summary>ショップ商品定義（PoE風グリッドショップ対応）</summary>
     public record ShopItem(
         string ItemId,
         string Name,
         int BasePrice,
         int Stock,
-        FacilityType ShopType);
+        FacilityType ShopType,
+        GridItemSize GridSize = GridItemSize.Size1x1);
 
     private readonly Dictionary<FacilityType, List<ShopItem>> _shopInventories = new();
 
@@ -543,22 +544,22 @@ public class ShopSystem
     {
         var items = new List<ShopItem>
         {
-            new("healing_potion", "回復ポーション", scale(50), 10, FacilityType.GeneralShop),
-            new("mana_potion", "マナポーション", scale(80), 5, FacilityType.GeneralShop),
-            new("bread", "パン", scale(20), 15, FacilityType.GeneralShop),
-            new("torch", "松明", scale(10), 20, FacilityType.GeneralShop),
-            new("antidote", "解毒薬", scale(40), 5, FacilityType.GeneralShop),
-            new("scroll_identify", "識別の巻物", scale(100), 3, FacilityType.GeneralShop)
+            new("healing_potion", "回復ポーション", scale(50), 10, FacilityType.GeneralShop, GridItemSize.Size1x1),
+            new("mana_potion", "マナポーション", scale(80), 5, FacilityType.GeneralShop, GridItemSize.Size1x1),
+            new("bread", "パン", scale(20), 15, FacilityType.GeneralShop, GridItemSize.Size1x1),
+            new("torch", "松明", scale(10), 20, FacilityType.GeneralShop, GridItemSize.Size1x2),
+            new("antidote", "解毒薬", scale(40), 5, FacilityType.GeneralShop, GridItemSize.Size1x1),
+            new("scroll_identify", "識別の巻物", scale(100), 3, FacilityType.GeneralShop, GridItemSize.Size1x1)
         };
 
         if (playerLevel >= 10)
         {
-            items.Add(new("greater_healing_potion", "上質回復ポーション", scale(150), 5, FacilityType.GeneralShop));
+            items.Add(new("greater_healing_potion", "上質回復ポーション", scale(150), 5, FacilityType.GeneralShop, GridItemSize.Size1x1));
         }
 
         if (territory == TerritoryId.Forest)
         {
-            items.Add(new("herbal_remedy", "薬草", scale(30), 10, FacilityType.GeneralShop));
+            items.Add(new("herbal_remedy", "薬草", scale(30), 10, FacilityType.GeneralShop, GridItemSize.Size1x1));
         }
 
         return items;
@@ -568,22 +569,22 @@ public class ShopSystem
     {
         var items = new List<ShopItem>
         {
-            new("iron_sword", "鉄の剣", scale(200), 3, FacilityType.WeaponShop),
-            new("iron_axe", "鉄の斧", scale(250), 2, FacilityType.WeaponShop),
-            new("iron_mace", "鉄の鎚", scale(220), 2, FacilityType.WeaponShop),
-            new("dagger", "ダガー", scale(100), 5, FacilityType.WeaponShop),
-            new("short_bow", "短弓", scale(180), 2, FacilityType.WeaponShop),
-            new("wooden_staff", "木の杖", scale(150), 2, FacilityType.WeaponShop)
+            new("iron_sword", "鉄の剣", scale(200), 3, FacilityType.WeaponShop, GridItemSize.Size1x2),
+            new("iron_axe", "鉄の斧", scale(250), 2, FacilityType.WeaponShop, GridItemSize.Size1x2),
+            new("iron_mace", "鉄の鎚", scale(220), 2, FacilityType.WeaponShop, GridItemSize.Size1x2),
+            new("dagger", "ダガー", scale(100), 5, FacilityType.WeaponShop, GridItemSize.Size1x1),
+            new("short_bow", "短弓", scale(180), 2, FacilityType.WeaponShop, GridItemSize.Size2x3),
+            new("wooden_staff", "木の杖", scale(150), 2, FacilityType.WeaponShop, GridItemSize.Size1x2)
         };
 
         if (playerLevel >= 10)
         {
-            items.Add(new("steel_sword", "鋼の剣", scale(500), 2, FacilityType.WeaponShop));
+            items.Add(new("steel_sword", "鋼の剣", scale(500), 2, FacilityType.WeaponShop, GridItemSize.Size1x2));
         }
 
         if (territory == TerritoryId.Mountain)
         {
-            items.Add(new("mithril_dagger", "ミスリルダガー", scale(800), 1, FacilityType.WeaponShop));
+            items.Add(new("mithril_dagger", "ミスリルダガー", scale(800), 1, FacilityType.WeaponShop, GridItemSize.Size1x1));
         }
 
         return items;
@@ -593,16 +594,16 @@ public class ShopSystem
     {
         var items = new List<ShopItem>
         {
-            new("leather_armor", "革鎧", scale(150), 3, FacilityType.ArmorShop),
-            new("chain_mail", "鎖帷子", scale(400), 2, FacilityType.ArmorShop),
-            new("iron_shield", "鉄の盾", scale(200), 2, FacilityType.ArmorShop),
-            new("robe", "ローブ", scale(100), 3, FacilityType.ArmorShop),
-            new("iron_helmet", "鉄の兜", scale(150), 2, FacilityType.ArmorShop)
+            new("leather_armor", "革鎧", scale(150), 3, FacilityType.ArmorShop, GridItemSize.Size2x3),
+            new("chain_mail", "鎖帷子", scale(400), 2, FacilityType.ArmorShop, GridItemSize.Size2x3),
+            new("iron_shield", "鉄の盾", scale(200), 2, FacilityType.ArmorShop, GridItemSize.Size2x2),
+            new("robe", "ローブ", scale(100), 3, FacilityType.ArmorShop, GridItemSize.Size2x3),
+            new("iron_helmet", "鉄の兜", scale(150), 2, FacilityType.ArmorShop, GridItemSize.Size2x2)
         };
 
         if (playerLevel >= 10)
         {
-            items.Add(new("steel_armor", "鋼の鎧", scale(800), 1, FacilityType.ArmorShop));
+            items.Add(new("steel_armor", "鋼の鎧", scale(800), 1, FacilityType.ArmorShop, GridItemSize.Size2x3));
         }
 
         return items;
@@ -612,16 +613,16 @@ public class ShopSystem
     {
         var items = new List<ShopItem>
         {
-            new("mana_potion", "マナポーション", scale(80), 10, FacilityType.MagicShop),
-            new("scroll_teleport", "転移の巻物", scale(200), 2, FacilityType.MagicShop),
-            new("scroll_identify", "識別の巻物", scale(100), 5, FacilityType.MagicShop),
-            new("wand_fire", "火の杖", scale(500), 1, FacilityType.MagicShop),
-            new("rune_stone", "ルーン石", scale(300), 3, FacilityType.MagicShop)
+            new("mana_potion", "マナポーション", scale(80), 10, FacilityType.MagicShop, GridItemSize.Size1x1),
+            new("scroll_teleport", "転移の巻物", scale(200), 2, FacilityType.MagicShop, GridItemSize.Size1x1),
+            new("scroll_identify", "識別の巻物", scale(100), 5, FacilityType.MagicShop, GridItemSize.Size1x1),
+            new("wand_fire", "火の杖", scale(500), 1, FacilityType.MagicShop, GridItemSize.Size1x2),
+            new("rune_stone", "ルーン石", scale(300), 3, FacilityType.MagicShop, GridItemSize.Size1x1)
         };
 
         if (playerLevel >= 15)
         {
-            items.Add(new("greater_mana_potion", "上質マナポーション", scale(200), 5, FacilityType.MagicShop));
+            items.Add(new("greater_mana_potion", "上質マナポーション", scale(200), 5, FacilityType.MagicShop, GridItemSize.Size1x1));
         }
 
         return items;

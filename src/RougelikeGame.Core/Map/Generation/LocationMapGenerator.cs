@@ -284,6 +284,204 @@ public class LocationMapGenerator
     }
 
     /// <summary>
+    /// シンボルマップのタイル属性に応じたフィールドマップを自動生成する
+    /// Elona風の「任意のタイルに入れる」機能用
+    /// </summary>
+    public DungeonMap GenerateTerrainFieldMap(TileType symbolTileType, Position symbolPosition)
+    {
+        string terrainKey = symbolTileType switch
+        {
+            TileType.SymbolGrass => "grassland",
+            TileType.SymbolForest => "forest",
+            TileType.SymbolMountain => "mountain",
+            TileType.SymbolWater => "waterfront",
+            TileType.SymbolRoad => "road",
+            _ => "grassland"
+        };
+        string mapId = $"field_{terrainKey}_{symbolPosition.X}_{symbolPosition.Y}";
+        return symbolTileType switch
+        {
+            TileType.SymbolGrass => GenerateGrasslandMap(mapId),
+            TileType.SymbolForest => GenerateForestMap(mapId),
+            TileType.SymbolMountain => GenerateMountainMap(mapId),
+            TileType.SymbolWater => GenerateWaterfrontMap(mapId),
+            TileType.SymbolRoad => GenerateRoadFieldMap(mapId),
+            _ => GenerateGrasslandMap(mapId)
+        };
+    }
+
+    /// <summary>草原フィールドマップ（60x30）</summary>
+    public DungeonMap GenerateGrasslandMap(string mapId)
+    {
+        const int width = 60;
+        const int height = 30;
+        var map = new DungeonMap(width, height) { Depth = 0, Name = mapId };
+
+        FillAll(map, TileType.Grass);
+
+        // まばらに木を配置（8%）
+        for (int x = 1; x < width - 1; x++)
+            for (int y = 1; y < height - 1; y++)
+                if (_random.NextDouble() < 0.08)
+                    map.SetTile(new Position(x, y), TileType.Tree);
+
+        // 小さな池
+        int pondX = width / 3 + _random.Next(10);
+        int pondY = height / 3 + _random.Next(5);
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                var p = new Position(pondX + dx, pondY + dy);
+                if (map.IsInBounds(p)) map.SetTile(p, TileType.Water);
+            }
+
+        map.SetEntrance(new Position(width / 2, height - 1));
+        return map;
+    }
+
+    /// <summary>森林フィールドマップ（60x30）</summary>
+    public DungeonMap GenerateForestMap(string mapId)
+    {
+        const int width = 60;
+        const int height = 30;
+        var map = new DungeonMap(width, height) { Depth = 0, Name = mapId };
+
+        FillAll(map, TileType.Grass);
+
+        // 密な木（45%）
+        for (int x = 1; x < width - 1; x++)
+            for (int y = 1; y < height - 1; y++)
+                if (_random.NextDouble() < 0.45)
+                    map.SetTile(new Position(x, y), TileType.Tree);
+
+        // 獣道（横通路）を確保
+        DrawHorizontalRoad(map, height / 2, 1, width - 2);
+        // 獣道（縦通路）を確保
+        DrawVerticalRoad(map, width / 3, 1, height - 2);
+        DrawVerticalRoad(map, width * 2 / 3, 1, height - 2);
+
+        map.SetEntrance(new Position(width / 2, height - 1));
+        return map;
+    }
+
+    /// <summary>山岳フィールドマップ（60x30）</summary>
+    public DungeonMap GenerateMountainMap(string mapId)
+    {
+        const int width = 60;
+        const int height = 30;
+        var map = new DungeonMap(width, height) { Depth = 0, Name = mapId };
+
+        FillAll(map, TileType.Grass);
+
+        // 岩壁（壁タイル）を密に配置（35%）
+        for (int x = 1; x < width - 1; x++)
+            for (int y = 1; y < height - 1; y++)
+                if (_random.NextDouble() < 0.35)
+                    map.SetTile(new Position(x, y), TileType.Wall);
+
+        // 山道（通行可能な通路）を確保
+        DrawHorizontalRoad(map, height / 2, 0, width - 1);
+        DrawVerticalRoad(map, width / 2, 0, height - 1);
+
+        // 鉱脈っぽい地面（Pillarタイル）を少し配置
+        for (int i = 0; i < 5; i++)
+        {
+            int rx = 2 + _random.Next(width - 4);
+            int ry = 2 + _random.Next(height - 4);
+            var p = new Position(rx, ry);
+            if (map.IsInBounds(p) && !map.GetTile(p).BlocksMovement)
+                map.SetTile(p, TileType.Pillar);
+        }
+
+        map.SetEntrance(new Position(width / 2, height - 1));
+        return map;
+    }
+
+    /// <summary>水辺フィールドマップ（60x30）</summary>
+    public DungeonMap GenerateWaterfrontMap(string mapId)
+    {
+        const int width = 60;
+        const int height = 30;
+        var map = new DungeonMap(width, height) { Depth = 0, Name = mapId };
+
+        // 上半分は草地、下半分は水
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                if (y < height / 2)
+                    map.SetTile(new Position(x, y), TileType.Grass);
+                else
+                    map.SetTile(new Position(x, y), TileType.Water);
+            }
+        }
+
+        // 汀線をランダム化
+        for (int x = 0; x < width; x++)
+        {
+            int shoreline = height / 2 + (int)(Math.Sin(x * 0.4) * 2) + _random.Next(-1, 2);
+            shoreline = Math.Clamp(shoreline, 2, height - 2);
+            for (int y = shoreline; y < height; y++)
+                map.SetTile(new Position(x, y), TileType.Water);
+            for (int y = 0; y < shoreline; y++)
+                if (map.GetTile(new Position(x, y)).Type == TileType.Water)
+                    map.SetTile(new Position(x, y), TileType.Grass);
+        }
+
+        // 砂浜エリア（水際に沿った通行可能地帯）
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 1; y < height - 1; y++)
+            {
+                var tile = map.GetTile(new Position(x, y));
+                if (tile.Type == TileType.Grass)
+                {
+                    // 隣が水のタイルは砂浜（Floor）にする
+                    bool nearWater = false;
+                    foreach (var d in new[] { new Position(x, y - 1), new Position(x, y + 1), new Position(x - 1, y), new Position(x + 1, y) })
+                    {
+                        if (map.IsInBounds(d) && map.GetTile(d).Type == TileType.Water)
+                        { nearWater = true; break; }
+                    }
+                    if (nearWater) map.SetTile(new Position(x, y), TileType.Floor);
+                }
+            }
+        }
+
+        // 木を少し配置
+        for (int x = 1; x < width - 1; x++)
+            for (int y = 1; y < height / 2 - 2; y++)
+                if (_random.NextDouble() < 0.12)
+                    map.SetTile(new Position(x, y), TileType.Tree);
+
+        map.SetEntrance(new Position(width / 2, 0));
+        return map;
+    }
+
+    /// <summary>道沿いフィールドマップ（60x30）</summary>
+    public DungeonMap GenerateRoadFieldMap(string mapId)
+    {
+        const int width = 60;
+        const int height = 30;
+        var map = new DungeonMap(width, height) { Depth = 0, Name = mapId };
+
+        FillAll(map, TileType.Grass);
+
+        // 木をまばらに配置（12%）
+        for (int x = 1; x < width - 1; x++)
+            for (int y = 1; y < height - 1; y++)
+                if (_random.NextDouble() < 0.12)
+                    map.SetTile(new Position(x, y), TileType.Tree);
+
+        // 中央に道路を敷く
+        DrawHorizontalRoad(map, height / 2, 0, width - 1);
+        DrawVerticalRoad(map, width / 2, 0, height - 1);
+
+        map.SetEntrance(new Position(width / 2, height - 1));
+        return map;
+    }
+
+    /// <summary>
     /// スタート地点固有マップを生成する（StartingMapResolverのマップ名に対応）
     /// </summary>
     public DungeonMap GenerateStartLocationMap(string mapName)

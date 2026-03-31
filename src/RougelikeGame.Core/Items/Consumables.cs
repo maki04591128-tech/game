@@ -89,6 +89,7 @@ public class Potion : ConsumableItem
                 user.RemoveStatusEffect(StatusEffectType.Burn);
                 user.RemoveStatusEffect(StatusEffectType.Freeze);
                 user.RemoveStatusEffect(StatusEffectType.Paralysis);
+                user.RemoveStatusEffect(StatusEffectType.Stun);
                 user.RemoveStatusEffect(StatusEffectType.Confusion);
                 user.RemoveStatusEffect(StatusEffectType.Blind);
                 user.RemoveStatusEffect(StatusEffectType.Silence);

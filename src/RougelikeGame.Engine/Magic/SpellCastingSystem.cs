@@ -6,11 +6,76 @@ using RougelikeGame.Data.MagicLanguage;
 namespace RougelikeGame.Engine.Magic;
 
 /// <summary>
+/// 記録済み呪文レシピ
+/// </summary>
+public record SavedSpellRecipe(
+    string Name,
+    List<string> WordIds,
+    string Description,
+    int MpCost,
+    string FormattedIncantation);
+
+/// <summary>
 /// 詠唱システム - 魔法言語の詠唱UIロジックと発動制御
 /// </summary>
 public class SpellCastingSystem
 {
     private readonly SpellParser _parser = new();
+    private readonly List<SavedSpellRecipe> _savedSpells = new();
+
+    /// <summary>記録済み呪文一覧</summary>
+    public IReadOnlyList<SavedSpellRecipe> SavedSpells => _savedSpells.AsReadOnly();
+
+    /// <summary>記録済み呪文の最大数</summary>
+    public const int MaxSavedSpells = 20;
+
+    /// <summary>現在の詠唱文を呪文として記録する</summary>
+    public SavedSpellRecipe? SaveCurrentSpell(string name, Player player)
+    {
+        if (CurrentIncantation.Count == 0) return null;
+        if (_savedSpells.Count >= MaxSavedSpells) return null;
+        if (string.IsNullOrWhiteSpace(name)) return null;
+
+        var preview = GetPreview(player);
+        if (!preview.IsValid) return null;
+
+        var recipe = new SavedSpellRecipe(
+            name,
+            new List<string>(CurrentIncantation),
+            preview.Description,
+            preview.MpCost,
+            preview.FormattedIncantation);
+
+        _savedSpells.Add(recipe);
+        return recipe;
+    }
+
+    /// <summary>記録済み呪文を削除する</summary>
+    public bool RemoveSavedSpell(int index)
+    {
+        if (index < 0 || index >= _savedSpells.Count) return false;
+        _savedSpells.RemoveAt(index);
+        return true;
+    }
+
+    /// <summary>記録済み呪文を詠唱文にロードする</summary>
+    public bool LoadSavedSpell(int index, Player player)
+    {
+        if (index < 0 || index >= _savedSpells.Count) return false;
+
+        var recipe = _savedSpells[index];
+        CancelCasting();
+
+        foreach (var wordId in recipe.WordIds)
+        {
+            if (!AddWord(wordId, player))
+            {
+                CancelCasting();
+                return false;
+            }
+        }
+        return true;
+    }
 
     /// <summary>現在構築中の詠唱文（語ID一覧）</summary>
     public List<string> CurrentIncantation { get; } = new();

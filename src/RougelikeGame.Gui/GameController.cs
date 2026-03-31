@@ -67,6 +67,22 @@ public class GameController
     private readonly SmithingSystem _smithingSystem = new();
     private readonly AchievementSystem _achievementSystem = new();
 
+    // === 未反映システム統合 ===
+    private readonly MultiSlotSaveSystem _multiSlotSaveSystem = new();
+    private readonly ModLoaderSystem _modLoaderSystem = new();
+
+    /// <summary>プレイヤーの向き（攻撃方向判定用）</summary>
+    private Direction _playerFacing = Direction.South;
+
+    /// <summary>現在のダンジョン特徴タイプ</summary>
+    private DungeonFeatureType? _currentDungeonFeature;
+
+    /// <summary>現在の環境音タイプ</summary>
+    private AmbientSoundType _currentAmbientSound = AmbientSoundType.Silence;
+
+    /// <summary>地表面状態マップ（EnvironmentalCombatSystem）- 座標→地表面タイプ</summary>
+    private readonly Dictionary<Position, EnvironmentalCombatSystem.SurfaceType> _surfaceMap = new();
+
     /// <summary>プレイヤーの現在の戦闘スタンス</summary>
     private CombatStance _playerStance = CombatStance.Balanced;
 
@@ -120,6 +136,9 @@ public class GameController
 
     /// <summary>ロケーションマップ（非ダンジョン）内にいるか</summary>
     private bool _isInLocationMap;
+
+    /// <summary>フィールドマップからシンボルマップへ帰還する際の復帰位置</summary>
+    private Position? _symbolMapReturnPosition;
 
     /// <summary>引き継ぎデータ（死に戻り用）</summary>
     private TransferData? _transferData;
@@ -286,8 +305,22 @@ public class GameController
         var startTerritory = StartingMapResolver.GetStartingTerritory(_currentMapName);
         _worldMapSystem.SetTerritory(startTerritory);
 
+        // キャラクター作成定義を取得（CharacterCreation）
+        var raceDef = RaceDefinition.Get(race);
+        var classDef = ClassDefinition.Get(characterClass);
+        var bgDef = BackgroundDefinition.Get(background);
+
         // プレイヤー作成
         Player = Player.Create(playerName, race, characterClass, background);
+
+        // CharacterCreation定義に基づく初期ゴールド補正
+        if (bgDef.StartingGold > 0)
+        {
+            Player.AddGold(bgDef.StartingGold);
+        }
+
+        // 環境音を初期化（AmbientSoundSystem）
+        _currentAmbientSound = AmbientSoundSystem.GetAmbientForTerritory(startTerritory);
 
         // プレイヤーイベント購読
         SubscribePlayerEvents();
@@ -566,6 +599,14 @@ public class GameController
 
     private void GenerateFloor()
     {
+        // ダンジョン特徴を決定（DungeonFeatureGenerator）
+        var territory = _worldMapSystem.GetCurrentTerritoryInfo().Id;
+        _currentDungeonFeature = DungeonFeatureGenerator.SelectFeatureForTerritory(territory, CurrentFloor, _random);
+
+        // 環境音を更新（AmbientSoundSystem）
+        bool isBossFloor = CurrentFloor % GameConstants.BossFloorInterval == 0;
+        _currentAmbientSound = AmbientSoundSystem.GetAmbientForDungeon(CurrentFloor, isBossFloor);
+
         // フロアキャッシュ確認（有効期限内ならマップ構造を再利用）
         var floorKey = (_currentMapName, CurrentFloor);
         if (_floorCache.TryGetValue(floorKey, out var cached)
@@ -590,13 +631,18 @@ public class GameController
             return;
         }
 
+        // ダンジョン特徴パラメータを適用
+        float featureTrapDensity = _currentDungeonFeature.HasValue
+            ? DungeonFeatureGenerator.GetTrapChance(_currentDungeonFeature.Value)
+            : 0.005f * CurrentFloor;
+
         var parameters = new DungeonGenerationParameters
         {
             Width = 60,
             Height = 30,
             Depth = CurrentFloor,
             RoomCount = 6 + CurrentFloor,
-            TrapDensity = 0.005f * CurrentFloor
+            TrapDensity = featureTrapDensity
         };
 
         var generator = new DungeonGenerator();
@@ -626,6 +672,13 @@ public class GameController
     {
         var definitions = EnemyDefinitions.GetEnemiesForDepth(CurrentFloor);
         int enemyCount = 4 + CurrentFloor * 2;
+
+        // ダンジョン特徴によるエネミー密度修正（DungeonFeatureGenerator）
+        if (_currentDungeonFeature.HasValue)
+        {
+            int featureDensity = DungeonFeatureGenerator.GetEnemyDensity(_currentDungeonFeature.Value);
+            enemyCount = Math.Max(enemyCount, featureDensity + CurrentFloor);
+        }
 
         // ボスフロアは敵が少し多い
         if (CurrentFloor % GameConstants.BossFloorInterval == 0)
@@ -711,7 +764,7 @@ public class GameController
             var pos = GetRandomFloorPosition();
             if (pos.HasValue)
             {
-                var item = _itemFactory.GenerateRandomItem(CurrentFloor);
+                var item = _itemFactory.GenerateDungeonFloorItem(CurrentFloor);
                 GroundItems.Add((item, pos.Value));
             }
         }
@@ -743,6 +796,36 @@ public class GameController
     {
         if (IsGameOver || !IsRunning) return;
 
+        // 行動不可状態チェック（スタン/凍結/睡眠/石化）
+        if (Player.HasStatusEffect(StatusEffectType.Stun)
+            || Player.HasStatusEffect(StatusEffectType.Freeze)
+            || Player.HasStatusEffect(StatusEffectType.Sleep)
+            || Player.HasStatusEffect(StatusEffectType.Petrification))
+        {
+            var blockingEffect = Player.StatusEffects.First(e =>
+                e.Type is StatusEffectType.Stun or StatusEffectType.Freeze
+                    or StatusEffectType.Sleep or StatusEffectType.Petrification);
+            AddMessage($"⚠ {blockingEffect.Name}状態のため行動できない！（残り{blockingEffect.Duration}ターン）");
+
+            // ターンを消費して状態異常を進行させる
+            TurnCount += 1;
+            GameTime.AdvanceTurn(1);
+            ProcessEnemyTurns();
+            ProcessTurnEffects();
+            CheckTurnLimitWarnings();
+
+            if (!Player.IsAlive)
+            {
+                HandlePlayerDeath(_lastDamageCause);
+            }
+            else if (CheckTurnLimitExceeded())
+            {
+                HandleTurnLimitExceeded();
+            }
+            OnStateChanged?.Invoke();
+            return;
+        }
+
         // 自動探索中に何か操作したら中断
         if (_autoExploring && action != GameAction.AutoExplore)
         {
@@ -759,30 +842,35 @@ public class GameController
             case GameAction.MoveUp:
                 newPos = new Position(Player.Position.X, Player.Position.Y - 1);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.North;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveDown:
                 newPos = new Position(Player.Position.X, Player.Position.Y + 1);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.South;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveLeft:
                 newPos = new Position(Player.Position.X - 1, Player.Position.Y);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.West;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveRight:
                 newPos = new Position(Player.Position.X + 1, Player.Position.Y);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.East;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveUpLeft:
                 newPos = new Position(Player.Position.X - 1, Player.Position.Y - 1);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.NorthWest;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
@@ -790,6 +878,7 @@ public class GameController
             case GameAction.MoveUpRight:
                 newPos = new Position(Player.Position.X + 1, Player.Position.Y - 1);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.NorthEast;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
@@ -797,6 +886,7 @@ public class GameController
             case GameAction.MoveDownLeft:
                 newPos = new Position(Player.Position.X - 1, Player.Position.Y + 1);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.SouthWest;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
@@ -804,6 +894,7 @@ public class GameController
             case GameAction.MoveDownRight:
                 newPos = new Position(Player.Position.X + 1, Player.Position.Y + 1);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.SouthEast;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
@@ -979,6 +1070,13 @@ public class GameController
                 actionCost = (int)Math.Ceiling(actionCost * 1.5);
             }
 
+            // 状態異常によるターンコスト修正（麻痺: 1.5倍等）
+            float turnModifier = Player.GetStatusEffectTurnModifier();
+            if (turnModifier > 1.0f && turnModifier < float.MaxValue)
+            {
+                actionCost = (int)Math.Ceiling(actionCost * turnModifier);
+            }
+
             // 行動コスト分のターンを消費（最低1）
             int finalCost = Math.Max(1, actionCost);
             TurnCount += finalCost;
@@ -1005,11 +1103,20 @@ public class GameController
     {
         if (newPos.X < 0 || newPos.X >= Map.Width || newPos.Y < 0 || newPos.Y >= Map.Height)
         {
-            // ロケーションマップ（町内）で外周部から外へ移動しようとした場合は町を出る
+            // ロケーションマップ（町内・フィールド）で外周部から外へ移動しようとした場合は出る
             if (_isInLocationMap)
             {
                 return TryLeaveTown();
             }
+
+            // シンボルマップの外周から外へ移動しようとした場合はワールドマップを表示
+            if (_worldMapSystem.IsOnSurface)
+            {
+                AddMessage("領地の境界に到達した。ワールドマップを開く…");
+                OnShowWorldMap?.Invoke();
+                return false;
+            }
+
             return false;
         }
 
@@ -1118,6 +1225,12 @@ public class GameController
                 OnLocationArrived?.Invoke(location);
             }
         }
+        // シンボルマップ上の地形タイル到着処理（ロケーション未配置）
+        else if (_worldMapSystem.IsOnSurface && SymbolMapSystem.IsEnterableTerrainTile(tile.Type))
+        {
+            var terrainName = SymbolMapSystem.GetTerrainName(tile.Type);
+            AddMessage($"【{terrainName}】に到着した。（Tキーでフィールドに入る）");
+        }
 
         // 階段メッセージ
         if (tile.Type == TileType.StairsDown)
@@ -1133,6 +1246,16 @@ public class GameController
         if (_isDebugMode)
         {
             HandleDebugTile(tile, newPos);
+        }
+
+        // 地表面による移動コスト補正（EnvironmentalCombatSystem）
+        if (_surfaceMap.TryGetValue(newPos, out var moveSurface))
+        {
+            float moveMod = EnvironmentalCombatSystem.GetMovementModifier(moveSurface);
+            if (moveMod > 1.0f)
+            {
+                _lastMoveActionCost = (int)(_lastMoveActionCost * moveMod);
+            }
         }
 
         return true;
@@ -1172,6 +1295,12 @@ public class GameController
         // 処刑判定（ExecutionSystem）
         bool canExecute = !enemy.IsAlive ? false : ExecutionSystem.CanExecute(enemy.CurrentHp, enemy.MaxHp);
 
+        // 攻撃方向ボーナス（DirectionSystem）
+        // プレイヤーの向きから攻撃方向（正面/側面/背面）を判定
+        var enemyFacing = DirectionSystem.GetFacingFromMovement(GetDirectionToTarget(enemy.Position, Player.Position));
+        var attackDir = DirectionSystem.DetermineAttackDirection(_playerFacing, enemyFacing);
+        var dirBonus = DirectionSystem.GetDirectionBonus(attackDir);
+
         // 武器耐久度消耗（DurabilitySystem）
         if (Player.Equipment.MainHand != null)
         {
@@ -1183,9 +1312,19 @@ public class GameController
         {
             // 追加ダメージ計算
             int baseDmg = result.Damage?.Amount ?? 0;
+
+            // 状態異常による攻撃力修正（麻痺: 0.7倍、火傷: 0.85倍等）
+            float statusAttackMult = 1.0f;
+            foreach (var eff in Player.StatusEffects)
+            {
+                statusAttackMult *= eff.AttackMultiplier;
+            }
+            baseDmg = Math.Max(1, (int)(baseDmg * statusAttackMult));
+
             int bonusDmg = (int)(baseDmg * (stanceAttackMod - 1.0f)) + weaponDamageBonus;
             int elementalBonusDmg = (int)(baseDmg * (elementalMult - 1.0f));
-            int totalBonus = bonusDmg + elementalBonusDmg;
+            int directionBonusDmg = (int)(baseDmg * (dirBonus.DamageModifier - 1.0f));
+            int totalBonus = bonusDmg + elementalBonusDmg + directionBonusDmg;
 
             if (totalBonus > 0)
             {
@@ -1194,7 +1333,8 @@ public class GameController
 
             var critStr = result.IsCritical ? " クリティカル！" : "";
             var bonusStr = totalBonus > 0 ? $"(+{totalBonus})" : "";
-            AddMessage($"{enemy.Name}に{baseDmg + totalBonus}ダメージ！{critStr}{bonusStr}");
+            var dirStr = attackDir == AttackDirection.Back ? " 背面攻撃！" : attackDir == AttackDirection.Side ? " 側面攻撃！" : "";
+            AddMessage($"{enemy.Name}に{baseDmg + totalBonus}ダメージ！{critStr}{dirStr}{bonusStr}");
 
             // 処刑チャンス
             if (canExecute && enemy.IsAlive)
@@ -1207,21 +1347,17 @@ public class GameController
 
             if (!enemy.IsAlive)
             {
-                // ゴールドドロップ（階層 × 5〜15 × 難易度倍率）
-                int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
-                int gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
-
-                // 処刑ボーナス
+                // ゴールドドロップ（人型の敵のみ、Rankボーナス適用）
                 float executionDropBonus = canExecute ? ExecutionSystem.GetExecutionDropBonus() : 0;
-                gold = (int)(gold * (1.0f + executionDropBonus));
-
-                Player.AddGold(gold);
+                int gold = CalculateGoldReward(enemy, executionDropBonus);
+                if (gold > 0) Player.AddGold(gold);
 
                 // 経験値（処刑ボーナス込み）
                 float executionExpBonus = canExecute ? ExecutionSystem.GetExecutionExpBonus() : 0;
                 int totalExp = (int)(enemy.ExperienceReward * (1.0f + executionExpBonus));
 
-                AddMessage($"{enemy.Name}を倒した！経験値+{totalExp} 💰+{gold}G");
+                string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                AddMessage($"{enemy.Name}を倒した！経験値+{totalExp}{goldStr}");
                 Player.GainExperience(totalExp);
                 TryDropItem(enemy);
                 OnEnemyDefeated(enemy);
@@ -1234,15 +1370,59 @@ public class GameController
     }
 
     /// <summary>
+    /// 敵撃破時のゴールド報酬を計算（Rankボーナス適用）
+    /// </summary>
+    private int CalculateGoldReward(Enemy enemy, float additionalBonus = 0f)
+    {
+        if (enemy.Race != MonsterRace.Humanoid) return 0;
+        int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
+        double rankMultiplier = BalanceConfig.GetRankGoldMultiplier(enemy.Rank);
+        int gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier * rankMultiplier));
+        if (additionalBonus > 0f)
+            gold = (int)(gold * (1.0f + additionalBonus));
+        return gold;
+    }
+
+    /// <summary>
     /// 敵撃破時のアイテムドロップ判定
     /// </summary>
     private void TryDropItem(Enemy enemy)
     {
-        // ドロップ率: 基本25%、階層が深いほどやや上昇
+        // DropTableSystemによるアイテム・ゴールド生成
+        if (!string.IsNullOrEmpty(enemy.DropTableId))
+        {
+            var loot = DropTableSystem.GenerateLoot(
+                enemy.DropTableId, CurrentFloor, enemy.Rank, _random, enemy.Race);
+
+            // ゴールド獲得
+            if (loot.Gold > 0)
+            {
+                Player.AddGold(loot.Gold);
+                AddMessage($"💰 {loot.Gold}ゴールドを獲得！");
+            }
+
+            // アイテムドロップ
+            foreach (var item in loot.Items)
+            {
+                GroundItems.Add((item, enemy.Position));
+                AddMessage($"{enemy.Name}が{item.GetDisplayName()}を落とした！");
+            }
+            return;
+        }
+
+        // DropTableIdがない場合のフォールバック: 従来の確率ベースドロップ
         int dropChance = 25 + CurrentFloor * 2;
+
+        // ダンジョン特徴によるルート倍率（DungeonFeatureGenerator）
+        if (_currentDungeonFeature.HasValue)
+        {
+            float lootMult = DungeonFeatureGenerator.GetLootMultiplier(_currentDungeonFeature.Value);
+            dropChance = (int)(dropChance * lootMult);
+        }
+
         if (_random.Next(100) < dropChance)
         {
-            var item = _itemFactory.GenerateRandomItem(CurrentFloor);
+            var item = _itemFactory.GenerateEnemyDropItem(CurrentFloor, enemy.Race);
             GroundItems.Add((item, enemy.Position));
             AddMessage($"{enemy.Name}が{item.GetDisplayName()}を落とした！");
         }
@@ -1320,7 +1500,7 @@ public class GameController
         // 素材収集（HarvestSystem）
         if (HarvestSystem.CanHarvest(enemy.Race))
         {
-            var harvestResult = HarvestSystem.Harvest(enemy.Race, EnemyRank.Common, _random);
+            var harvestResult = HarvestSystem.Harvest(enemy.Race, enemy.Rank, _random);
             if (harvestResult.Materials.Count > 0)
             {
                 AddMessage($"🔪 {harvestResult.Message}");
@@ -1347,6 +1527,13 @@ public class GameController
         // 実績チェック
         _achievementSystem.Unlock($"kill_{enemy.EnemyTypeId}");
         if (_infiniteDungeonKills >= 100) _achievementSystem.Unlock("infinite_100_kills");
+
+        // ソウルジェムドロップ（Elite以上の敵からランクに応じた品質）
+        if (enemy.Rank >= EnemyRank.Elite && _random.NextDouble() < 0.3)
+        {
+            var gemQuality = EnchantmentSystem.GetSoulGemQualityFromRank(enemy.Rank);
+            AddMessage($"💎 ソウルジェム({gemQuality})を獲得！");
+        }
     }
 
     /// <summary>ゲームクリア処理</summary>
@@ -1425,6 +1612,15 @@ public class GameController
             // 描画範囲外の敵は処理しない
             if (distance > ActiveRange) continue;
 
+            // 行動不可状態の敵はスキップ（スタン/凍結/睡眠/石化）
+            if (enemy.HasStatusEffect(StatusEffectType.Stun)
+                || enemy.HasStatusEffect(StatusEffectType.Freeze)
+                || enemy.HasStatusEffect(StatusEffectType.Sleep)
+                || enemy.HasStatusEffect(StatusEffectType.Petrification))
+            {
+                continue;
+            }
+
             if (distance <= enemy.SightRange)
             {
                 if (distance == 1)
@@ -1455,11 +1651,26 @@ public class GameController
         // プレイヤーのスタンス防御修飾（CombatStanceSystem）
         float stanceDefMod = CombatStanceSystem.GetDefenseModifier(_playerStance);
 
+        // 攻撃方向判定（DirectionSystem）- 敵→プレイヤーへの方向
+        var enemyAttackDir = DirectionSystem.GetFacingFromMovement(GetDirectionToTarget(enemy.Position, Player.Position));
+        var defenseDir = DirectionSystem.DetermineAttackDirection(enemyAttackDir, _playerFacing);
+        var defDirBonus = DirectionSystem.GetDirectionBonus(defenseDir);
+
         if (result.IsHit)
         {
             // 防御修飾によるダメージ軽減
             int baseDmg = result.Damage?.Amount ?? 0;
-            int modifiedDmg = Math.Max(1, (int)(baseDmg * activityMult / stanceDefMod));
+
+            // 敵の状態異常による攻撃力修正（麻痺: 0.7倍等）
+            float enemyStatusAttackMult = 1.0f;
+            foreach (var eff in enemy.StatusEffects)
+            {
+                enemyStatusAttackMult *= eff.AttackMultiplier;
+            }
+            baseDmg = Math.Max(1, (int)(baseDmg * enemyStatusAttackMult));
+
+            // 攻撃方向ダメージ修正（背面攻撃でダメージ増加）
+            int modifiedDmg = Math.Max(1, (int)(baseDmg * activityMult * defDirBonus.DamageModifier / stanceDefMod));
 
             // 防具耐久度消耗（DurabilitySystem）
             var bodyArmor = Player.Equipment[EquipmentSlot.Body];
@@ -1470,8 +1681,12 @@ public class GameController
             }
 
             var critStr = result.IsCritical ? " クリティカル！" : "";
-            AddMessage($"{enemy.Name}の攻撃！{modifiedDmg}ダメージ！{critStr}");
+            var dirWarnStr = defenseDir == AttackDirection.Back ? " 背面を取られた！" : "";
+            AddMessage($"{enemy.Name}の攻撃！{modifiedDmg}ダメージ！{critStr}{dirWarnStr}");
             _lastDamageCause = DeathCause.Combat;
+
+            // === 敵種族に基づく状態異常付与 ===
+            TryApplyEnemyStatusEffect(enemy);
         }
         else
         {
@@ -1485,6 +1700,100 @@ public class GameController
             {
                 AddMessage($"{enemy.Name}の攻撃は外れた");
             }
+        }
+    }
+
+    /// <summary>
+    /// 敵種族に基づく状態異常付与（攻撃命中時に確率で発動）
+    /// </summary>
+    private void TryApplyEnemyStatusEffect(Enemy enemy)
+    {
+        // 基礎確率15%（種族特性による状態異常付与）
+        if (_random.NextDouble() >= 0.15) return;
+
+        StatusEffectType? effectType;
+        string? attackDescription = null;
+
+        // 武器を使う敵の場合、武器種に基づく状態異常を優先適用
+        if (enemy.WeaponType.HasValue)
+        {
+            var profile = WeaponProficiencySystem.GetWeaponProfile(enemy.WeaponType.Value);
+            effectType = WeaponProficiencySystem.GetWeaponStatusEffect(enemy.WeaponType.Value);
+            attackDescription = WeaponProficiencySystem.GetAttackTypeName(profile.PrimaryAttackType);
+        }
+        else
+        {
+            // 種族ごとの固有状態異常（一部種族はランダムで複数パターン）
+            effectType = enemy.Race switch
+            {
+                MonsterRace.Insect => StatusEffectType.Poison,          // 昆虫: 毒攻撃
+                MonsterRace.Undead => StatusEffectType.Weakness,         // 不死: 衰弱
+                MonsterRace.Demon => _random.NextDouble() < 0.9
+                    ? StatusEffectType.Curse                             // 悪魔: 呪い（90%）
+                    : StatusEffectType.InstantDeath,                     // 悪魔: 即死（10%）
+                MonsterRace.Dragon => _random.NextDouble() < 0.5
+                    ? StatusEffectType.Burn                              // 竜: 火傷（50%）
+                    : StatusEffectType.Freeze,                           // 竜: 凍結（50%）
+                MonsterRace.Plant => StatusEffectType.Paralysis,         // 植物: 麻痺（毒胞子）
+                MonsterRace.Spirit => _random.NextDouble() < 0.7
+                    ? StatusEffectType.Blind                             // 精霊: 盲目（70%）
+                    : StatusEffectType.Madness,                          // 精霊: 狂気（30%）
+                MonsterRace.Amorphous => StatusEffectType.Slow,          // 不定形: 減速（粘液）
+                MonsterRace.Beast => StatusEffectType.Bleeding,          // 獣: 出血（爪傷）
+                MonsterRace.Construct => _random.NextDouble() < 0.7
+                    ? StatusEffectType.Vulnerability                     // 構造体: 脆弱化（70%）
+                    : StatusEffectType.Petrification,                    // 構造体: 石化（30%）
+                MonsterRace.Humanoid => StatusEffectType.Weakness,       // 人型（素手）: 衰弱
+                _ => null
+            };
+        }
+
+        if (effectType == null) return;
+
+        // 毒無効種族チェック
+        if (effectType == StatusEffectType.Poison && RacialTraitSystem.IsPoisonImmune(Player.Race))
+        {
+            AddMessage("毒無効の体質により毒を受け付けなかった！");
+            return;
+        }
+
+        // 即死は耐性判定を追加（LUK依存で回避可能）
+        if (effectType == StatusEffectType.InstantDeath)
+        {
+            if (_random.NextDouble() < Player.EffectiveStats.Luck * 0.05)
+            {
+                AddMessage("⚡ 即死攻撃を運良く回避した！");
+                return;
+            }
+        }
+
+        int duration = effectType.Value switch
+        {
+            StatusEffectType.Poison => 10,
+            StatusEffectType.Bleeding => 8,
+            StatusEffectType.Burn => 5,
+            StatusEffectType.Freeze => 3,
+            StatusEffectType.Curse => int.MaxValue,
+            StatusEffectType.Weakness => 15,
+            StatusEffectType.Paralysis => 5,
+            StatusEffectType.Stun => 3,
+            StatusEffectType.Blind => 8,
+            StatusEffectType.Slow => 10,
+            StatusEffectType.Vulnerability => 10,
+            StatusEffectType.Madness => 10,
+            StatusEffectType.Petrification => 3,
+            StatusEffectType.InstantDeath => 1,
+            _ => 5
+        };
+
+        Player.ApplyStatusEffect(new StatusEffect(effectType.Value, duration));
+        if (attackDescription != null)
+        {
+            AddMessage($"⚠ {enemy.Name}の{attackDescription}攻撃で{effectType.Value}状態になった！");
+        }
+        else
+        {
+            AddMessage($"⚠ {enemy.Name}の攻撃で{effectType.Value}状態になった！");
         }
     }
 
@@ -1667,6 +1976,37 @@ public class GameController
 
         // === GUI統合: ターン毎システム処理 ===
 
+        // 地表面ダメージ（EnvironmentalCombatSystem）
+        if (_surfaceMap.TryGetValue(Player.Position, out var playerSurface))
+        {
+            int surfaceDmg = EnvironmentalCombatSystem.GetSurfaceDamage(playerSurface);
+            if (surfaceDmg > 0)
+            {
+                Player.TakeDamage(Damage.Pure(surfaceDmg));
+                AddMessage($"🔥 {playerSurface}の地表面で{surfaceDmg}ダメージ！");
+                if (!Player.IsAlive)
+                {
+                    HandlePlayerDeath(DeathCause.Trap);
+                    return;
+                }
+            }
+        }
+
+        // 地表面の持続ターン経過処理（EnvironmentalCombatSystem）
+        var expiredSurfaces = new List<Position>();
+        foreach (var kvp in _surfaceMap)
+        {
+            int duration = EnvironmentalCombatSystem.GetSurfaceDuration(kvp.Value);
+            if (duration < 999 && TurnCount % duration == 0)
+            {
+                expiredSurfaces.Add(kvp.Key);
+            }
+        }
+        foreach (var pos in expiredSurfaces)
+        {
+            _surfaceMap.Remove(pos);
+        }
+
         // 時間帯による視界範囲変動（TimeOfDaySystem）
         var currentTimePeriod = TimeOfDaySystem.GetTimePeriod(GameTime.Hour);
         float sightModifier = TimeOfDaySystem.GetSightRangeModifier(currentTimePeriod);
@@ -1829,6 +2169,35 @@ public class GameController
         var itemOnGround = GroundItems.FirstOrDefault(i => i.Position == Player.Position);
         if (itemOnGround.Item != null)
         {
+            // ミミック判定（MimicSystem）- ダンジョン内でのみ発生
+            if (!_worldMapSystem.IsOnSurface && !_isInLocationMap)
+            {
+                float mimicRate = MimicSystem.CalculateMimicSpawnRate(CurrentFloor);
+                if (_random.NextDouble() < mimicRate)
+                {
+                    float detectionRate = MimicSystem.CalculateDetectionRate(
+                        Player.EffectiveStats.Perception, Player.Sanity, false);
+                    if (_random.NextDouble() >= detectionRate)
+                    {
+                        // ミミック発見失敗 → 奇襲攻撃
+                        var grade = itemOnGround.Item.Grade;
+                        float mimicMult = MimicSystem.GetMimicStrengthMultiplier(grade);
+                        int mimicDmg = Math.Max(1, (int)(5 + CurrentFloor * 2 * mimicMult));
+                        Player.TakeDamage(Damage.Physical(mimicDmg));
+                        GroundItems.Remove(itemOnGround);
+                        AddMessage($"⚠ ミミックだ！ {itemOnGround.Item.GetDisplayName()}に擬態していた！ {mimicDmg}ダメージ！");
+                        _lastDamageCause = DeathCause.Trap;
+                        return true; // ターン消費
+                    }
+                    else
+                    {
+                        AddMessage($"👁 {itemOnGround.Item.GetDisplayName()}がミミックだと見抜いた！");
+                        GroundItems.Remove(itemOnGround);
+                        return true; // ターン消費
+                    }
+                }
+            }
+
             // 重量チェック
             var inventory = (Inventory)Player.Inventory;
             float itemWeight = itemOnGround.Item.Weight;
@@ -1938,7 +2307,9 @@ public class GameController
                 _currentMapName = location.Id;
                 CurrentFloor = 1;
                 GenerateFloor();
-                AddMessage($"【{location.Name}】─ ダンジョン第{CurrentFloor}層に足を踏み入れた...");
+                var featureName = GetCurrentDungeonFeatureName();
+                var featureStr = !string.IsNullOrEmpty(featureName) ? $"（{featureName}）" : "";
+                AddMessage($"【{location.Name}】─ ダンジョン第{CurrentFloor}層に足を踏み入れた...{featureStr}");
                 OnSymbolMapEnterDungeon?.Invoke(location);
                 OnStateChanged?.Invoke();
                 return true;
@@ -2015,7 +2386,12 @@ public class GameController
             // 1層目の上り階段 → シンボルマップに帰還
             AddMessage("ダンジョンから脱出した！ 地上に帰還する...");
             _worldMapSystem.IsOnSurface = true;
+            _currentDungeonFeature = null;
             GenerateSymbolMap();
+
+            // 環境音を地上用に更新（AmbientSoundSystem）
+            var currentTerritory = _worldMapSystem.GetCurrentTerritoryInfo().Id;
+            _currentAmbientSound = AmbientSoundSystem.GetAmbientForTerritory(currentTerritory);
 
             // ダンジョン入口位置にプレイヤーを配置
             var dungeonPos = _symbolMapSystem.FindLocationPosition(_currentMapName);
@@ -2761,10 +3137,10 @@ public class GameController
 
             if (!target.IsAlive)
             {
-                int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
-                int gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
-                Player.AddGold(gold);
-                AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward} 💰+{gold}G");
+                int gold = CalculateGoldReward(target);
+                if (gold > 0) Player.AddGold(gold);
+                string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                 Player.GainExperience(target.ExperienceReward);
                 TryDropItem(target);
                 OnEnemyDefeated(target);
@@ -2826,10 +3202,10 @@ public class GameController
 
             if (!target.IsAlive)
             {
-                int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
-                int gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
-                Player.AddGold(gold);
-                AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward} 💰+{gold}G");
+                int gold = CalculateGoldReward(target);
+                if (gold > 0) Player.AddGold(gold);
+                string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                 Player.GainExperience(target.ExperienceReward);
                 TryDropItem(target);
                 OnEnemyDefeated(target);
@@ -2927,6 +3303,13 @@ public class GameController
     /// <summary>スキルスロット使用後のターン進行（MainWindowから呼ぶ）</summary>
     public void AdvanceTurnFromSkillSlot(int actionCost)
     {
+        // 状態異常によるターンコスト修正（麻痺: 1.5倍等）
+        float turnModifier = Player.GetStatusEffectTurnModifier();
+        if (turnModifier > 1.0f && turnModifier < float.MaxValue)
+        {
+            actionCost = (int)Math.Ceiling(actionCost * turnModifier);
+        }
+
         int finalCost = Math.Max(1, actionCost);
         TurnCount += finalCost;
         GameTime.AdvanceTurn(finalCost);
@@ -3024,9 +3407,10 @@ public class GameController
                 AddMessage($"⚔ {skill.Name}！ {target.Name}に{damage}ダメージ！");
                 if (!target.IsAlive)
                 {
-                    int gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
-                    Player.AddGold(gold);
-                    AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward} 💰+{gold}G");
+                    int gold = CalculateGoldReward(target);
+                    if (gold > 0) Player.AddGold(gold);
+                    string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                    AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                     Player.GainExperience(target.ExperienceReward);
                     TryDropItem(target);
                     OnEnemyDefeated(target);
@@ -3049,9 +3433,10 @@ public class GameController
                     AddMessage($"  {target.Name}に{damage}ダメージ！");
                     if (!target.IsAlive)
                     {
-                        int gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
-                        Player.AddGold(gold);
-                        AddMessage($"  {target.Name}を倒した！経験値+{target.ExperienceReward} 💰+{gold}G");
+                        int gold = CalculateGoldReward(target);
+                        if (gold > 0) Player.AddGold(gold);
+                        string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                        AddMessage($"  {target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                         Player.GainExperience(target.ExperienceReward);
                         TryDropItem(target);
                         OnEnemyDefeated(target);
@@ -3107,9 +3492,10 @@ public class GameController
                 }
                 if (!target.IsAlive)
                 {
-                    int gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
-                    Player.AddGold(gold);
-                    AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward} 💰+{gold}G");
+                    int gold = CalculateGoldReward(target);
+                    if (gold > 0) Player.AddGold(gold);
+                    string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                    AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                     Player.GainExperience(target.ExperienceReward);
                     TryDropItem(target);
                     OnEnemyDefeated(target);
@@ -3127,9 +3513,10 @@ public class GameController
                     AddMessage($"  {target.Name}に{damage}ダメージ！");
                     if (!target.IsAlive)
                     {
-                        int gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
-                        Player.AddGold(gold);
-                        AddMessage($"  {target.Name}を倒した！経験値+{target.ExperienceReward} 💰+{gold}G");
+                        int gold = CalculateGoldReward(target);
+                        if (gold > 0) Player.AddGold(gold);
+                        string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
+                        AddMessage($"  {target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                         Player.GainExperience(target.ExperienceReward);
                         TryDropItem(target);
                         OnEnemyDefeated(target);
@@ -3258,6 +3645,49 @@ public class GameController
 
     /// <summary>現在の詠唱プレビューを取得</summary>
     public SpellPreview GetSpellPreview() => _spellCastingSystem.GetPreview(Player);
+
+    /// <summary>現在の詠唱文のルーン語ID一覧を取得</summary>
+    public IReadOnlyList<string> GetCurrentIncantation() => _spellCastingSystem.CurrentIncantation.AsReadOnly();
+
+    /// <summary>記録済み呪文一覧を取得</summary>
+    public IReadOnlyList<SavedSpellRecipe> GetSavedSpells() => _spellCastingSystem.SavedSpells;
+
+    /// <summary>現在の詠唱文を呪文として記録する</summary>
+    public SavedSpellRecipe? SaveCurrentSpell(string name)
+    {
+        var recipe = _spellCastingSystem.SaveCurrentSpell(name, Player);
+        if (recipe != null)
+            AddMessage($"呪文「{name}」を記録しました");
+        else
+            AddMessage("呪文の記録に失敗しました");
+        return recipe;
+    }
+
+    /// <summary>記録済み呪文を削除する</summary>
+    public bool RemoveSavedSpell(int index)
+    {
+        bool removed = _spellCastingSystem.RemoveSavedSpell(index);
+        if (removed)
+            AddMessage("記録済み呪文を削除しました");
+        return removed;
+    }
+
+    /// <summary>記録済み呪文を詠唱文にロードする</summary>
+    public bool LoadSavedSpell(int index)
+    {
+        bool loaded = _spellCastingSystem.LoadSavedSpell(index, Player);
+        if (loaded)
+        {
+            var preview = _spellCastingSystem.GetPreview(Player);
+            OnSpellPreviewUpdated?.Invoke(preview);
+            AddMessage("記録済み呪文を読み込みました");
+        }
+        else
+        {
+            AddMessage("呪文の読み込みに失敗しました");
+        }
+        return loaded;
+    }
 
     /// <summary>詠唱実行</summary>
     private bool TryCastSpell(out int actionCost)
@@ -3420,8 +3850,10 @@ public class GameController
                 var target = GetNearestEnemy();
                 if (target != null)
                 {
-                    target.TakeDamage(Damage.Magical(damage, effect.Element));
-                    AddMessage($"{target.Name}に{damage}の{effect.Element}ダメージ！");
+                    // 地表面×属性魔法の相互作用（EnvironmentalCombatSystem）
+                    int finalDamage = ApplyEnvironmentalInteraction(target.Position, effect.Element, damage);
+                    target.TakeDamage(Damage.Magical(finalDamage, effect.Element));
+                    AddMessage($"{target.Name}に{finalDamage}の{effect.Element}ダメージ！");
                     CheckEnemyDeath(target);
                 }
                 else
@@ -3434,8 +3866,10 @@ public class GameController
                 var targets = GetEnemiesInRange(effect.Range);
                 foreach (var enemy in targets)
                 {
-                    enemy.TakeDamage(Damage.Magical(damage, effect.Element));
-                    AddMessage($"{enemy.Name}に{damage}の{effect.Element}ダメージ！");
+                    // 地表面×属性魔法の相互作用（EnvironmentalCombatSystem）
+                    int areaDamage = ApplyEnvironmentalInteraction(enemy.Position, effect.Element, damage);
+                    enemy.TakeDamage(Damage.Magical(areaDamage, effect.Element));
+                    AddMessage($"{enemy.Name}に{areaDamage}の{effect.Element}ダメージ！");
                     CheckEnemyDeath(enemy);
                 }
                 if (targets.Count == 0)
@@ -3471,7 +3905,7 @@ public class GameController
         var negativeEffects = Player.StatusEffects
             .Where(e => e.Type is StatusEffectType.Poison or StatusEffectType.Burn
                 or StatusEffectType.Freeze or StatusEffectType.Paralysis
-                or StatusEffectType.Blind or StatusEffectType.Confusion)
+                or StatusEffectType.Stun or StatusEffectType.Blind or StatusEffectType.Confusion)
             .ToList();
 
         if (negativeEffects.Count > 0)
@@ -3489,19 +3923,47 @@ public class GameController
     /// <summary>魔法強化の適用</summary>
     private void ApplySpellBuff(SpellEffect effect)
     {
-        string buffType = effect.Type switch
+        int duration = Math.Max(effect.Duration, 10);
+        switch (effect.Type)
         {
-            SpellEffectType.Buff => "能力強化",
-            SpellEffectType.Speed => "加速",
-            SpellEffectType.Blessing => "祝福",
-            _ => "強化"
-        };
-        AddMessage($"{buffType}の魔法が発動した（{effect.Duration}ターン）");
+            case SpellEffectType.Speed:
+                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Haste, duration)
+                {
+                    Name = "加速",
+                    TurnCostModifier = 0.75f
+                });
+                AddMessage($"加速の魔法が発動した（{duration}ターン）");
+                break;
+            case SpellEffectType.Blessing:
+                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Blessing, duration)
+                {
+                    Name = "祝福",
+                    AllStatsMultiplier = 1.10f
+                });
+                AddMessage($"祝福の魔法が発動した（{duration}ターン）");
+                break;
+            case SpellEffectType.Buff:
+            default:
+                // Buff魔法は攻撃力・防御力を同時に強化
+                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Strength, duration)
+                {
+                    Name = "強化",
+                    AttackMultiplier = 1.25f
+                });
+                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Protection, duration)
+                {
+                    Name = "防護",
+                    DefenseMultiplier = 1.50f
+                });
+                AddMessage($"能力強化の魔法が発動した（{duration}ターン）");
+                break;
+        }
     }
 
     /// <summary>魔法制御の適用</summary>
     private void ApplySpellControl(SpellEffect effect)
     {
+        int duration = Math.Max(effect.Duration, 5);
         switch (effect.TargetType)
         {
             case SpellTargetType.SingleEnemy:
@@ -3509,7 +3971,15 @@ public class GameController
                 var target = GetNearestEnemy();
                 if (target != null)
                 {
-                    AddMessage($"{target.Name}に制御魔法が効いた");
+                    // 制御魔法は魅了・減速・恐怖のいずれかを付与
+                    var controlEffect = _random.Next(3) switch
+                    {
+                        0 => new StatusEffect(StatusEffectType.Charm, duration) { Name = "魅了" },
+                        1 => new StatusEffect(StatusEffectType.Slow, duration) { Name = "減速", TurnCostModifier = 1.50f },
+                        _ => new StatusEffect(StatusEffectType.Fear, duration) { Name = "恐怖" }
+                    };
+                    target.ApplyStatusEffect(controlEffect);
+                    AddMessage($"{target.Name}に{controlEffect.Name}が効いた（{duration}ターン）");
                 }
                 else
                 {
@@ -3518,7 +3988,15 @@ public class GameController
                 break;
             case SpellTargetType.AllEnemies:
                 var targets = GetEnemiesInRange(effect.Range);
-                AddMessage($"{targets.Count}体の敵に制御魔法が効いた");
+                foreach (var e in targets)
+                {
+                    e.ApplyStatusEffect(new StatusEffect(StatusEffectType.Slow, duration)
+                    {
+                        Name = "減速",
+                        TurnCostModifier = 1.50f
+                    });
+                }
+                AddMessage($"{targets.Count}体の敵に減速が効いた（{duration}ターン）");
                 break;
             default:
                 AddMessage("制御の魔法が発動した");
@@ -3668,7 +4146,7 @@ public class GameController
         var negativeEffects = Player.StatusEffects
             .Where(e => e.Type is StatusEffectType.Poison or StatusEffectType.Burn
                 or StatusEffectType.Freeze or StatusEffectType.Paralysis
-                or StatusEffectType.Blind or StatusEffectType.Confusion
+                or StatusEffectType.Stun or StatusEffectType.Blind or StatusEffectType.Confusion
                 or StatusEffectType.Slow or StatusEffectType.Weakness
                 or StatusEffectType.Vulnerability or StatusEffectType.Silence
                 or StatusEffectType.Curse)
@@ -3735,7 +4213,7 @@ public class GameController
         var negativeEffects = Player.StatusEffects
             .Where(e => e.Type is StatusEffectType.Poison or StatusEffectType.Burn
                 or StatusEffectType.Freeze or StatusEffectType.Paralysis
-                or StatusEffectType.Blind or StatusEffectType.Confusion
+                or StatusEffectType.Stun or StatusEffectType.Blind or StatusEffectType.Confusion
                 or StatusEffectType.Curse)
             .ToList();
         foreach (var neg in negativeEffects)
@@ -3829,6 +4307,12 @@ public class GameController
 
         if (result.Success)
         {
+            // 背教状態を付与
+            Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Apostasy, 100)
+            {
+                Name = "背教",
+                AllStatsMultiplier = 0.90f  // 全ステータス-10%
+            });
             OnReligionChanged?.Invoke();
         }
 
@@ -3981,7 +4465,7 @@ public class GameController
         return result.Success;
     }
 
-    /// <summary>街・施設・宗教施設・フィールドに入る（ロケーションマップ遷移）</summary>
+    /// <summary>街・施設・宗教施設・フィールド・地形タイルに入る（ロケーションマップ遷移）</summary>
     private bool TryEnterTown()
     {
         if (!_worldMapSystem.IsOnSurface)
@@ -3992,16 +4476,30 @@ public class GameController
 
         // シンボルマップ上のロケーション（Dungeon以外）を判定
         var location = _symbolMapSystem.GetLocationAt(Player.Position);
-        if (location == null || location.Type == LocationType.Dungeon)
+
+        // ロケーションがある場合（既存の町・施設・フィールド等）
+        if (location != null && location.Type != LocationType.Dungeon)
         {
-            AddMessage("ここには入れるロケーションがない");
-            return false;
+            return EnterLocationMap(location);
         }
 
-        // ロケーションマップを生成して遷移
+        // ロケーション未配置タイルでも地形タイルならフィールドマップに遷移
+        if (_symbolMapSystem.CanEnterField(Player.Position))
+        {
+            return EnterTerrainFieldMap();
+        }
+
+        AddMessage("ここには入れるロケーションがない");
+        return false;
+    }
+
+    /// <summary>ロケーション定義に基づくマップに遷移</summary>
+    private bool EnterLocationMap(LocationDefinition location)
+    {
         var generator = new LocationMapGenerator();
         var locationMap = generator.GenerateForLocation(location);
 
+        _symbolMapReturnPosition = Player.Position;
         _worldMapSystem.IsOnSurface = false;
         _isInLocationMap = true;
         _currentMapName = location.Id;
@@ -4022,6 +4520,38 @@ public class GameController
         Map.ComputeFov(Player.Position, 8);
 
         AddMessage($"【{location.Name}】に入った");
+        OnSymbolMapEnterTown?.Invoke();
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>シンボルマップの地形タイルに応じたフィールドマップに遷移（Elona風）</summary>
+    private bool EnterTerrainFieldMap()
+    {
+        var tile = Map.GetTile(Player.Position);
+        var terrainName = SymbolMapSystem.GetTerrainName(tile.Type);
+
+        var generator = new LocationMapGenerator();
+        var fieldMap = generator.GenerateTerrainFieldMap(tile.Type, Player.Position);
+
+        _symbolMapReturnPosition = Player.Position;
+        _worldMapSystem.IsOnSurface = false;
+        _isInLocationMap = true;
+        _currentMapName = fieldMap.Name;
+
+        Map = fieldMap;
+        var startPos = fieldMap.EntrancePosition ?? new Position(fieldMap.Width / 2, fieldMap.Height - 1);
+        Player.Position = startPos;
+
+        Enemies.Clear();
+        GroundItems.Clear();
+
+        // フィールドマップには敵を配置
+        SpawnEnemies();
+
+        Map.ComputeFov(Player.Position, 8);
+
+        AddMessage($"【{terrainName}】に足を踏み入れた（Tキーで脱出）");
         OnSymbolMapEnterTown?.Invoke();
         OnStateChanged?.Invoke();
         return true;
@@ -4131,12 +4661,17 @@ public class GameController
         _isInLocationMap = false;
         GenerateSymbolMap();
 
-        var locationPos = _symbolMapSystem.FindLocationPosition(_currentMapName);
-        if (locationPos.HasValue)
+        // 帰還位置を決定（保存された復帰位置 > ロケーションID検索 > デフォルト）
+        Position? returnPos = _symbolMapReturnPosition
+            ?? _symbolMapSystem.FindLocationPosition(_currentMapName);
+
+        if (returnPos.HasValue)
         {
-            Player.Position = locationPos.Value;
+            Player.Position = returnPos.Value;
             Map.ComputeFov(Player.Position, 12);
         }
+
+        _symbolMapReturnPosition = null;
 
         var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
         AddMessage($"{territoryName}のシンボルマップに戻った");
@@ -6048,6 +6583,88 @@ public class GameController
             { "luk", Player.EffectiveStats.Luck }
         };
         return StatFlagSystem.EvaluateAll(stats);
+    }
+
+    #endregion
+
+    #region ヘルパーメソッド（システム統合用）
+
+    /// <summary>位置Aから位置Bへの方向を計算</summary>
+    private static Direction GetDirectionToTarget(Position from, Position to)
+    {
+        int dx = to.X - from.X;
+        int dy = to.Y - from.Y;
+
+        if (dx == 0 && dy < 0) return Direction.North;
+        if (dx == 0 && dy > 0) return Direction.South;
+        if (dx > 0 && dy == 0) return Direction.East;
+        if (dx < 0 && dy == 0) return Direction.West;
+        if (dx > 0 && dy < 0) return Direction.NorthEast;
+        if (dx < 0 && dy < 0) return Direction.NorthWest;
+        if (dx > 0 && dy > 0) return Direction.SouthEast;
+        return Direction.SouthWest;
+    }
+
+    /// <summary>現在のダンジョン特徴名を取得</summary>
+    public string GetCurrentDungeonFeatureName()
+    {
+        return _currentDungeonFeature.HasValue
+            ? DungeonFeatureGenerator.GetFeatureName(_currentDungeonFeature.Value)
+            : "";
+    }
+
+    /// <summary>現在の環境音情報を取得</summary>
+    public AmbientSoundSystem.AmbientSoundEvent GetCurrentAmbientSound()
+    {
+        return AmbientSoundSystem.CreateEvent(_currentAmbientSound);
+    }
+
+    /// <summary>セーブスロット一覧を取得</summary>
+    public IReadOnlyList<MultiSlotSaveSystem.SaveSlotInfo> GetSaveSlots() => _multiSlotSaveSystem.GetAllSlots();
+
+    /// <summary>指定スロットにセーブ</summary>
+    public bool SaveToSlot(int slotNumber)
+    {
+        var location = _worldMapSystem.IsOnSurface
+            ? _worldMapSystem.GetCurrentTerritoryInfo().Name
+            : $"{_currentMapName} B{CurrentFloor}F";
+        return _multiSlotSaveSystem.SaveToSlot(slotNumber, Player.Name, Player.Level, location);
+    }
+
+    /// <summary>プレイヤーの向きを取得</summary>
+    public Direction PlayerFacing => _playerFacing;
+
+    /// <summary>地表面×属性魔法の相互作用を適用し、修正後ダメージを返す（EnvironmentalCombatSystem）</summary>
+    private int ApplyEnvironmentalInteraction(Position targetPos, Element element, int baseDamage)
+    {
+        var currentSurface = _surfaceMap.TryGetValue(targetPos, out var s)
+            ? s
+            : EnvironmentalCombatSystem.SurfaceType.Normal;
+
+        var interaction = EnvironmentalCombatSystem.GetInteraction(currentSurface, element);
+        if (interaction == null)
+            return baseDamage;
+
+        // 地表面を変化させる
+        if (interaction.ResultSurface != EnvironmentalCombatSystem.SurfaceType.Normal)
+        {
+            _surfaceMap[targetPos] = interaction.ResultSurface;
+        }
+        else
+        {
+            _surfaceMap.Remove(targetPos);
+        }
+
+        AddMessage($"🌊 {interaction.Description}");
+        return Math.Max(1, (int)(baseDamage * interaction.DamageMultiplier));
+    }
+
+    /// <summary>指定位置の地表面タイプを取得</summary>
+    public EnvironmentalCombatSystem.SurfaceType GetSurfaceAt(Position pos)
+    {
+        return _surfaceMap.TryGetValue(pos, out var surface)
+            ? surface
+            : EnvironmentalCombatSystem.SurfaceType.Normal;
     }
 
     #endregion

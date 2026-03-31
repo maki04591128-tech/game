@@ -975,4 +975,218 @@ public class MagicLanguageSystemTests
     }
 
     #endregion
+
+    #region SavedSpellRecipe Tests
+
+    [Fact]
+    public void SpellCastingSystem_SaveCurrentSpell_EmptyIncantation_ReturnsNull()
+    {
+        var system = new SpellCastingSystem();
+        var player = CreateTestPlayer();
+
+        var result = system.SaveCurrentSpell("テスト呪文", player);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void SpellCastingSystem_SaveCurrentSpell_ValidSpell_ReturnsSavedRecipe()
+    {
+        var system = new SpellCastingSystem();
+        var player = CreateTestPlayer();
+        player.LearnWord("brenna");
+        player.LearnWord("fjandi");
+        system.AddWord("brenna", player);
+        system.AddWord("fjandi", player);
+
+        var result = system.SaveCurrentSpell("炎の矢", player);
+        Assert.NotNull(result);
+        Assert.Equal("炎の矢", result.Name);
+        Assert.Equal(2, result.WordIds.Count);
+        Assert.Contains("brenna", result.WordIds);
+        Assert.Contains("fjandi", result.WordIds);
+        Assert.True(result.MpCost > 0);
+    }
+
+    [Fact]
+    public void SpellCastingSystem_SaveCurrentSpell_AddsToSavedSpells()
+    {
+        var system = new SpellCastingSystem();
+        var player = CreateTestPlayer();
+        player.LearnWord("brenna");
+        player.LearnWord("fjandi");
+        system.AddWord("brenna", player);
+        system.AddWord("fjandi", player);
+
+        Assert.Empty(system.SavedSpells);
+        system.SaveCurrentSpell("炎の矢", player);
+        Assert.Single(system.SavedSpells);
+    }
+
+    [Fact]
+    public void SpellCastingSystem_SaveCurrentSpell_WhitespaceName_ReturnsNull()
+    {
+        var system = new SpellCastingSystem();
+        var player = CreateTestPlayer();
+        player.LearnWord("brenna");
+        player.LearnWord("fjandi");
+        system.AddWord("brenna", player);
+        system.AddWord("fjandi", player);
+
+        var result = system.SaveCurrentSpell("  ", player);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void SpellCastingSystem_SaveCurrentSpell_MaxLimit_ReturnsNull()
+    {
+        var system = new SpellCastingSystem();
+        var player = CreateTestPlayer();
+        player.LearnWord("brenna");
+        player.LearnWord("fjandi");
+
+        for (int i = 0; i < SpellCastingSystem.MaxSavedSpells; i++)
+        {
+            system.AddWord("brenna", player);
+            system.AddWord("fjandi", player);
+            system.SaveCurrentSpell($"呪文{i}", player);
+            system.CancelCasting();
+        }
+
+        Assert.Equal(SpellCastingSystem.MaxSavedSpells, system.SavedSpells.Count);
+
+        system.AddWord("brenna", player);
+        system.AddWord("fjandi", player);
+        var result = system.SaveCurrentSpell("余分な呪文", player);
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void SpellCastingSystem_RemoveSavedSpell_ValidIndex_ReturnsTrue()
+    {
+        var system = new SpellCastingSystem();
+        var player = CreateTestPlayer();
+        player.LearnWord("brenna");
+        player.LearnWord("fjandi");
+        system.AddWord("brenna", player);
+        system.AddWord("fjandi", player);
+        system.SaveCurrentSpell("炎の矢", player);
+
+        Assert.Single(system.SavedSpells);
+        bool removed = system.RemoveSavedSpell(0);
+        Assert.True(removed);
+        Assert.Empty(system.SavedSpells);
+    }
+
+    [Fact]
+    public void SpellCastingSystem_RemoveSavedSpell_InvalidIndex_ReturnsFalse()
+    {
+        var system = new SpellCastingSystem();
+        Assert.False(system.RemoveSavedSpell(0));
+        Assert.False(system.RemoveSavedSpell(-1));
+        Assert.False(system.RemoveSavedSpell(100));
+    }
+
+    [Fact]
+    public void SpellCastingSystem_LoadSavedSpell_ValidIndex_LoadsIncantation()
+    {
+        var system = new SpellCastingSystem();
+        var player = CreateTestPlayer();
+        player.LearnWord("brenna");
+        player.LearnWord("fjandi");
+        system.AddWord("brenna", player);
+        system.AddWord("fjandi", player);
+        system.SaveCurrentSpell("炎の矢", player);
+        system.CancelCasting();
+
+        Assert.False(system.IsCasting);
+        bool loaded = system.LoadSavedSpell(0, player);
+        Assert.True(loaded);
+        Assert.True(system.IsCasting);
+        Assert.Equal(2, system.CurrentIncantation.Count);
+        Assert.Equal("brenna", system.CurrentIncantation[0]);
+        Assert.Equal("fjandi", system.CurrentIncantation[1]);
+    }
+
+    [Fact]
+    public void SpellCastingSystem_LoadSavedSpell_InvalidIndex_ReturnsFalse()
+    {
+        var system = new SpellCastingSystem();
+        var player = CreateTestPlayer();
+        Assert.False(system.LoadSavedSpell(0, player));
+        Assert.False(system.LoadSavedSpell(-1, player));
+    }
+
+    [Fact]
+    public void SpellCastingSystem_LoadSavedSpell_ClearsExistingIncantation()
+    {
+        var system = new SpellCastingSystem();
+        var player = CreateTestPlayer();
+        player.LearnWord("brenna");
+        player.LearnWord("fjandi");
+        player.LearnWord("graeda");
+
+        // Save a spell
+        system.AddWord("brenna", player);
+        system.AddWord("fjandi", player);
+        system.SaveCurrentSpell("炎の矢", player);
+        system.CancelCasting();
+
+        // Build a different incantation
+        system.AddWord("graeda", player);
+        system.AddWord("fjandi", player);
+        Assert.Equal(2, system.CurrentIncantation.Count);
+
+        // Load the saved spell - should replace
+        bool loaded = system.LoadSavedSpell(0, player);
+        Assert.True(loaded);
+        Assert.Equal("brenna", system.CurrentIncantation[0]);
+        Assert.Equal("fjandi", system.CurrentIncantation[1]);
+    }
+
+    [Fact]
+    public void SpellCastingSystem_LoadSavedSpell_ThenCast_Works()
+    {
+        var system = new SpellCastingSystem();
+        var player = CreateTestPlayer();
+        player.LearnWord("brenna");
+        player.LearnWord("fjandi");
+
+        // Save
+        system.AddWord("brenna", player);
+        system.AddWord("fjandi", player);
+        system.SaveCurrentSpell("炎の矢", player);
+        system.CancelCasting();
+
+        // Load and cast
+        system.LoadSavedSpell(0, player);
+        var random = new TestRandomProvider(0.01);
+        var result = system.Cast(player, random);
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public void SpellCastingSystem_SaveMultipleSpells_AllAccessible()
+    {
+        var system = new SpellCastingSystem();
+        var player = CreateTestPlayer();
+        player.LearnWord("brenna");
+        player.LearnWord("fjandi");
+        player.LearnWord("graeda");
+
+        system.AddWord("brenna", player);
+        system.AddWord("fjandi", player);
+        system.SaveCurrentSpell("炎の矢", player);
+        system.CancelCasting();
+
+        system.AddWord("graeda", player);
+        system.AddWord("fjandi", player);
+        system.SaveCurrentSpell("回復", player);
+        system.CancelCasting();
+
+        Assert.Equal(2, system.SavedSpells.Count);
+        Assert.Equal("炎の矢", system.SavedSpells[0].Name);
+        Assert.Equal("回復", system.SavedSpells[1].Name);
+    }
+
+    #endregion
 }

@@ -233,6 +233,7 @@ public enum StatusEffectType
     Madness,        // 狂気（敵味方無差別攻撃）
     Petrification,  // 石化（完全行動不能、防御力大幅上昇）
     InstantDeath,   // 即死（HPを0にする）
+    Stun,           // スタン（一定ターン行動不可）
 
     // 特殊
     Apostasy,   // 背教
@@ -836,6 +837,23 @@ public enum SkillNodeType
     StatMajor,
     /// <summary>キーストーン（強力だがデメリット付き）</summary>
     Keystone
+}
+
+/// <summary>
+/// スキルツリータブ分類（PoE風5タブ）
+/// </summary>
+public enum SkillTreeTab
+{
+    /// <summary>種族タブ</summary>
+    Race,
+    /// <summary>職業タブ</summary>
+    Class,
+    /// <summary>素性タブ</summary>
+    Background,
+    /// <summary>武器タブ</summary>
+    Weapon,
+    /// <summary>魔法タブ</summary>
+    Magic
 }
 
 /// <summary>
