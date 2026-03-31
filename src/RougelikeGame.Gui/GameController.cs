@@ -80,6 +80,9 @@ public class GameController
     /// <summary>現在の環境音タイプ</summary>
     private AmbientSoundType _currentAmbientSound = AmbientSoundType.Silence;
 
+    /// <summary>地表面状態マップ（EnvironmentalCombatSystem）- 座標→地表面タイプ</summary>
+    private readonly Dictionary<Position, EnvironmentalCombatSystem.SurfaceType> _surfaceMap = new();
+
     /// <summary>プレイヤーの現在の戦闘スタンス</summary>
     private CombatStance _playerStance = CombatStance.Balanced;
 
@@ -1245,6 +1248,16 @@ public class GameController
             HandleDebugTile(tile, newPos);
         }
 
+        // 地表面による移動コスト補正（EnvironmentalCombatSystem）
+        if (_surfaceMap.TryGetValue(newPos, out var moveSurface))
+        {
+            float moveMod = EnvironmentalCombatSystem.GetMovementModifier(moveSurface);
+            if (moveMod > 1.0f)
+            {
+                _lastMoveActionCost = (int)(_lastMoveActionCost * moveMod);
+            }
+        }
+
         return true;
     }
 
@@ -1928,6 +1941,37 @@ public class GameController
         _skillSystem.TickCooldowns();
 
         // === GUI統合: ターン毎システム処理 ===
+
+        // 地表面ダメージ（EnvironmentalCombatSystem）
+        if (_surfaceMap.TryGetValue(Player.Position, out var playerSurface))
+        {
+            int surfaceDmg = EnvironmentalCombatSystem.GetSurfaceDamage(playerSurface);
+            if (surfaceDmg > 0)
+            {
+                Player.TakeDamage(Damage.Pure(surfaceDmg));
+                AddMessage($"🔥 {playerSurface}の地表面で{surfaceDmg}ダメージ！");
+                if (!Player.IsAlive)
+                {
+                    HandlePlayerDeath(DeathCause.Trap);
+                    return;
+                }
+            }
+        }
+
+        // 地表面の持続ターン経過処理（EnvironmentalCombatSystem）
+        var expiredSurfaces = new List<Position>();
+        foreach (var kvp in _surfaceMap)
+        {
+            int duration = EnvironmentalCombatSystem.GetSurfaceDuration(kvp.Value);
+            if (duration < 999 && TurnCount % duration == 0)
+            {
+                expiredSurfaces.Add(kvp.Key);
+            }
+        }
+        foreach (var pos in expiredSurfaces)
+        {
+            _surfaceMap.Remove(pos);
+        }
 
         // 時間帯による視界範囲変動（TimeOfDaySystem）
         var currentTimePeriod = TimeOfDaySystem.GetTimePeriod(GameTime.Hour);
@@ -3798,8 +3842,10 @@ public class GameController
                 var target = GetNearestEnemy();
                 if (target != null)
                 {
-                    target.TakeDamage(Damage.Magical(damage, effect.Element));
-                    AddMessage($"{target.Name}に{damage}の{effect.Element}ダメージ！");
+                    // 地表面×属性魔法の相互作用（EnvironmentalCombatSystem）
+                    int finalDamage = ApplyEnvironmentalInteraction(target.Position, effect.Element, damage);
+                    target.TakeDamage(Damage.Magical(finalDamage, effect.Element));
+                    AddMessage($"{target.Name}に{finalDamage}の{effect.Element}ダメージ！");
                     CheckEnemyDeath(target);
                 }
                 else
@@ -3812,8 +3858,10 @@ public class GameController
                 var targets = GetEnemiesInRange(effect.Range);
                 foreach (var enemy in targets)
                 {
-                    enemy.TakeDamage(Damage.Magical(damage, effect.Element));
-                    AddMessage($"{enemy.Name}に{damage}の{effect.Element}ダメージ！");
+                    // 地表面×属性魔法の相互作用（EnvironmentalCombatSystem）
+                    int areaDamage = ApplyEnvironmentalInteraction(enemy.Position, effect.Element, damage);
+                    enemy.TakeDamage(Damage.Magical(areaDamage, effect.Element));
+                    AddMessage($"{enemy.Name}に{areaDamage}の{effect.Element}ダメージ！");
                     CheckEnemyDeath(enemy);
                 }
                 if (targets.Count == 0)
@@ -6577,6 +6625,39 @@ public class GameController
 
     /// <summary>プレイヤーの向きを取得</summary>
     public Direction PlayerFacing => _playerFacing;
+
+    /// <summary>地表面×属性魔法の相互作用を適用し、修正後ダメージを返す（EnvironmentalCombatSystem）</summary>
+    private int ApplyEnvironmentalInteraction(Position targetPos, Element element, int baseDamage)
+    {
+        var currentSurface = _surfaceMap.TryGetValue(targetPos, out var s)
+            ? s
+            : EnvironmentalCombatSystem.SurfaceType.Normal;
+
+        var interaction = EnvironmentalCombatSystem.GetInteraction(currentSurface, element);
+        if (interaction == null)
+            return baseDamage;
+
+        // 地表面を変化させる
+        if (interaction.ResultSurface != EnvironmentalCombatSystem.SurfaceType.Normal)
+        {
+            _surfaceMap[targetPos] = interaction.ResultSurface;
+        }
+        else
+        {
+            _surfaceMap.Remove(targetPos);
+        }
+
+        AddMessage($"🌊 {interaction.Description}");
+        return Math.Max(1, (int)(baseDamage * interaction.DamageMultiplier));
+    }
+
+    /// <summary>指定位置の地表面タイプを取得</summary>
+    public EnvironmentalCombatSystem.SurfaceType GetSurfaceAt(Position pos)
+    {
+        return _surfaceMap.TryGetValue(pos, out var surface)
+            ? surface
+            : EnvironmentalCombatSystem.SurfaceType.Normal;
+    }
 
     #endregion
 }
