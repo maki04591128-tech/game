@@ -67,6 +67,19 @@ public class GameController
     private readonly SmithingSystem _smithingSystem = new();
     private readonly AchievementSystem _achievementSystem = new();
 
+    // === 未反映システム統合 ===
+    private readonly MultiSlotSaveSystem _multiSlotSaveSystem = new();
+    private readonly ModLoaderSystem _modLoaderSystem = new();
+
+    /// <summary>プレイヤーの向き（攻撃方向判定用）</summary>
+    private Direction _playerFacing = Direction.South;
+
+    /// <summary>現在のダンジョン特徴タイプ</summary>
+    private DungeonFeatureType? _currentDungeonFeature;
+
+    /// <summary>現在の環境音タイプ</summary>
+    private AmbientSoundType _currentAmbientSound = AmbientSoundType.Silence;
+
     /// <summary>プレイヤーの現在の戦闘スタンス</summary>
     private CombatStance _playerStance = CombatStance.Balanced;
 
@@ -289,8 +302,22 @@ public class GameController
         var startTerritory = StartingMapResolver.GetStartingTerritory(_currentMapName);
         _worldMapSystem.SetTerritory(startTerritory);
 
+        // キャラクター作成定義を取得（CharacterCreation）
+        var raceDef = RaceDefinition.Get(race);
+        var classDef = ClassDefinition.Get(characterClass);
+        var bgDef = BackgroundDefinition.Get(background);
+
         // プレイヤー作成
         Player = Player.Create(playerName, race, characterClass, background);
+
+        // CharacterCreation定義に基づく初期ゴールド補正
+        if (bgDef.StartingGold > 0)
+        {
+            Player.AddGold(bgDef.StartingGold);
+        }
+
+        // 環境音を初期化（AmbientSoundSystem）
+        _currentAmbientSound = AmbientSoundSystem.GetAmbientForTerritory(startTerritory);
 
         // プレイヤーイベント購読
         SubscribePlayerEvents();
@@ -569,6 +596,14 @@ public class GameController
 
     private void GenerateFloor()
     {
+        // ダンジョン特徴を決定（DungeonFeatureGenerator）
+        var territory = _worldMapSystem.GetCurrentTerritoryInfo().Id;
+        _currentDungeonFeature = DungeonFeatureGenerator.SelectFeatureForTerritory(territory, CurrentFloor, _random);
+
+        // 環境音を更新（AmbientSoundSystem）
+        bool isBossFloor = CurrentFloor % GameConstants.BossFloorInterval == 0;
+        _currentAmbientSound = AmbientSoundSystem.GetAmbientForDungeon(CurrentFloor, isBossFloor);
+
         // フロアキャッシュ確認（有効期限内ならマップ構造を再利用）
         var floorKey = (_currentMapName, CurrentFloor);
         if (_floorCache.TryGetValue(floorKey, out var cached)
@@ -593,13 +628,18 @@ public class GameController
             return;
         }
 
+        // ダンジョン特徴パラメータを適用
+        float featureTrapDensity = _currentDungeonFeature.HasValue
+            ? DungeonFeatureGenerator.GetTrapChance(_currentDungeonFeature.Value)
+            : 0.005f * CurrentFloor;
+
         var parameters = new DungeonGenerationParameters
         {
             Width = 60,
             Height = 30,
             Depth = CurrentFloor,
             RoomCount = 6 + CurrentFloor,
-            TrapDensity = 0.005f * CurrentFloor
+            TrapDensity = featureTrapDensity
         };
 
         var generator = new DungeonGenerator();
@@ -629,6 +669,13 @@ public class GameController
     {
         var definitions = EnemyDefinitions.GetEnemiesForDepth(CurrentFloor);
         int enemyCount = 4 + CurrentFloor * 2;
+
+        // ダンジョン特徴によるエネミー密度修正（DungeonFeatureGenerator）
+        if (_currentDungeonFeature.HasValue)
+        {
+            int featureDensity = DungeonFeatureGenerator.GetEnemyDensity(_currentDungeonFeature.Value);
+            enemyCount = Math.Max(enemyCount, featureDensity + CurrentFloor);
+        }
 
         // ボスフロアは敵が少し多い
         if (CurrentFloor % GameConstants.BossFloorInterval == 0)
@@ -792,30 +839,35 @@ public class GameController
             case GameAction.MoveUp:
                 newPos = new Position(Player.Position.X, Player.Position.Y - 1);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.North;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveDown:
                 newPos = new Position(Player.Position.X, Player.Position.Y + 1);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.South;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveLeft:
                 newPos = new Position(Player.Position.X - 1, Player.Position.Y);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.West;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveRight:
                 newPos = new Position(Player.Position.X + 1, Player.Position.Y);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.East;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveUpLeft:
                 newPos = new Position(Player.Position.X - 1, Player.Position.Y - 1);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.NorthWest;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
@@ -823,6 +875,7 @@ public class GameController
             case GameAction.MoveUpRight:
                 newPos = new Position(Player.Position.X + 1, Player.Position.Y - 1);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.NorthEast;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
@@ -830,6 +883,7 @@ public class GameController
             case GameAction.MoveDownLeft:
                 newPos = new Position(Player.Position.X - 1, Player.Position.Y + 1);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.SouthWest;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
@@ -837,6 +891,7 @@ public class GameController
             case GameAction.MoveDownRight:
                 newPos = new Position(Player.Position.X + 1, Player.Position.Y + 1);
                 _lastMoveActionCost = TurnCosts.MoveNormal;
+                _playerFacing = Direction.SouthEast;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
@@ -1227,6 +1282,12 @@ public class GameController
         // 処刑判定（ExecutionSystem）
         bool canExecute = !enemy.IsAlive ? false : ExecutionSystem.CanExecute(enemy.CurrentHp, enemy.MaxHp);
 
+        // 攻撃方向ボーナス（DirectionSystem）
+        // プレイヤーの向きから攻撃方向（正面/側面/背面）を判定
+        var enemyFacing = DirectionSystem.GetFacingFromMovement(GetDirectionToTarget(enemy.Position, Player.Position));
+        var attackDir = DirectionSystem.DetermineAttackDirection(_playerFacing, enemyFacing);
+        var dirBonus = DirectionSystem.GetDirectionBonus(attackDir);
+
         // 武器耐久度消耗（DurabilitySystem）
         if (Player.Equipment.MainHand != null)
         {
@@ -1249,7 +1310,8 @@ public class GameController
 
             int bonusDmg = (int)(baseDmg * (stanceAttackMod - 1.0f)) + weaponDamageBonus;
             int elementalBonusDmg = (int)(baseDmg * (elementalMult - 1.0f));
-            int totalBonus = bonusDmg + elementalBonusDmg;
+            int directionBonusDmg = (int)(baseDmg * (dirBonus.DamageModifier - 1.0f));
+            int totalBonus = bonusDmg + elementalBonusDmg + directionBonusDmg;
 
             if (totalBonus > 0)
             {
@@ -1258,7 +1320,8 @@ public class GameController
 
             var critStr = result.IsCritical ? " クリティカル！" : "";
             var bonusStr = totalBonus > 0 ? $"(+{totalBonus})" : "";
-            AddMessage($"{enemy.Name}に{baseDmg + totalBonus}ダメージ！{critStr}{bonusStr}");
+            var dirStr = attackDir == AttackDirection.Back ? " 背面攻撃！" : attackDir == AttackDirection.Side ? " 側面攻撃！" : "";
+            AddMessage($"{enemy.Name}に{baseDmg + totalBonus}ダメージ！{critStr}{dirStr}{bonusStr}");
 
             // 処刑チャンス
             if (canExecute && enemy.IsAlive)
@@ -1309,6 +1372,17 @@ public class GameController
     {
         // ドロップ率: 基本25%、階層が深いほどやや上昇
         int dropChance = 25 + CurrentFloor * 2;
+
+        // ダンジョン特徴によるルート倍率（DungeonFeatureGenerator）
+        if (_currentDungeonFeature.HasValue)
+        {
+            float lootMult = DungeonFeatureGenerator.GetLootMultiplier(_currentDungeonFeature.Value);
+            dropChance = (int)(dropChance * lootMult);
+        }
+
+        // ミミック撃破ボーナス（MimicSystem）
+        float mimicReward = MimicSystem.GetMimicRewardMultiplier();
+
         if (_random.Next(100) < dropChance)
         {
             var item = _itemFactory.GenerateEnemyDropItem(CurrentFloor, enemy.Race);
@@ -1533,6 +1607,11 @@ public class GameController
         // プレイヤーのスタンス防御修飾（CombatStanceSystem）
         float stanceDefMod = CombatStanceSystem.GetDefenseModifier(_playerStance);
 
+        // 攻撃方向判定（DirectionSystem）- 敵→プレイヤーへの方向
+        var enemyAttackDir = DirectionSystem.GetFacingFromMovement(GetDirectionToTarget(enemy.Position, Player.Position));
+        var defenseDir = DirectionSystem.DetermineAttackDirection(enemyAttackDir, _playerFacing);
+        var defDirBonus = DirectionSystem.GetDirectionBonus(defenseDir);
+
         if (result.IsHit)
         {
             // 防御修飾によるダメージ軽減
@@ -1546,7 +1625,8 @@ public class GameController
             }
             baseDmg = Math.Max(1, (int)(baseDmg * enemyStatusAttackMult));
 
-            int modifiedDmg = Math.Max(1, (int)(baseDmg * activityMult / stanceDefMod));
+            // 攻撃方向ダメージ修正（背面攻撃でダメージ増加）
+            int modifiedDmg = Math.Max(1, (int)(baseDmg * activityMult * defDirBonus.DamageModifier / stanceDefMod));
 
             // 防具耐久度消耗（DurabilitySystem）
             var bodyArmor = Player.Equipment[EquipmentSlot.Body];
@@ -1557,7 +1637,8 @@ public class GameController
             }
 
             var critStr = result.IsCritical ? " クリティカル！" : "";
-            AddMessage($"{enemy.Name}の攻撃！{modifiedDmg}ダメージ！{critStr}");
+            var dirWarnStr = defenseDir == AttackDirection.Back ? " 背面を取られた！" : "";
+            AddMessage($"{enemy.Name}の攻撃！{modifiedDmg}ダメージ！{critStr}{dirWarnStr}");
             _lastDamageCause = DeathCause.Combat;
 
             // === 敵種族に基づく状態異常付与 ===
@@ -2013,6 +2094,35 @@ public class GameController
         var itemOnGround = GroundItems.FirstOrDefault(i => i.Position == Player.Position);
         if (itemOnGround.Item != null)
         {
+            // ミミック判定（MimicSystem）- ダンジョン内でのみ発生
+            if (!_worldMapSystem.IsOnSurface && !_isInLocationMap)
+            {
+                float mimicRate = MimicSystem.CalculateMimicSpawnRate(CurrentFloor);
+                if (_random.NextDouble() < mimicRate)
+                {
+                    float detectionRate = MimicSystem.CalculateDetectionRate(
+                        Player.EffectiveStats.Perception, Player.Sanity, false);
+                    if (_random.NextDouble() >= detectionRate)
+                    {
+                        // ミミック発見失敗 → 奇襲攻撃
+                        var grade = itemOnGround.Item.Grade;
+                        float mimicMult = MimicSystem.GetMimicStrengthMultiplier(grade);
+                        int mimicDmg = Math.Max(1, (int)(5 + CurrentFloor * 2 * mimicMult));
+                        Player.TakeDamage(Damage.Physical(mimicDmg));
+                        GroundItems.Remove(itemOnGround);
+                        AddMessage($"⚠ ミミックだ！ {itemOnGround.Item.GetDisplayName()}に擬態していた！ {mimicDmg}ダメージ！");
+                        _lastDamageCause = DeathCause.Trap;
+                        return true; // ターン消費
+                    }
+                    else
+                    {
+                        AddMessage($"👁 {itemOnGround.Item.GetDisplayName()}がミミックだと見抜いた！");
+                        GroundItems.Remove(itemOnGround);
+                        return true; // ターン消費
+                    }
+                }
+            }
+
             // 重量チェック
             var inventory = (Inventory)Player.Inventory;
             float itemWeight = itemOnGround.Item.Weight;
@@ -2122,7 +2232,9 @@ public class GameController
                 _currentMapName = location.Id;
                 CurrentFloor = 1;
                 GenerateFloor();
-                AddMessage($"【{location.Name}】─ ダンジョン第{CurrentFloor}層に足を踏み入れた...");
+                var featureName = GetCurrentDungeonFeatureName();
+                var featureStr = !string.IsNullOrEmpty(featureName) ? $"（{featureName}）" : "";
+                AddMessage($"【{location.Name}】─ ダンジョン第{CurrentFloor}層に足を踏み入れた...{featureStr}");
                 OnSymbolMapEnterDungeon?.Invoke(location);
                 OnStateChanged?.Invoke();
                 return true;
@@ -2199,7 +2311,12 @@ public class GameController
             // 1層目の上り階段 → シンボルマップに帰還
             AddMessage("ダンジョンから脱出した！ 地上に帰還する...");
             _worldMapSystem.IsOnSurface = true;
+            _currentDungeonFeature = null;
             GenerateSymbolMap();
+
+            // 環境音を地上用に更新（AmbientSoundSystem）
+            var currentTerritory = _worldMapSystem.GetCurrentTerritoryInfo().Id;
+            _currentAmbientSound = AmbientSoundSystem.GetAmbientForTerritory(currentTerritory);
 
             // ダンジョン入口位置にプレイヤーを配置
             var dungeonPos = _symbolMapSystem.FindLocationPosition(_currentMapName);
@@ -6414,6 +6531,55 @@ public class GameController
         };
         return StatFlagSystem.EvaluateAll(stats);
     }
+
+    #endregion
+
+    #region ヘルパーメソッド（システム統合用）
+
+    /// <summary>位置Aから位置Bへの方向を計算</summary>
+    private static Direction GetDirectionToTarget(Position from, Position to)
+    {
+        int dx = to.X - from.X;
+        int dy = to.Y - from.Y;
+
+        if (dx == 0 && dy < 0) return Direction.North;
+        if (dx == 0 && dy > 0) return Direction.South;
+        if (dx > 0 && dy == 0) return Direction.East;
+        if (dx < 0 && dy == 0) return Direction.West;
+        if (dx > 0 && dy < 0) return Direction.NorthEast;
+        if (dx < 0 && dy < 0) return Direction.NorthWest;
+        if (dx > 0 && dy > 0) return Direction.SouthEast;
+        return Direction.SouthWest;
+    }
+
+    /// <summary>現在のダンジョン特徴名を取得</summary>
+    public string GetCurrentDungeonFeatureName()
+    {
+        return _currentDungeonFeature.HasValue
+            ? DungeonFeatureGenerator.GetFeatureName(_currentDungeonFeature.Value)
+            : "";
+    }
+
+    /// <summary>現在の環境音情報を取得</summary>
+    public AmbientSoundSystem.AmbientSoundEvent GetCurrentAmbientSound()
+    {
+        return AmbientSoundSystem.CreateEvent(_currentAmbientSound);
+    }
+
+    /// <summary>セーブスロット一覧を取得</summary>
+    public IReadOnlyList<MultiSlotSaveSystem.SaveSlotInfo> GetSaveSlots() => _multiSlotSaveSystem.GetAllSlots();
+
+    /// <summary>指定スロットにセーブ</summary>
+    public bool SaveToSlot(int slotNumber)
+    {
+        var location = _worldMapSystem.IsOnSurface
+            ? _worldMapSystem.GetCurrentTerritoryInfo().Name
+            : $"{_currentMapName} B{CurrentFloor}F";
+        return _multiSlotSaveSystem.SaveToSlot(slotNumber, Player.Name, Player.Level, location);
+    }
+
+    /// <summary>プレイヤーの向きを取得</summary>
+    public Direction PlayerFacing => _playerFacing;
 
     #endregion
 }
