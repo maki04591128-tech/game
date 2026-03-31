@@ -1495,6 +1495,9 @@ public class GameController
             var critStr = result.IsCritical ? " クリティカル！" : "";
             AddMessage($"{enemy.Name}の攻撃！{modifiedDmg}ダメージ！{critStr}");
             _lastDamageCause = DeathCause.Combat;
+
+            // === 敵種族に基づく状態異常付与 ===
+            TryApplyEnemyStatusEffect(enemy);
         }
         else
         {
@@ -1509,6 +1512,78 @@ public class GameController
                 AddMessage($"{enemy.Name}の攻撃は外れた");
             }
         }
+    }
+
+    /// <summary>
+    /// 敵種族に基づく状態異常付与（攻撃命中時に確率で発動）
+    /// </summary>
+    private void TryApplyEnemyStatusEffect(Enemy enemy)
+    {
+        // 基礎確率15%（種族特性による状態異常付与）
+        if (_random.NextDouble() >= 0.15) return;
+
+        // 種族ごとの状態異常（一部種族はランダムで複数パターン）
+        StatusEffectType? effectType = enemy.Race switch
+        {
+            MonsterRace.Insect => StatusEffectType.Poison,          // 昆虫: 毒攻撃
+            MonsterRace.Undead => StatusEffectType.Weakness,         // 不死: 衰弱
+            MonsterRace.Demon => _random.NextDouble() < 0.9
+                ? StatusEffectType.Curse                             // 悪魔: 呪い（90%）
+                : StatusEffectType.InstantDeath,                     // 悪魔: 即死（10%）
+            MonsterRace.Dragon => _random.NextDouble() < 0.5
+                ? StatusEffectType.Burn                              // 竜: 火傷（50%）
+                : StatusEffectType.Freeze,                           // 竜: 凍結（50%）
+            MonsterRace.Plant => StatusEffectType.Paralysis,         // 植物: 麻痺（毒胞子）
+            MonsterRace.Spirit => _random.NextDouble() < 0.7
+                ? StatusEffectType.Blind                             // 精霊: 盲目（70%）
+                : StatusEffectType.Madness,                          // 精霊: 狂気（30%）
+            MonsterRace.Amorphous => StatusEffectType.Slow,          // 不定形: 減速（粘液）
+            MonsterRace.Beast => StatusEffectType.Bleeding,          // 獣: 出血（爪傷）
+            MonsterRace.Construct => _random.NextDouble() < 0.7
+                ? StatusEffectType.Vulnerability                     // 構造体: 脆弱化（70%）
+                : StatusEffectType.Petrification,                    // 構造体: 石化（30%）
+            _ => null
+        };
+
+        if (effectType == null) return;
+
+        // 毒無効種族チェック
+        if (effectType == StatusEffectType.Poison && RacialTraitSystem.IsPoisonImmune(Player.Race))
+        {
+            AddMessage("毒無効の体質により毒を受け付けなかった！");
+            return;
+        }
+
+        // 即死は耐性判定を追加（LUK依存で回避可能）
+        if (effectType == StatusEffectType.InstantDeath)
+        {
+            if (_random.NextDouble() < Player.EffectiveStats.Luck * 0.05)
+            {
+                AddMessage("⚡ 即死攻撃を運良く回避した！");
+                return;
+            }
+        }
+
+        int duration = effectType.Value switch
+        {
+            StatusEffectType.Poison => 10,
+            StatusEffectType.Bleeding => 8,
+            StatusEffectType.Burn => 5,
+            StatusEffectType.Freeze => 3,
+            StatusEffectType.Curse => int.MaxValue,
+            StatusEffectType.Weakness => 15,
+            StatusEffectType.Paralysis => 5,
+            StatusEffectType.Blind => 8,
+            StatusEffectType.Slow => 10,
+            StatusEffectType.Vulnerability => 10,
+            StatusEffectType.Madness => 10,
+            StatusEffectType.Petrification => 3,
+            StatusEffectType.InstantDeath => 1,
+            _ => 5
+        };
+
+        Player.ApplyStatusEffect(new StatusEffect(effectType.Value, duration));
+        AddMessage($"⚠ {enemy.Name}の攻撃で{effectType.Value}状態になった！");
     }
 
     private void MoveEnemyTowardsPlayer(Enemy enemy)
@@ -3585,19 +3660,47 @@ public class GameController
     /// <summary>魔法強化の適用</summary>
     private void ApplySpellBuff(SpellEffect effect)
     {
-        string buffType = effect.Type switch
+        int duration = Math.Max(effect.Duration, 10);
+        switch (effect.Type)
         {
-            SpellEffectType.Buff => "能力強化",
-            SpellEffectType.Speed => "加速",
-            SpellEffectType.Blessing => "祝福",
-            _ => "強化"
-        };
-        AddMessage($"{buffType}の魔法が発動した（{effect.Duration}ターン）");
+            case SpellEffectType.Speed:
+                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Haste, duration)
+                {
+                    Name = "加速",
+                    TurnCostModifier = 0.75f
+                });
+                AddMessage($"加速の魔法が発動した（{duration}ターン）");
+                break;
+            case SpellEffectType.Blessing:
+                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Blessing, duration)
+                {
+                    Name = "祝福",
+                    AllStatsMultiplier = 1.10f
+                });
+                AddMessage($"祝福の魔法が発動した（{duration}ターン）");
+                break;
+            case SpellEffectType.Buff:
+            default:
+                // Buff魔法は攻撃力・防御力を同時に強化
+                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Strength, duration)
+                {
+                    Name = "強化",
+                    AttackMultiplier = 1.25f
+                });
+                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Protection, duration)
+                {
+                    Name = "防護",
+                    DefenseMultiplier = 1.50f
+                });
+                AddMessage($"能力強化の魔法が発動した（{duration}ターン）");
+                break;
+        }
     }
 
     /// <summary>魔法制御の適用</summary>
     private void ApplySpellControl(SpellEffect effect)
     {
+        int duration = Math.Max(effect.Duration, 5);
         switch (effect.TargetType)
         {
             case SpellTargetType.SingleEnemy:
@@ -3605,7 +3708,15 @@ public class GameController
                 var target = GetNearestEnemy();
                 if (target != null)
                 {
-                    AddMessage($"{target.Name}に制御魔法が効いた");
+                    // 制御魔法は魅了・減速・恐怖のいずれかを付与
+                    var controlEffect = _random.Next(3) switch
+                    {
+                        0 => new StatusEffect(StatusEffectType.Charm, duration) { Name = "魅了" },
+                        1 => new StatusEffect(StatusEffectType.Slow, duration) { Name = "減速", TurnCostModifier = 1.50f },
+                        _ => new StatusEffect(StatusEffectType.Fear, duration) { Name = "恐怖" }
+                    };
+                    target.ApplyStatusEffect(controlEffect);
+                    AddMessage($"{target.Name}に{controlEffect.Name}が効いた（{duration}ターン）");
                 }
                 else
                 {
@@ -3614,7 +3725,15 @@ public class GameController
                 break;
             case SpellTargetType.AllEnemies:
                 var targets = GetEnemiesInRange(effect.Range);
-                AddMessage($"{targets.Count}体の敵に制御魔法が効いた");
+                foreach (var e in targets)
+                {
+                    e.ApplyStatusEffect(new StatusEffect(StatusEffectType.Slow, duration)
+                    {
+                        Name = "減速",
+                        TurnCostModifier = 1.50f
+                    });
+                }
+                AddMessage($"{targets.Count}体の敵に減速が効いた（{duration}ターン）");
                 break;
             default:
                 AddMessage("制御の魔法が発動した");
@@ -3925,6 +4044,12 @@ public class GameController
 
         if (result.Success)
         {
+            // 背教状態を付与
+            Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Apostasy, 100)
+            {
+                Name = "背教",
+                AllStatsMultiplier = 0.90f  // 全ステータス-10%
+            });
             OnReligionChanged?.Invoke();
         }
 
