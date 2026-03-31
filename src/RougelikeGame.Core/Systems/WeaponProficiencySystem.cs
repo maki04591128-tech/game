@@ -102,7 +102,7 @@ public static class WeaponProficiencySystem
 
     /// <summary>
     /// 武器種の攻撃タイプに基づく状態異常を取得
-    /// 斬撃→出血、刺突→出血（深傷）、打撃→麻痺、射撃→出血
+    /// 斬撃→出血、刺突→出血（深傷）、打撃→スタン、射撃→出血
     /// </summary>
     public static StatusEffectType GetWeaponStatusEffect(WeaponType weaponType)
     {
@@ -111,7 +111,7 @@ public static class WeaponProficiencySystem
         {
             AttackType.Slash => StatusEffectType.Bleeding,     // 斬撃: 出血
             AttackType.Pierce => StatusEffectType.Bleeding,    // 刺突: 出血（深傷）
-            AttackType.Blunt => StatusEffectType.Paralysis,    // 打撃: 麻痺（衝撃）
+            AttackType.Blunt => StatusEffectType.Stun,         // 打撃: スタン（衝撃）
             AttackType.Ranged => StatusEffectType.Bleeding,    // 射撃: 出血（矢傷）
             _ => StatusEffectType.Weakness                     // その他: 衰弱
         };

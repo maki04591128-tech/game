@@ -233,6 +233,7 @@ public enum StatusEffectType
     Madness,        // 狂気（敵味方無差別攻撃）
     Petrification,  // 石化（完全行動不能、防御力大幅上昇）
     InstantDeath,   // 即死（HPを0にする）
+    Stun,           // スタン（一定ターン行動不可）
 
     // 特殊
     Apostasy,   // 背教

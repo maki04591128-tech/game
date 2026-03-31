@@ -1587,6 +1587,7 @@ public class GameController
             StatusEffectType.Curse => int.MaxValue,
             StatusEffectType.Weakness => 15,
             StatusEffectType.Paralysis => 5,
+            StatusEffectType.Stun => 3,
             StatusEffectType.Blind => 8,
             StatusEffectType.Slow => 10,
             StatusEffectType.Vulnerability => 10,
@@ -3663,7 +3664,7 @@ public class GameController
         var negativeEffects = Player.StatusEffects
             .Where(e => e.Type is StatusEffectType.Poison or StatusEffectType.Burn
                 or StatusEffectType.Freeze or StatusEffectType.Paralysis
-                or StatusEffectType.Blind or StatusEffectType.Confusion)
+                or StatusEffectType.Stun or StatusEffectType.Blind or StatusEffectType.Confusion)
             .ToList();
 
         if (negativeEffects.Count > 0)
@@ -3904,7 +3905,7 @@ public class GameController
         var negativeEffects = Player.StatusEffects
             .Where(e => e.Type is StatusEffectType.Poison or StatusEffectType.Burn
                 or StatusEffectType.Freeze or StatusEffectType.Paralysis
-                or StatusEffectType.Blind or StatusEffectType.Confusion
+                or StatusEffectType.Stun or StatusEffectType.Blind or StatusEffectType.Confusion
                 or StatusEffectType.Slow or StatusEffectType.Weakness
                 or StatusEffectType.Vulnerability or StatusEffectType.Silence
                 or StatusEffectType.Curse)
@@ -3971,7 +3972,7 @@ public class GameController
         var negativeEffects = Player.StatusEffects
             .Where(e => e.Type is StatusEffectType.Poison or StatusEffectType.Burn
                 or StatusEffectType.Freeze or StatusEffectType.Paralysis
-                or StatusEffectType.Blind or StatusEffectType.Confusion
+                or StatusEffectType.Stun or StatusEffectType.Blind or StatusEffectType.Confusion
                 or StatusEffectType.Curse)
             .ToList();
         foreach (var neg in negativeEffects)

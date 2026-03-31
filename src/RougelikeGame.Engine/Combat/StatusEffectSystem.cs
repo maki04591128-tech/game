@@ -87,13 +87,27 @@ public class StatusEffectSystem
     }
 
     /// <summary>
-    /// 麻痺状態を生成（50%の確率で行動失敗）
+    /// 麻痺状態を生成（攻撃力低下-30%、行動ターンコスト+50%）
     /// </summary>
     public StatusEffect CreateParalysis(int duration = 8)
     {
         return new StatusEffect(StatusEffectType.Paralysis, duration)
         {
-            Name = "麻痺"
+            Name = "麻痺",
+            AttackMultiplier = 0.7f,       // 攻撃力30%低下
+            TurnCostModifier = 1.5f        // 行動ターンコスト50%増加
+        };
+    }
+
+    /// <summary>
+    /// スタン状態を生成（一定ターン行動不可）
+    /// </summary>
+    public StatusEffect CreateStun(int duration = 3)
+    {
+        return new StatusEffect(StatusEffectType.Stun, duration)
+        {
+            Name = "スタン",
+            TurnCostModifier = float.MaxValue  // 行動不能
         };
     }
 
@@ -296,6 +310,7 @@ public class StatusEffectSystem
         {
             StatusEffectType.Poison => param.Vitality * 0.015,
             StatusEffectType.Paralysis => param.Vitality * 0.01,
+            StatusEffectType.Stun => param.Vitality * 0.01,
             StatusEffectType.Burn => param.Vitality * 0.005,
             StatusEffectType.Freeze => param.Vitality * 0.005,
             StatusEffectType.Confusion => param.Mind * 0.02,
