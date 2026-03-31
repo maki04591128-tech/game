@@ -1383,7 +1383,29 @@ public class GameController
     /// </summary>
     private void TryDropItem(Enemy enemy)
     {
-        // ドロップ率: 基本25%、階層が深いほどやや上昇
+        // DropTableSystemによるアイテム・ゴールド生成
+        if (!string.IsNullOrEmpty(enemy.DropTableId))
+        {
+            var loot = DropTableSystem.GenerateLoot(
+                enemy.DropTableId, CurrentFloor, enemy.Rank, _random, enemy.Race);
+
+            // ゴールド獲得
+            if (loot.Gold > 0)
+            {
+                Player.AddGold(loot.Gold);
+                AddMessage($"💰 {loot.Gold}ゴールドを獲得！");
+            }
+
+            // アイテムドロップ
+            foreach (var item in loot.Items)
+            {
+                GroundItems.Add((item, enemy.Position));
+                AddMessage($"{enemy.Name}が{item.GetDisplayName()}を落とした！");
+            }
+            return;
+        }
+
+        // DropTableIdがない場合のフォールバック: 従来の確率ベースドロップ
         int dropChance = 25 + CurrentFloor * 2;
 
         // ダンジョン特徴によるルート倍率（DungeonFeatureGenerator）
@@ -1473,7 +1495,7 @@ public class GameController
         // 素材収集（HarvestSystem）
         if (HarvestSystem.CanHarvest(enemy.Race))
         {
-            var harvestResult = HarvestSystem.Harvest(enemy.Race, EnemyRank.Common, _random);
+            var harvestResult = HarvestSystem.Harvest(enemy.Race, enemy.Rank, _random);
             if (harvestResult.Materials.Count > 0)
             {
                 AddMessage($"🔪 {harvestResult.Message}");

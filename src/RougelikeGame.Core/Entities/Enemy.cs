@@ -36,6 +36,11 @@ public class Enemy : Character
     public string? DropTableId { get; init; }
 
     /// <summary>
+    /// 敵ランク（Common/Elite/Rare/Boss/HiddenBoss）
+    /// </summary>
+    public EnemyRank Rank { get; init; } = EnemyRank.Common;
+
+    /// <summary>
     /// 視界範囲
     /// </summary>
     public int SightRange { get; init; } = 8;

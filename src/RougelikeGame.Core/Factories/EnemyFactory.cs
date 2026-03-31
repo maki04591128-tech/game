@@ -37,6 +37,7 @@ public class EnemyFactory
             BaseStats = stats,
             ExperienceReward = definition.ExperienceReward,
             DropTableId = definition.DropTableId,
+            Rank = definition.Rank,
             SightRange = definition.SightRange,
             HearingRange = definition.HearingRange,
             GiveUpDistance = definition.GiveUpDistance,
