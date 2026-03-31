@@ -1347,19 +1347,10 @@ public class GameController
 
             if (!enemy.IsAlive)
             {
-                // ゴールドドロップ（人型の敵のみ）
-                int gold = 0;
-                if (enemy.Race == MonsterRace.Humanoid)
-                {
-                    int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
-                    gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
-
-                    // 処刑ボーナス
-                    float executionDropBonus = canExecute ? ExecutionSystem.GetExecutionDropBonus() : 0;
-                    gold = (int)(gold * (1.0f + executionDropBonus));
-
-                    Player.AddGold(gold);
-                }
+                // ゴールドドロップ（人型の敵のみ、Rankボーナス適用）
+                float executionDropBonus = canExecute ? ExecutionSystem.GetExecutionDropBonus() : 0;
+                int gold = CalculateGoldReward(enemy, executionDropBonus);
+                if (gold > 0) Player.AddGold(gold);
 
                 // 経験値（処刑ボーナス込み）
                 float executionExpBonus = canExecute ? ExecutionSystem.GetExecutionExpBonus() : 0;
@@ -1376,6 +1367,20 @@ public class GameController
         {
             AddMessage($"{enemy.Name}への攻撃は外れた");
         }
+    }
+
+    /// <summary>
+    /// 敵撃破時のゴールド報酬を計算（Rankボーナス適用）
+    /// </summary>
+    private int CalculateGoldReward(Enemy enemy, float additionalBonus = 0f)
+    {
+        if (enemy.Race != MonsterRace.Humanoid) return 0;
+        int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
+        double rankMultiplier = BalanceConfig.GetRankGoldMultiplier(enemy.Rank);
+        int gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier * rankMultiplier));
+        if (additionalBonus > 0f)
+            gold = (int)(gold * (1.0f + additionalBonus));
+        return gold;
     }
 
     /// <summary>
@@ -1522,6 +1527,13 @@ public class GameController
         // 実績チェック
         _achievementSystem.Unlock($"kill_{enemy.EnemyTypeId}");
         if (_infiniteDungeonKills >= 100) _achievementSystem.Unlock("infinite_100_kills");
+
+        // ソウルジェムドロップ（Elite以上の敵からランクに応じた品質）
+        if (enemy.Rank >= EnemyRank.Elite && _random.NextDouble() < 0.3)
+        {
+            var gemQuality = EnchantmentSystem.GetSoulGemQualityFromRank(enemy.Rank);
+            AddMessage($"💎 ソウルジェム({gemQuality})を獲得！");
+        }
     }
 
     /// <summary>ゲームクリア処理</summary>
@@ -3125,13 +3137,8 @@ public class GameController
 
             if (!target.IsAlive)
             {
-                int gold = 0;
-                if (target.Race == MonsterRace.Humanoid)
-                {
-                    int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
-                    gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
-                    Player.AddGold(gold);
-                }
+                int gold = CalculateGoldReward(target);
+                if (gold > 0) Player.AddGold(gold);
                 string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
                 AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                 Player.GainExperience(target.ExperienceReward);
@@ -3195,13 +3202,8 @@ public class GameController
 
             if (!target.IsAlive)
             {
-                int gold = 0;
-                if (target.Race == MonsterRace.Humanoid)
-                {
-                    int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
-                    gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier));
-                    Player.AddGold(gold);
-                }
+                int gold = CalculateGoldReward(target);
+                if (gold > 0) Player.AddGold(gold);
                 string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
                 AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                 Player.GainExperience(target.ExperienceReward);
@@ -3405,12 +3407,8 @@ public class GameController
                 AddMessage($"⚔ {skill.Name}！ {target.Name}に{damage}ダメージ！");
                 if (!target.IsAlive)
                 {
-                    int gold = 0;
-                    if (target.Race == MonsterRace.Humanoid)
-                    {
-                        gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
-                        Player.AddGold(gold);
-                    }
+                    int gold = CalculateGoldReward(target);
+                    if (gold > 0) Player.AddGold(gold);
                     string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
                     AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                     Player.GainExperience(target.ExperienceReward);
@@ -3435,12 +3433,8 @@ public class GameController
                     AddMessage($"  {target.Name}に{damage}ダメージ！");
                     if (!target.IsAlive)
                     {
-                        int gold = 0;
-                        if (target.Race == MonsterRace.Humanoid)
-                        {
-                            gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
-                            Player.AddGold(gold);
-                        }
+                        int gold = CalculateGoldReward(target);
+                        if (gold > 0) Player.AddGold(gold);
                         string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
                         AddMessage($"  {target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                         Player.GainExperience(target.ExperienceReward);
@@ -3498,12 +3492,8 @@ public class GameController
                 }
                 if (!target.IsAlive)
                 {
-                    int gold = 0;
-                    if (target.Race == MonsterRace.Humanoid)
-                    {
-                        gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
-                        Player.AddGold(gold);
-                    }
+                    int gold = CalculateGoldReward(target);
+                    if (gold > 0) Player.AddGold(gold);
                     string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
                     AddMessage($"{target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                     Player.GainExperience(target.ExperienceReward);
@@ -3523,12 +3513,8 @@ public class GameController
                     AddMessage($"  {target.Name}に{damage}ダメージ！");
                     if (!target.IsAlive)
                     {
-                        int gold = 0;
-                        if (target.Race == MonsterRace.Humanoid)
-                        {
-                            gold = Math.Max(1, (int)(CurrentFloor * 10 * DifficultyConfig.GoldMultiplier));
-                            Player.AddGold(gold);
-                        }
+                        int gold = CalculateGoldReward(target);
+                        if (gold > 0) Player.AddGold(gold);
                         string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
                         AddMessage($"  {target.Name}を倒した！経験値+{target.ExperienceReward}{goldStr}");
                         Player.GainExperience(target.ExperienceReward);

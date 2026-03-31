@@ -2,6 +2,7 @@ using Xunit;
 using RougelikeGame.Core;
 using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Factories;
+using RougelikeGame.Core.Systems;
 using RougelikeGame.Core.AI;
 using RougelikeGame.Engine.Combat;
 
@@ -331,6 +332,71 @@ public class EnemyFactoryExtendedTests
     {
         var enemy = Entities.Enemy.Create("Test", "test", new Stats(5, 5, 5, 5, 5, 5, 5, 5, 5), 10);
         Assert.Equal(EnemyRank.Common, enemy.Rank);
+    }
+
+    #endregion
+
+    #region Rankボーナスとソウルジェム品質
+
+    [Theory]
+    [InlineData(EnemyRank.Common, 1.0)]
+    [InlineData(EnemyRank.Elite, 2.0)]
+    [InlineData(EnemyRank.Rare, 3.0)]
+    [InlineData(EnemyRank.Boss, 5.0)]
+    [InlineData(EnemyRank.HiddenBoss, 10.0)]
+    public void GetRankGoldMultiplier_ReturnsExpectedValues(EnemyRank rank, double expected)
+    {
+        double actual = BalanceConfig.GetRankGoldMultiplier(rank);
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(EnemyRank.Common, SoulGemQuality.Fragment)]
+    [InlineData(EnemyRank.Elite, SoulGemQuality.Small)]
+    [InlineData(EnemyRank.Rare, SoulGemQuality.Medium)]
+    [InlineData(EnemyRank.Boss, SoulGemQuality.Large)]
+    [InlineData(EnemyRank.HiddenBoss, SoulGemQuality.Grand)]
+    public void GetSoulGemQualityFromRank_MapsCorrectly(EnemyRank rank, SoulGemQuality expectedQuality)
+    {
+        var actual = Systems.EnchantmentSystem.GetSoulGemQualityFromRank(rank);
+        Assert.Equal(expectedQuality, actual);
+    }
+
+    [Fact]
+    public void RankGoldMultiplier_Boss_IsHigherThanCommon()
+    {
+        double bossMultiplier = BalanceConfig.GetRankGoldMultiplier(EnemyRank.Boss);
+        double commonMultiplier = BalanceConfig.GetRankGoldMultiplier(EnemyRank.Common);
+        Assert.True(bossMultiplier > commonMultiplier, "Boss gold multiplier should be higher than Common");
+    }
+
+    [Fact]
+    public void AllEnemyDefinitions_HaveValidRank()
+    {
+        var factory = new EnemyFactory();
+        var definitions = new[]
+        {
+            EnemyDefinitions.Slime, EnemyDefinitions.Goblin, EnemyDefinitions.Skeleton,
+            EnemyDefinitions.DarkElf, EnemyDefinitions.MountainGolem, EnemyDefinitions.FrontierDragon
+        };
+
+        foreach (var def in definitions)
+        {
+            var enemy = factory.CreateEnemy(def, new Position(0, 0));
+            Assert.True(Enum.IsDefined(typeof(EnemyRank), enemy.Rank),
+                $"{enemy.Name} has undefined Rank: {enemy.Rank}");
+        }
+    }
+
+    [Theory]
+    [InlineData(EnemyRank.Elite)]
+    [InlineData(EnemyRank.Rare)]
+    [InlineData(EnemyRank.Boss)]
+    [InlineData(EnemyRank.HiddenBoss)]
+    public void GetRankGoldMultiplier_AboveCommon_ReturnsGreaterThan1(EnemyRank rank)
+    {
+        double multiplier = BalanceConfig.GetRankGoldMultiplier(rank);
+        Assert.True(multiplier > 1.0, $"Rank {rank} should have gold multiplier > 1.0");
     }
 
     #endregion
