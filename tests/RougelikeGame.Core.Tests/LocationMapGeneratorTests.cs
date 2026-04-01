@@ -77,16 +77,16 @@ public class LocationMapGeneratorTests
         var generator = new LocationMapGenerator(42);
         var map = generator.GenerateTownMap("capital_market", "中央市場");
 
-        int doorCount = 0;
+        int entranceCount = 0;
         for (int x = 0; x < map.Width; x++)
         {
             for (int y = 0; y < map.Height; y++)
             {
-                if (map[x, y].Type == TileType.DoorClosed) doorCount++;
+                if (map[x, y].Type == TileType.BuildingEntrance) entranceCount++;
             }
         }
 
-        Assert.True(doorCount >= 4, $"町マップにドアが不足: {doorCount}");
+        Assert.True(entranceCount >= 4, $"町マップに建物入口が不足: {entranceCount}");
     }
 
     #endregion

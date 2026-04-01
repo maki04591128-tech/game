@@ -40,10 +40,12 @@
                     BorderBrush="#0f3460" 
                     BorderThickness="2" 
                     CornerRadius="4"
-                    Padding="4">
+                    Padding="4"
+                    ClipToBounds="False">
                 <Canvas x:Name="GridCanvas" 
                             Width="400" Height="240"
                             Background="#16213e"
+                            ClipToBounds="False"
                             MouseLeftButtonDown="GridCanvas_MouseDown"
                             MouseMove="GridCanvas_MouseMove"
                             MouseLeftButtonUp="GridCanvas_MouseUp"/>
@@ -112,7 +114,8 @@
                     Padding="2">
                 <Canvas x:Name="EquipmentCanvas" 
                         Width="244" Height="340"
-                        Background="#16213e"/>
+                        Background="#16213e"
+                        AllowDrop="True"/>
             </Border>
 
             <Border Grid.Row="2" 
@@ -126,5 +129,11 @@
                            TextWrapping="Wrap"/>
             </Border>
         </Grid>
+
+        <!-- ドラッグゴースト用オーバーレイ（最前面） -->
+        <Canvas x:Name="DragOverlayCanvas" 
+                Grid.ColumnSpan="2"
+                IsHitTestVisible="False"
+                Panel.ZIndex="1000"/>
     </Grid>
 </Window>

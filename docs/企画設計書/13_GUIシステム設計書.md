@@ -9,6 +9,12 @@
 > Ver.prt.0.10 でインベントリウィンドウに装備パネル（11スロット）+ステータス表示を追加（850px幅化）、ソート状態維持修正（_isSortedフラグ）、スキルツリーウィンドウに「習得済み/スロット」タブとD&Dスキルスロット（6スロット）を追加、SpellCastingWindowからルーン学習ボタンを撤去しました。
 > Ver.prt.0.11 でスキルスロットを1-5→1-6キーに拡張（SkillTreeSystem.MaxSkillSlots=6と統一）しました。
 > Ver.prt.0.12 でタイトル画面を「タイトル未定」/「ろーぐらいくげーむ」に変更、インベントリ装備パネルをPoE風Canvas身体配置（11スロット空間配置、身体シルエットガイドライン）に全面改修、ショップウィンドウをリスト表示形式に全面書き換え、スキルツリーにTier制（1-4）・レベル制限（Lv1/5/10/15）を導入しGrimDawn風UIに改修しました。
+> Ver.prt.0.14 でインベントリグリッドから装備済みアイテムを除外、スキルツリーに種族/職業/素性フィルタリングを追加、ショップにCtrl+Click即売買・D&D売買・選択ハイライト修正を実装、WorldMap(J)/MessageLog(L)のトグル閉じを修正しました。
+> Ver.prt.0.15 でMainWindowレイアウトを4隅配置に全面書き換え（左上:場所/時刻、左下:HP/MP等ステータス、右上:ゴールド/EXP等、右下:ログ、マップ下:PoE風スキルスロットアイコン）、スキルツリーに「習得済み」タブ追加（スロット装備/解除UI）、インベントリ位置永続化、グリッド全アイテム表示修正を実装しました。
+> Ver.prt.0.16 でスキルツリーの描画方向を上→下から下→上（ボトムアップ）に反転（maxTreeY反転方式）、Tier2レベル制限をLv5に強化しました。
+> Ver.prt.0.17 でスキルツリーのノードクリック選択バグ修正（Y座標反転対応）、解放ボタン無効化バグ修正（RenderCurrentTab選択状態復元）を実装しました。
+> Ver.prt.0.19 でカスタマイズ可能キーバインド（KeyBindingWindow、JSON永続化）、ESCポーズ画面（PauseWindow）、スキルツリーノード配置改善（ScaleX/Yスケーリング）、ミニマップWriteableBitmap化、町建物ドアの別マップ遷移（BuildingEntrance/BuildingExit）、渇き・疲労・清潔度の数値表示、習得済スキルのパッシブ欄分離、インベントリソート永続化、装備解除機能、自動探索階段ナビ、町パフォーマンス最適化を実装しました。
+> Ver.prt.0.20 で装備着脱のアイテム重複バグ修正（UseItem/DropItemをItem参照ベースに変更）、インベントリD&D装備着脱（グリッド→装備パネルへの装備D&D、装備パネル→グリッドへの装備解除D&D）、素材アイテムのインベントリ反映修正（ItemDefinitions.Create使用）、メッセージログ1000件制限・番号削除、スキルツリーにアクティブスキル11種追加（武器6+魔法5、Tier4）を実装しました。
 > 未実装の画面・機能は「将来計画」セクションに記載しています。
 
 ---
@@ -94,7 +100,7 @@
 | BGM音量 | スライダー | 0-100% |
 | SE音量 | スライダー | 0-100% |
 | フォントサイズ | スライダー | 10-24 |
-| キーバインド | テキスト表示 | 参照用（変更不可） |
+| キーバインド | ボタン | 「キーバインド設定を開く」ボタンでKeyBindingWindowを開く（変更可能） |
 
 | ボタン | 動作 |
 |--------|------|
@@ -109,9 +115,9 @@
 | CharacterCreationWindow | CharacterCreationWindow.xaml/.cs | ニューゲーム時 | キャラクター作成（10種族/10職業/10素性選択、名前入力、ステータスプレビュー） |
 | DifficultySelectWindow | DifficultySelectWindow.xaml/.cs | ニューゲーム時 | 難易度選択（Easy/Normal/Hard/Nightmare/Ironman） |
 | StatusWindow | StatusWindow.xaml/.cs | C | 基本9ステータス、戦闘パラメータ、装備、状態異常の詳細表示 |
-| InventoryWindow | InventoryWindow.xaml/.cs | I | PoE風グリッドインベントリ（10×6グリッド、アイテムサイズ自動判定、レアリティ色分け、装備マーク、D&D移動・位置保持、コールバックパターンで使用後も開放維持、Sキー自動ソート、グリッド外D&Dでアイテムドロップ、右カラムにPoE風Canvas身体配置装備パネル11スロット（Head/Neck/Back/MainHand/Body/OffHand/Hands/Ring1/Waist/Ring2/Feet）+身体シルエットガイドライン+ステータス表示、850px幅） |
+| InventoryWindow | InventoryWindow.xaml/.cs | I | PoE風グリッドインベントリ（10×6グリッド、アイテムサイズ自動判定、レアリティ色分け、装備マーク、D&D移動・位置保持、コールバックパターンで使用後も開放維持、Sキー自動ソート、グリッド外D&Dでアイテムドロップ、**装備済みアイテムはグリッドから自動除外**、**ウィンドウ閉鎖後もグリッド位置を永続化**、右カラムにPoE風Canvas身体配置装備パネル11スロット（Head/Neck/Back/MainHand/Body/OffHand/Hands/Ring1/Waist/Ring2/Feet）+身体シルエットガイドライン+ステータス表示、**グリッド→装備パネルへのD&D装備**、**装備パネル→グリッドへのD&D装備解除**、850px幅） |
 | MessageLogWindow | MessageLogWindow.xaml/.cs | L | メッセージログの履歴閲覧、フィルタリング |
-| ShopWindow | ShopWindow.xaml/.cs | ショップ選択時 | リスト表示形式のアイテム売買（購入/売却タブ切替、アイテム一覧リスト表示、選択で購入/売却実行） |
+| ShopWindow | ShopWindow.xaml/.cs | ショップ選択時 | リスト表示形式のアイテム売買（購入/売却タブ切替、アイテム一覧リスト表示、クリック選択で購入/売却実行、Ctrl+Clickで即売買、ショップ⇔プレイヤーグリッド間D&D売買対応、選択ハイライト維持） |
 | CraftingWindow | CraftingWindow.xaml/.cs | —（キー削除済） | 合成・強化・エンチャント操作（内部イベント経由のみ） |
 | SpellCastingWindow | SpellCastingWindow.xaml/.cs | V | ルーン語による魔法詠唱（習得済みルーン一覧表示、未習得時は空表示） |
 | DialogueWindow | DialogueWindow.xaml/.cs | NPC隣接時に方向キー押下 | NPC会話・選択肢表示（NPCの隣接タイルから方向キーで発動） |
@@ -121,12 +127,14 @@
 | WorldMapWindow | WorldMapWindow.xaml/.cs | J | 領地移動画面（町入場ボタン削除済、移動先選択のみ） |
 | TravelEventWindow | TravelEventWindow.xaml/.cs | 領地間移動時 | 移動イベント（強行/交渉/回避の選択） |
 | SaveDataSelectWindow | SaveDataSelectWindow.xaml/.cs | F5/F9 | セーブスロット選択 |
-| SkillTreeWindow | SkillTreeWindow.xaml/.cs | E | GrimDawn風スキルツリー（Tier 1-4段階表示、レベル制限Lv1/5/10/15、ノード一覧Tier順ソート・🔒レベルロック表示・解放・リスペック・キーストーン確認、「習得済み/スロット」タブでD&Dスキルスロット6枚配置） |
+| SkillTreeWindow | SkillTreeWindow.xaml/.cs | E | GrimDawn風スキルツリー（Tier 1-3段階表示、レベル制限Lv1/5/10、**下→上ボトムアップ描画**、ノード一覧Tier順ソート・🔒レベルロック表示・解放・リスペック・キーストーン確認、「習得済み」タブで習得済スキル一覧表示・スロット装備/解除UI、D&Dスキルスロット6枚配置、**プレイヤーの種族/職業/素性に応じたノードフィルタリング**） |
 | EncyclopediaWindow | EncyclopediaWindow.xaml/.cs | Y | 図鑑（カテゴリタブ切替・発見度表示・エントリ詳細） |
 | CompanionWindow | CompanionWindow.xaml/.cs | U | 仲間管理（パーティ一覧・AIモード変更・解雇・忠誠度警告） |
 | DeathLogWindow | DeathLogWindow.xaml/.cs | Z | 死亡録（統計表示・死因内訳・死亡記録一覧） |
 | RecruitCompanionWindow | RecruitCompanionWindow.xaml/.cs | ギルド受付「仲間を募集する」選択時 | 仲間募集候補一覧（候補ごとに名前・タイプ・レベル・ステータス・雇用コスト表示、雇うボタンでゴールド消費→AddCompanion） |
 | QuestBoardWindow | QuestBoardWindow.xaml/.cs | ギルド受付「クエストを確認する」選択時 | クエストボード3タブ（受注可能/進行中/完了済み）。受注ボタン・報告ボタンでQuestSystem API呼び出し |
+| KeyBindingWindow | KeyBindingWindow.xaml/.cs | 設定画面「キーバインド設定を開く」 / ポーズ画面「キーバインド」 | カスタマイズ可能キーバインド設定（グループ別表示、キーキャプチャモード、競合検出＆スワップ、JSON永続化） |
+| PauseWindow | PauseWindow.xaml/.cs | ESCキー押下 | ポーズ画面（再開/セーブ/ロード/設定/キーバインド/タイトルへ戻るの6ボタン） |
 
 ---
 
@@ -180,6 +188,8 @@ Render(map, player, enemies, groundItems)
 | DebugAIToggle | (20, 60, 80) | DeepSkyBlue | A（デバッグ専用） |
 | DebugDayAdvance | (60, 60, 20) | Yellow | D（デバッグ専用） |
 | DebugNpc | (20, 60, 40) | SpringGreen | N（デバッグ専用） |
+| BuildingEntrance | (100, 70, 30) | Peru | ⌂（建物入口） |
+| BuildingExit | (30, 60, 100) | CornflowerBlue | <（建物出口） |
 
 **FOV状態による色分け**:
 | 状態 | 背景色 (RGB) | 前景色 (RGB) |
@@ -224,6 +234,7 @@ Render(map, player, enemies, groundItems)
 | 枠線 | #404060、太さ1、角丸3 |
 | 切り替え | Mキーで表示/非表示 |
 | スケール | マップ全体がCanvas内に収まるよう自動計算 |
+| 描画方式 | WriteableBitmapにピクセル単位で直接描画（Ver.prt.0.19でDrawingVisualから移行、GDIオブジェクト削減） |
 
 ### 4.2 描画内容
 
@@ -239,7 +250,19 @@ Render(map, player, enemies, groundItems)
 
 ---
 
-## 5. ステータスバー
+## 5. ステータス情報配置（4隅レイアウト）
+
+Ver.prt.0.15 でステータスバーを1行に全情報を詰め込む形式から4隅配置に全面変更しました。
+
+### 5.0 4隅配置構成
+
+| 位置 | 要素名 | 内容 |
+|------|---------|------|
+| 左上 | 場所・時刻情報 | 領地名、地上/ダンジョン、階層、日時、時間帯、季節、天候、残り日数 |
+| 左下 | HP/MP等ステータス | Lv、HP、MP、SP、満腹、渇き、正気、疲労、衛生、病気 |
+| 右上 | 所持情報 | ゴールド、EXP、重量、善悪、仲間数、構え |
+| 右下 | メッセージログ | スクロール可能なログ表示 |
+| マップ下 | スキルスロット | PoE風アイコン（32x32px Border、スキル名頭文字、スロット番号、ツールチップ） |
 
 ### 5.1 色設計（色分け表示）
 
@@ -260,6 +283,16 @@ Render(map, player, enemies, groundItems)
 | 正気度 | #c0a0ff（紫） | 段階に応じて色変化 |
 | 所持金 | #ffd93d（黄） | — |
 | 重量 | #c0c0c0（灰） | 超過時に赤へ変化 |
+| 構え | #87ceeb（空色） | — |
+| 疲労 | — | 段階に応じて色変化（LimeGreen→Yellow→Orange→Red） |
+| 衛生 | — | 段階に応じて色変化（LimeGreen→Yellow→Orange→Red） |
+| 病気 | LimeGreen（健康時） | 罹患時にOrangeRedで「🤒病名」表示 |
+| 季節 | — | — |
+| 天候 | — | — |
+| 渇き | — | — |
+| カルマ | — | — |
+| 仲間数 | — | — |
+| スキルスロット | — | — |
 
 ### 5.2 ウィンドウ配色
 
@@ -319,7 +352,7 @@ Render(map, player, enemies, groundItems)
 | F5 | Save | セーブ |
 | F9 | Load | ロード |
 | Q | Quit | ゲーム終了 |
-| Esc | — | ダイアログ閉じる（各ウィンドウは開くキーでも閉じるトグル対応） |
+| Esc | Pause | ポーズ画面表示（PauseWindow：再開/セーブ/ロード/設定/キーバインド/タイトルへ）。各ウィンドウは開くキーでも閉じるトグル対応 |
 
 ### 6.2 斜め移動（同時押し検出）
 

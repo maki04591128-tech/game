@@ -57,6 +57,60 @@ public class Player : Character, IPlayer, IInventoryHolder
     }
     public HungerStage HungerStage => GetHungerStage(Hunger);
 
+    private int _thirst;
+    public int Thirst
+    {
+        get => _thirst;
+        private set
+        {
+            var oldStage = GetThirstStage(_thirst);
+            _thirst = Math.Clamp(value, 0, GameConstants.MaxThirst);
+            var newStage = GetThirstStage(_thirst);
+
+            if (oldStage != newStage)
+            {
+                OnThirstStageChanged?.Invoke(this, new ThirstStageEventArgs(oldStage, newStage));
+            }
+        }
+    }
+    public ThirstStage ThirstStage => GetThirstStage(Thirst);
+
+    private int _fatigue;
+    public int Fatigue
+    {
+        get => _fatigue;
+        private set
+        {
+            var oldStage = GetFatigueStage(_fatigue);
+            _fatigue = Math.Clamp(value, 0, GameConstants.MaxFatigue);
+            var newStage = GetFatigueStage(_fatigue);
+
+            if (oldStage != newStage)
+            {
+                OnFatigueStageChanged?.Invoke(this, new FatigueStageEventArgs(oldStage, newStage));
+            }
+        }
+    }
+    public FatigueStage FatigueStage => GetFatigueStage(Fatigue);
+
+    private int _hygiene;
+    public int Hygiene
+    {
+        get => _hygiene;
+        private set
+        {
+            var oldStage = GetHygieneStage(_hygiene);
+            _hygiene = Math.Clamp(value, 0, GameConstants.MaxHygiene);
+            var newStage = GetHygieneStage(_hygiene);
+
+            if (oldStage != newStage)
+            {
+                OnHygieneStageChanged?.Invoke(this, new HygieneStageEventArgs(oldStage, newStage));
+            }
+        }
+    }
+    public HygieneStage HygieneStage => GetHygieneStage(Hygiene);
+
     /// <summary>所持金</summary>
     public int Gold { get; private set; }
 
@@ -185,6 +239,60 @@ public class Player : Character, IPlayer, IInventoryHolder
     public bool HasSkill(string skillId) => LearnedSkills.Contains(skillId);
     #endregion
 
+    #region Stat Overrides
+    /// <summary>種族・職業由来のHP/MPボーナス</summary>
+    public int BonusMaxHp { get; set; }
+    public int BonusMaxMp { get; set; }
+
+    public override int MaxHp => base.MaxHp + BonusMaxHp + GetSkillTreeResourceBonus("MaxHp");
+    public override int MaxMp => base.MaxMp + BonusMaxMp + GetSkillTreeResourceBonus("MaxMp");
+
+    /// <summary>スキルツリーのパッシブボーナスを提供するコールバック（GameControllerから設定）</summary>
+    public Func<Dictionary<string, int>>? SkillTreeBonusProvider { get; set; }
+
+    /// <summary>スキルツリーから特定リソース（MaxHp/MaxMp等）のボーナスを取得</summary>
+    private int GetSkillTreeResourceBonus(string key)
+    {
+        if (SkillTreeBonusProvider == null) return 0;
+        var bonuses = SkillTreeBonusProvider();
+        return bonuses.GetValueOrDefault(key);
+    }
+
+    protected override IEnumerable<StatModifier> GetAllStatModifiers()
+    {
+        // 状態異常ボーナス（基底クラスの処理）
+        foreach (var mod in base.GetAllStatModifiers())
+            yield return mod;
+
+        // 装備ボーナス
+        foreach (var mod in Equipment.GetStatModifiers())
+            yield return mod;
+
+        // スキルツリーパッシブボーナス（ステータス系のみ。MaxHp/MaxMpはMaxHp/MaxMpオーバーライドで処理）
+        if (SkillTreeBonusProvider != null)
+        {
+            var bonuses = SkillTreeBonusProvider();
+            yield return ConvertSkillBonusesToStatModifier(bonuses);
+        }
+    }
+
+    /// <summary>スキルツリーボーナス辞書をStatModifierに変換（ステータス系のみ）</summary>
+    private static StatModifier ConvertSkillBonusesToStatModifier(Dictionary<string, int> bonuses)
+    {
+        return new StatModifier(
+            Strength: bonuses.GetValueOrDefault("STR") + bonuses.GetValueOrDefault("Strength"),
+            Vitality: bonuses.GetValueOrDefault("VIT") + bonuses.GetValueOrDefault("Vitality"),
+            Agility: bonuses.GetValueOrDefault("AGI") + bonuses.GetValueOrDefault("Agility"),
+            Dexterity: bonuses.GetValueOrDefault("DEX") + bonuses.GetValueOrDefault("Dexterity"),
+            Intelligence: bonuses.GetValueOrDefault("INT") + bonuses.GetValueOrDefault("Intelligence"),
+            Mind: bonuses.GetValueOrDefault("MND") + bonuses.GetValueOrDefault("Mind"),
+            Perception: bonuses.GetValueOrDefault("PER") + bonuses.GetValueOrDefault("Perception"),
+            Charisma: bonuses.GetValueOrDefault("CHA") + bonuses.GetValueOrDefault("Charisma"),
+            Luck: bonuses.GetValueOrDefault("LUK") + bonuses.GetValueOrDefault("Luck")
+        );
+    }
+    #endregion
+
     #region Religion
     public string? CurrentReligion { get; private set; }
     public int FaithPoints { get; private set; }
@@ -282,9 +390,12 @@ public class Player : Character, IPlayer, IInventoryHolder
         (int)(GameConstants.BaseExpRequired * Math.Pow(GameConstants.ExpGrowthRate, level - 1));
     #endregion
 
-    #region Sanity & Hunger
+    #region Sanity & Hunger & Thirst & Fatigue & Hygiene
     public void ModifySanity(int amount) => Sanity += amount;
     public void ModifyHunger(int amount) => Hunger += amount;
+    public void ModifyThirst(int amount) => Thirst += amount;
+    public void ModifyFatigue(int amount) => Fatigue += amount;
+    public void ModifyHygiene(int amount) => Hygiene += amount;
 
     private static SanityStage GetSanityStage(int sanity) => sanity switch
     {
@@ -303,6 +414,33 @@ public class Player : Character, IPlayer, IInventoryHolder
         >= 25 => HungerStage.Hungry,
         >= 1 => HungerStage.Starving,
         _ => HungerStage.Famished
+    };
+
+    private static ThirstStage GetThirstStage(int thirst) => thirst switch
+    {
+        >= 80 => ThirstStage.Hydrated,
+        >= 50 => ThirstStage.Thirsty,
+        >= 25 => ThirstStage.Dehydrated,
+        >= 1 => ThirstStage.SevereDehydration,
+        _ => ThirstStage.CriticalDehydration
+    };
+
+    private static FatigueStage GetFatigueStage(int fatigue) => fatigue switch
+    {
+        >= 80 => FatigueStage.Fresh,
+        >= 50 => FatigueStage.Mild,
+        >= 25 => FatigueStage.Tired,
+        >= 1 => FatigueStage.Exhausted,
+        _ => FatigueStage.Collapse
+    };
+
+    private static HygieneStage GetHygieneStage(int hygiene) => hygiene switch
+    {
+        >= 80 => HygieneStage.Clean,
+        >= 50 => HygieneStage.Normal,
+        >= 25 => HygieneStage.Dirty,
+        >= 1 => HygieneStage.Filthy,
+        _ => HygieneStage.Foul
     };
     #endregion
 
@@ -505,8 +643,15 @@ public class Player : Character, IPlayer, IInventoryHolder
             Background = background,
             _sanity = GameConstants.InitialSanity,
             _hunger = GameConstants.InitialHunger,
+            _thirst = GameConstants.InitialThirst,
+            _fatigue = GameConstants.InitialFatigue,
+            _hygiene = GameConstants.InitialHygiene,
             Faction = Faction.Player
         };
+
+        // 種族・職業によるHP/MPボーナス
+        player.BonusMaxHp = raceDef.HpBonus + classDef.HpBonus;
+        player.BonusMaxMp = raceDef.MpBonus + classDef.MpBonus;
 
         player.InitializeResources();
 
@@ -519,8 +664,33 @@ public class Player : Character, IPlayer, IInventoryHolder
             player.LearnedSkills.Add(skill);
         }
 
+        // 職業による初期ルーン語習得
+        foreach (var wordId in GetInitialRuneWords(characterClass))
+        {
+            player.LearnWord(wordId);
+        }
+
         return player;
     }
+
+    /// <summary>職業に応じた初期ルーン語IDリストを返す</summary>
+    private static string[] GetInitialRuneWords(CharacterClass cls) => cls switch
+    {
+        // 魔術師: 攻撃効果語+属性語+対象語（計5語）
+        CharacterClass.Mage => ["brenna", "frysta", "fjandi", "eldr", "sjalfr"],
+        // 僧侶: 回復・浄化+対象語（計4語）
+        CharacterClass.Cleric => ["graeda", "hreinsa", "sjalfr", "vinir"],
+        // 死霊術師: 闇系+召喚+対象語（計5語）
+        CharacterClass.Necromancer => ["eyda", "kalla", "myrkr", "draugr", "fjandi"],
+        // 吟遊詩人: 支援系+修飾語（計3語）
+        CharacterClass.Bard => ["styrkja", "sjalfr", "litill"],
+        // 錬金術師: 知識系+属性語（計3語）
+        CharacterClass.Alchemist => ["vita", "sja", "eldr"],
+        // 修道士: 回復+聖属性（計2語）
+        CharacterClass.Monk => ["graeda", "sjalfr"],
+        // 戦闘系（戦士・騎士・盗賊・狩人）: 基本1語のみ
+        _ => ["sjalfr"]
+    };
 
     /// <summary>
     /// セーブデータからプレイヤーを復元
@@ -528,12 +698,16 @@ public class Player : Character, IPlayer, IInventoryHolder
     public void RestoreFromSave(int level, int experience, int sanity, int hunger,
         int currentHp, int currentMp, int currentSp, int rescueCountRemaining,
         Race race = Race.Human, CharacterClass characterClass = CharacterClass.Fighter,
-        Background background = Background.Adventurer)
+        Background background = Background.Adventurer,
+        int thirst = 100, int fatigue = 100, int hygiene = 100)
     {
         Level = level;
         Experience = experience;
         _sanity = Math.Clamp(sanity, 0, GameConstants.MaxSanity);
         _hunger = Math.Clamp(hunger, 0, GameConstants.MaxHunger);
+        _thirst = Math.Clamp(thirst, 0, GameConstants.MaxThirst);
+        _fatigue = Math.Clamp(fatigue, 0, GameConstants.MaxFatigue);
+        _hygiene = Math.Clamp(hygiene, 0, GameConstants.MaxHygiene);
         CurrentHp = currentHp;
         CurrentMp = currentMp;
         CurrentSp = currentSp;
@@ -541,6 +715,12 @@ public class Player : Character, IPlayer, IInventoryHolder
         Race = race;
         CharacterClass = characterClass;
         Background = background;
+
+        // 種族・職業によるHP/MPボーナスを再計算
+        var raceDef = RaceDefinition.Get(race);
+        var classDef = ClassDefinition.Get(characterClass);
+        BonusMaxHp = raceDef.HpBonus + classDef.HpBonus;
+        BonusMaxMp = raceDef.MpBonus + classDef.MpBonus;
     }
     #endregion
 
@@ -548,6 +728,9 @@ public class Player : Character, IPlayer, IInventoryHolder
     public event EventHandler<LevelUpEventArgs>? OnLevelUp;
     public event EventHandler<SanityStageEventArgs>? OnSanityStageChanged;
     public event EventHandler<HungerStageEventArgs>? OnHungerStageChanged;
+    public event EventHandler<ThirstStageEventArgs>? OnThirstStageChanged;
+    public event EventHandler<FatigueStageEventArgs>? OnFatigueStageChanged;
+    public event EventHandler<HygieneStageEventArgs>? OnHygieneStageChanged;
     public event EventHandler<SkillEventArgs>? OnSkillLearned;
     public event EventHandler<MagicWordEventArgs>? OnMagicWordLearned;
     public event EventHandler<ReligionEventArgs>? OnReligionJoined;
@@ -580,6 +763,39 @@ public class HungerStageEventArgs : EventArgs
     public HungerStage OldStage { get; }
     public HungerStage NewStage { get; }
     public HungerStageEventArgs(HungerStage oldStage, HungerStage newStage)
+    {
+        OldStage = oldStage;
+        NewStage = newStage;
+    }
+}
+
+public class ThirstStageEventArgs : EventArgs
+{
+    public ThirstStage OldStage { get; }
+    public ThirstStage NewStage { get; }
+    public ThirstStageEventArgs(ThirstStage oldStage, ThirstStage newStage)
+    {
+        OldStage = oldStage;
+        NewStage = newStage;
+    }
+}
+
+public class FatigueStageEventArgs : EventArgs
+{
+    public FatigueStage OldStage { get; }
+    public FatigueStage NewStage { get; }
+    public FatigueStageEventArgs(FatigueStage oldStage, FatigueStage newStage)
+    {
+        OldStage = oldStage;
+        NewStage = newStage;
+    }
+}
+
+public class HygieneStageEventArgs : EventArgs
+{
+    public HygieneStage OldStage { get; }
+    public HygieneStage NewStage { get; }
+    public HygieneStageEventArgs(HygieneStage oldStage, HygieneStage newStage)
     {
         OldStage = oldStage;
         NewStage = newStage;

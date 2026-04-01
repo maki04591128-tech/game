@@ -159,6 +159,9 @@ public class Food : ConsumableItem
     /// <summary>HP回復量（ある場合）</summary>
     public int HealValue { get; init; }
 
+    /// <summary>渇き回復量（0=回復なし、1=Thirsty→Hydrated、2=Dehydrated→Hydrated）</summary>
+    public int HydrationValue { get; init; }
+
     /// <summary>腐っているか</summary>
     public bool IsRotten { get; set; }
 
@@ -240,7 +243,11 @@ public enum FoodType
     /// <summary>エルフパン</summary>
     Lembas,
     /// <summary>腐った食べ物</summary>
-    Rotten
+    Rotten,
+    /// <summary>水</summary>
+    Water,
+    /// <summary>清水</summary>
+    CleanWater
 }
 
 /// <summary>
@@ -302,6 +309,10 @@ public class Scroll : ConsumableItem
                 return UseResult.Ok("装備が強化された！",
                     new ItemEffect(ItemEffectType.StatBuff, 1));
 
+            case ScrollType.AncientBook:
+                return UseResult.Ok("古代の書を読み解いた…",
+                    new ItemEffect(ItemEffectType.LearnRuneWord, EffectValue));
+
             default:
                 return UseResult.Fail("何も起こらなかった");
         }
@@ -336,7 +347,9 @@ public enum ScrollType
     /// <summary>帰還</summary>
     Return,
     /// <summary>召喚</summary>
-    Summon
+    Summon,
+    /// <summary>古代の書（ルーン語習得）</summary>
+    AncientBook
 }
 
 /// <summary>

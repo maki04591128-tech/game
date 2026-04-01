@@ -463,11 +463,11 @@ public class GuiSystemVerificationTests : IDisposable
             "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
             "LevelText", "ExpText", "HpText", "MpText", "SpText",
             "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
-            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText", "SkillSlotText"
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText"
         };
 
         // ========== 初期状態の全ステータス記録 ==========
-        Log("記録: 初期状態の全21ステータスバー値");
+        Log("記録: 初期状態の全20ステータスバー値");
         var initialValues = new Dictionary<string, string>();
         foreach (var id in allStatusIds)
         {
@@ -576,7 +576,7 @@ public class GuiSystemVerificationTests : IDisposable
             "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
             "LevelText", "ExpText", "HpText", "MpText", "SpText",
             "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
-            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText", "SkillSlotText"
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText"
         };
 
         // ヘルパー: 全ステータスバーが正常かチェック
@@ -859,13 +859,13 @@ public class GuiSystemVerificationTests : IDisposable
         Log($"  → 移動後 Season='{seasonMove}' Weather='{weatherMove}' Thirst='{thirstMove}' Karma='{karmaMove}' Companion='{companionMove}' OK");
 
         // ========== 全ステータスバー要素の最終整合性確認 ==========
-        Log("検証: テスト終了時に全25ステータスバー要素が正常に表示されること");
+        Log("検証: テスト終了時に全24ステータスバー要素が正常に表示されること");
         var allStatusIds = new[]
         {
             "TerritoryText", "SurfaceStatusText", "FloorText", "DateText", "TimePeriodText",
             "LevelText", "ExpText", "HpText", "MpText", "SpText",
             "HungerText", "SanityText", "GoldText", "WeightText", "TurnLimitText",
-            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText", "SkillSlotText",
+            "SeasonText", "WeatherText", "ThirstText", "KarmaText", "CompanionCountText",
             "StanceText", "FatigueText", "HygieneText", "DiseaseText"
         };
         foreach (var id in allStatusIds)

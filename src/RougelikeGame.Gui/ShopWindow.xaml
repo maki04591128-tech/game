@@ -6,7 +6,9 @@
         Background="#1a1a2e"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        KeyDown="Window_KeyDown">
+        KeyDown="Window_KeyDown"
+        MouseMove="Window_MouseMove"
+        MouseLeftButtonUp="Window_MouseUp">
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -47,7 +49,8 @@
                         <Canvas x:Name="ShopGridCanvas" 
                                 Width="420" Height="360"
                                 Background="#16213e"
-                                MouseLeftButtonDown="ShopGridCanvas_MouseDown"/>
+                                MouseLeftButtonDown="ShopGridCanvas_MouseDown"
+                                MouseMove="ShopGridCanvas_MouseMove"/>
                     </ScrollViewer>
                 </Grid>
             </Border>
@@ -72,7 +75,8 @@
                         <Canvas x:Name="PlayerGridCanvas" 
                                 Width="420" Height="360"
                                 Background="#16213e"
-                                MouseLeftButtonDown="PlayerGridCanvas_MouseDown"/>
+                                MouseLeftButtonDown="PlayerGridCanvas_MouseDown"
+                                MouseMove="PlayerGridCanvas_MouseMove"/>
                     </ScrollViewer>
                 </Grid>
             </Border>
@@ -89,5 +93,8 @@
                     Click="CloseButton_Click"
                     Background="#0f3460" Foreground="White" BorderBrush="#e94560" Padding="5,3"/>
         </StackPanel>
+
+        <!-- D&Dゴースト用オーバーレイ -->
+        <Canvas x:Name="DragOverlayCanvas" Grid.Row="0" Grid.RowSpan="4" IsHitTestVisible="False" />
     </Grid>
 </Window>

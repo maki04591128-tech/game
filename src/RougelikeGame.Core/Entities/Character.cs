@@ -44,7 +44,7 @@ public abstract class Character : IEntity, ITurnActor, IDamageable
         get => _currentHp;
         protected set => _currentHp = Math.Clamp(value, 0, MaxHp);
     }
-    public int MaxHp => EffectiveStats.MaxHp;
+    public virtual int MaxHp => EffectiveStats.MaxHp;
 
     private int _currentMp;
     public int CurrentMp
@@ -52,7 +52,7 @@ public abstract class Character : IEntity, ITurnActor, IDamageable
         get => _currentMp;
         protected set => _currentMp = Math.Clamp(value, 0, MaxMp);
     }
-    public int MaxMp => EffectiveStats.MaxMp;
+    public virtual int MaxMp => EffectiveStats.MaxMp;
 
     private int _currentSp;
     public int CurrentSp

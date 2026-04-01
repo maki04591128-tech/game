@@ -37,7 +37,9 @@ public partial class EncyclopediaWindow : Window
             Id = e.Id,
             DisplayName = e.DiscoveryLevel > 0 ? e.Name : "???",
             DiscoveryIcon = e.DiscoveryLevel >= e.MaxLevel ? "\u2605" : e.DiscoveryLevel > 0 ? "\u25C6" : "\u25CB",
-            LevelText = "[" + e.DiscoveryLevel + "/" + e.MaxLevel + "]",
+            LevelText = e.Category == EncyclopediaCategory.Monster && e.KillCount > 0
+                ? "[" + e.KillCount + "体撃破]"
+                : "[" + e.DiscoveryLevel + "/" + e.MaxLevel + "]",
             NameColor = e.DiscoveryLevel >= e.MaxLevel
                 ? new SolidColorBrush(Color.FromRgb(0xff, 0xd9, 0x3d))
                 : e.DiscoveryLevel > 0
@@ -82,7 +84,14 @@ public partial class EncyclopediaWindow : Window
             var entry = vm.Entry;
             EntryNameText.Text = entry.DiscoveryLevel > 0 ? entry.Name : "???";
             EntryCategoryText.Text = "カテゴリ: " + GetCategoryName(entry.Category);
-            DiscoveryLevelText.Text = entry.DiscoveryLevel + "/" + entry.MaxLevel;
+            if (entry.Category == EncyclopediaCategory.Monster && entry.KillCount > 0)
+            {
+                DiscoveryLevelText.Text = "撃破数: " + entry.KillCount + " | 開示Lv." + entry.DiscoveryLevel + "/" + entry.MaxLevel;
+            }
+            else
+            {
+                DiscoveryLevelText.Text = entry.DiscoveryLevel + "/" + entry.MaxLevel;
+            }
             EntryDescText.Text = _encyclopedia.GetCurrentDescription(entry.Id);
         }
         else

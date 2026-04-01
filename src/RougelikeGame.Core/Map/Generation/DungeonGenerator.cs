@@ -56,6 +56,12 @@ public class DungeonGenerator : IMapGenerator
         // 罠を配置
         PlaceTraps(map, parameters);
 
+        // 宝箱を配置
+        PlaceChests(map, parameters);
+
+        // ルーン碑文を配置（遺跡系ダンジョン）
+        PlaceRuneInscriptions(map, parameters);
+
         // 最終チェック: 装飾後にも斜め専用箇所が生まれ得るので再度修正
         FixDiagonalOnlyTiles(map);
 
@@ -103,6 +109,12 @@ public class DungeonGenerator : IMapGenerator
                 map.AddRoom(room);
                 CarveRoom(map, room);
             }
+
+            // リトライ最終回でもMinRooms未満なら強制部屋配置
+            if (rooms.Count < MinRooms)
+            {
+                PlaceFallbackRooms(map, MinRooms - rooms.Count, rooms.Count);
+            }
             break;
         }
 
@@ -130,14 +142,14 @@ public class DungeonGenerator : IMapGenerator
     /// </summary>
     private void SplitBSP(BSPNode node, int targetRooms, int depth = 0, bool forceMinRooms = false)
     {
-        const int MinSize = 8;
+        const int MinSize = 9; // Margin*2 + MinRoomSize = 4+5 = 9を保証
         const int MaxDepth = 6;
 
         if (depth >= MaxDepth) return;
 
         // 分割するかどうかの確率（forceMinRooms時は浅い階層で必ず分割）
         float splitChance = 1.0f - (depth * 0.15f);
-        if (forceMinRooms && depth < 3)
+        if (forceMinRooms && depth < 4)
             splitChance = 1.0f; // 浅い階層では必ず分割
         if (_random.NextDouble() > splitChance) return;
 
@@ -175,7 +187,7 @@ public class DungeonGenerator : IMapGenerator
     /// </summary>
     private Room? CreateRoomInNode(BSPNode node, int roomId)
     {
-        const int MinRoomSize = 7; // 壁含みで7x7 → 内部歩行面5x5を保証
+        const int MinRoomSize = 5; // 壁含みで5x5 → 内部3x3歩行面を保証
         const int Margin = 2;
 
         int maxWidth = node.Width - Margin * 2;
@@ -198,6 +210,52 @@ public class DungeonGenerator : IMapGenerator
             Width = roomWidth,
             Height = roomHeight
         };
+    }
+
+    /// <summary>
+    /// BSPで部屋が不足した場合にマップの空き領域にフォールバック部屋を配置
+    /// </summary>
+    private void PlaceFallbackRooms(DungeonMap map, int count, int startId)
+    {
+        const int MaxAttempts = 100;
+        int placed = 0;
+
+        for (int attempt = 0; attempt < MaxAttempts && placed < count; attempt++)
+        {
+            int roomWidth = _random.Next(5, 9);
+            int roomHeight = _random.Next(5, 7);
+            int roomX = _random.Next(2, map.Width - roomWidth - 2);
+            int roomY = _random.Next(2, map.Height - roomHeight - 2);
+
+            // 既存の部屋と重ならないか確認
+            bool overlaps = false;
+            foreach (var existing in map.Rooms)
+            {
+                if (roomX < existing.X + existing.Width + 1 &&
+                    roomX + roomWidth + 1 > existing.X &&
+                    roomY < existing.Y + existing.Height + 1 &&
+                    roomY + roomHeight + 1 > existing.Y)
+                {
+                    overlaps = true;
+                    break;
+                }
+            }
+
+            if (!overlaps)
+            {
+                var room = new Room
+                {
+                    Id = startId + placed,
+                    X = roomX,
+                    Y = roomY,
+                    Width = roomWidth,
+                    Height = roomHeight
+                };
+                map.AddRoom(room);
+                CarveRoom(map, room);
+                placed++;
+            }
+        }
     }
 
     /// <summary>
@@ -302,12 +360,15 @@ public class DungeonGenerator : IMapGenerator
     }
 
     /// <summary>
-    /// 階段を配置
+    /// 階段を配置（到達可能性を保証）
     /// </summary>
     private void PlaceStairs(DungeonMap map)
     {
         var entrance = map.GetEntranceRoom();
         var boss = map.GetBossRoom();
+
+        Position? upPos = null;
+        Position? downPos = null;
 
         if (entrance != null)
         {
@@ -316,6 +377,7 @@ public class DungeonGenerator : IMapGenerator
             {
                 map.SetStairsUp(pos.Value);
                 map.SetEntrance(pos.Value);
+                upPos = pos.Value;
             }
         }
 
@@ -325,8 +387,72 @@ public class DungeonGenerator : IMapGenerator
             if (pos.HasValue)
             {
                 map.SetStairsDown(pos.Value);
+                downPos = pos.Value;
             }
         }
+
+        // 到達可能性チェック: 上り階段から下り階段へ到達できるか確認
+        if (upPos.HasValue && downPos.HasValue && !IsReachable(map, upPos.Value, downPos.Value))
+        {
+            // 到達不能の場合、入口部屋とボス部屋を直接接続する廊下を生成
+            if (entrance != null && boss != null)
+            {
+                CorridorGenerator.ConnectRoomsDirect(map, entrance.Center, boss.Center);
+
+                // 再度チェック、まだ到達不能なら追加で L字接続
+                if (!IsReachable(map, upPos.Value, downPos.Value))
+                {
+                    CorridorGenerator.ConnectRoomsL(map, entrance.Center, boss.Center, _random);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// BFSで2点間の到達可能性をチェック（ドアは通過可能として扱う）
+    /// </summary>
+    private static bool IsReachable(DungeonMap map, Position from, Position to)
+    {
+        var visited = new HashSet<Position>();
+        var queue = new Queue<Position>();
+        queue.Enqueue(from);
+        visited.Add(from);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            if (current == to) return true;
+
+            foreach (var next in current.GetNeighbors(includeDiagonals: false))
+            {
+                if (!map.IsInBounds(next) || visited.Contains(next)) continue;
+
+                var tileType = map.GetTileType(next);
+                // 床、廊下、ドア（閉/開/施錠）、階段等は通過可能
+                bool passable = tileType switch
+                {
+                    TileType.Floor => true,
+                    TileType.Corridor => true,
+                    TileType.DoorClosed => true,
+                    TileType.DoorOpen => true,
+                    TileType.StairsUp => true,
+                    TileType.StairsDown => true,
+                    TileType.Grass => true,
+                    TileType.Altar => true,
+                    TileType.Fountain => true,
+                    TileType.SecretDoor => true,
+                    _ => !map.GetTile(next).BlocksMovement
+                };
+
+                if (passable)
+                {
+                    visited.Add(next);
+                    queue.Enqueue(next);
+                }
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -447,6 +573,269 @@ public class DungeonGenerator : IMapGenerator
                 map[pos.Value].TrapId = trap.Type.ToString();
             }
         }
+    }
+
+    /// <summary>
+    /// 宝箱を配置する。
+    /// 各階層30%の確率で生成、1階層の上限は3個。
+    /// ボス階は確定で1個追加配置。
+    /// </summary>
+    private void PlaceChests(DungeonMap map, DungeonGenerationParameters parameters)
+    {
+        const int MaxChestsPerFloor = 3;
+        const double ChestSpawnChance = 0.30;
+
+        int chestsPlaced = 0;
+
+        // ボス階は確定で宝箱を1個配置
+        if (parameters.IsBossFloor)
+        {
+            if (PlaceSingleChest(map, parameters.Depth, parameters.DungeonId))
+                chestsPlaced++;
+        }
+
+        // 残りの宝箱を30%の確率で配置（上限まで）
+        while (chestsPlaced < MaxChestsPerFloor)
+        {
+            if (_random.NextDouble() >= ChestSpawnChance) break;
+            if (PlaceSingleChest(map, parameters.Depth, parameters.DungeonId))
+                chestsPlaced++;
+            else
+                break;
+        }
+    }
+
+    /// <summary>宝箱を1個配置し、中身のアイテムIDを設定する</summary>
+    private bool PlaceSingleChest(DungeonMap map, int depth, string? dungeonId)
+    {
+        for (int attempt = 0; attempt < 50; attempt++)
+        {
+            var pos = map.GetRandomWalkablePosition(_random);
+            if (!pos.HasValue) continue;
+
+            var tile = map[pos.Value];
+            if (tile.Type != TileType.Floor) continue;
+
+            map.SetTile(pos.Value, TileType.Chest);
+            var chestTile = map[pos.Value];
+            chestTile.ChestOpened = false;
+            chestTile.ChestItems = GenerateChestItems(depth, dungeonId);
+            chestTile.ChestLockDifficulty = _random.Next(3) == 0 ? 5 + depth * 2 : 0;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>階層・ダンジョンテーマに応じた宝箱の中身を生成</summary>
+    private List<string> GenerateChestItems(int depth, string? dungeonId)
+    {
+        var items = new List<string>();
+        int itemCount = 1 + _random.Next(3);
+
+        // ダンジョンテーマ別のアイテムプール
+        var (commonItems, uncommonItems, rareItems) = GetThemedItemPools(dungeonId);
+
+        for (int i = 0; i < itemCount; i++)
+        {
+            double roll = _random.NextDouble();
+            if (depth >= 5 && roll < 0.1)
+                items.Add(rareItems[_random.Next(rareItems.Length)]);
+            else if (depth >= 3 && roll < 0.35)
+                items.Add(uncommonItems[_random.Next(uncommonItems.Length)]);
+            else
+                items.Add(commonItems[_random.Next(commonItems.Length)]);
+        }
+
+        if (depth >= 2 && _random.NextDouble() < 0.5)
+        {
+            items.Add($"gold_{50 + depth * 20 + _random.Next(100)}");
+        }
+
+        return items;
+    }
+
+    /// <summary>ダンジョンテーマに応じたアイテムプールを返す</summary>
+    private static (string[] common, string[] uncommon, string[] rare) GetThemedItemPools(string? dungeonId)
+    {
+        // デフォルトプール
+        var defaultCommon = new[] { "potion_healing_minor", "potion_mana_minor", "potion_antidote", "scroll_identify", "food_bread" };
+        var defaultUncommon = new[] { "potion_healing", "potion_mana", "scroll_teleport", "potion_strength", "potion_agility" };
+        var defaultRare = new[] { "potion_healing_super", "potion_cure_all", "scroll_enchant", "food_lembas", "accessory_protection_amulet" };
+
+        return dungeonId switch
+        {
+            // 王都地下墓地 - アンデッド対策アイテム
+            "capital_catacombs" => (
+                new[] { "potion_healing_minor", "potion_antidote", "food_bread", "scroll_identify", "potion_mana_minor" },
+                new[] { "potion_healing", "scroll_teleport", "potion_strength", "weapon_iron_sword", "shield_wooden" },
+                new[] { "potion_healing_super", "scroll_enchant", "armor_chainmail", "weapon_steel_sword", "accessory_protection_amulet" }),
+
+            // 始まりの裂け目 - バランス型高品質
+            "capital_rift" => (
+                new[] { "potion_healing_minor", "potion_mana_minor", "scroll_identify", "food_ration", "potion_antidote" },
+                new[] { "potion_healing", "potion_mana", "scroll_teleport", "potion_agility", "scroll_fireball" },
+                new[] { "potion_healing_super", "scroll_enchant", "weapon_greatsword", "armor_plate", "accessory_speed_cloak" }),
+
+            // 腐敗の森 - 自然系・回復アイテム
+            "forest_corruption" => (
+                new[] { "potion_healing_minor", "potion_antidote", "food_fruit", "food_bread", "material_herb" },
+                new[] { "potion_healing", "potion_mana", "food_lembas", "potion_antidote", "scroll_identify" },
+                new[] { "potion_cure_all", "potion_healing_super", "weapon_wooden_staff", "armor_wizard_robe", "scroll_enchant" }),
+
+            // 古代エルフの遺跡 - 魔法系アイテム
+            "forest_ruins" => (
+                new[] { "potion_mana_minor", "scroll_identify", "potion_healing_minor", "food_bread", "material_magic_crystal" },
+                new[] { "potion_mana", "scroll_teleport", "scroll_fireball", "potion_agility", "weapon_wooden_staff" },
+                new[] { "scroll_enchant", "armor_wizard_robe", "accessory_protection_amulet", "potion_healing_super", "scroll_magic_mapping" }),
+
+            // 採掘坑 - 鉱石・装備系
+            "mountain_mine" => (
+                new[] { "potion_healing_minor", "food_bread", "material_iron_ore", "material_stone", "scroll_identify" },
+                new[] { "potion_healing", "weapon_iron_sword", "armor_iron_helm", "armor_iron_boots", "shield_iron" },
+                new[] { "weapon_steel_sword", "armor_plate", "weapon_battle_axe", "potion_strength", "scroll_enchant" }),
+
+            // 溶岩洞 - 耐火・高品質装備
+            "mountain_lava" => (
+                new[] { "potion_healing_minor", "potion_fire_resist", "food_ration", "potion_antidote", "scroll_identify" },
+                new[] { "potion_healing", "potion_fire_resist", "weapon_battle_axe", "armor_chainmail", "potion_strength" },
+                new[] { "weapon_greatsword", "armor_plate", "accessory_protection_amulet", "potion_healing_super", "scroll_enchant" }),
+
+            // 竜の巣 - 最高品質
+            "mountain_dragon" => (
+                new[] { "potion_healing", "potion_fire_resist", "food_ration", "potion_mana_minor", "scroll_identify" },
+                new[] { "potion_healing_super", "potion_strength", "weapon_steel_sword", "armor_plate", "scroll_teleport" },
+                new[] { "weapon_greatsword", "accessory_speed_cloak", "scroll_enchant", "potion_cure_all", "food_lembas" }),
+
+            // 海岸洞窟 - 海賊の財宝
+            "coast_cave" => (
+                new[] { "potion_healing_minor", "food_water", "food_bread", "weapon_dagger", "scroll_identify" },
+                new[] { "potion_healing", "weapon_dagger", "potion_agility", "accessory_iron_ring", "scroll_teleport" },
+                new[] { "weapon_crossbow", "accessory_protection_amulet", "potion_healing_super", "scroll_enchant", "armor_leather" }),
+
+            // 沈没船 - 水中探索系
+            "coast_wreck" => (
+                new[] { "potion_healing_minor", "food_water", "potion_cold_resist", "scroll_identify", "food_bread" },
+                new[] { "potion_healing", "potion_cold_resist", "weapon_spear", "armor_leather", "scroll_teleport" },
+                new[] { "accessory_protection_amulet", "weapon_crossbow", "potion_healing_super", "scroll_enchant", "accessory_speed_cloak" }),
+
+            // 氷の洞窟 - 耐寒・防御系
+            "southern_icecave" => (
+                new[] { "potion_healing_minor", "potion_cold_resist", "food_ration", "scroll_identify", "food_bread" },
+                new[] { "potion_healing", "potion_cold_resist", "armor_chainmail", "shield_iron", "potion_strength" },
+                new[] { "armor_plate", "potion_healing_super", "accessory_protection_amulet", "scroll_enchant", "weapon_war_hammer" }),
+
+            // 古戦場跡 - 武具・軍用品
+            "southern_battlefield" => (
+                new[] { "potion_healing_minor", "food_ration", "weapon_rusty_sword", "scroll_identify", "food_bread" },
+                new[] { "potion_healing", "weapon_iron_sword", "armor_chainmail", "shield_iron", "potion_strength" },
+                new[] { "weapon_greatsword", "armor_plate", "weapon_war_hammer", "scroll_enchant", "accessory_protection_amulet" }),
+
+            // 大裂け目 - 最高難易度の報酬
+            "frontier_great_rift" => (
+                new[] { "potion_healing", "potion_mana", "food_ration", "scroll_identify", "potion_antidote" },
+                new[] { "potion_healing_super", "potion_strength", "potion_agility", "scroll_teleport", "scroll_fireball" },
+                new[] { "accessory_speed_cloak", "weapon_greatsword", "armor_plate", "scroll_enchant", "potion_cure_all" }),
+
+            // 滅びた王国の遺跡 - 古代の遺物
+            "frontier_ancient_ruins" => (
+                new[] { "potion_mana_minor", "scroll_identify", "material_ancient_relic", "potion_healing_minor", "food_bread" },
+                new[] { "potion_mana", "scroll_magic_mapping", "scroll_teleport", "weapon_wooden_staff", "armor_wizard_robe" },
+                new[] { "scroll_enchant", "accessory_protection_amulet", "potion_healing_super", "potion_cure_all", "accessory_speed_cloak" }),
+
+            _ => (defaultCommon, defaultUncommon, defaultRare)
+        };
+    }
+
+    /// <summary>遺跡・魔法系ダンジョンにルーン碑文を配置する</summary>
+    private void PlaceRuneInscriptions(DungeonMap map, DungeonGenerationParameters parameters)
+    {
+        // 碑文が出現するダンジョン（遺跡・魔法関連）
+        var inscriptionDungeons = new HashSet<string>
+        {
+            "capital_catacombs", "capital_rift",
+            "forest_ruins", "forest_corruption",
+            "mountain_mine",
+            "southern_battlefield",
+            "frontier_ancient_ruins", "frontier_great_rift"
+        };
+
+        string? dungeonId = parameters.DungeonId;
+        bool isInscriptionDungeon = dungeonId != null && inscriptionDungeons.Contains(dungeonId);
+
+        // 遺跡系以外でも低確率で出現（20%）
+        if (!isInscriptionDungeon && _random.NextDouble() >= 0.20)
+            return;
+
+        int maxInscriptions = isInscriptionDungeon ? 2 + parameters.Depth / 5 : 1;
+        int placed = 0;
+
+        // ダンジョンテーマに応じた碑文ルーン語プール
+        var wordPool = GetInscriptionWordPool(dungeonId, parameters.Depth);
+
+        for (int i = 0; i < maxInscriptions && wordPool.Count > 0; i++)
+        {
+            for (int attempt = 0; attempt < 30; attempt++)
+            {
+                var pos = map.GetRandomWalkablePosition(_random);
+                if (!pos.HasValue) continue;
+                if (map[pos.Value].Type != TileType.Floor) continue;
+
+                map.SetTile(pos.Value, TileType.RuneInscription);
+                var tile = map[pos.Value];
+                int wordIdx = _random.Next(wordPool.Count);
+                tile.InscriptionWordId = wordPool[wordIdx];
+                tile.InscriptionRead = false;
+                wordPool.RemoveAt(wordIdx);
+                placed++;
+                break;
+            }
+        }
+    }
+
+    /// <summary>ダンジョンテーマに応じた碑文ルーン語プールを返す</summary>
+    private List<string> GetInscriptionWordPool(string? dungeonId, int depth)
+    {
+        // 深層ほど高難度の語が出る
+        int maxDifficulty = Math.Clamp(1 + depth / 3, 1, 5);
+
+        // ルーン語ID → 難易度のローカルマッピング（RuneWordDatabaseへの参照を避ける）
+        var wordDifficulty = new Dictionary<string, int>
+        {
+            ["brenna"] = 1, ["frysta"] = 1, ["thruma"] = 1, ["brjota"] = 1, ["snida"] = 1,
+            ["graeda"] = 1, ["verja"] = 1, ["sja"] = 1, ["sjalfr"] = 1, ["fjandi"] = 1,
+            ["eldr"] = 1, ["vatn"] = 1, ["jord_elem"] = 1, ["vindr"] = 1, ["litill"] = 1,
+            ["einn"] = 1, ["augnablik"] = 1, ["hlutr"] = 1, ["jord"] = 1,
+            ["stinga"] = 2, ["springa"] = 2, ["hreinsa"] = 2, ["styrkja"] = 2, ["hrada"] = 2,
+            ["binda"] = 2, ["sofa"] = 2, ["hraeda"] = 2, ["vita"] = 2, ["opna"] = 2, ["loka"] = 2,
+            ["ovinir"] = 2, ["vinir"] = 2, ["draugr"] = 2, ["thurs"] = 2,
+            ["iss"] = 2, ["thruma_elem"] = 2, ["mikill"] = 2, ["sterkr"] = 2,
+            ["skjotr"] = 2, ["medal"] = 1, ["rett"] = 2, ["stund"] = 2, ["langr"] = 2,
+            ["beinn"] = 2, ["hringr"] = 2, ["gegn"] = 2, ["tha"] = 2,
+            ["eyda"] = 3, ["hylja"] = 3, ["blessa"] = 3, ["villa"] = 3, ["kalla"] = 3,
+            ["senda"] = 3, ["ljos"] = 3, ["myrkr"] = 3, ["helgr"] = 3, ["bolvadr"] = 3,
+            ["ofr"] = 3, ["viss"] = 3, ["hradr"] = 3, ["vidr"] = 3, ["eilifr"] = 3,
+            ["ef"] = 3, ["sar"] = 3, ["allir"] = 3,
+            ["tortima"] = 4, ["granda"] = 4, ["styra"] = 4, ["afrita"] = 4, ["banna"] = 4,
+            ["thegar"] = 4, ["heimr"] = 4, ["daudr"] = 4, ["endalauss"] = 4,
+            ["vekja"] = 5, ["snua"] = 5, ["ragnarok"] = 5
+        };
+
+        List<string> candidates = dungeonId switch
+        {
+            "forest_ruins" or "frontier_ancient_ruins" =>
+                new() { "vita", "sja", "opna", "loka", "afrita", "banna", "styra", "ljos", "myrkr", "helgr", "eilifr", "heimr" },
+            "capital_catacombs" or "southern_battlefield" =>
+                new() { "eyda", "draugr", "myrkr", "bolvadr", "hraeda", "sofa", "daudr" },
+            "capital_rift" or "frontier_great_rift" =>
+                new() { "tortima", "granda", "snua", "banna", "ragnarok", "heimr", "endalauss" },
+            "forest_corruption" =>
+                new() { "hreinsa", "graeda", "blessa", "vindr", "jord_elem", "styrkja" },
+            "mountain_mine" =>
+                new() { "brjota", "jord_elem", "sterkr", "hlutr", "mikill" },
+            _ => new() { "brenna", "frysta", "graeda", "verja", "sja", "fjandi", "eldr", "vatn" }
+        };
+
+        return candidates.Where(id => wordDifficulty.TryGetValue(id, out int d) && d <= maxDifficulty).ToList();
     }
 
     /// <summary>

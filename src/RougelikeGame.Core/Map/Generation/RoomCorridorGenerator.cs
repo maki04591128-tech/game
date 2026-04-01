@@ -156,7 +156,8 @@ public static class RoomGenerator
         for (int i = 0; i < pillars; i++)
         {
             var pos = room.GetRandomPosition(random);
-            if (map.IsWalkable(pos) && map.GetTileType(pos) == TileType.Floor)
+            if (map.IsWalkable(pos) && map.GetTileType(pos) == TileType.Floor
+                && !WouldBlockPassage(map, pos))
             {
                 map.SetTile(pos, TileType.Pillar);
             }
@@ -176,7 +177,8 @@ public static class RoomGenerator
 
         foreach (var corner in corners)
         {
-            if (map.IsInBounds(corner) && map.GetTileType(corner) == TileType.Floor)
+            if (map.IsInBounds(corner) && map.GetTileType(corner) == TileType.Floor
+                && !WouldBlockPassage(map, corner))
             {
                 map.SetTile(corner, TileType.Pillar);
             }
@@ -191,7 +193,7 @@ public static class RoomGenerator
         {
             case 0: // 噴水
                 var center = room.Center;
-                if (map.IsWalkable(center))
+                if (map.IsWalkable(center) && !WouldBlockPassage(map, center))
                 {
                     map.SetTile(center, TileType.Fountain);
                 }
@@ -205,6 +207,50 @@ public static class RoomGenerator
                 AddWaterPuddle(map, room, random);
                 break;
         }
+    }
+
+    /// <summary>
+    /// 指定位置に通行不能物を置くと通路やドアをブロックするかを判定。
+    /// 隣接する歩行可能タイル同士が分断される場合にtrueを返す。
+    /// </summary>
+    private static bool WouldBlockPassage(DungeonMap map, Position pos)
+    {
+        var cardinals = new[]
+        {
+            new Position(pos.X, pos.Y - 1),
+            new Position(pos.X + 1, pos.Y),
+            new Position(pos.X, pos.Y + 1),
+            new Position(pos.X - 1, pos.Y)
+        };
+
+        // 隣接タイルに通路やドアがある場合、その通路を塞ぐ可能性が高い
+        foreach (var adj in cardinals)
+        {
+            if (!map.IsInBounds(adj)) continue;
+            var adjType = map.GetTileType(adj);
+            if (adjType == TileType.Corridor || adjType == TileType.DoorClosed || adjType == TileType.DoorOpen)
+                return true;
+        }
+
+        // 4方向の歩行可能タイルを取得
+        var walkable = cardinals.Where(p => map.IsInBounds(p) && map.IsWalkable(p)).ToList();
+
+        // 歩行可能な隣接が2つ以下で、それらが互いに隣接していない場合、
+        // この位置を塞ぐと分断される
+        if (walkable.Count <= 2 && walkable.Count > 0)
+        {
+            // 2つの歩行可能タイルが対角（向かい合い）にある場合は通路上
+            if (walkable.Count == 2)
+            {
+                var a = walkable[0];
+                var b = walkable[1];
+                // 向かい合い判定（差が2 = 反対側）
+                if (Math.Abs(a.X - b.X) == 2 || Math.Abs(a.Y - b.Y) == 2)
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     private static void AddWaterPuddle(DungeonMap map, Room room, Random random)

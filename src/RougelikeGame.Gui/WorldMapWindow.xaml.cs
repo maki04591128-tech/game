@@ -118,6 +118,7 @@ public partial class WorldMapWindow : Window
         switch (e.Key)
         {
             case Key.Escape:
+            case Key.J:
                 DialogResult = false;
                 Close();
                 e.Handled = true;

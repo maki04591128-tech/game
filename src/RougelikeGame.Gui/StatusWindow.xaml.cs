@@ -72,7 +72,7 @@ public partial class StatusWindow : Window
         }
 
         // 身体状態・環境
-        ThirstStatusText.Text = $"渇き: {controller.PlayerThirstName}";
+        ThirstStatusText.Text = $"渇き: {controller.PlayerThirstName}({controller.PlayerThirst})";
         KarmaStatusText.Text = $"善悪: {KarmaSystem.GetKarmaRankName(controller.PlayerKarmaRank)} ({controller.PlayerKarma})";
         ReputationStatusText.Text = $"評判: {controller.PlayerReputationRank}";
         SeasonStatusText.Text = $"季節: {controller.CurrentSeasonName}";

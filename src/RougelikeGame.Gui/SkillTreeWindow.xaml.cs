@@ -16,6 +16,8 @@ public partial class SkillTreeWindow : Window
 {
     private const double NodeRadius = 22;
     private const double KeystoneRadius = 28;
+    private const double ScaleX = 1.4;
+    private const double ScaleY = 1.3;
 
     private readonly GameController _controller;
     private readonly SkillTreeSystem _tree;
@@ -61,6 +63,15 @@ public partial class SkillTreeWindow : Window
     {
         if (e.Source is TabControl tc)
         {
+            if (tc.SelectedIndex == 5)
+            {
+                // 習得済みスキルタブ
+                _currentTab = SkillTreeTab.Race; // ダミー（ツリーには使わない）
+                _selectedNodeId = null;
+                RenderAcquiredSkillsTab();
+                return;
+            }
+
             _currentTab = tc.SelectedIndex switch
             {
                 0 => SkillTreeTab.Race,
@@ -93,9 +104,16 @@ public partial class SkillTreeWindow : Window
         var canvas = GetCurrentCanvas();
         canvas.Children.Clear();
 
+        var player = _controller.Player;
         var nodesForTab = _tree.AllNodes.Values
             .Where(n => n.Tab == _currentTab)
+            .Where(n => (n.RequiredRace == null || n.RequiredRace == player.Race)
+                     && (n.RequiredClass == null || n.RequiredClass == player.CharacterClass)
+                     && (n.RequiredBackground == null || n.RequiredBackground == player.Background))
             .ToList();
+
+        // Y座標反転用の最大TreeYを計算（下から上に広がるツリー表示）
+        double maxTreeY = nodesForTab.Count > 0 ? nodesForTab.Max(n => n.TreeY) : 0;
 
         // 1) 接続線を描画（前提ノード → 子ノード）
         foreach (var node in nodesForTab)
@@ -104,7 +122,7 @@ public partial class SkillTreeWindow : Window
             {
                 if (_tree.AllNodes.TryGetValue(prereqId, out var prereqNode) && prereqNode.Tab == _currentTab)
                 {
-                    DrawConnection(canvas, prereqNode, node);
+                    DrawConnection(canvas, prereqNode, node, maxTreeY);
                 }
             }
         }
@@ -112,20 +130,34 @@ public partial class SkillTreeWindow : Window
         // 2) ノードアイコンを描画
         foreach (var node in nodesForTab)
         {
-            DrawNode(canvas, node);
+            DrawNode(canvas, node, maxTreeY);
         }
 
-        ClearDetail();
+        // 選択中のノードがある場合は詳細を再表示、なければクリア
+        if (_selectedNodeId != null && _tree.AllNodes.TryGetValue(_selectedNodeId, out var selectedNode)
+            && selectedNode.Tab == _currentTab)
+        {
+            int playerLevel = _controller.Player.Level;
+            bool canUnlock = _tree.CanUnlock(_selectedNodeId, playerLevel);
+            bool isUnlocked = _tree.UnlockedNodes.Contains(_selectedNodeId);
+            UnlockButton.IsEnabled = canUnlock;
+            UnlockButton.Content = isUnlocked ? "解放済み" : "解放 [Enter]";
+            ShowNodeDetail(selectedNode);
+        }
+        else
+        {
+            ClearDetail();
+        }
     }
 
     #endregion
 
     #region Node Drawing
 
-    private void DrawConnection(Canvas canvas, SkillNodeDefinition from, SkillNodeDefinition to)
+    private void DrawConnection(Canvas canvas, SkillNodeDefinition from, SkillNodeDefinition to, double maxTreeY)
     {
-        double offsetX = NodeRadius + 20;
-        double offsetY = NodeRadius + 20;
+        double offsetX = NodeRadius + 30;
+        double offsetY = NodeRadius + 30;
 
         bool fromUnlocked = _tree.UnlockedNodes.Contains(from.Id);
         bool toUnlocked = _tree.UnlockedNodes.Contains(to.Id);
@@ -133,10 +165,10 @@ public partial class SkillTreeWindow : Window
 
         var line = new Line
         {
-            X1 = from.TreeX + offsetX,
-            Y1 = from.TreeY + offsetY,
-            X2 = to.TreeX + offsetX,
-            Y2 = to.TreeY + offsetY,
+            X1 = from.TreeX * ScaleX + offsetX,
+            Y1 = (maxTreeY - from.TreeY) * ScaleY + offsetY,
+            X2 = to.TreeX * ScaleX + offsetX,
+            Y2 = (maxTreeY - to.TreeY) * ScaleY + offsetY,
             Stroke = bothUnlocked
                 ? new SolidColorBrush(Color.FromRgb(0x4e, 0xcc, 0xa3))
                 : fromUnlocked
@@ -148,10 +180,11 @@ public partial class SkillTreeWindow : Window
         canvas.Children.Add(line);
     }
 
-    private void DrawNode(Canvas canvas, SkillNodeDefinition node)
+    private void DrawNode(Canvas canvas, SkillNodeDefinition node, double maxTreeY)
     {
-        double offsetX = NodeRadius + 20;
-        double offsetY = NodeRadius + 20;
+        double offsetX = NodeRadius + 30;
+        double offsetY = NodeRadius + 30;
+        double flippedY = (maxTreeY - node.TreeY) * ScaleY;
 
         int playerLevel = _controller.Player.Level;
         bool isUnlocked = _tree.UnlockedNodes.Contains(node.Id);
@@ -167,8 +200,9 @@ public partial class SkillTreeWindow : Window
         else
             shape = CreateCircle(radius, node, isUnlocked, canUnlock, isSelected);
 
-        Canvas.SetLeft(shape, node.TreeX + offsetX - radius);
-        Canvas.SetTop(shape, node.TreeY + offsetY - radius);
+        double scaledX = node.TreeX * ScaleX;
+        Canvas.SetLeft(shape, scaledX + offsetX - radius);
+        Canvas.SetTop(shape, flippedY + offsetY - radius);
         shape.Tag = node.Id;
         canvas.Children.Add(shape);
 
@@ -183,8 +217,8 @@ public partial class SkillTreeWindow : Window
             IsHitTestVisible = false,
             TextAlignment = TextAlignment.Center
         };
-        Canvas.SetLeft(iconText, node.TreeX + offsetX - 7);
-        Canvas.SetTop(iconText, node.TreeY + offsetY - 9);
+        Canvas.SetLeft(iconText, scaledX + offsetX - 7);
+        Canvas.SetTop(iconText, flippedY + offsetY - 9);
         canvas.Children.Add(iconText);
 
         // ノード名ラベル
@@ -198,11 +232,11 @@ public partial class SkillTreeWindow : Window
             FontWeight = FontWeights.Bold,
             IsHitTestVisible = false,
             TextAlignment = TextAlignment.Center,
-            MaxWidth = 100,
+            MaxWidth = 110,
             TextTrimming = TextTrimming.CharacterEllipsis
         };
-        Canvas.SetLeft(nameLabel, node.TreeX + offsetX - 50);
-        Canvas.SetTop(nameLabel, node.TreeY + offsetY + radius + 3);
+        Canvas.SetLeft(nameLabel, scaledX + offsetX - 55);
+        Canvas.SetTop(nameLabel, flippedY + offsetY + radius + 3);
         canvas.Children.Add(nameLabel);
 
         // 解放済みチェックマーク
@@ -216,8 +250,8 @@ public partial class SkillTreeWindow : Window
                 FontWeight = FontWeights.Bold,
                 IsHitTestVisible = false
             };
-            Canvas.SetLeft(check, node.TreeX + offsetX + radius - 6);
-            Canvas.SetTop(check, node.TreeY + offsetY - radius - 2);
+            Canvas.SetLeft(check, scaledX + offsetX + radius - 6);
+            Canvas.SetTop(check, flippedY + offsetY - radius - 2);
             canvas.Children.Add(check);
         }
     }
@@ -307,16 +341,23 @@ public partial class SkillTreeWindow : Window
         if (sender is not Canvas canvas) return;
         var pos = e.GetPosition(canvas);
 
-        double offsetX = NodeRadius + 20;
-        double offsetY = NodeRadius + 20;
+        double offsetX = NodeRadius + 30;
+        double offsetY = NodeRadius + 30;
 
-        var nodesForTab = _tree.AllNodes.Values.Where(n => n.Tab == _currentTab).ToList();
+        var player = _controller.Player;
+        var nodesForTab = _tree.AllNodes.Values
+            .Where(n => n.Tab == _currentTab)
+            .Where(n => (n.RequiredRace == null || n.RequiredRace == player.Race)
+                     && (n.RequiredClass == null || n.RequiredClass == player.CharacterClass)
+                     && (n.RequiredBackground == null || n.RequiredBackground == player.Background))
+            .ToList();
 
         SkillNodeDefinition? clickedNode = null;
+        double maxTreeY = nodesForTab.Count > 0 ? nodesForTab.Max(n => n.TreeY) : 0;
         foreach (var node in nodesForTab)
         {
-            double nx = node.TreeX + offsetX;
-            double ny = node.TreeY + offsetY;
+            double nx = node.TreeX * ScaleX + offsetX;
+            double ny = (maxTreeY - node.TreeY) * ScaleY + offsetY;
             double r = node.NodeType == SkillNodeType.Keystone ? KeystoneRadius : NodeRadius;
             double dist = Math.Sqrt(Math.Pow(pos.X - nx, 2) + Math.Pow(pos.Y - ny, 2));
             if (dist <= r + 5)
@@ -607,6 +648,245 @@ public partial class SkillTreeWindow : Window
         {
             _tree.UnequipSkillSlot(slotIdx);
             BuildSkillSlotPanel();
+        }
+    }
+
+    #endregion
+
+    #region Acquired Skills Tab
+
+    private void RenderAcquiredSkillsTab()
+    {
+        if (AcquiredSkillsPanel == null) return;
+        AcquiredSkillsPanel.Children.Clear();
+
+        var acquiredNodes = _tree.UnlockedNodes
+            .Where(id => _tree.AllNodes.ContainsKey(id))
+            .Select(id => _tree.AllNodes[id])
+            .OrderBy(n => n.Tab)
+            .ThenBy(n => n.Name)
+            .ToList();
+
+        if (acquiredNodes.Count == 0)
+        {
+            AcquiredSkillsPanel.Children.Add(new TextBlock
+            {
+                Text = "習得済みスキルはありません",
+                Foreground = new SolidColorBrush(Color.FromRgb(0x80, 0x80, 0x80)),
+                FontSize = 14,
+                Margin = new Thickness(10)
+            });
+            return;
+        }
+
+        // アクティブスキル（スロット装備可能）
+        var activeNodes = acquiredNodes.Where(n => n.NodeType != SkillNodeType.Passive && n.NodeType != SkillNodeType.StatMinor && n.NodeType != SkillNodeType.StatMajor).ToList();
+        // パッシブスキル（スロット装備不可）
+        var passiveNodes = acquiredNodes.Where(n => n.NodeType == SkillNodeType.Passive || n.NodeType == SkillNodeType.StatMinor || n.NodeType == SkillNodeType.StatMajor).ToList();
+
+        // アクティブスキルセクション
+        if (activeNodes.Count > 0)
+        {
+            AcquiredSkillsPanel.Children.Add(new TextBlock
+            {
+                Text = $"⚡ アクティブスキル ({activeNodes.Count})",
+                Foreground = new SolidColorBrush(Color.FromRgb(0xff, 0xd9, 0x3d)),
+                FontSize = 13,
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(5, 8, 5, 4)
+            });
+
+            foreach (var node in activeNodes)
+            {
+                RenderAcquiredSkillItem(node, isPassive: false);
+            }
+        }
+
+        // パッシブスキルセクション
+        if (passiveNodes.Count > 0)
+        {
+            AcquiredSkillsPanel.Children.Add(new TextBlock
+            {
+                Text = $"◈ パッシブスキル ({passiveNodes.Count})",
+                Foreground = new SolidColorBrush(Color.FromRgb(0x80, 0xc0, 0xff)),
+                FontSize = 13,
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(5, 12, 5, 4)
+            });
+
+            foreach (var node in passiveNodes)
+            {
+                RenderAcquiredSkillItem(node, isPassive: true);
+            }
+        }
+
+        ClearAcquiredDetail();
+    }
+
+    private void RenderAcquiredSkillItem(SkillNodeDefinition node, bool isPassive)
+    {
+        bool isEquipped = _tree.EquippedSkillSlots.Contains(node.Id);
+        var border = new Border
+        {
+            Background = isEquipped
+                ? new SolidColorBrush(Color.FromRgb(0x1a, 0x3a, 0x2a))
+                : isPassive
+                    ? new SolidColorBrush(Color.FromRgb(0x10, 0x14, 0x24))
+                    : new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x20)),
+            BorderBrush = isEquipped
+                ? new SolidColorBrush(Color.FromRgb(0x4e, 0xcc, 0xa3))
+                : isPassive
+                    ? new SolidColorBrush(Color.FromRgb(0x30, 0x50, 0x80))
+                    : new SolidColorBrush(Color.FromRgb(0x0f, 0x34, 0x60)),
+            BorderThickness = new Thickness(isEquipped ? 2 : 1),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(6, 4, 6, 4),
+            Margin = new Thickness(3),
+            MinWidth = 120,
+            Cursor = Cursors.Hand,
+            Tag = node.Id
+        };
+
+        var sp = new StackPanel();
+        var typeIcon = GetTypeIcon(node.NodeType);
+        sp.Children.Add(new TextBlock
+        {
+            Text = $"{typeIcon} {node.Name}",
+            Foreground = isEquipped
+                ? new SolidColorBrush(Color.FromRgb(0x4e, 0xcc, 0xa3))
+                : Brushes.White,
+            FontSize = 12,
+            FontWeight = FontWeights.Bold
+        });
+        sp.Children.Add(new TextBlock
+        {
+            Text = $"[{node.Tab}] {node.NodeType}" + (isPassive ? " — 常時発動" : ""),
+            Foreground = new SolidColorBrush(Color.FromRgb(0x80, 0x80, 0x80)),
+            FontSize = 9
+        });
+        if (isEquipped)
+        {
+            sp.Children.Add(new TextBlock
+            {
+                Text = "✔ スロット装備中",
+                Foreground = new SolidColorBrush(Color.FromRgb(0x4e, 0xcc, 0xa3)),
+                FontSize = 9
+            });
+        }
+        else if (isPassive)
+        {
+            sp.Children.Add(new TextBlock
+            {
+                Text = "常時効果（スロット装備不要）",
+                Foreground = new SolidColorBrush(Color.FromRgb(0x60, 0x80, 0xb0)),
+                FontSize = 9
+            });
+        }
+
+        border.Child = sp;
+        border.MouseLeftButtonDown += AcquiredSkill_Click;
+        AcquiredSkillsPanel.Children.Add(border);
+    }
+
+    private void AcquiredSkill_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is Border border && border.Tag is string nodeId)
+        {
+            _selectedNodeId = nodeId;
+            ShowAcquiredSkillDetail(nodeId);
+        }
+    }
+
+    private void ShowAcquiredSkillDetail(string nodeId)
+    {
+        if (!_tree.AllNodes.TryGetValue(nodeId, out var node)) return;
+
+        bool isPassive = node.NodeType == SkillNodeType.Passive
+                      || node.NodeType == SkillNodeType.StatMinor
+                      || node.NodeType == SkillNodeType.StatMajor;
+
+        if (AcquiredNodeNameText != null)
+            AcquiredNodeNameText.Text = node.Name;
+        if (AcquiredNodeDescText != null)
+            AcquiredNodeDescText.Text = node.Description;
+
+        if (AcquiredNodeBonusText != null)
+        {
+            var bonuses = node.StatBonuses.Select(b => $"{b.Key}: +{b.Value}");
+            AcquiredNodeBonusText.Text = bonuses.Any()
+                ? "ボーナス: " + string.Join(", ", bonuses)
+                : "";
+        }
+
+        bool isEquipped = _tree.EquippedSkillSlots.Contains(nodeId);
+        if (AcquiredEquipStatusText != null)
+        {
+            if (isPassive)
+            {
+                AcquiredEquipStatusText.Text = "◈ 常時発動（スロット装備不要）";
+            }
+            else
+            {
+                AcquiredEquipStatusText.Text = isEquipped
+                    ? "✔ スロットに装備済み"
+                    : "スロット未装備（装備で戦闘中に使用可能）";
+            }
+        }
+
+        if (EquipToSlotButton != null)
+        {
+            if (isPassive)
+            {
+                // パッシブスキルはスロット装備不可
+                EquipToSlotButton.Visibility = Visibility.Collapsed;
+            }
+            else if (isEquipped)
+            {
+                EquipToSlotButton.Content = "スロットから外す";
+                EquipToSlotButton.Visibility = Visibility.Visible;
+                EquipToSlotButton.IsEnabled = true;
+            }
+            else if (_tree.EquippedSkillSlots.Count < SkillTreeSystem.MaxSkillSlots)
+            {
+                EquipToSlotButton.Content = "スロットに装備";
+                EquipToSlotButton.Visibility = Visibility.Visible;
+                EquipToSlotButton.IsEnabled = true;
+            }
+            else
+            {
+                EquipToSlotButton.Content = "スロット満杯";
+                EquipToSlotButton.Visibility = Visibility.Visible;
+                EquipToSlotButton.IsEnabled = false;
+            }
+            EquipToSlotButton.Tag = nodeId;
+        }
+    }
+
+    private void ClearAcquiredDetail()
+    {
+        if (AcquiredNodeNameText != null) AcquiredNodeNameText.Text = "";
+        if (AcquiredNodeDescText != null) AcquiredNodeDescText.Text = "← スキルを選択してください";
+        if (AcquiredNodeBonusText != null) AcquiredNodeBonusText.Text = "";
+        if (AcquiredEquipStatusText != null) AcquiredEquipStatusText.Text = "";
+        if (EquipToSlotButton != null) EquipToSlotButton.Visibility = Visibility.Collapsed;
+    }
+
+    private void EquipToSlotButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string nodeId)
+        {
+            bool isEquipped = _tree.EquippedSkillSlots.Contains(nodeId);
+            if (isEquipped)
+            {
+                _tree.UnequipSkillFromSlot(nodeId);
+            }
+            else
+            {
+                _tree.EquipSkillToSlot(nodeId);
+            }
+            BuildSkillSlotPanel();
+            RenderAcquiredSkillsTab();
+            ShowAcquiredSkillDetail(nodeId);
         }
     }
 

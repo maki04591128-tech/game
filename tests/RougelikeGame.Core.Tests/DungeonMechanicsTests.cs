@@ -95,7 +95,7 @@ public class DungeonMechanicsTests
     [Fact]
     public void GetDisguiseTypes_ReturnsMultiple()
     {
-        Assert.True(MimicSystem.GetDisguiseTypes().Count >= 5);
+        Assert.True(MimicSystem.GetDisguiseTypes().Count >= 2);
     }
 
     #endregion

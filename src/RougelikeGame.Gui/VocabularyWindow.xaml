@@ -1,0 +1,91 @@
+<Window x:Class="RougelikeGame.Gui.VocabularyWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="習得済みルーン語一覧" 
+        Height="550" Width="650"
+        Background="#1a1a2e"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        KeyDown="Window_KeyDown">
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- タイトル -->
+        <TextBlock Grid.Row="0" 
+                   Text="【習得済みルーン語】" 
+                   Foreground="#4ecca3" 
+                   FontSize="18" 
+                   FontWeight="Bold"
+                   Margin="0,0,0,5"/>
+
+        <!-- カテゴリフィルタ -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,5">
+            <TextBlock Text="カテゴリ: " Foreground="#e94560" FontSize="13" VerticalAlignment="Center"/>
+            <ComboBox x:Name="CategoryCombo" 
+                      Width="150"
+                      Background="#16213e" Foreground="White"
+                      SelectionChanged="CategoryCombo_SelectionChanged"/>
+            <TextBlock x:Name="WordCountText" 
+                       Foreground="#8a8a8a" 
+                       FontSize="12" 
+                       VerticalAlignment="Center"
+                       Margin="15,0,0,0"/>
+        </StackPanel>
+
+        <!-- ルーン語リスト -->
+        <ListBox Grid.Row="2"
+                 x:Name="WordList"
+                 Background="#16213e"
+                 Foreground="White"
+                 BorderBrush="#0f3460"
+                 FontFamily="Consolas"
+                 FontSize="13"
+                 SelectionChanged="WordList_SelectionChanged"/>
+
+        <!-- 詳細パネル -->
+        <Border Grid.Row="3" 
+                Background="#16213e" 
+                BorderBrush="#0f3460" 
+                BorderThickness="1"
+                CornerRadius="3"
+                Padding="8"
+                Margin="0,5,0,5"
+                MinHeight="80">
+            <StackPanel x:Name="DetailPanel">
+                <TextBlock x:Name="DetailName" Foreground="#e94560" FontSize="14" FontWeight="Bold"/>
+                <TextBlock x:Name="DetailPronunciation" Foreground="#8a8a8a" FontSize="12" Margin="0,2,0,0"/>
+                <TextBlock x:Name="DetailCategory" Foreground="#4ecca3" FontSize="12" Margin="0,2,0,0"/>
+                <Grid Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" x:Name="DetailMastery" Foreground="White" FontSize="12"/>
+                    <ProgressBar Grid.Column="1" 
+                                 x:Name="MasteryBar"
+                                 Minimum="0" Maximum="100"
+                                 Height="12" Margin="8,0,8,0"
+                                 Background="#0f3460" Foreground="#4ecca3"/>
+                    <TextBlock Grid.Column="2" x:Name="DetailDifficulty" Foreground="#e94560" FontSize="12"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- 閉じるボタン -->
+        <Button Grid.Row="4"
+                Content="閉じる (Esc)"
+                Width="120" Height="30"
+                HorizontalAlignment="Right"
+                Background="#0f3460" Foreground="White"
+                BorderBrush="#4ecca3"
+                Click="CloseButton_Click"/>
+    </Grid>
+</Window>

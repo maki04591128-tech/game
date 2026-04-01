@@ -178,8 +178,8 @@ public class CharacterCreationTests
     public void Player_CreateWithRaceClassBackground_AppliesInitialSkills()
     {
         var player = Player.Create("テスト", Race.Human, CharacterClass.Thief, Background.Adventurer);
-        Assert.Contains("解錠", player.LearnedSkills);
-        Assert.Contains("忍び足", player.LearnedSkills);
+        Assert.Contains("lockpick", player.LearnedSkills);
+        Assert.Contains("sneak", player.LearnedSkills);
     }
 
     [Fact]

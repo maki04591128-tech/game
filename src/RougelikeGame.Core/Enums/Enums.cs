@@ -1136,6 +1136,57 @@ public enum HygieneLevel
 }
 
 /// <summary>
+/// 渇きの段階（数値ベース）
+/// </summary>
+public enum ThirstStage
+{
+    /// <summary>潤い（80-100）</summary>
+    Hydrated,
+    /// <summary>軽い渇き（50-79）</summary>
+    Thirsty,
+    /// <summary>脱水（25-49）</summary>
+    Dehydrated,
+    /// <summary>重度脱水（1-24）</summary>
+    SevereDehydration,
+    /// <summary>致命的脱水（0）</summary>
+    CriticalDehydration
+}
+
+/// <summary>
+/// 疲労の段階（数値ベース）
+/// </summary>
+public enum FatigueStage
+{
+    /// <summary>元気（80-100）</summary>
+    Fresh,
+    /// <summary>軽疲労（50-79）</summary>
+    Mild,
+    /// <summary>疲労（25-49）</summary>
+    Tired,
+    /// <summary>重疲労（1-24）</summary>
+    Exhausted,
+    /// <summary>過労（0）</summary>
+    Collapse
+}
+
+/// <summary>
+/// 衛生の段階（数値ベース）
+/// </summary>
+public enum HygieneStage
+{
+    /// <summary>清潔（80-100）</summary>
+    Clean,
+    /// <summary>普通（50-79）</summary>
+    Normal,
+    /// <summary>汚れ（25-49）</summary>
+    Dirty,
+    /// <summary>不衛生（1-24）</summary>
+    Filthy,
+    /// <summary>不潔（0）</summary>
+    Foul
+}
+
+/// <summary>
 /// 施設カテゴリ（拠点作成）
 /// </summary>
 public enum FacilityCategory

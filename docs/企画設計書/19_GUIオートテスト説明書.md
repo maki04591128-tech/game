@@ -57,7 +57,7 @@ UI要素の存在チェック＋全キーバインドのクラッシュ耐性を
 - NPC位置へ移動→対話確認、水タイル移動
 
 **各ダイアログ・キー操作**:
-- ミニマップ切替（M）、ステータスバー全15要素
+- ミニマップ切替（M）、ステータスバー全20要素、SkillSlotIconPanel存在確認
 - ダイアログ: C/L/V/J/K/O/H/B/E/P/N、探索F、自動探索Tab
 
 **移動・戦闘・階段・日時進行**:
@@ -74,7 +74,7 @@ UI要素の存在チェック＋全キーバインドのクラッシュ耐性を
 
 | # | メソッド名 | 検証項目数 | テスト内容 |
 |---|-----------|-----------|-----------|
-| 1 | SystemVerification_DebugMap_FullIntegration | 約21項目 | マップ生成・領地名・HP/MP/SP初期値・レベル/経験値形式・重量形式・通貨形式・ターン制限・満腹度/正気度初期値・日時表示形式・季節/天候/渇き/カルマ/仲間数の値検証・戦闘接触後HP・ドア開閉・射撃/投擲・階段上昇/降下・スキルCD・魔法詠唱 |
+| 1 | SystemVerification_DebugMap_FullIntegration | 約20項目 |
 | 2 | SystemVerification_LongPlay_HungerAndEndurance | 約3項目 | 70ターン待機（日付進行+階層不変）、800ターン待機（満腹度減少）、200ターン連続操作（ステータスバー正常維持） |
 | 3 | SystemVerification_CombatAndStatusTransition | 約12項目 | 初期ステータス全20要素記録、HP初期フル確認、30回移動戦闘、HP減少方向検証、戦闘後ステータスバー形式維持、自動探索(Tab)→3秒→中断(Space)フロー、追加50回移動安定性 |
 | 4 | SystemVerification_StatusBarConsistencyAfterActions | 約10項目 | 拾う(G)/探索(F)/射撃(R)/投擲(T)/祈り(P)/ドア閉じ(X)各操作後ステータスバー全要素形式検証、ミニマップ(M)前後不変検証、階段(Shift+>)前後変化追跡、連続アクション90回後安定性 |
@@ -92,6 +92,7 @@ UI要素の存在チェック＋全キーバインドのクラッシュ耐性を
 | EncyclopediaSystem（図鑑） | Yキー画面遷移 | UI存在チェック（Automation） |
 | DeathLogSystem（死亡記録） | Zキー画面遷移 | UI存在チェック（Automation） |
 | CompanionSystem（仲間管理） | Uキー画面遷移 | UI存在チェック（Automation） |
+| SkillSlotSystem（スキルスロット） | SkillSlotIconPanel | UI存在チェック（Automation） |
 ---
 
 ## 4. デバッグマップによる高速化

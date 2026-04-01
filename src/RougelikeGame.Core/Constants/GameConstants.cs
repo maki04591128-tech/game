@@ -99,6 +99,18 @@ public static class GameConstants
     public const int InitialHunger = 100;
     public const int MaxHunger = 100;
 
+    // 渇き
+    public const int InitialThirst = 100;
+    public const int MaxThirst = 100;
+
+    // 疲労
+    public const int InitialFatigue = 100;
+    public const int MaxFatigue = 100;
+
+    // 衛生
+    public const int InitialHygiene = 100;
+    public const int MaxHygiene = 100;
+
     // 戦闘
     public const double BaseCriticalRate = 0.05;
     public const double MaxEvasionRate = 0.75;

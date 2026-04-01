@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using RougelikeGame.Core;
 using RougelikeGame.Core.Entities;
@@ -57,6 +58,10 @@ public class GameRenderer
         { TileType.NpcShopkeeper, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.Cyan) },
         { TileType.NpcBlacksmith, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.OrangeRed) },
         { TileType.NpcInnkeeper, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.LightGreen) },
+
+        // 建物入口/出口
+        { TileType.BuildingEntrance, (new SolidColorBrush(Color.FromRgb(80, 60, 30)), Brushes.Wheat) },
+        { TileType.BuildingExit, (new SolidColorBrush(Color.FromRgb(30, 60, 100)), Brushes.CornflowerBlue) },
     };
 
     private static readonly Brush ExploredBackground = new SolidColorBrush(Color.FromRgb(15, 15, 20));
@@ -299,24 +304,68 @@ public class GameRenderer
         };
     }
 
+    /// <summary>ミニマップ用のWriteableBitmapとImageコントロール</summary>
+    private WriteableBitmap? _minimapBitmap;
+    private Image? _minimapImage;
+    private int _minimapLastMapWidth;
+    private int _minimapLastMapHeight;
+
     /// <summary>
-    /// ミニマップを描画
+    /// ミニマップを描画（WriteableBitmapベース高速描画）
     /// </summary>
     public void RenderMinimap(Canvas minimapCanvas, DungeonMap map, Player player, IEnumerable<Enemy> enemies)
     {
-        minimapCanvas.Children.Clear();
-
         double canvasWidth = minimapCanvas.Width;
         double canvasHeight = minimapCanvas.Height;
+
+        int bmpWidth = Math.Max(1, (int)canvasWidth);
+        int bmpHeight = Math.Max(1, (int)canvasHeight);
+
+        // Bitmap/Image再作成が必要かチェック
+        if (_minimapBitmap == null || _minimapBitmap.PixelWidth != bmpWidth || _minimapBitmap.PixelHeight != bmpHeight
+            || _minimapLastMapWidth != map.Width || _minimapLastMapHeight != map.Height)
+        {
+            _minimapBitmap = new WriteableBitmap(bmpWidth, bmpHeight, 96, 96, PixelFormats.Bgra32, null);
+            if (_minimapImage == null)
+            {
+                _minimapImage = new Image();
+                minimapCanvas.Children.Add(_minimapImage);
+            }
+            _minimapImage.Source = _minimapBitmap;
+            _minimapImage.Width = bmpWidth;
+            _minimapImage.Height = bmpHeight;
+            Canvas.SetLeft(_minimapImage, 0);
+            Canvas.SetTop(_minimapImage, 0);
+            _minimapLastMapWidth = map.Width;
+            _minimapLastMapHeight = map.Height;
+
+            // 不要な旧Childrenを除去（Image以外）
+            for (int i = minimapCanvas.Children.Count - 1; i >= 0; i--)
+            {
+                if (minimapCanvas.Children[i] != _minimapImage)
+                    minimapCanvas.Children.RemoveAt(i);
+            }
+        }
 
         // マップ全体がミニマップに収まるスケールを計算
         double scaleX = canvasWidth / map.Width;
         double scaleY = canvasHeight / map.Height;
         double scale = Math.Min(scaleX, scaleY);
 
-        // 中央揃えオフセット
         double mapOffsetX = (canvasWidth - map.Width * scale) / 2;
         double mapOffsetY = (canvasHeight - map.Height * scale) / 2;
+
+        // ピクセル配列を一括操作
+        int stride = bmpWidth * 4;
+        byte[] pixels = new byte[stride * bmpHeight];
+        // 背景を暗色で塗りつぶし (10,10,15)
+        for (int i = 0; i < pixels.Length; i += 4)
+        {
+            pixels[i] = 15;     // B
+            pixels[i + 1] = 10; // G
+            pixels[i + 2] = 10; // R
+            pixels[i + 3] = 255; // A
+        }
 
         // 探索済みタイルを描画
         for (int y = 0; y < map.Height; y++)
@@ -325,27 +374,33 @@ public class GameRenderer
             {
                 var pos = new Position(x, y);
                 var tile = map.GetTile(pos);
-
                 if (!tile.IsExplored) continue;
 
-                Brush color = tile.Type switch
-                {
-                    TileType.Wall => MinimapWallBrush,
-                    TileType.StairsDown => Brushes.LimeGreen,
-                    TileType.StairsUp => Brushes.CornflowerBlue,
-                    _ when tile.BlocksMovement => MinimapWallBrush,
-                    _ => tile.IsVisible ? MinimapFloorVisibleBrush : MinimapFloorExploredBrush
-                };
+                byte r, g, b;
+                if (tile.Type == TileType.StairsDown) { r = 50; g = 205; b = 50; }
+                else if (tile.Type == TileType.StairsUp) { r = 100; g = 149; b = 237; }
+                else if (tile.Type == TileType.Wall || tile.BlocksMovement) { r = 60; g = 60; b = 80; }
+                else if (tile.IsVisible) { r = 80; g = 80; b = 100; }
+                else { r = 40; g = 40; b = 55; }
 
-                var rect = new Rectangle
+                int pixelSize = Math.Max(1, (int)scale);
+                int px = (int)(mapOffsetX + x * scale);
+                int py = (int)(mapOffsetY + y * scale);
+
+                for (int dy = 0; dy < pixelSize && py + dy < bmpHeight; dy++)
                 {
-                    Width = Math.Max(1, scale),
-                    Height = Math.Max(1, scale),
-                    Fill = color
-                };
-                Canvas.SetLeft(rect, mapOffsetX + x * scale);
-                Canvas.SetTop(rect, mapOffsetY + y * scale);
-                minimapCanvas.Children.Add(rect);
+                    for (int dx = 0; dx < pixelSize && px + dx < bmpWidth; dx++)
+                    {
+                        int idx = ((py + dy) * bmpWidth + (px + dx)) * 4;
+                        if (idx >= 0 && idx + 3 < pixels.Length)
+                        {
+                            pixels[idx] = b;
+                            pixels[idx + 1] = g;
+                            pixels[idx + 2] = r;
+                            pixels[idx + 3] = 255;
+                        }
+                    }
+                }
             }
         }
 
@@ -355,28 +410,49 @@ public class GameRenderer
             var tile = map.GetTile(enemy.Position);
             if (tile.IsVisible)
             {
-                var dot = new Rectangle
+                int dotSize = Math.Max(2, (int)(scale * 1.5));
+                int px = (int)(mapOffsetX + enemy.Position.X * scale);
+                int py = (int)(mapOffsetY + enemy.Position.Y * scale);
+                for (int dy = 0; dy < dotSize && py + dy < bmpHeight; dy++)
                 {
-                    Width = Math.Max(2, scale * 1.5),
-                    Height = Math.Max(2, scale * 1.5),
-                    Fill = Brushes.Red
-                };
-                Canvas.SetLeft(dot, mapOffsetX + enemy.Position.X * scale);
-                Canvas.SetTop(dot, mapOffsetY + enemy.Position.Y * scale);
-                minimapCanvas.Children.Add(dot);
+                    for (int dx = 0; dx < dotSize && px + dx < bmpWidth; dx++)
+                    {
+                        int idx = ((py + dy) * bmpWidth + (px + dx)) * 4;
+                        if (idx >= 0 && idx + 3 < pixels.Length)
+                        {
+                            pixels[idx] = 0;     // B
+                            pixels[idx + 1] = 0; // G
+                            pixels[idx + 2] = 255; // R
+                            pixels[idx + 3] = 255;
+                        }
+                    }
+                }
             }
         }
 
         // プレイヤーを描画
-        var playerDot = new Rectangle
         {
-            Width = Math.Max(3, scale * 2),
-            Height = Math.Max(3, scale * 2),
-            Fill = Brushes.Yellow
-        };
-        Canvas.SetLeft(playerDot, mapOffsetX + player.Position.X * scale - 0.5);
-        Canvas.SetTop(playerDot, mapOffsetY + player.Position.Y * scale - 0.5);
-        minimapCanvas.Children.Add(playerDot);
+            int dotSize = Math.Max(3, (int)(scale * 2));
+            int px = (int)(mapOffsetX + player.Position.X * scale - 0.5);
+            int py = (int)(mapOffsetY + player.Position.Y * scale - 0.5);
+            for (int dy = 0; dy < dotSize && py + dy < bmpHeight; dy++)
+            {
+                for (int dx = 0; dx < dotSize && px + dx < bmpWidth; dx++)
+                {
+                    int idx = ((py + dy) * bmpWidth + (px + dx)) * 4;
+                    if (idx >= 0 && idx + 3 < pixels.Length)
+                    {
+                        pixels[idx] = 0;     // B
+                        pixels[idx + 1] = 255; // G
+                        pixels[idx + 2] = 255; // R (Yellow = R+G)
+                        pixels[idx + 3] = 255;
+                    }
+                }
+            }
+        }
+
+        // 一括書き込み
+        _minimapBitmap.WritePixels(new Int32Rect(0, 0, bmpWidth, bmpHeight), pixels, stride, 0);
     }
 
     private static readonly Brush MinimapWallBrush = new SolidColorBrush(Color.FromRgb(60, 60, 80));

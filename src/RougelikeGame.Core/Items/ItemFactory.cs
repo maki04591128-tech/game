@@ -657,6 +657,33 @@ public class ItemFactory
         Weight = 0.2f
     };
 
+    public static Food CreateWater() => new()
+    {
+        ItemId = "food_water",
+        Name = "水",
+        Description = "ダンジョンで汲んだ水。渇きを癒す。",
+        FoodType = FoodType.Water,
+        NutritionValue = 5,
+        HydrationValue = 1,
+        Rarity = ItemRarity.Common,
+        BasePrice = 5,
+        Weight = 0.5f
+    };
+
+    public static Food CreateCleanWater() => new()
+    {
+        ItemId = "food_clean_water",
+        Name = "清水",
+        Description = "清らかな水。渇きを完全に癒し、少しHPも回復する。",
+        FoodType = FoodType.CleanWater,
+        NutritionValue = 10,
+        HydrationValue = 2,
+        HealValue = 10,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 25,
+        Weight = 0.5f
+    };
+
     public static Scroll CreateScrollOfTeleport() => new()
     {
         ItemId = "scroll_teleport",
@@ -782,6 +809,19 @@ public class ItemFactory
         Rarity = ItemRarity.Rare,
         BasePrice = 200,
         Weight = 0.1f
+    };
+
+    public static Scroll CreateAncientBook() => new()
+    {
+        ItemId = "ancient_book",
+        Name = "古代の書",
+        Description = "古代のルーン語が記された書物。読むとルーン語を1つ習得できる。",
+        ScrollType = ScrollType.AncientBook,
+        TargetType = TargetType.Self,
+        EffectValue = 3,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 300,
+        Weight = 0.5f
     };
 
     #endregion
@@ -932,10 +972,11 @@ public class ItemFactory
 
     #region Material Item Creation
 
-    private static Material CreateMaterialItem(string name, string description, MaterialCategory category, int basePrice, ItemRarity rarity = ItemRarity.Common, int quality = 50, float weight = 0.3f)
+    private static Material CreateMaterialItem(string itemId, string name, string description, MaterialCategory category, int basePrice, ItemRarity rarity = ItemRarity.Common, int quality = 50, float weight = 0.3f)
     {
         return new Material
         {
+            ItemId = itemId,
             Name = name,
             Description = description,
             Weight = weight,
@@ -947,55 +988,55 @@ public class ItemFactory
     }
 
     // 獣系素材
-    public static Item CreateBeastHide() => CreateMaterialItem("毛皮", "獣から剥ぎ取った毛皮。防具の素材になる", MaterialCategory.Leather, 30);
-    public static Item CreateBeastFang() => CreateMaterialItem("獣牙", "鋭い獣の牙。武器の素材になる", MaterialCategory.Monster, 25);
+    public static Item CreateBeastHide() => CreateMaterialItem("material_beast_hide", "毛皮", "獣から剥ぎ取った毛皮。防具の素材になる", MaterialCategory.Leather, 30);
+    public static Item CreateBeastFang() => CreateMaterialItem("material_beast_fang", "獣牙", "鋭い獣の牙。武器の素材になる", MaterialCategory.Monster, 25);
 
     // 不死系素材
-    public static Item CreateBoneFragment() => CreateMaterialItem("骨片", "魔力を帯びた骨の欠片", MaterialCategory.Bone, 20);
-    public static Item CreateCursedEssence() => CreateMaterialItem("呪いのエッセンス", "不死の魔物から滲み出る呪いの結晶", MaterialCategory.Magical, 80, ItemRarity.Rare, 60);
+    public static Item CreateBoneFragment() => CreateMaterialItem("material_bone_fragment", "骨片", "魔力を帯びた骨の欠片", MaterialCategory.Bone, 20);
+    public static Item CreateCursedEssence() => CreateMaterialItem("material_cursed_essence", "呪いのエッセンス", "不死の魔物から滲み出る呪いの結晶", MaterialCategory.Magical, 80, ItemRarity.Rare, 60);
 
     // 竜系素材
-    public static Item CreateDragonScale() => CreateMaterialItem("竜鱗", "竜の硬い鱗。最高級の防具素材", MaterialCategory.Monster, 200, ItemRarity.Epic, 80);
-    public static Item CreateDragonFang() => CreateMaterialItem("竜牙", "竜の巨大な牙。伝説の武器素材", MaterialCategory.Monster, 250, ItemRarity.Epic, 85);
+    public static Item CreateDragonScale() => CreateMaterialItem("material_dragon_scale", "竜鱗", "竜の硬い鱗。最高級の防具素材", MaterialCategory.Monster, 200, ItemRarity.Epic, 80);
+    public static Item CreateDragonFang() => CreateMaterialItem("material_dragon_fang", "竜牙", "竜の巨大な牙。伝説の武器素材", MaterialCategory.Monster, 250, ItemRarity.Epic, 85);
 
     // 昆虫系素材
-    public static Item CreateInsectShell() => CreateMaterialItem("甲殻", "硬い虫の甲殻。軽量な防具素材", MaterialCategory.Monster, 20);
-    public static Item CreateVenomSac() => CreateMaterialItem("毒嚢", "毒を溜めた嚢。毒系アイテムの材料", MaterialCategory.Monster, 35, ItemRarity.Uncommon);
+    public static Item CreateInsectShell() => CreateMaterialItem("material_insect_shell", "甲殻", "硬い虫の甲殻。軽量な防具素材", MaterialCategory.Monster, 20);
+    public static Item CreateVenomSac() => CreateMaterialItem("material_venom_sac", "毒嚢", "毒を溜めた嚢。毒系アイテムの材料", MaterialCategory.Monster, 35, ItemRarity.Uncommon);
 
     // 植物系素材
-    public static Item CreateHerb() => CreateMaterialItem("薬草", "ダンジョンに自生する薬草", MaterialCategory.Herb, 15);
-    public static Item CreateWoodMaterial() => CreateMaterialItem("樹液", "魔力を含んだ樹液", MaterialCategory.Wood, 20);
+    public static Item CreateHerb() => CreateMaterialItem("material_herb", "薬草", "ダンジョンに自生する薬草", MaterialCategory.Herb, 15);
+    public static Item CreateWoodMaterial() => CreateMaterialItem("material_wood", "樹液", "魔力を含んだ樹液", MaterialCategory.Wood, 20);
 
     // 悪魔系素材
-    public static Item CreateDemonHorn() => CreateMaterialItem("魔角", "悪魔の角。闇の魔力が宿る", MaterialCategory.Monster, 120, ItemRarity.Rare, 65);
-    public static Item CreateDarkCrystal() => CreateMaterialItem("暗黒結晶", "闇の力が凝縮された結晶", MaterialCategory.Magical, 150, ItemRarity.Rare, 70);
+    public static Item CreateDemonHorn() => CreateMaterialItem("material_demon_horn", "魔角", "悪魔の角。闘の魔力が宿る", MaterialCategory.Monster, 120, ItemRarity.Rare, 65);
+    public static Item CreateDarkCrystal() => CreateMaterialItem("material_dark_crystal", "暗黒結晶", "闇の力が凝縮された結晶", MaterialCategory.Magical, 150, ItemRarity.Rare, 70);
 
     // 精霊系素材
-    public static Item CreateSpiritEssence() => CreateMaterialItem("精霊のエッセンス", "精霊の残した魔力の結晶", MaterialCategory.Magical, 100, ItemRarity.Rare, 65);
-    public static Item CreateElementalCore() => CreateMaterialItem("元素核", "元素の力が凝縮された核。高級素材", MaterialCategory.Magical, 180, ItemRarity.Epic, 75);
+    public static Item CreateSpiritEssence() => CreateMaterialItem("material_spirit_essence", "精霊のエッセンス", "精霊の残した魔力の結晶", MaterialCategory.Magical, 100, ItemRarity.Rare, 65);
+    public static Item CreateElementalCore() => CreateMaterialItem("material_elemental_core", "元素核", "元素の力が凝縮された核。高級素材", MaterialCategory.Magical, 180, ItemRarity.Epic, 75);
 
     // 構造体系素材
-    public static Item CreateGolemCore() => CreateMaterialItem("核", "ゴーレムの魔力核。貴重な素材", MaterialCategory.Magical, 160, ItemRarity.Rare, 70);
-    public static Item CreateIronFragment() => CreateMaterialItem("鉄片", "鉄の破片。鍛冶素材になる", MaterialCategory.Metal, 15);
+    public static Item CreateGolemCore() => CreateMaterialItem("material_golem_core", "核", "ゴーレムの魔力核。貴重な素材", MaterialCategory.Magical, 160, ItemRarity.Rare, 70);
+    public static Item CreateIronFragment() => CreateMaterialItem("material_iron_fragment", "鉄片", "鉄の破片。鍛冶素材になる", MaterialCategory.Metal, 15);
 
     // 不定形系素材
-    public static Item CreateSlimeGel() => CreateMaterialItem("ゼリー", "スライムの粘液。様々な用途がある", MaterialCategory.Monster, 10);
-    public static Item CreateMagicCrystal() => CreateMaterialItem("魔力結晶", "魔力が結晶化した希少な素材", MaterialCategory.Magical, 120, ItemRarity.Rare, 60);
+    public static Item CreateSlimeGel() => CreateMaterialItem("material_slime_gel", "ゼリー", "スライムの粘液。様々な用途がある", MaterialCategory.Monster, 10);
+    public static Item CreateMagicCrystal() => CreateMaterialItem("material_magic_crystal", "魔力結晶", "魔力が結晶化した希少な素材", MaterialCategory.Magical, 120, ItemRarity.Rare, 60);
 
     // 蜘蛛系素材
-    public static Item CreateSpiderSilk() => CreateMaterialItem("蜘蛛糸", "強靭な蜘蛛の糸。布の素材になる", MaterialCategory.Cloth, 25);
+    public static Item CreateSpiderSilk() => CreateMaterialItem("material_spider_silk", "蜘蛛糸", "強靭な蜘蛛の糸。布の素材になる", MaterialCategory.Cloth, 25);
 
     // 鉱物・環境素材
-    public static Item CreateIronOre() => CreateMaterialItem("鉄鉱石", "鉄を含む鉱石。鍛冶の基本素材", MaterialCategory.Metal, 20);
-    public static Item CreatePearl() => CreateMaterialItem("真珠", "海辺の魔物が持つ真珠", MaterialCategory.Gem, 60, ItemRarity.Uncommon, 55);
-    public static Item CreateAncientRelic() => CreateMaterialItem("古代の遺物", "古代文明の遺物。研究価値が高い", MaterialCategory.Magical, 200, ItemRarity.Epic, 80);
-    public static Item CreateEquipmentFragment() => CreateMaterialItem("装備品の欠片", "朽ちた装備の残骸。鍛冶素材になる", MaterialCategory.Metal, 10);
+    public static Item CreateIronOre() => CreateMaterialItem("material_iron_ore", "鉄鉱石", "鉄を含む鉱石。鍛冶の基本素材", MaterialCategory.Metal, 20);
+    public static Item CreatePearl() => CreateMaterialItem("material_pearl", "真珠", "海辺の魔物が持つ真珠", MaterialCategory.Gem, 60, ItemRarity.Uncommon, 55);
+    public static Item CreateAncientRelic() => CreateMaterialItem("material_ancient_relic", "古代の遺物", "古代文明の遺物。研究価値が高い", MaterialCategory.Magical, 200, ItemRarity.Epic, 80);
+    public static Item CreateEquipmentFragment() => CreateMaterialItem("material_equipment_fragment", "装備品の欠片", "朽ちた装備の残骸。鍛冶素材になる", MaterialCategory.Metal, 10);
 
     // ダンジョン床用素材
-    public static Item CreateStone() => CreateMaterialItem("石ころ", "ダンジョンの壁から崩れ落ちた石片", MaterialCategory.Metal, 5, weight: 0.5f);
-    public static Item CreateMoss() => CreateMaterialItem("苔", "ダンジョンの湿った壁に生える苔", MaterialCategory.Herb, 8);
-    public static Item CreateDungeonMushroom() => CreateMaterialItem("ダンジョンキノコ", "暗所に自生する光るキノコ", MaterialCategory.Herb, 12);
-    public static Item CreateCrystalShard() => CreateMaterialItem("結晶片", "ダンジョンの壁面に露出した鉱物結晶", MaterialCategory.Gem, 40, ItemRarity.Uncommon, 45);
+    public static Item CreateStone() => CreateMaterialItem("material_stone", "石ころ", "ダンジョンの壁から崩れ落ちた石片", MaterialCategory.Metal, 5, weight: 0.5f);
+    public static Item CreateMoss() => CreateMaterialItem("material_moss", "苔", "ダンジョンの湿った壁に生える苔", MaterialCategory.Herb, 8);
+    public static Item CreateDungeonMushroom() => CreateMaterialItem("material_mushroom", "ダンジョンキノコ", "暗所に自生する光るキノコ", MaterialCategory.Herb, 12);
+    public static Item CreateCrystalShard() => CreateMaterialItem("material_crystal", "結晶片", "ダンジョンの壁面に露出した鉱物結晶", MaterialCategory.Gem, 40, ItemRarity.Uncommon, 45);
 
     #endregion
 
@@ -1168,6 +1209,8 @@ public static class ItemDefinitions
         ["food_emergency_ration"] = ItemFactory.CreateEmergencyRation,
         ["food_lembas"] = ItemFactory.CreateLembas,
         ["food_fruit"] = ItemFactory.CreateFruit,
+        ["food_water"] = ItemFactory.CreateWater,
+        ["food_clean_water"] = ItemFactory.CreateCleanWater,
 
         // 巻物
         ["scroll_teleport"] = ItemFactory.CreateScrollOfTeleport,
@@ -1180,6 +1223,7 @@ public static class ItemDefinitions
         ["scroll_enchant"] = ItemFactory.CreateScrollOfEnchant,
         ["scroll_return"] = ItemFactory.CreateScrollOfReturn,
         ["scroll_sanctuary"] = ItemFactory.CreateScrollOfSanctuary,
+        ["ancient_book"] = ItemFactory.CreateAncientBook,
 
         // 素材 - 魔物素材
         ["material_beast_hide"] = ItemFactory.CreateBeastHide,
@@ -1220,7 +1264,25 @@ public static class ItemDefinitions
     /// </summary>
     public static Item? Create(string itemId)
     {
-        return _items.TryGetValue(itemId, out var factory) ? factory() : null;
+        if (!_items.TryGetValue(itemId, out var factory)) return null;
+        var item = factory();
+        // ファクトリ側でItemIdが未設定の場合、辞書キーを自動設定
+        if (string.IsNullOrEmpty(item.ItemId))
+        {
+            // ItemIdはinitプロパティのため、リフレクションまたは型別に設定
+            SetItemId(item, itemId);
+        }
+        return item;
+    }
+
+    /// <summary>
+    /// アイテムにItemIdを設定（initプロパティのためリフレクションで設定）
+    /// </summary>
+    private static void SetItemId(Item item, string itemId)
+    {
+        // ItemIdプロパティのバッキングフィールドに書き込む
+        var prop = typeof(Item).GetProperty(nameof(Item.ItemId));
+        prop?.SetValue(item, itemId);
     }
 
     /// <summary>

@@ -1,6 +1,19 @@
 namespace RougelikeGame.Core.Systems;
 
 /// <summary>
+/// モンスター図鑑用の詳細データ
+/// </summary>
+public record MonsterEncyclopediaData(
+    string RaceName,
+    int MaxHp,
+    int MaxMp,
+    int MaxSp,
+    Stats BaseStats,
+    string? DropTableId,
+    string Description
+);
+
+/// <summary>
 /// 知識図鑑・百科事典システム - 討伐/発見で情報が段階的に開示
 /// </summary>
 public class EncyclopediaSystem
@@ -12,8 +25,21 @@ public class EncyclopediaSystem
         string Name,
         int DiscoveryLevel,
         int MaxLevel,
-        Dictionary<int, string> LevelDescriptions
+        Dictionary<int, string> LevelDescriptions,
+        int KillCount = 0,
+        MonsterEncyclopediaData? MonsterData = null
     );
+
+    /// <summary>モンスター撃破数による開示閾値</summary>
+    public static class MonsterRevealThresholds
+    {
+        public const int NameAndRace = 1;      // 初回遭遇: 名前と種族
+        public const int HpMpSp = 10;          // 10体撃破: HP/MP/SP
+        public const int Stats = 20;           // 20体撃破: ステータス
+        public const int DropItems = 30;       // 30体撃破: ドロップアイテム
+        public const int ElementalAffinity = 40; // 40体撃破: 属性相性
+        public const int MaxDiscoveryLevel = 5;
+    }
 
     private readonly Dictionary<string, EncyclopediaEntry> _entries = new();
 
@@ -21,6 +47,93 @@ public class EncyclopediaSystem
     public void RegisterEntry(EncyclopediaCategory category, string id, string name, int maxLevel, Dictionary<int, string> descriptions)
     {
         _entries[id] = new EncyclopediaEntry(category, id, name, 0, maxLevel, descriptions);
+    }
+
+    /// <summary>モンスターエントリを登録（詳細データ付き）</summary>
+    public void RegisterMonsterEntry(string id, string name, MonsterEncyclopediaData monsterData)
+    {
+        if (_entries.ContainsKey(id)) return;
+        _entries[id] = new EncyclopediaEntry(
+            EncyclopediaCategory.Monster, id, name,
+            DiscoveryLevel: 1, // 初回登録時に名前と種族を開示
+            MaxLevel: MonsterRevealThresholds.MaxDiscoveryLevel,
+            LevelDescriptions: new Dictionary<int, string>(),
+            KillCount: 0,
+            MonsterData: monsterData
+        );
+    }
+
+    /// <summary>モンスター撃破数をインクリメントし、開示レベルを自動更新</summary>
+    public bool IncrementMonsterKill(string id)
+    {
+        if (!_entries.TryGetValue(id, out var entry)) return false;
+        if (entry.Category != EncyclopediaCategory.Monster) return false;
+
+        int newKillCount = entry.KillCount + 1;
+        int newLevel = CalculateMonsterDiscoveryLevel(newKillCount);
+
+        _entries[id] = entry with { KillCount = newKillCount, DiscoveryLevel = newLevel };
+        return newLevel > entry.DiscoveryLevel;
+    }
+
+    /// <summary>撃破数から開示レベルを算出</summary>
+    private static int CalculateMonsterDiscoveryLevel(int killCount)
+    {
+        if (killCount >= MonsterRevealThresholds.ElementalAffinity) return 5;
+        if (killCount >= MonsterRevealThresholds.DropItems) return 4;
+        if (killCount >= MonsterRevealThresholds.Stats) return 3;
+        if (killCount >= MonsterRevealThresholds.HpMpSp) return 2;
+        if (killCount >= MonsterRevealThresholds.NameAndRace) return 1;
+        return 0;
+    }
+
+    /// <summary>モンスターの開示情報テキストを生成</summary>
+    public string GetMonsterDescription(string id)
+    {
+        if (!_entries.TryGetValue(id, out var entry)) return "未発見";
+        if (entry.DiscoveryLevel == 0) return "???";
+        if (entry.MonsterData == null) return GetCurrentDescription(id);
+
+        var data = entry.MonsterData;
+        var lines = new List<string>();
+
+        // レベル1: 名前と種族
+        lines.Add($"種族: {data.RaceName}");
+        lines.Add($"{data.Description}");
+
+        // レベル2: HP/MP/SP (10体撃破)
+        if (entry.DiscoveryLevel >= 2)
+        {
+            lines.Add($"\n【生命力】");
+            lines.Add($"HP: {data.MaxHp}  MP: {data.MaxMp}  SP: {data.MaxSp}");
+        }
+
+        // レベル3: ステータス (20体撃破)
+        if (entry.DiscoveryLevel >= 3)
+        {
+            lines.Add($"\n【ステータス】");
+            lines.Add($"STR:{data.BaseStats.Strength} VIT:{data.BaseStats.Vitality} AGI:{data.BaseStats.Agility}");
+            lines.Add($"DEX:{data.BaseStats.Dexterity} INT:{data.BaseStats.Intelligence} MND:{data.BaseStats.Mind}");
+            lines.Add($"PER:{data.BaseStats.Perception} CHA:{data.BaseStats.Charisma} LUK:{data.BaseStats.Luck}");
+        }
+
+        // レベル4: ドロップアイテム (30体撃破)
+        if (entry.DiscoveryLevel >= 4)
+        {
+            lines.Add($"\n【ドロップ】");
+            lines.Add(data.DropTableId != null ? $"ドロップテーブル: {data.DropTableId}" : "ドロップなし");
+        }
+
+        // レベル5: 属性相性 (40体撃破)
+        if (entry.DiscoveryLevel >= 5)
+        {
+            lines.Add($"\n【属性相性】");
+            lines.Add($"物理防御: {data.BaseStats.PhysicalDefense}  魔法防御: {data.BaseStats.MagicalDefense}");
+        }
+
+        lines.Add($"\n撃破数: {entry.KillCount}");
+
+        return string.Join("\n", lines);
     }
 
     /// <summary>発見レベルを上昇</summary>
@@ -73,6 +186,10 @@ public class EncyclopediaSystem
         if (!_entries.TryGetValue(id, out var entry)) return "未発見";
         if (entry.DiscoveryLevel == 0) return "???";
 
+        // モンスターカテゴリは専用メソッドを使用
+        if (entry.Category == EncyclopediaCategory.Monster && entry.MonsterData != null)
+            return GetMonsterDescription(id);
+
         string desc = "";
         for (int i = 1; i <= entry.DiscoveryLevel; i++)
         {
@@ -91,7 +208,7 @@ public class EncyclopediaSystem
     {
         foreach (var id in _entries.Keys.ToList())
         {
-            _entries[id] = _entries[id] with { DiscoveryLevel = 0 };
+            _entries[id] = _entries[id] with { DiscoveryLevel = 0, KillCount = 0 };
         }
     }
 }

@@ -1706,16 +1706,13 @@ public class Phase6Expansion_MimicSystemTests
     }
 
     [Fact]
-    public void GetDisguiseTypes_Returns6()
+    public void GetDisguiseTypes_Returns3()
     {
         var types = MimicSystem.GetDisguiseTypes();
-        Assert.Equal(6, types.Count);
+        Assert.Equal(3, types.Count);
         Assert.Contains("宝箱", types);
-        Assert.Contains("扉", types);
-        Assert.Contains("階段", types);
-        Assert.Contains("石像", types);
-        Assert.Contains("祭壇", types);
-        Assert.Contains("商人", types);
+        Assert.Contains("木箱", types);
+        Assert.Contains("収納箱", types);
     }
 }
 

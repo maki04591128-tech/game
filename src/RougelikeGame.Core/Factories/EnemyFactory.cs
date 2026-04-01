@@ -880,6 +880,83 @@ public static class EnemyDefinitions
     }
 
     /// <summary>
+    /// ダンジョンIDに応じたテーマ敵リストを取得
+    /// </summary>
+    public static IReadOnlyList<EnemyDefinition> GetEnemiesForDungeon(string dungeonId, int depth)
+    {
+        return dungeonId switch
+        {
+            // 王都地下墓地 - アンデッド中心
+            "capital_catacombs" => depth <= 3
+                ? new[] { Skeleton, Slime, Goblin }
+                : new[] { Skeleton, Draugr, DarkElf },
+
+            // 始まりの裂け目 - 混成、深層は強敵
+            "capital_rift" => depth <= 5
+                ? new[] { Goblin, Skeleton, Orc }
+                : new[] { DarkElf, Troll, Draugr, DeathKnight },
+
+            // 腐敗の森 - 植物＋精霊＋虫
+            "forest_corruption" => depth <= 5
+                ? new[] { ForestWolf, GiantSpider, ForestSprite }
+                : new[] { Treant, ForestSprite, GiantSpider },
+
+            // 古代エルフの遺跡 - ダークエルフ＋精霊＋構造体
+            "forest_ruins" => depth <= 5
+                ? new[] { ForestSprite, Skeleton, GiantSpider }
+                : new[] { DarkElf, MountainGolem, ForestSprite, Treant },
+
+            // 採掘坑 - ゴーレム＋虫＋ゴブリン
+            "mountain_mine" => depth <= 5
+                ? new[] { Goblin, GiantSpider, Slime }
+                : new[] { MountainGolem, Orc, Harpy },
+
+            // 溶岩洞 - ドラゴン系＋ゴーレム
+            "mountain_lava" => depth <= 5
+                ? new[] { MountainGolem, Harpy, Orc }
+                : new[] { Wyvern, MountainGolem, Troll },
+
+            // 竜の巣 - ドラゴン系メイン
+            "mountain_dragon" => depth <= 5
+                ? new[] { Wyvern, Harpy, MountainGolem }
+                : new[] { Wyvern, Troll, DeathKnight },
+
+            // 海岸洞窟 - 水棲＋海賊（ゴブリン代理）
+            "coast_cave" => depth <= 3
+                ? new[] { Crab, Slime, Goblin }
+                : new[] { SeaSerpent, Crab, Goblin },
+
+            // 沈没船 - 水棲モンスター中心
+            "coast_wreck" => depth <= 5
+                ? new[] { Crab, SeaSerpent, Skeleton }
+                : new[] { Siren, SeaSerpent, Skeleton },
+
+            // 氷の洞窟 - 氷属性（既存敵で代用）
+            "southern_icecave" => depth <= 5
+                ? new[] { DesertScorpion, Skeleton, Slime }
+                : new[] { Mummy, Draugr, DarkElf },
+
+            // 古戦場跡 - アンデッド兵士
+            "southern_battlefield" => depth <= 5
+                ? new[] { Skeleton, Draugr, Mummy }
+                : new[] { Draugr, DeathKnight, Mummy },
+
+            // 大裂け目 - 最強混成
+            "frontier_great_rift" => depth <= 5
+                ? new[] { Werewolf, Chimera, Troll }
+                : new[] { DeathKnight, Chimera, Draugr },
+
+            // 滅びた王国の遺跡 - 古代文明の番人
+            "frontier_ancient_ruins" => depth <= 5
+                ? new[] { MountainGolem, Skeleton, DarkElf }
+                : new[] { DeathKnight, DarkElf, MountainGolem, Chimera },
+
+            // デフォルト: 階層ベース
+            _ => GetEnemiesForDepth(depth).ToArray()
+        };
+    }
+
+    /// <summary>
     /// 全敵定義を取得
     /// </summary>
     public static IReadOnlyList<EnemyDefinition> GetAllEnemies()

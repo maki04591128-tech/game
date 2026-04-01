@@ -177,7 +177,9 @@ public enum ItemEffectType
     /// <summary>マップ表示</summary>
     RevealMap,
     /// <summary>識別</summary>
-    Identify
+    Identify,
+    /// <summary>ルーン語習得</summary>
+    LearnRuneWord
 }
 
 /// <summary>

@@ -124,35 +124,15 @@
                     <TextBlock x:Name="FontSizeText" Grid.Column="2" Text="14" Style="{StaticResource SettingValueLabel}"/>
                 </Grid>
 
-                <!-- キーバインド表示 -->
-                <TextBlock Text="⌨ キーバインド（参照用）" Style="{StaticResource SectionHeader}"/>
+                <!-- キーバインド設定 -->
+                <TextBlock Text="⌨ キーバインド" Style="{StaticResource SectionHeader}"/>
 
-                <Border Background="#0f0f23" CornerRadius="4" Padding="15,10" Margin="10,5">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="W/A/S/D, 矢印 — 移動" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                            <TextBlock Text="Space — 待機" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                            <TextBlock Text="G — アイテム拾う" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                            <TextBlock Text="I — インベントリ" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                            <TextBlock Text="C — ステータス" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                            <TextBlock Text="L — メッセージログ" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                            <TextBlock Text="Tab — 自動探索" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Text="M — ミニマップ" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                            <TextBlock Text="Shift+. — 階段を降りる" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                            <TextBlock Text="Shift+, — 階段を上る" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                            <TextBlock Text="F5 — セーブ" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                            <TextBlock Text="F9 — ロード" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                            <TextBlock Text="F — ドア操作" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                            <TextBlock Text="Q — ゲーム終了" Foreground="#808090" FontFamily="Consolas" FontSize="12" Margin="0,2"/>
-                        </StackPanel>
-                    </Grid>
-                </Border>
+                <Button x:Name="OpenKeyBindButton" Content="⌨ キーバインド設定を開く"
+                        Background="#16213e" Foreground="#c0c0d0" 
+                        FontFamily="Yu Gothic UI" FontSize="14"
+                        Padding="20,8" Margin="10,5" 
+                        BorderBrush="#404060" BorderThickness="1" Cursor="Hand"
+                        Click="OpenKeyBindButton_Click"/>
             </StackPanel>
         </ScrollViewer>
 

@@ -98,52 +98,52 @@ public record ClassDefinition(
         [CharacterClass.Fighter] = new(CharacterClass.Fighter, "戦士", "近接戦闘のエキスパート",
             new StatModifier(Strength: 3, Vitality: 2),
             HpBonus: 15, MpBonus: 0,
-            InitialSkills: ["強打", "武器習熟"]),
+            InitialSkills: ["strong_strike", "weapon_mastery"]),
 
         [CharacterClass.Knight] = new(CharacterClass.Knight, "騎士", "防御と護衛に秀でた戦士",
             new StatModifier(Vitality: 3, Strength: 1, Charisma: 1),
             HpBonus: 20, MpBonus: 0,
-            InitialSkills: ["盾防御", "挑発"]),
+            InitialSkills: ["shield_block", "provoke"]),
 
         [CharacterClass.Thief] = new(CharacterClass.Thief, "盗賊", "隠密と罠に精通した技巧派",
             new StatModifier(Dexterity: 3, Agility: 2, Perception: 1),
             HpBonus: 0, MpBonus: 0,
-            InitialSkills: ["解錠", "忍び足"]),
+            InitialSkills: ["lockpick", "sneak"]),
 
         [CharacterClass.Ranger] = new(CharacterClass.Ranger, "狩人", "弓術と追跡の達人",
             new StatModifier(Dexterity: 2, Perception: 2, Agility: 1),
             HpBonus: 5, MpBonus: 0,
-            InitialSkills: ["精密射撃", "追跡"]),
+            InitialSkills: ["precise_shot", "tracking"]),
 
         [CharacterClass.Mage] = new(CharacterClass.Mage, "魔術師", "攻撃魔法を極めし者",
             new StatModifier(Intelligence: 4, Mind: 1, Vitality: -2),
             HpBonus: -10, MpBonus: 25,
-            InitialSkills: ["魔力集中", "基礎魔法"]),
+            InitialSkills: ["mana_focus", "basic_magic"]),
 
         [CharacterClass.Cleric] = new(CharacterClass.Cleric, "僧侶", "信仰の力で癒しをもたらす",
             new StatModifier(Mind: 3, Intelligence: 1, Charisma: 1),
             HpBonus: 5, MpBonus: 15,
-            InitialSkills: ["回復術", "浄化"]),
+            InitialSkills: ["heal", "purify"]),
 
         [CharacterClass.Monk] = new(CharacterClass.Monk, "修道士", "肉体と精神を鍛え上げた格闘家",
             new StatModifier(Agility: 2, Mind: 2, Strength: 1),
             HpBonus: 10, MpBonus: 5,
-            InitialSkills: ["気功", "連打"]),
+            InitialSkills: ["ki_strike", "combo_strike"]),
 
         [CharacterClass.Bard] = new(CharacterClass.Bard, "吟遊詩人", "歌と物語で仲間を鼓舞する",
             new StatModifier(Charisma: 3, Luck: 1, Dexterity: 1),
             HpBonus: 0, MpBonus: 10,
-            InitialSkills: ["鼓舞の歌", "知識収集"]),
+            InitialSkills: ["inspire_song", "knowledge_collect"]),
 
         [CharacterClass.Alchemist] = new(CharacterClass.Alchemist, "錬金術師", "調合と付与で戦う学者",
             new StatModifier(Intelligence: 2, Perception: 2, Dexterity: 1),
             HpBonus: 0, MpBonus: 10,
-            InitialSkills: ["調合", "鑑定"]),
+            InitialSkills: ["brew", "identify"]),
 
         [CharacterClass.Necromancer] = new(CharacterClass.Necromancer, "死霊術師", "死者を操る闇の魔術師",
             new StatModifier(Intelligence: 3, Mind: 2, Charisma: -2),
             HpBonus: -5, MpBonus: 20,
-            InitialSkills: ["死霊召喚", "生命吸収"])
+            InitialSkills: ["summon_undead", "life_drain"])
     };
 
     public static ClassDefinition Get(CharacterClass cls) => All[cls];

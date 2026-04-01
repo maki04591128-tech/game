@@ -86,12 +86,6 @@ public class GameController
     /// <summary>プレイヤーの現在の戦闘スタンス</summary>
     private CombatStance _playerStance = CombatStance.Balanced;
 
-    /// <summary>プレイヤーの疲労レベル</summary>
-    private FatigueLevel _playerFatigue = FatigueLevel.Fresh;
-
-    /// <summary>プレイヤーの衛生レベル</summary>
-    private HygieneLevel _playerHygiene = HygieneLevel.Clean;
-
     /// <summary>プレイヤーの罹患中の病気（null=健康）</summary>
     private DiseaseType? _playerDisease;
 
@@ -106,6 +100,9 @@ public class GameController
 
     /// <summary>自動探索中かどうか</summary>
     private bool _autoExploring = false;
+
+    /// <summary>自動探索: 上り階段を目標としているかどうか</summary>
+    private bool _autoExploreTargetStairsUp = false;
 
     /// <summary>ターン制限延長フラグ（素性別フラグ達成で有効化）</summary>
     private bool _turnLimitExtended = false;
@@ -137,8 +134,19 @@ public class GameController
     /// <summary>ロケーションマップ（非ダンジョン）内にいるか</summary>
     private bool _isInLocationMap;
 
+    /// <summary>ロケーションマップがフィールド（敵あり・FOV必要）かどうか</summary>
+    private bool _isLocationField;
+
     /// <summary>フィールドマップからシンボルマップへ帰還する際の復帰位置</summary>
     private Position? _symbolMapReturnPosition;
+
+    /// <summary>建物内部マップに入る前の町マップとプレイヤー位置を保存</summary>
+    private DungeonMap? _buildingReturnMap;
+    private Position? _buildingReturnPosition;
+    private string? _currentBuildingId;
+
+    /// <summary>現在の町で訪問済みの建物IDセット（建物間移動に使用）</summary>
+    private readonly HashSet<string> _visitedBuildings = new();
 
     /// <summary>引き継ぎデータ（死に戻り用）</summary>
     private TransferData? _transferData;
@@ -158,8 +166,7 @@ public class GameController
     /// <summary>無限ダンジョン撃破数</summary>
     private int _infiniteDungeonKills = 0;
 
-    /// <summary>スキルスロット（1-6キー割当、最大6スロット）</summary>
-    private readonly string?[] _skillSlots = new string?[6];
+
 
     /// <summary>ダンジョンフロアキャッシュ（ダンジョン名+階層をキーとして各ダンジョンで分離）</summary>
     private readonly Dictionary<(string DungeonName, int Floor), FloorCache> _floorCache = new();
@@ -252,6 +259,7 @@ public class GameController
     public event Action? OnShowBaseConstruction;
     public event Action<List<CompanionSystem.CompanionData>>? OnShowRecruitCompanion;
     public event Action? OnShowQuestBoard;
+    public event Action? OnShowVocabulary;
 
     /// <summary>シンボルマップでのロケーション到着通知</summary>
     public event Action<LocationDefinition>? OnLocationArrived;
@@ -305,19 +313,8 @@ public class GameController
         var startTerritory = StartingMapResolver.GetStartingTerritory(_currentMapName);
         _worldMapSystem.SetTerritory(startTerritory);
 
-        // キャラクター作成定義を取得（CharacterCreation）
-        var raceDef = RaceDefinition.Get(race);
-        var classDef = ClassDefinition.Get(characterClass);
-        var bgDef = BackgroundDefinition.Get(background);
-
-        // プレイヤー作成
+        // プレイヤー作成（Player.Create内で初期ゴールド付与済み）
         Player = Player.Create(playerName, race, characterClass, background);
-
-        // CharacterCreation定義に基づく初期ゴールド補正
-        if (bgDef.StartingGold > 0)
-        {
-            Player.AddGold(bgDef.StartingGold);
-        }
 
         // 環境音を初期化（AmbientSoundSystem）
         _currentAmbientSound = AmbientSoundSystem.GetAmbientForTerritory(startTerritory);
@@ -332,6 +329,9 @@ public class GameController
         ((Inventory)Player.Inventory).Add(armor);
         Player.Equipment.Equip(sword, Player);
         Player.Equipment.Equip(armor, Player);
+        // 装備スロットに移したアイテムをインベントリから除去（重複防止）
+        ((Inventory)Player.Inventory).Remove(sword);
+        ((Inventory)Player.Inventory).Remove(armor);
 
         // 初期アイテム
         ((Inventory)Player.Inventory).Add(ItemFactory.CreateHealingPotion());
@@ -373,6 +373,9 @@ public class GameController
         ((Inventory)Player.Inventory).Add(armor);
         Player.Equipment.Equip(sword, Player);
         Player.Equipment.Equip(armor, Player);
+        // 装備スロットに移したアイテムをインベントリから除去（重複防止）
+        ((Inventory)Player.Inventory).Remove(sword);
+        ((Inventory)Player.Inventory).Remove(armor);
 
         // 初期アイテム
         ((Inventory)Player.Inventory).Add(ItemFactory.CreateHealingPotion());
@@ -453,6 +456,17 @@ public class GameController
 
         // --- 宝箱 ---
         Map.SetTile(28, 3, TileType.Chest);
+        var debugChestTile = Map.GetTile(new Position(28, 3));
+        debugChestTile.ChestOpened = false;
+        debugChestTile.ChestItems = new List<string> { "potion_healing", "scroll_identify", "gold_150" };
+        debugChestTile.ChestLockDifficulty = 0;
+
+        // 施錠された宝箱（デバッグ用）
+        Map.SetTile(30, 3, TileType.Chest);
+        var debugLockedChest = Map.GetTile(new Position(30, 3));
+        debugLockedChest.ChestOpened = false;
+        debugLockedChest.ChestItems = new List<string> { "potion_healing_super", "accessory_protection_amulet", "gold_500" };
+        debugLockedChest.ChestLockDifficulty = 12;
 
         // === デバッグ専用タイル ===
         // 敵種類切替マス（赤 E）
@@ -514,7 +528,12 @@ public class GameController
     }
     private void SubscribePlayerEvents()
     {
-        Player.OnLevelUp += (_, e) => AddMessage($"★ レベルアップ！ Lv.{e.NewLevel} になった！");
+        Player.OnLevelUp += (_, e) =>
+        {
+            AddMessage($"★ レベルアップ！ Lv.{e.NewLevel} になった！");
+            _skillTreeSystem.AddPoints(1);
+            AddMessage("スキルポイントを1獲得した！");
+        };
         Player.OnHungerStageChanged += (_, e) =>
         {
             string msg = e.NewStage switch
@@ -555,11 +574,17 @@ public class GameController
             _skillSystem.RegisterSkill(skillId);
         }
 
+        // スキルツリーのパッシブボーナスをプレイヤーのステータスに反映
+        Player.SkillTreeBonusProvider = () => _skillTreeSystem.GetTotalStatBonuses();
+
         // 新規スキル習得時に自動登録
         Player.OnSkillLearned += (_, e) =>
         {
             _skillSystem.RegisterSkill(e.SkillId);
-            AddMessage($"📖 スキル「{SkillDatabase.GetById(e.SkillId)?.Name ?? e.SkillId}」を習得した！");
+            var skillName = SkillDatabase.GetById(e.SkillId)?.Name
+                ?? ReligionSkillSystem.GetSkillName(e.SkillId)
+                ?? e.SkillId;
+            AddMessage($"📖 スキル「{skillName}」を習得した！");
         };
     }
 
@@ -587,13 +612,20 @@ public class GameController
         symbolMap.ComputeFov(Player.Position, 12);
     }
 
-    /// <summary>現在のフロアのアイテム状態をキャッシュに保存</summary>
-    private void SaveFloorItemsToCache()
+    /// <summary>現在のフロアの状態（マップ・アイテム）をキャッシュに保存</summary>
+    private void SaveFloorToCache()
     {
         var floorKey = (_currentMapName, CurrentFloor);
-        if (_floorCache.TryGetValue(floorKey, out var cached))
+        if (Map is DungeonMap dungeonMap)
         {
-            _floorCache[floorKey] = cached with { GroundItems = new List<(Item, Position)>(GroundItems) };
+            if (_floorCache.TryGetValue(floorKey, out var cached))
+            {
+                _floorCache[floorKey] = cached with { Map = dungeonMap, GroundItems = new List<(Item, Position)>(GroundItems) };
+            }
+            else
+            {
+                _floorCache[floorKey] = new FloorCache(dungeonMap, GameTime.TotalTurns, new List<(Item, Position)>(GroundItems));
+            }
         }
     }
 
@@ -636,13 +668,18 @@ public class GameController
             ? DungeonFeatureGenerator.GetTrapChance(_currentDungeonFeature.Value)
             : 0.005f * CurrentFloor;
 
+        // ダンジョンIDに応じた構造パラメータ調整
+        var (dungeonWidth, dungeonHeight, baseRoomCount) = GetDungeonStructureParams(_currentMapName);
+
         var parameters = new DungeonGenerationParameters
         {
-            Width = 60,
-            Height = 30,
+            Width = dungeonWidth,
+            Height = dungeonHeight,
             Depth = CurrentFloor,
-            RoomCount = 6 + CurrentFloor,
-            TrapDensity = featureTrapDensity
+            RoomCount = baseRoomCount + CurrentFloor,
+            TrapDensity = featureTrapDensity,
+            DungeonId = _currentMapName,
+            IsBossFloor = CurrentFloor % GameConstants.BossFloorInterval == 0
         };
 
         var generator = new DungeonGenerator();
@@ -661,6 +698,18 @@ public class GameController
         GroundItems.Clear();
         SpawnItems();
 
+        // 特殊フロア処理: 図書館フロアでは古代の書を追加配置
+        var specialFloorType = DetermineSpecialFloorType(CurrentFloor);
+        if (specialFloorType == SpecialFloorType.Library)
+        {
+            AddMessage($"📚 {GetSpecialFloorDescription(specialFloorType)}");
+            SpawnLibraryFloorItems();
+        }
+        else if (specialFloorType != SpecialFloorType.Normal)
+        {
+            AddMessage(GetSpecialFloorDescription(specialFloorType));
+        }
+
         // 新規生成したマップとアイテムをキャッシュ
         _floorCache[floorKey] = new FloorCache(Map, GameTime.TotalTurns, new List<(Item, Position)>(GroundItems));
 
@@ -670,7 +719,10 @@ public class GameController
 
     private void SpawnEnemies()
     {
-        var definitions = EnemyDefinitions.GetEnemiesForDepth(CurrentFloor);
+        // ダンジョンIDがある場合はテーマ別敵リスト、なければ階層ベース
+        var definitions = !string.IsNullOrEmpty(_currentMapName) && !_isInLocationMap
+            ? EnemyDefinitions.GetEnemiesForDungeon(_currentMapName, CurrentFloor)
+            : EnemyDefinitions.GetEnemiesForDepth(CurrentFloor);
         int enemyCount = 4 + CurrentFloor * 2;
 
         // ダンジョン特徴によるエネミー密度修正（DungeonFeatureGenerator）
@@ -768,6 +820,83 @@ public class GameController
                 GroundItems.Add((item, pos.Value));
             }
         }
+    }
+
+    /// <summary>図書館フロアに古代の書とルーン碑文を追加配置する</summary>
+    private void SpawnLibraryFloorItems()
+    {
+        // 古代の書を2～4個配置
+        int bookCount = 2 + _random.Next(3);
+        for (int i = 0; i < bookCount; i++)
+        {
+            var pos = GetRandomFloorPosition();
+            if (pos.HasValue)
+            {
+                var book = ItemDefinitions.Create("ancient_book");
+                if (book != null)
+                {
+                    GroundItems.Add((book, pos.Value));
+                }
+            }
+        }
+
+        // ルーン碑文を追加配置（通常より多い3～5個）
+        int inscriptionCount = 3 + _random.Next(3);
+        var wordPool = new List<string>
+        {
+            "vita", "sja", "opna", "loka", "afrita", "banna",
+            "ljos", "myrkr", "helgr", "eilifr", "heimr", "styra"
+        };
+        // 配置済み語を重複させない
+        for (int i = 0; i < inscriptionCount && wordPool.Count > 0; i++)
+        {
+            var pos = GetRandomFloorPosition();
+            if (pos.HasValue && Map.GetTile(pos.Value).Type == TileType.Floor)
+            {
+                Map.SetTile(pos.Value, TileType.RuneInscription);
+                var tile = Map.GetTile(pos.Value);
+                int wordIdx = _random.Next(wordPool.Count);
+                tile.InscriptionWordId = wordPool[wordIdx];
+                tile.InscriptionRead = false;
+                wordPool.RemoveAt(wordIdx);
+            }
+        }
+    }
+
+    /// <summary>ダンジョンIDに応じたマップサイズ・部屋数を返す</summary>
+    private static (int width, int height, int baseRoomCount) GetDungeonStructureParams(string? dungeonId)
+    {
+        return dungeonId switch
+        {
+            // 王都地下墓地 - 狭い通路が多い
+            "capital_catacombs" => (50, 25, 5),
+            // 始まりの裂け目 - 広大で複雑
+            "capital_rift" => (70, 35, 8),
+            // 腐敗の森 - 広い自然洞窟風
+            "forest_corruption" => (65, 35, 6),
+            // 古代エルフの遺跡 - 整然とした構造
+            "forest_ruins" => (60, 30, 7),
+            // 採掘坑 - 狭い坑道
+            "mountain_mine" => (55, 25, 5),
+            // 溶岩洞 - 広大な空洞
+            "mountain_lava" => (70, 35, 7),
+            // 竜の巣 - 巨大な洞窟
+            "mountain_dragon" => (80, 40, 8),
+            // 海岸洞窟 - 小さめ
+            "coast_cave" => (45, 22, 4),
+            // 沈没船 - 狭い船内
+            "coast_wreck" => (40, 20, 5),
+            // 氷の洞窟 - 中規模
+            "southern_icecave" => (55, 28, 6),
+            // 古戦場跡 - 広い平地
+            "southern_battlefield" => (70, 35, 7),
+            // 大裂け目 - 最大規模
+            "frontier_great_rift" => (80, 40, 9),
+            // 滅びた王国の遺跡 - 大規模遺跡
+            "frontier_ancient_ruins" => (75, 38, 8),
+            // デフォルト
+            _ => (60, 30, 6)
+        };
     }
 
     private Position? GetRandomFloorPosition()
@@ -1044,6 +1173,9 @@ public class GameController
             case GameAction.OpenBaseConstruction:
                 OnShowBaseConstruction?.Invoke();
                 return;
+            case GameAction.OpenVocabulary:
+                OnShowVocabulary?.Invoke();
+                return;
             case GameAction.Save:
                 OnSaveGame?.Invoke();
                 return;
@@ -1081,10 +1213,19 @@ public class GameController
             int finalCost = Math.Max(1, actionCost);
             TurnCount += finalCost;
             GameTime.AdvanceTurn(finalCost);
-            ProcessEnemyTurns();
+            // ロケーションマップ（町内）では敵が存在しないため敵ターン処理をスキップ
+            // フィールドマップ（敵あり）では敵ターンを実行
+            if (!_isInLocationMap || _isLocationField)
+            {
+                ProcessEnemyTurns();
+            }
             ProcessTurnEffects();
             CheckTurnLimitWarnings();
-            Map.ComputeFov(Player.Position, 8);
+            // 非フィールドのロケーションマップでは全タイル可視のためFOV計算不要
+            if (!_isInLocationMap || _isLocationField)
+            {
+                Map.ComputeFov(Player.Position, 8);
+            }
 
             if (!Player.IsAlive)
             {
@@ -1170,6 +1311,20 @@ public class GameController
             return true;
         }
 
+        // 建物入口タイルへの移動: 建物内部マップへ遷移
+        if (tile.Type == TileType.BuildingEntrance && tile.BuildingId != null)
+        {
+            EnterBuilding(tile.BuildingId, newPos);
+            return true;
+        }
+
+        // 建物出口タイルへの移動: 町マップへ戻る
+        if (tile.Type == TileType.BuildingExit)
+        {
+            ExitBuilding();
+            return true;
+        }
+
         // 移動可能チェック
         if (tile.BlocksMovement)
         {
@@ -1240,6 +1395,23 @@ public class GameController
         else if (tile.Type == TileType.StairsUp)
         {
             AddMessage("上り階段がある [Shift+<]キーで上がる");
+        }
+        // 宝箱メッセージ
+        else if (tile.Type == TileType.Chest && !tile.ChestOpened)
+        {
+            if (tile.ChestLockDifficulty > 0)
+                AddMessage("🔒 施錠された宝箱がある [Gキー]で開ける");
+            else
+                AddMessage("📦 宝箱がある [Gキー]で開ける");
+        }
+        else if (tile.Type == TileType.Chest && tile.ChestOpened)
+        {
+            AddMessage("空の宝箱がある");
+        }
+        // ルーン碑文メッセージと自動解読
+        else if (tile.Type == TileType.RuneInscription)
+        {
+            TryReadRuneInscription(tile);
         }
 
         // デバッグ専用タイルの処理
@@ -1348,9 +1520,14 @@ public class GameController
             if (!enemy.IsAlive)
             {
                 // ゴールドドロップ（人型の敵のみ、Rankボーナス適用）
-                float executionDropBonus = canExecute ? ExecutionSystem.GetExecutionDropBonus() : 0;
-                int gold = CalculateGoldReward(enemy, executionDropBonus);
-                if (gold > 0) Player.AddGold(gold);
+                // DropTableIdがある場合はDropTableSystemで一括処理するためスキップ
+                int gold = 0;
+                if (string.IsNullOrEmpty(enemy.DropTableId))
+                {
+                    float executionDropBonus = canExecute ? ExecutionSystem.GetExecutionDropBonus() : 0;
+                    gold = CalculateGoldReward(enemy, executionDropBonus);
+                    if (gold > 0) Player.AddGold(gold);
+                }
 
                 // 経験値（処刑ボーナス込み）
                 float executionExpBonus = canExecute ? ExecutionSystem.GetExecutionExpBonus() : 0;
@@ -1405,7 +1582,7 @@ public class GameController
             foreach (var item in loot.Items)
             {
                 GroundItems.Add((item, enemy.Position));
-                AddMessage($"{enemy.Name}が{item.GetDisplayName()}を落とした！");
+                AddMessage($"{item.GetDisplayName()}が足元に落ちている");
             }
             return;
         }
@@ -1424,7 +1601,7 @@ public class GameController
         {
             var item = _itemFactory.GenerateEnemyDropItem(CurrentFloor, enemy.Race);
             GroundItems.Add((item, enemy.Position));
-            AddMessage($"{enemy.Name}が{item.GetDisplayName()}を落とした！");
+            AddMessage($"{item.GetDisplayName()}が足元に落ちている");
         }
     }
 
@@ -1492,8 +1669,8 @@ public class GameController
             }
         }
 
-        // 図鑑更新（モンスター）
-        RegisterAndDiscoverEncyclopedia(EncyclopediaCategory.Monster, enemy.EnemyTypeId, enemy.Name);
+        // 図鑑更新（モンスター - 撃破数ベースの段階的開示）
+        RegisterAndDiscoverMonster(enemy);
 
         // === GUI統合: 敵撃破時の追加システム処理 ===
 
@@ -1506,17 +1683,33 @@ public class GameController
                 AddMessage($"🔪 {harvestResult.Message}");
                 foreach (var (itemId, qty) in harvestResult.Materials)
                 {
-                    AddMessage($"  素材獲得: {itemId} x{qty}");
+                    string displayName = itemId;
+                    for (int i = 0; i < qty; i++)
+                    {
+                        var materialItem = ItemDefinitions.Create(itemId) ?? (Item)new Material
+                        {
+                            Name = itemId,
+                            Description = $"{enemy.Name}から採取した素材",
+                            Weight = 0.3f,
+                            Category = MaterialCategory.Monster
+                        };
+                        displayName = materialItem.GetDisplayName();
+                        GroundItems.Add((materialItem, enemy.Position));
+                    }
+                    AddMessage($"  🧱 {displayName} x{qty}が足元に落ちている");
                 }
             }
         }
 
-        // 秘密の通路発見チェック（SecretRoomSystem）
-        float discoveryChance = SecretRoomSystem.CalculateDiscoveryChance(
-            Player.EffectiveStats.Perception, false);
-        if (_random.NextDouble() < discoveryChance * 0.1f)
+        // 秘密の通路発見チェック（SecretRoomSystem）- ダンジョン内のみ
+        if (!_worldMapSystem.IsOnSurface && !_isInLocationMap)
         {
-            AddMessage("🔍 戦闘の衝撃で隠し通路が露わになった！");
+            float discoveryChance = SecretRoomSystem.CalculateDiscoveryChance(
+                Player.EffectiveStats.Perception, false);
+            if (_random.NextDouble() < discoveryChance * 0.1f)
+            {
+                AddMessage("🔍 戦闘の衝撃で隠し通路が露わになった！");
+            }
         }
 
         // ダンジョン生態系更新（DungeonEcosystemSystem - 既存フィールド活用）
@@ -1532,7 +1725,16 @@ public class GameController
         if (enemy.Rank >= EnemyRank.Elite && _random.NextDouble() < 0.3)
         {
             var gemQuality = EnchantmentSystem.GetSoulGemQualityFromRank(enemy.Rank);
-            AddMessage($"💎 ソウルジェム({gemQuality})を獲得！");
+            var gemName = $"ソウルジェム({gemQuality})";
+            var gemItem = new KeyItem
+            {
+                Name = gemName,
+                Description = $"{gemQuality}品質のソウルジェム",
+                Weight = 0.5f,
+                Type = RougelikeGame.Core.Items.ItemType.Material
+            };
+            GroundItems.Add((gemItem, enemy.Position));
+            AddMessage($"💎 {gemName}が足元に落ちている");
         }
     }
 
@@ -2015,28 +2217,28 @@ public class GameController
             AddMessage($"🌙 {TimeOfDaySystem.GetTimePeriodName(currentTimePeriod)} — 視界が狭くなっている");
         }
 
-        // 疲労蓄積（BodyConditionSystem: 300ターンごとに疲労上昇）
-        if (TurnCount > 0 && TurnCount % 300 == 0)
+        // 疲労蓄積（BodyConditionSystem: 600ターンごとに疲労減少、装備重量で加速）
+        if (TurnCount > 0 && TurnCount % TimeConstants.HungerDecayInterval == 0)
         {
-            if (_playerFatigue < FatigueLevel.Exhausted)
+            // 装備重量による疲労加速: 重量50%超過で追加減少
+            float weightRatio = ((Inventory)Player.Inventory).TotalWeight / Player.CalculateMaxWeight();
+            int fatigueDecay = weightRatio > 0.5f ? (int)(2 + (weightRatio - 0.5f) * 4) : 2;
+            Player.ModifyFatigue(-fatigueDecay);
+            float fatigueMod = BodyConditionSystem.GetFatigueModifier(Player.FatigueStage);
+            if (fatigueMod < 0.9f)
             {
-                _playerFatigue++;
-                float fatigueMod = BodyConditionSystem.GetFatigueModifier(_playerFatigue);
-                if (fatigueMod < 0.9f)
-                {
-                    AddMessage($"😓 疲労: {BodyConditionSystem.GetFatigueName(_playerFatigue)} — 行動効率{fatigueMod:P0}");
-                }
+                AddMessage($"😓 疲労: {BodyConditionSystem.GetFatigueName(Player.FatigueStage)}({Player.Fatigue}) — 行動効率{fatigueMod:P0}");
             }
         }
 
-        // 衛生低下（BodyConditionSystem: 1200ターンごとに衛生低下）
-        if (TurnCount > 0 && TurnCount % 1200 == 0 && _playerHygiene < HygieneLevel.Filthy)
+        // 衛生低下（BodyConditionSystem: 1200ターンごとに衛生減少）
+        if (TurnCount > 0 && TurnCount % 1200 == 0 && Player.Hygiene > 0)
         {
-            _playerHygiene++;
-            float infectionRisk = BodyConditionSystem.GetHygieneInfectionRisk(_playerHygiene);
-            if (infectionRisk > 0.05f)
+            Player.ModifyHygiene(-5);
+            float infectionRisk = BodyConditionSystem.GetHygieneInfectionRisk(Player.HygieneStage);
+            if (infectionRisk > 1.0f)
             {
-                AddMessage($"🧼 衛生: {BodyConditionSystem.GetHygieneName(_playerHygiene)} — 感染リスク上昇");
+                AddMessage($"🧼 衛生: {BodyConditionSystem.GetHygieneName(Player.HygieneStage)}({Player.Hygiene}) — 感染リスク上昇");
             }
         }
 
@@ -2068,9 +2270,9 @@ public class GameController
         }
 
         // 衛生レベルによる感染判定（戦闘後に傷がある想定でチェック）
-        if (!_playerDisease.HasValue && _playerHygiene >= HygieneLevel.Dirty && TurnCount % 600 == 0)
+        if (!_playerDisease.HasValue && Player.HygieneStage >= HygieneStage.Dirty && TurnCount % 600 == 0)
         {
-            float infectionRisk = BodyConditionSystem.GetHygieneInfectionRisk(_playerHygiene);
+            float infectionRisk = BodyConditionSystem.GetHygieneInfectionRisk(Player.HygieneStage);
             if (_random.NextDouble() < infectionRisk)
             {
                 var diseases = DiseaseSystem.GetAllDiseases();
@@ -2124,20 +2326,18 @@ public class GameController
             }
         }
 
-        // 渇き進行（ThirstSystem: 180ターンごとに渇き上昇）
-        if (TurnCount > 0 && TurnCount % 180 == 0)
+        // 渇き進行（ThirstSystem: 満腹度の1.2倍速で減少）
+        if (TurnCount > 0 && TurnCount % TimeConstants.HungerDecayInterval == 0)
         {
-            if (PlayerThirstLevel < ThirstLevel.Dehydrated)
+            // 満腹度の1.2倍速で渇きが減少
+            Player.ModifyThirst(-3);  // 満腹度は-2想定、渇きは-3で約1.5倍
+            if (Player.ThirstStage >= ThirstStage.Thirsty)
             {
-                PlayerThirstLevel++;
-                if (PlayerThirstLevel >= ThirstLevel.Thirsty)
-                {
-                    AddMessage($"💧 渇き: {ThirstSystem.GetThirstName(PlayerThirstLevel)}");
-                }
+                AddMessage($"💧 渇き: {ThirstSystem.GetThirstName(Player.ThirstStage)}({Player.Thirst})");
             }
-            if (PlayerThirstLevel == ThirstLevel.Dehydrated && TurnCount % 60 == 0)
+            int thirstDamage = ThirstSystem.GetThirstDamage(Player.ThirstStage);
+            if (thirstDamage > 0)
             {
-                int thirstDamage = Math.Max(1, Player.MaxHp / 80);
                 Player.TakeDamage(Damage.Pure(thirstDamage));
                 _lastDamageCause = DeathCause.Unknown;
             }
@@ -2166,11 +2366,20 @@ public class GameController
 
     private bool TryPickupItem()
     {
+        // 宝箱タイルの場合: まず宝箱を開ける
+        var currentTile = Map.GetTile(Player.Position);
+        if (currentTile.Type == TileType.Chest && !currentTile.ChestOpened)
+        {
+            return TryOpenChest(currentTile);
+        }
+
         var itemOnGround = GroundItems.FirstOrDefault(i => i.Position == Player.Position);
         if (itemOnGround.Item != null)
         {
-            // ミミック判定（MimicSystem）- ダンジョン内でのみ発生
-            if (!_worldMapSystem.IsOnSurface && !_isInLocationMap)
+            // ミミック判定（MimicSystem）- ダンジョン内の宝箱・収納容器上のアイテムのみ
+            var tileAtItem = Map.GetTile(itemOnGround.Position);
+            bool isContainerTile = tileAtItem.Type == TileType.Chest;
+            if (!_worldMapSystem.IsOnSurface && !_isInLocationMap && isContainerTile)
             {
                 float mimicRate = MimicSystem.CalculateMimicSpawnRate(CurrentFloor);
                 if (_random.NextDouble() < mimicRate)
@@ -2218,14 +2427,19 @@ public class GameController
             }
 
             // グリッド容量チェック
-            if (!CanFitInGrid(inventory, itemOnGround.Item))
+            if (!CanFitInGrid(inventory, itemOnGround.Item, Player))
             {
                 AddMessage($"グリッドに空きがなく{itemOnGround.Item.GetDisplayName()}を拾えない！");
                 return false;
             }
 
+            // インベントリに追加を試み、成功した場合のみ地面から除去
+            if (!inventory.Add(itemOnGround.Item))
+            {
+                AddMessage("持ち物がいっぱいで拾えない！");
+                return false;
+            }
             GroundItems.Remove(itemOnGround);
-            inventory.Add(itemOnGround.Item);
             AddMessage($"{itemOnGround.Item.GetDisplayName()}を拾った（{inventory.TotalWeight:F1}/{Player.CalculateMaxWeight():F1}kg）");
 
             // 図鑑更新（アイテム）
@@ -2240,19 +2454,107 @@ public class GameController
         }
     }
 
+    /// <summary>宝箱を開ける処理（施錠チェック、中身配布）</summary>
+    private bool TryOpenChest(Tile chestTile)
+    {
+        // 施錠されている場合はDEX判定でピッキング
+        if (chestTile.ChestLockDifficulty > 0)
+        {
+            int dex = Player.EffectiveStats.Dexterity;
+            int roll = _random.Next(20) + 1 + dex;
+            if (roll < chestTile.ChestLockDifficulty)
+            {
+                AddMessage($"🔒 宝箱の鍵を開けられなかった（判定: {roll} / 難度: {chestTile.ChestLockDifficulty}）");
+                return true; // ターン消費
+            }
+            AddMessage($"🔓 宝箱の鍵をこじ開けた！（判定: {roll} / 難度: {chestTile.ChestLockDifficulty}）");
+            chestTile.ChestLockDifficulty = 0;
+        }
+
+        // 宝箱を開封
+        chestTile.ChestOpened = true;
+        var chestItems = chestTile.ChestItems;
+
+        if (chestItems == null || chestItems.Count == 0)
+        {
+            AddMessage("📦 宝箱を開けた……中は空だった。");
+            return true;
+        }
+
+        AddMessage("📦 宝箱を開けた！");
+        var inventory = (Inventory)Player.Inventory;
+        int pickedUp = 0;
+
+        foreach (var itemId in chestItems)
+        {
+            // ゴールド処理（"gold_123" 形式）
+            if (itemId.StartsWith("gold_", StringComparison.Ordinal))
+            {
+                if (int.TryParse(itemId.AsSpan(5), out int goldAmount) && goldAmount > 0)
+                {
+                    Player.AddGold(goldAmount);
+                    AddMessage($"  💰 {goldAmount}G を手に入れた！");
+                    pickedUp++;
+                }
+                continue;
+            }
+
+            // アイテム生成
+            var item = ItemDefinitions.Create(itemId);
+            if (item == null)
+            {
+                continue; // 不明なアイテムIDはスキップ
+            }
+
+            // インベントリ空きチェック
+            if (inventory.UsedSlots >= inventory.MaxSlots ||
+                inventory.TotalWeight + item.Weight > Player.CalculateMaxWeight() ||
+                !CanFitInGrid(inventory, item, Player))
+            {
+                // 持ちきれない場合は足元に落とす
+                GroundItems.Add((item!, Player.Position));
+                AddMessage($"  {item.GetDisplayName()}は持ちきれず足元に落ちた");
+                pickedUp++;
+                continue;
+            }
+
+            if (inventory.Add(item))
+            {
+                AddMessage($"  {item.GetDisplayName()}を手に入れた！");
+                RegisterAndDiscoverEncyclopedia(EncyclopediaCategory.Item, item.ItemId, item.Name);
+                pickedUp++;
+            }
+            else
+            {
+                GroundItems.Add((item!, Player.Position));
+                AddMessage($"  {item.GetDisplayName()}は持ちきれず足元に落ちた");
+                pickedUp++;
+            }
+        }
+
+        if (pickedUp == 0)
+        {
+            AddMessage("  中身は空だった。");
+        }
+
+        chestTile.ChestItems = null; // 中身をクリア
+        return true;
+    }
+
     /// <summary>グリッドインベントリに新しいアイテムが収まるかシミュレート</summary>
-    private static bool CanFitInGrid(Inventory inventory, Item newItem)
+    private static bool CanFitInGrid(Inventory inventory, Item newItem, Player player)
     {
         const int GridWidth = 10;
         const int GridHeight = 6;
         var placed = new bool[GridWidth, GridHeight];
 
-        // 既存アイテムを順番に配置
+        // 既存アイテムを順番に配置（装備中のアイテムはグリッドから除外）
         foreach (var item in inventory.Items)
         {
+            if (IsItemEquipped(item, player)) continue;
             var (w, h) = GridInventorySystem.GetDimensions(GetItemGridSize(item));
             var pos = FindFreeGridPosition(placed, w, h, GridWidth, GridHeight);
-            if (pos == null) continue;
+            if (pos == null) return false; // 既存アイテムすら配置できない → グリッド満杯
             for (int dx = 0; dx < w; dx++)
                 for (int dy = 0; dy < h; dy++)
                     placed[pos.Value.X + dx, pos.Value.Y + dy] = true;
@@ -2279,6 +2581,22 @@ public class GameController
         return null;
     }
 
+    /// <summary>アイテムが装備中かどうかを判定</summary>
+    private static bool IsItemEquipped(Item item, Player player)
+    {
+        if (item is Weapon w && player.Equipment.MainHand == w) return true;
+        if (item is Armor a && player.Equipment[EquipmentSlot.Body] == a) return true;
+        if (item is Shield s && player.Equipment.OffHand == s) return true;
+        if (item is EquipmentItem eq)
+        {
+            foreach (EquipmentSlot slot in Enum.GetValues<EquipmentSlot>())
+            {
+                if (slot != EquipmentSlot.None && player.Equipment[slot] == eq) return true;
+            }
+        }
+        return false;
+    }
+
     /// <summary>アイテムのグリッドサイズを決定</summary>
     internal static GridItemSize GetItemGridSize(Item item)
     {
@@ -2297,29 +2615,11 @@ public class GameController
     {
         var tile = Map.GetTile(Player.Position);
 
-        // シンボルマップ上のダンジョン入口から入場
-        if (_worldMapSystem.IsOnSurface && tile.Type == TileType.SymbolDungeon)
+        // シンボルマップ上の町・施設・ダンジョンシンボルからの入場はTキー（TryEnterTown）に統一
+        if (_worldMapSystem.IsOnSurface)
         {
-            var location = _symbolMapSystem.GetLocationAt(Player.Position);
-            if (location != null)
-            {
-                _worldMapSystem.IsOnSurface = false;
-                _currentMapName = location.Id;
-                CurrentFloor = 1;
-                GenerateFloor();
-                var featureName = GetCurrentDungeonFeatureName();
-                var featureStr = !string.IsNullOrEmpty(featureName) ? $"（{featureName}）" : "";
-                AddMessage($"【{location.Name}】─ ダンジョン第{CurrentFloor}層に足を踏み入れた...{featureStr}");
-                OnSymbolMapEnterDungeon?.Invoke(location);
-                OnStateChanged?.Invoke();
-                return true;
-            }
-        }
-
-        // シンボルマップ上の町・施設シンボルから入場
-        if (_worldMapSystem.IsOnSurface && _symbolMapSystem.IsTownEntrance(Player.Position))
-        {
-            return TryEnterTown();
+            AddMessage("地上ではTキーで施設やダンジョンに入場できます");
+            return false;
         }
 
         if (tile.Type == TileType.StairsDown)
@@ -2332,7 +2632,7 @@ public class GameController
                 return false;
             }
 
-            SaveFloorItemsToCache();
+            SaveFloorToCache();
             CurrentFloor++;
             GenerateFloor();
             AddMessage($"第{CurrentFloor}層に降りた");
@@ -2384,6 +2684,7 @@ public class GameController
         if (CurrentFloor <= 1)
         {
             // 1層目の上り階段 → シンボルマップに帰還
+            SaveFloorToCache();
             AddMessage("ダンジョンから脱出した！ 地上に帰還する...");
             _worldMapSystem.IsOnSurface = true;
             _currentDungeonFeature = null;
@@ -2409,7 +2710,7 @@ public class GameController
         else
         {
             // 上の階へ移動
-            SaveFloorItemsToCache();
+            SaveFloorToCache();
             CurrentFloor--;
             GenerateFloor();
             // 上昇時はプレイヤーを下り階段位置に配置
@@ -2438,70 +2739,150 @@ public class GameController
 
         if (index >= 0 && index < items.Count)
         {
-            var item = items[index];
+            UseItem(items[index]);
+        }
+    }
 
-            if (item is ConsumableItem consumable)
+    public void UseItem(Item item)
+    {
+        var inventory = (Inventory)Player.Inventory;
+
+        // アイテムがインベントリに存在するか確認
+        if (!inventory.Items.Contains(item)) return;
+
+        if (item is ConsumableItem consumable)
+        {
+            var result = inventory.UseItem(consumable, Player);
+            if (result != null)
             {
-                var result = inventory.UseItem(consumable, Player);
-                if (result != null)
-                {
-                    AddMessage(result.Message);
+                AddMessage(result.Message);
 
-                    // 識別の巻物の実処理
-                    if (result.Effect?.Type == ItemEffectType.Identify)
+                // 識別の巻物の実処理
+                if (result.Effect?.Type == ItemEffectType.Identify)
+                {
+                    HandleIdentifyEffect(inventory);
+                }
+
+                // 古代の書によるルーン語習得
+                if (result.Effect?.Type == ItemEffectType.LearnRuneWord)
+                {
+                    int maxDifficulty = Math.Clamp(1 + Player.EffectiveStats.Intelligence / 5, 1, 5);
+                    var learnResult = LearnRandomRuneWord(maxDifficulty);
+                    if (!learnResult.Success)
                     {
-                        HandleIdentifyEffect(inventory);
+                        AddMessage("📖 しかし、新たに学べるルーン語は見つからなかった");
                     }
-
-                    // 消耗品の種類に応じた行動コスト
-                    int itemCost = consumable is Food ? TurnCosts.Eat : TurnCosts.UsePotion;
-                    TurnCount += itemCost;
-                    GameTime.AdvanceTurn(itemCost);
-                    ProcessEnemyTurns();
-                    OnStateChanged?.Invoke();
                 }
-            }
-            else if (item is EquipmentItem equipItem)
-            {
-                // スライム等の装備制限チェック
-                if (RacialTraitSystem.HasEquipmentRestriction(Player.Race) && equipItem is not (Weapon { WeaponType: WeaponType.Fist }))
+
+                // 水・飲料アイテムによる渇き回復
+                if (consumable is Food food && food.HydrationValue > 0)
                 {
-                    AddMessage("この種族では装備できない");
-                    return;
+                    int recoveryAmount = food.HydrationValue * 10;  // HydrationValue 1段階=10ポイント回復
+                    Player.ModifyThirst(recoveryAmount);
+                    AddMessage($"💧 渇きが癒された（{ThirstSystem.GetThirstName(Player.ThirstStage)} {Player.Thirst}）");
                 }
 
-                // 未鑑定の装備を装着すると自動的に鑑定される
-                if (!equipItem.IsIdentified)
-                {
-                    equipItem.IsIdentified = true;
-                    AddMessage($"{equipItem.GetDisplayName()}の正体が分かった！");
-                }
-
-                // 職業装備適性チェック
-                bool isProficient = ClassEquipmentSystem.IsProficient(Player.CharacterClass, equipItem.Category);
-
-                Player.Equipment.Equip(equipItem, Player);
-
-                if (isProficient)
-                {
-                    AddMessage($"{equipItem.GetDisplayName()}を装備した");
-                }
-                else
-                {
-                    AddMessage($"{equipItem.GetDisplayName()}を装備した（非習熟：攻撃力低下）");
-                }
-
-                // 呪われた装備の警告
-                if (equipItem.IsCursed)
-                {
-                    AddMessage("⚠ 呪いの力を感じる...外せない！");
-                }
-
-                TurnCount += TurnCosts.EquipChange;
-                GameTime.AdvanceTurn(TurnCosts.EquipChange);
+                // 消耗品の種類に応じた行動コスト
+                int itemCost = consumable is Food ? TurnCosts.Eat : TurnCosts.UsePotion;
+                TurnCount += itemCost;
+                GameTime.AdvanceTurn(itemCost);
+                ProcessEnemyTurns();
                 OnStateChanged?.Invoke();
             }
         }
+        else if (item is EquipmentItem equipItem)
+        {
+            // スライム等の装備制限チェック
+            if (RacialTraitSystem.HasEquipmentRestriction(Player.Race) && equipItem is not (Weapon { WeaponType: WeaponType.Fist }))
+            {
+                AddMessage("この種族では装備できない");
+                return;
+            }
+
+            // 未鑑定の装備を装着すると自動的に鑑定される
+            if (!equipItem.IsIdentified)
+            {
+                equipItem.IsIdentified = true;
+                AddMessage($"{equipItem.GetDisplayName()}の正体が分かった！");
+            }
+
+            // 職業装備適性チェック
+            bool isProficient = ClassEquipmentSystem.IsProficient(Player.CharacterClass, equipItem.Category);
+
+            var previousItem = Player.Equipment.Equip(equipItem, Player);
+
+            if (previousItem == null && Player.Equipment[equipItem.Slot] != equipItem)
+            {
+                // 装備条件を満たさない場合
+                AddMessage($"{equipItem.GetDisplayName()}を装備できない");
+                return;
+            }
+
+            // インベントリから装備したアイテムを除去し、以前の装備を戻す
+            inventory.Remove(equipItem);
+            if (previousItem != null)
+            {
+                inventory.Add(previousItem);
+            }
+
+            if (isProficient)
+            {
+                AddMessage($"{equipItem.GetDisplayName()}を装備した");
+            }
+            else
+            {
+                AddMessage($"{equipItem.GetDisplayName()}を装備した（非習熟：攻撃力低下）");
+            }
+
+            // 呪われた装備の警告
+            if (equipItem.IsCursed)
+            {
+                AddMessage("⚠ 呪いの力を感じる...外せない！");
+            }
+
+            TurnCount += TurnCosts.EquipChange;
+            GameTime.AdvanceTurn(TurnCosts.EquipChange);
+            OnStateChanged?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// 指定スロットの装備を外してインベントリに戻す
+    /// </summary>
+    public bool UnequipItem(EquipmentSlot slot)
+    {
+        var inventory = (Inventory)Player.Inventory;
+        var item = Player.Equipment[slot];
+        if (item == null)
+        {
+            AddMessage("そのスロットには何も装備していない");
+            return false;
+        }
+
+        if (item.IsCursed)
+        {
+            AddMessage($"⚠ {item.GetDisplayName()}は呪われていて外せない！");
+            return false;
+        }
+
+        // インベントリ容量チェック
+        if (inventory.UsedSlots >= inventory.MaxSlots)
+        {
+            AddMessage("持ち物がいっぱいで装備を外せない！");
+            return false;
+        }
+
+        var unequipped = Player.Equipment.Unequip(slot, Player);
+        if (unequipped != null)
+        {
+            inventory.Add(unequipped);
+            AddMessage($"{unequipped.GetDisplayName()}を外した");
+            TurnCount += TurnCosts.EquipChange;
+            GameTime.AdvanceTurn(TurnCosts.EquipChange);
+            OnStateChanged?.Invoke();
+            return true;
+        }
+        return false;
     }
 
     /// <summary>
@@ -2781,12 +3162,15 @@ public class GameController
         _infiniteDungeonMode = false;
         _infiniteDungeonKills = 0;
         _isInLocationMap = false;
+        _isLocationField = false;
         _ngPlusTier = null;
         _clearRank = "";
 
-        // 天候・渇きリセット（キャラクター作成直後の状態に戻す）
+        // 天候・身体状態リセット（キャラクター作成直後の状態に戻す）
         CurrentWeather = Weather.Clear;
-        PlayerThirstLevel = ThirstLevel.Hydrated;
+        Player.ModifyThirst(GameConstants.MaxThirst - Player.Thirst);
+        Player.ModifyFatigue(GameConstants.MaxFatigue - Player.Fatigue);
+        Player.ModifyHygiene(GameConstants.MaxHygiene - Player.Hygiene);
 
         // 敵・アイテム・マップリセット
         Enemies.Clear();
@@ -3278,14 +3662,38 @@ public class GameController
         return true;
     }
 
-    /// <summary>スキルスロットにスキルを割り当て（0-4のインデックス、1-5キーに対応）</summary>
+    /// <summary>スキルスロットにスキルを割り当て（0-5のインデックス、1-6キーに対応）</summary>
     public bool AssignSkillSlot(int slotIndex, string skillId)
     {
-        if (slotIndex < 0 || slotIndex >= _skillSlots.Length) return false;
+        if (slotIndex < 0 || slotIndex >= SkillTreeSystem.MaxSkillSlots) return false;
         if (!Player.LearnedSkills.Contains(skillId)) return false;
         var skill = SkillDatabase.GetById(skillId);
         if (skill == null || skill.Category == SkillCategory.Passive) return false;
-        _skillSlots[slotIndex] = skillId;
+
+        // SkillTreeSystem 側にノード未登録の場合は登録＆アンロックしてから装備
+        var tree = _skillTreeSystem;
+        if (!tree.UnlockedNodes.Contains(skillId))
+        {
+            if (!tree.AllNodes.ContainsKey(skillId))
+            {
+                tree.RegisterNode(new SkillNodeDefinition(
+                    skillId, skill.Name, skill.Description ?? "",
+                    SkillNodeType.Active, null, 0, Array.Empty<string>(),
+                    new Dictionary<string, int>()));
+            }
+            tree.AddPoints(1);
+            tree.UnlockNode(skillId);
+        }
+
+        // 既存スロットに同じスキルがある場合は既に装備済み
+        if (tree.EquippedSkillSlots.Contains(skillId))
+            return true;
+
+        // 指定スロットに別スキルがある場合は先に外す
+        if (slotIndex < tree.EquippedSkillSlots.Count)
+            tree.UnequipSkillSlot(slotIndex);
+
+        tree.EquipSkillToSlot(skillId);
         AddMessage($"スロット{slotIndex + 1}に{skill.Name}を割り当てた");
         return true;
     }
@@ -3293,12 +3701,19 @@ public class GameController
     /// <summary>スキルスロットの割り当てを解除</summary>
     public void ClearSkillSlot(int slotIndex)
     {
-        if (slotIndex >= 0 && slotIndex < _skillSlots.Length)
-            _skillSlots[slotIndex] = null;
+        if (slotIndex >= 0 && slotIndex < _skillTreeSystem.EquippedSkillSlots.Count)
+            _skillTreeSystem.UnequipSkillSlot(slotIndex);
     }
 
     /// <summary>スキルスロットの情報を取得</summary>
-    public IReadOnlyList<string?> GetSkillSlots() => _skillSlots;
+    public IReadOnlyList<string?> GetSkillSlots()
+    {
+        var equipped = _skillTreeSystem.EquippedSkillSlots;
+        var result = new string?[SkillTreeSystem.MaxSkillSlots];
+        for (int i = 0; i < equipped.Count && i < result.Length; i++)
+            result[i] = equipped[i];
+        return result;
+    }
 
     /// <summary>スキルスロット使用後のターン進行（MainWindowから呼ぶ）</summary>
     public void AdvanceTurnFromSkillSlot(int actionCost)
@@ -3334,8 +3749,9 @@ public class GameController
     public bool TryUseSkillSlot(int slotIndex, out int actionCost)
     {
         actionCost = TurnCosts.MoveNormal;
-        if (slotIndex < 0 || slotIndex >= _skillSlots.Length) return false;
-        var skillId = _skillSlots[slotIndex];
+        var equipped = _skillTreeSystem.EquippedSkillSlots;
+        if (slotIndex < 0 || slotIndex >= SkillTreeSystem.MaxSkillSlots) return false;
+        var skillId = slotIndex < equipped.Count ? equipped[slotIndex] : null;
         if (skillId == null)
         {
             AddMessage($"スロット{slotIndex + 1}にスキルが割り当てられていない");
@@ -4254,6 +4670,29 @@ public class GameController
         }
     }
 
+    /// <summary>ルーン碑文タイルを踏んだ時の自動解読処理</summary>
+    private void TryReadRuneInscription(Tile tile)
+    {
+        if (string.IsNullOrEmpty(tile.InscriptionWordId))
+        {
+            AddMessage("ᚱ ルーン碑文がある（解読できない文字が刻まれている）");
+            return;
+        }
+
+        if (tile.InscriptionRead)
+        {
+            var knownWord = RuneWordDatabase.GetById(tile.InscriptionWordId);
+            var wordName = knownWord != null ? $"「{knownWord.Meaning}（{knownWord.OldNorse}）」" : "既知のルーン語";
+            AddMessage($"ᚱ 解読済みのルーン碑文がある — {wordName}");
+            return;
+        }
+
+        var result = VocabularyAcquisitionSystem.LearnFromRuneStone(Player, tile.InscriptionWordId);
+        tile.InscriptionRead = true;
+        AddMessage($"ᚱ {result.Message}");
+        OnStateChanged?.Invoke();
+    }
+
     /// <summary>ルーン碑文から語彙を学習</summary>
     public VocabularyLearnResult LearnRuneWord(string wordId)
     {
@@ -4293,6 +4732,8 @@ public class GameController
 
         if (result.Success)
         {
+            // 宗教スキルをスキルツリーに登録（習得済みスキルタブに表示される）
+            _skillTreeSystem.RegisterReligionSkills(religionId);
             OnReligionChanged?.Invoke();
         }
 
@@ -4302,11 +4743,19 @@ public class GameController
     /// <summary>宗教を脱退する</summary>
     private bool TryLeaveReligion()
     {
+        // 脱退前に現在の宗教IDを保存（スキルツリーから除去するため）
+        var currentReligionStr = Player.CurrentReligion;
         var result = _religionSystem.LeaveReligion(Player);
         AddMessage(result.Message);
 
         if (result.Success)
         {
+            // 宗教スキルをスキルツリーから除去
+            if (currentReligionStr != null && Enum.TryParse<ReligionId>(currentReligionStr, out var oldReligionId))
+            {
+                _skillTreeSystem.RemoveReligionSkills(oldReligionId);
+            }
+
             // 背教状態を付与
             Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Apostasy, 100)
             {
@@ -4402,6 +4851,9 @@ public class GameController
     /// <summary>地上にいるか</summary>
     public bool IsOnSurface => _worldMapSystem.IsOnSurface;
 
+    /// <summary>ロケーションマップ（町・フィールド）にいるか</summary>
+    public bool IsInLocationMap => _isInLocationMap;
+
     /// <summary>現在の領地情報を取得</summary>
     public TerritoryDefinition GetCurrentTerritoryInfo() => _worldMapSystem.GetCurrentTerritoryInfo();
 
@@ -4474,11 +4926,26 @@ public class GameController
             return false;
         }
 
-        // シンボルマップ上のロケーション（Dungeon以外）を判定
+        // シンボルマップ上のロケーションを判定
         var location = _symbolMapSystem.GetLocationAt(Player.Position);
 
-        // ロケーションがある場合（既存の町・施設・フィールド等）
-        if (location != null && location.Type != LocationType.Dungeon)
+        // ダンジョンの場合はダンジョン入場処理
+        if (location != null && location.Type == LocationType.Dungeon)
+        {
+            _worldMapSystem.IsOnSurface = false;
+            _currentMapName = location.Id;
+            CurrentFloor = 1;
+            GenerateFloor();
+            var featureName = GetCurrentDungeonFeatureName();
+            var featureStr = !string.IsNullOrEmpty(featureName) ? $"（{featureName}）" : "";
+            AddMessage($"【{location.Name}】─ ダンジョン第{CurrentFloor}層に足を踏み入れた...{featureStr}");
+            OnSymbolMapEnterDungeon?.Invoke(location);
+            OnStateChanged?.Invoke();
+            return true;
+        }
+
+        // ロケーションがある場合（町・施設・フィールド等）
+        if (location != null)
         {
             return EnterLocationMap(location);
         }
@@ -4502,6 +4969,7 @@ public class GameController
         _symbolMapReturnPosition = Player.Position;
         _worldMapSystem.IsOnSurface = false;
         _isInLocationMap = true;
+        _isLocationField = location.Type == LocationType.Field;
         _currentMapName = location.Id;
 
         Map = locationMap;
@@ -4515,9 +4983,13 @@ public class GameController
         if (location.Type == LocationType.Field)
         {
             SpawnEnemies();
+            Map.ComputeFov(Player.Position, 8);
         }
-
-        Map.ComputeFov(Player.Position, 8);
+        else
+        {
+            // 町・村など非フィールドは全タイル可視
+            Map.RevealAll();
+        }
 
         AddMessage($"【{location.Name}】に入った");
         OnSymbolMapEnterTown?.Invoke();
@@ -4537,6 +5009,7 @@ public class GameController
         _symbolMapReturnPosition = Player.Position;
         _worldMapSystem.IsOnSurface = false;
         _isInLocationMap = true;
+        _isLocationField = true;
         _currentMapName = fieldMap.Name;
 
         Map = fieldMap;
@@ -4563,7 +5036,9 @@ public class GameController
         TileType.NpcPriest or
         TileType.NpcShopkeeper or
         TileType.NpcBlacksmith or
-        TileType.NpcInnkeeper;
+        TileType.NpcInnkeeper or
+        TileType.NpcTrainer or
+        TileType.NpcLibrarian;
 
     /// <summary>町内NPCタイルに隣接して話しかけた際のインタラクション</summary>
     private void HandleNpcTile(Tile tile)
@@ -4615,6 +5090,7 @@ public class GameController
                     {
                         new DialogueChoice("武器を見る", "action:open_shop_WeaponShop"),
                         new DialogueChoice("防具を見る", "action:open_shop_ArmorShop"),
+                        new DialogueChoice("装備を鍛える", "action:open_crafting"),
                         new DialogueChoice("立ち去る", "action:close")
                     }),
             TileType.NpcInnkeeper
@@ -4623,6 +5099,23 @@ public class GameController
                     {
                         new DialogueChoice("宿に泊まる", "action:use_inn"),
                         new DialogueChoice("食料を買う", "action:open_shop_GeneralShop"),
+                        new DialogueChoice("立ち去る", "action:close")
+                    }),
+            TileType.NpcTrainer
+                => ("訓練師", $"鍛錬を積めば強くなれるぞ。スキルポイントを使って技を磨くか？（所持SP: {_skillTreeSystem.AvailablePoints}）",
+                    new[]
+                    {
+                        new DialogueChoice("スキルツリーを開く", "action:open_skill_tree"),
+                        new DialogueChoice("戦闘訓練を受ける（50G）", "action:train_combat", 3),
+                        new DialogueChoice("立ち去る", "action:close")
+                    }),
+            TileType.NpcLibrarian
+                => ("図書館司書", "知識は力なり。魔法の書を読んで学びたまえ。",
+                    new[]
+                    {
+                        new DialogueChoice("魔法を学ぶ（100G）", "action:learn_magic", 5),
+                        new DialogueChoice("ルーン語を学ぶ（150G）", "action:learn_rune_word"),
+                        new DialogueChoice("スキルツリーを開く", "action:open_skill_tree"),
                         new DialogueChoice("立ち去る", "action:close")
                     }),
             _ => ("", "", Array.Empty<DialogueChoice>())
@@ -4642,6 +5135,74 @@ public class GameController
     }
 
     /// <summary>街を出る（ロケーションマップからシンボルマップへ帰還）</summary>
+    /// <summary>建物内部マップに遷移</summary>
+    private void EnterBuilding(string buildingId, Position entrancePos)
+    {
+        // 町マップの状態を保存（建物内から別建物に移動する場合は町マップ情報を維持）
+        if (_buildingReturnMap == null)
+        {
+            _buildingReturnMap = Map;
+            _buildingReturnPosition = Player.Position;
+        }
+        _currentBuildingId = buildingId;
+
+        // 訪問済み建物として記録
+        _visitedBuildings.Add(buildingId);
+
+        // 建物内部マップを生成（訪問済み建物リストを渡して他建物への階段を配置）
+        var generator = new LocationMapGenerator();
+        var interiorMap = generator.GenerateBuildingInterior(buildingId, _visitedBuildings.ToList());
+
+        Map = interiorMap;
+        var startPos = interiorMap.EntrancePosition ?? new Position(interiorMap.Width / 2, interiorMap.Height - 2);
+        Player.Position = startPos;
+
+        Enemies.Clear();
+
+        // 建物内部は全タイル可視にする
+        Map.RevealAll();
+
+        var buildingName = GetBuildingDisplayName(buildingId);
+        AddMessage($"【{buildingName}】に入った");
+        OnStateChanged?.Invoke();
+    }
+
+    /// <summary>建物内部から町マップに戻る</summary>
+    private void ExitBuilding()
+    {
+        if (_buildingReturnMap == null || _buildingReturnPosition == null)
+        {
+            AddMessage("戻り先が見つからない");
+            return;
+        }
+
+        Map = _buildingReturnMap;
+        Player.Position = _buildingReturnPosition.Value;
+
+        var buildingName = GetBuildingDisplayName(_currentBuildingId ?? "");
+        AddMessage($"【{buildingName}】から出た");
+
+        _buildingReturnMap = null;
+        _buildingReturnPosition = null;
+        _currentBuildingId = null;
+
+        OnStateChanged?.Invoke();
+    }
+
+    /// <summary>建物IDの日本語表示名を返す</summary>
+    private static string GetBuildingDisplayName(string buildingId) => buildingId switch
+    {
+        "inn" => "宿屋",
+        "shop" => "商店",
+        "smithy" => "鍛冶屋",
+        "guild" => "冒険者ギルド",
+        "church" => "教会",
+        "training" => "訓練所",
+        "library" => "図書館",
+        "magic_shop" => "魔法商店",
+        _ => buildingId.StartsWith("village_") ? "民家" : "建物"
+    };
+
     private bool TryLeaveTown()
     {
         if (_worldMapSystem.IsOnSurface)
@@ -4656,9 +5217,10 @@ public class GameController
             return false;
         }
 
-        // ロケーションマップからシンボルマップに帰還
         _worldMapSystem.IsOnSurface = true;
         _isInLocationMap = false;
+        _isLocationField = false;
+        _visitedBuildings.Clear();
         GenerateSymbolMap();
 
         // 帰還位置を決定（保存された復帰位置 > ロケーションID検索 > デフォルト）
@@ -4695,6 +5257,15 @@ public class GameController
         {
             TurnCount += result.TurnCost;
             GameTime.AdvanceTurn(result.TurnCost);
+
+            // 疲労回復（宿屋で完全回復）
+            Player.ModifyFatigue(GameConstants.MaxFatigue - Player.Fatigue);
+            // 衛生回復（宿屋で清潔に）
+            Player.ModifyHygiene(GameConstants.MaxHygiene - Player.Hygiene);
+            // 渇き回復（宿泊時に水分補給）
+            Player.ModifyThirst(GameConstants.MaxThirst - Player.Thirst);
+
+            AddMessage("💤 疲労・衛生・渇きが回復した");
         }
 
         OnStateChanged?.Invoke();
@@ -4714,6 +5285,62 @@ public class GameController
         AddMessage(result.Message);
         OnStateChanged?.Invoke();
         return result.Success;
+    }
+
+    /// <summary>訓練師から戦闘訓練を受ける（50G → スキルポイント1獲得）</summary>
+    private void TryTrainCombat()
+    {
+        const int trainingCost = 50;
+        if (Player.Gold < trainingCost)
+        {
+            AddMessage($"訓練費用が足りない（必要: {trainingCost}G、所持: {Player.Gold}G）");
+            return;
+        }
+
+        Player.SpendGold(trainingCost);
+        _skillTreeSystem.AddPoints(1);
+        AddMessage($"⚔ 訓練師のもとで鍛錬を積んだ！ スキルポイント+1（残り: {_skillTreeSystem.AvailablePoints}SP）");
+        OnStateChanged?.Invoke();
+    }
+
+    /// <summary>図書館で魔法を学ぶ（100G → スキルポイント2獲得）</summary>
+    private void TryLearnMagic()
+    {
+        const int learningCost = 100;
+        if (Player.Gold < learningCost)
+        {
+            AddMessage($"学習費用が足りない（必要: {learningCost}G、所持: {Player.Gold}G）");
+            return;
+        }
+
+        Player.SpendGold(learningCost);
+        _skillTreeSystem.AddPoints(2);
+        AddMessage($"📖 古い魔導書を読み解いた！ スキルポイント+2（残り: {_skillTreeSystem.AvailablePoints}SP）");
+        OnStateChanged?.Invoke();
+    }
+
+    /// <summary>図書館でルーン語を学ぶ（150G → 難度に応じたランダム1語を習得）</summary>
+    private void TryLearnRuneWord()
+    {
+        const int learningCost = 150;
+        if (Player.Gold < learningCost)
+        {
+            AddMessage($"学習費用が足りない（必要: {learningCost}G、所持: {Player.Gold}G）");
+            return;
+        }
+
+        // INTに応じて学べる最大難度を決定（INT 5→難度2, INT 10→難度3, INT 15→難度4, INT 20→難度5）
+        int maxDifficulty = Math.Clamp(1 + Player.EffectiveStats.Intelligence / 5, 1, 5);
+        var result = VocabularyAcquisitionSystem.LearnRandomWord(Player, maxDifficulty, new RandomProvider());
+        if (!result.Success)
+        {
+            AddMessage("📖 学べる新しいルーン語が見つからなかった（より高い知力が必要かもしれない）");
+            return;
+        }
+
+        Player.SpendGold(learningCost);
+        AddMessage($"📖 {result.Message}");
+        OnStateChanged?.Invoke();
     }
 
     /// <summary>銀行に預け入れ</summary>
@@ -4759,6 +5386,25 @@ public class GameController
     /// <summary>ショップでアイテム購入</summary>
     public bool TryBuyItem(FacilityType shopType, int index)
     {
+        // 購入前にインベントリ空きを確認（スタック可能アイテムは既存スタックへの追加も考慮）
+        var shopItems = _shopSystem.GetShopItems(shopType);
+        if (index >= 0 && index < shopItems.Count)
+        {
+            var previewItem = ItemDefinitions.Create(shopItems[index].ItemId);
+            if (previewItem != null)
+            {
+                var inv = (Inventory)Player.Inventory;
+                bool canStack = previewItem is IStackable stackable
+                    && inv.Items.OfType<IStackable>().Any(s => s.CanStackWith(stackable));
+                if (!canStack && inv.UsedSlots >= inv.MaxSlots)
+                {
+                    AddMessage("インベントリが一杯のため、購入できない");
+                    OnStateChanged?.Invoke();
+                    return false;
+                }
+            }
+        }
+
         double discount = ShopSystem.CalculateCharismaDiscount(Player.EffectiveStats.Charisma);
 
         // === GUI統合: 価格変動（PriceFluctuationSystem）===
@@ -4776,7 +5422,9 @@ public class GameController
                 var inventory = (Inventory)Player.Inventory;
                 if (!inventory.Add(newItem))
                 {
-                    AddMessage("インベントリが一杯のため、アイテムを受け取れなかった");
+                    // 購入成功したがインベントリ追加失敗 → ゴールドを返却
+                    Player.AddGold(Math.Max(1, (int)(shopItems[index].BasePrice * (1.0 - discount))));
+                    AddMessage("インベントリが一杯のため、アイテムを受け取れなかった（返金済み）");
                 }
             }
         }
@@ -4818,6 +5466,7 @@ public class GameController
             {
                 _worldMapSystem.IsOnSurface = false;
                 _isInLocationMap = false;
+                _isLocationField = false;
                 _currentMapName = location.Id;
                 CurrentFloor = 1;
                 GenerateFloor();
@@ -4835,9 +5484,9 @@ public class GameController
             return TryEnterTown();
         }
 
-        // ロケーション外では汎用ダンジョン入場
         _worldMapSystem.IsOnSurface = false;
         _isInLocationMap = false;
+        _isLocationField = false;
         CurrentFloor = 1;
         GenerateFloor();
         AddMessage("ダンジョンに足を踏み入れた...");
@@ -4856,6 +5505,7 @@ public class GameController
 
         _worldMapSystem.IsOnSurface = true;
         _isInLocationMap = false;
+        _isLocationField = false;
         GenerateSymbolMap();
 
         // ロケーション位置にプレイヤーを配置
@@ -5019,6 +5669,21 @@ public class GameController
                 break;
             case "use_inn":
                 TryUseInn();
+                break;
+            case "open_skill_tree":
+                OnShowSkillTree?.Invoke();
+                break;
+            case "open_crafting":
+                OnShowCrafting?.Invoke();
+                break;
+            case "train_combat":
+                TryTrainCombat();
+                break;
+            case "learn_magic":
+                TryLearnMagic();
+                break;
+            case "learn_rune_word":
+                TryLearnRuneWord();
                 break;
             case "close":
                 // 何もせず会話を終了
@@ -5255,6 +5920,42 @@ public class GameController
     /// </summary>
     private bool StepAutoExplore()
     {
+        // 下り階段上でTab → 上り階段へ移動
+        var currentTile = Map.GetTile(Player.Position);
+        if (currentTile.Type == TileType.StairsDown && !_autoExploring)
+        {
+            var upStairsStep = FindPathToStairsUp();
+            if (upStairsStep != null)
+            {
+                _autoExploring = true;
+                _autoExploreTargetStairsUp = true;
+                AddMessage("上り階段へ移動中…");
+                return TryMove(upStairsStep.Value);
+            }
+        }
+
+        // 上り階段への移動中
+        if (_autoExploreTargetStairsUp && _autoExploring)
+        {
+            var tile = Map.GetTile(Player.Position);
+            if (tile.Type == TileType.StairsUp)
+            {
+                _autoExploring = false;
+                _autoExploreTargetStairsUp = false;
+                AddMessage("上り階段に到着した");
+                return false;
+            }
+            var upStep = FindPathToStairsUp();
+            if (upStep != null)
+            {
+                return TryMove(upStep.Value);
+            }
+            _autoExploring = false;
+            _autoExploreTargetStairsUp = false;
+            AddMessage("上り階段への経路がない");
+            return false;
+        }
+
         // 停止条件チェック
         if (ShouldStopAutoExplore())
         {
@@ -5268,6 +5969,14 @@ public class GameController
         var nextStep = FindNextExploreStep();
         if (nextStep == null)
         {
+            // 未探索タイルがない場合、下り階段へ移動を試みる
+            var stairsStep = FindPathToStairs();
+            if (stairsStep != null)
+            {
+                AddMessage("探索完了 — 下り階段へ移動中…");
+                return TryMove(stairsStep.Value);
+            }
+
             _autoExploring = false;
             AddMessage("探索する場所がない");
             return false;
@@ -5389,6 +6098,123 @@ public class GameController
     }
 
     /// <summary>
+    /// BFSで下り階段への最短経路の1歩目を求める
+    /// </summary>
+    private Position? FindPathToStairs()
+    {
+        // ロケーションマップや地上では階段移動しない
+        if (_isInLocationMap || _worldMapSystem.IsOnSurface) return null;
+
+        var visited = new HashSet<Position>();
+        var queue = new Queue<(Position Pos, Position FirstStep)>();
+
+        visited.Add(Player.Position);
+
+        var dirs = new (int dx, int dy)[]
+        {
+            (0, -1), (0, 1), (-1, 0), (1, 0),
+            (-1, -1), (1, -1), (-1, 1), (1, 1)
+        };
+
+        foreach (var (dx, dy) in dirs)
+        {
+            var neighbor = new Position(Player.Position.X + dx, Player.Position.Y + dy);
+            if (Map.IsInBounds(neighbor))
+            {
+                var nTile = Map.GetTile(neighbor);
+                bool passable = !nTile.BlocksMovement || (nTile.Type == TileType.DoorClosed && !nTile.IsLocked);
+                if (passable && !IsOccupied(neighbor))
+                {
+                    visited.Add(neighbor);
+                    queue.Enqueue((neighbor, neighbor));
+                }
+            }
+        }
+
+        while (queue.Count > 0)
+        {
+            var (current, firstStep) = queue.Dequeue();
+            var tile = Map.GetTile(current);
+
+            if (tile.Type == TileType.StairsDown)
+                return firstStep;
+
+            foreach (var (dx, dy) in dirs)
+            {
+                var next = new Position(current.X + dx, current.Y + dy);
+                if (!Map.IsInBounds(next)) continue;
+                if (visited.Contains(next)) continue;
+                var nxTile = Map.GetTile(next);
+                bool passable = !nxTile.BlocksMovement || (nxTile.Type == TileType.DoorClosed && !nxTile.IsLocked);
+                if (!passable) continue;
+
+                visited.Add(next);
+                queue.Enqueue((next, firstStep));
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// BFSで上り階段への最短経路の1歩目を求める
+    /// </summary>
+    private Position? FindPathToStairsUp()
+    {
+        if (_isInLocationMap || _worldMapSystem.IsOnSurface) return null;
+
+        var visited = new HashSet<Position>();
+        var queue = new Queue<(Position Pos, Position FirstStep)>();
+
+        visited.Add(Player.Position);
+
+        var dirs = new (int dx, int dy)[]
+        {
+            (0, -1), (0, 1), (-1, 0), (1, 0),
+            (-1, -1), (1, -1), (-1, 1), (1, 1)
+        };
+
+        foreach (var (dx, dy) in dirs)
+        {
+            var neighbor = new Position(Player.Position.X + dx, Player.Position.Y + dy);
+            if (Map.IsInBounds(neighbor))
+            {
+                var nTile = Map.GetTile(neighbor);
+                bool passable = !nTile.BlocksMovement || (nTile.Type == TileType.DoorClosed && !nTile.IsLocked);
+                if (passable && !IsOccupied(neighbor))
+                {
+                    visited.Add(neighbor);
+                    queue.Enqueue((neighbor, neighbor));
+                }
+            }
+        }
+
+        while (queue.Count > 0)
+        {
+            var (current, firstStep) = queue.Dequeue();
+            var tile = Map.GetTile(current);
+
+            if (tile.Type == TileType.StairsUp)
+                return firstStep;
+
+            foreach (var (dx, dy) in dirs)
+            {
+                var next = new Position(current.X + dx, current.Y + dy);
+                if (!Map.IsInBounds(next)) continue;
+                if (visited.Contains(next)) continue;
+                var nxTile = Map.GetTile(next);
+                bool passable = !nxTile.BlocksMovement || (nxTile.Type == TileType.DoorClosed && !nxTile.IsLocked);
+                if (!passable) continue;
+
+                visited.Add(next);
+                queue.Enqueue((next, firstStep));
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// 自動探索の継続実行（MainWindow側から呼ばれる）
     /// </summary>
     public bool ContinueAutoExplore()
@@ -5399,9 +6225,12 @@ public class GameController
 
     public void AddMessage(string message)
     {
-        var formattedMessage = $"[{TurnCount}] {message}";
-        _messageHistory.Add(formattedMessage);
-        OnMessage?.Invoke(formattedMessage);
+        _messageHistory.Add(message);
+        if (_messageHistory.Count > 1000)
+        {
+            _messageHistory.RemoveAt(0);
+        }
+        OnMessage?.Invoke(message);
     }
 
     #region Save/Load
@@ -5741,11 +6570,14 @@ public class GameController
     /// <summary>天候名を取得</summary>
     public string CurrentWeatherName => WeatherSystem.GetWeatherName(CurrentWeather);
 
-    /// <summary>プレイヤーの渇きレベル（将来Player拡張時に実プロパティに接続）</summary>
-    public ThirstLevel PlayerThirstLevel { get; private set; } = ThirstLevel.Hydrated;
+    /// <summary>プレイヤーの渇き値</summary>
+    public int PlayerThirst => Player.Thirst;
+
+    /// <summary>プレイヤーの渇き段階</summary>
+    public ThirstStage PlayerThirstStage => Player.ThirstStage;
 
     /// <summary>渇きレベル名</summary>
-    public string PlayerThirstName => ThirstSystem.GetThirstName(PlayerThirstLevel);
+    public string PlayerThirstName => ThirstSystem.GetThirstName(Player.ThirstStage);
 
     /// <summary>カルマ値</summary>
     public int PlayerKarma => _karmaSystem.KarmaValue;
@@ -5765,7 +6597,7 @@ public class GameController
     /// <summary>図鑑システム</summary>
     public EncyclopediaSystem GetEncyclopediaSystem() => _encyclopediaSystem;
 
-    /// <summary>図鑑エントリを自動登録し発見レベルを上昇させる</summary>
+    /// <summary>図鑑エントリを自動登録し発見レベルを上昇させる（モンスター以外用）</summary>
     private void RegisterAndDiscoverEncyclopedia(EncyclopediaCategory category, string id, string name)
     {
         if (_encyclopediaSystem.GetEntry(id) == null)
@@ -5786,6 +6618,53 @@ public class GameController
             }
         }
     }
+
+    /// <summary>モンスター撃破時の図鑑登録・更新</summary>
+    private void RegisterAndDiscoverMonster(Enemy enemy)
+    {
+        var id = enemy.EnemyTypeId;
+        var name = enemy.Name;
+
+        if (_encyclopediaSystem.GetEntry(id) == null)
+        {
+            var monsterData = new MonsterEncyclopediaData(
+                RaceName: GetMonsterRaceName(enemy.Race),
+                MaxHp: enemy.MaxHp,
+                MaxMp: enemy.MaxMp,
+                MaxSp: enemy.MaxSp,
+                BaseStats: enemy.BaseStats,
+                DropTableId: enemy.DropTableId,
+                Description: enemy.Description ?? $"{name}に関する情報。"
+            );
+            _encyclopediaSystem.RegisterMonsterEntry(id, name, monsterData);
+            AddMessage($"📖 図鑑に{name}が記録された！");
+        }
+
+        if (_encyclopediaSystem.IncrementMonsterKill(id))
+        {
+            var entry = _encyclopediaSystem.GetEntry(id);
+            if (entry != null)
+            {
+                AddMessage($"📖 {name}の情報が更新された！（開示Lv.{entry.DiscoveryLevel}）");
+            }
+        }
+    }
+
+    /// <summary>MonsterRaceの日本語名を取得</summary>
+    private static string GetMonsterRaceName(MonsterRace race) => race switch
+    {
+        MonsterRace.Beast => "獣",
+        MonsterRace.Humanoid => "人型",
+        MonsterRace.Amorphous => "不定形",
+        MonsterRace.Undead => "不死",
+        MonsterRace.Demon => "悪魔",
+        MonsterRace.Dragon => "竜",
+        MonsterRace.Plant => "植物",
+        MonsterRace.Insect => "昆虫",
+        MonsterRace.Spirit => "精霊",
+        MonsterRace.Construct => "構造体",
+        _ => race.ToString()
+    };
 
     /// <summary>死亡ログシステム</summary>
     public DeathLogSystem GetDeathLogSystem() => _deathLogSystem;
@@ -6033,11 +6912,11 @@ public class GameController
         Player.Heal(hpAmount);
 
         // 疲労回復
-        if (fatigueRecovery > 0.5f) _playerFatigue = FatigueLevel.Fresh;
-        else if (fatigueRecovery > 0.2f && _playerFatigue > FatigueLevel.Mild) _playerFatigue--;
+        if (fatigueRecovery > 0.5f) Player.ModifyFatigue(GameConstants.MaxFatigue - Player.Fatigue);
+        else if (fatigueRecovery > 0.2f) Player.ModifyFatigue(30);
 
         // 衛生回復（宿屋利用時）
-        if (quality >= SleepQuality.DeepSleep) _playerHygiene = HygieneLevel.Clean;
+        if (quality >= SleepQuality.DeepSleep) Player.ModifyHygiene(GameConstants.MaxHygiene - Player.Hygiene);
 
         // 拠点休息ボーナス
         float restBonus = GetBaseRestBonus();
@@ -6405,17 +7284,23 @@ public class GameController
 
     // === 新システムプロパティアクセス ===
 
-    /// <summary>疲労レベル</summary>
-    public FatigueLevel PlayerFatigueLevel => _playerFatigue;
+    /// <summary>疲労値</summary>
+    public int PlayerFatigue => Player.Fatigue;
+
+    /// <summary>疲労段階</summary>
+    public FatigueStage PlayerFatigueStage => Player.FatigueStage;
 
     /// <summary>疲労名</summary>
-    public string PlayerFatigueName => BodyConditionSystem.GetFatigueName(_playerFatigue);
+    public string PlayerFatigueName => BodyConditionSystem.GetFatigueName(Player.FatigueStage);
 
-    /// <summary>衛生レベル</summary>
-    public HygieneLevel PlayerHygieneLevel => _playerHygiene;
+    /// <summary>衛生値</summary>
+    public int PlayerHygiene => Player.Hygiene;
+
+    /// <summary>衛生段階</summary>
+    public HygieneStage PlayerHygieneStage => Player.HygieneStage;
 
     /// <summary>衛生名</summary>
-    public string PlayerHygieneName => BodyConditionSystem.GetHygieneName(_playerHygiene);
+    public string PlayerHygieneName => BodyConditionSystem.GetHygieneName(Player.HygieneStage);
 
     /// <summary>罹患中の病気</summary>
     public DiseaseType? PlayerDisease => _playerDisease;
@@ -6732,5 +7617,6 @@ public enum GameAction
     OpenSkillTree,
     OpenCompanion,
     OpenCooking,
-    OpenBaseConstruction
+    OpenBaseConstruction,
+    OpenVocabulary
 }

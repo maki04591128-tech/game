@@ -33,6 +33,10 @@ public partial class InventoryWindow : Window
     private Rectangle? _dropPreview;
     private const double DragThreshold = 5.0;
 
+    // 装備パネルからのドラッグ用
+    private EquipmentSlot? _draggedEquipSlot;
+    private bool _isDraggingFromEquip;
+
     // ドラッグ移動後の位置情報を保持（RenderGrid間で引き継ぐため）
     private readonly Dictionary<int, (int GridX, int GridY)> _savedPositions = new();
 
@@ -40,27 +44,66 @@ public partial class InventoryWindow : Window
     private bool _isSorted;
 
     // コールバック: アイテム使用/装備
-    private readonly Action<int>? _onUseItem;
+    private readonly Action<Item>? _onUseItem;
     // コールバック: アイテムを地面に落とす
-    private readonly Action<int>? _onDropItem;
+    private readonly Action<Item>? _onDropItem;
+    // コールバック: 装備外し
+    private readonly Action<EquipmentSlot>? _onUnequipItem;
     // コールバック: アイテムリスト再取得
     private readonly Func<List<Item>>? _getItems;
 
     public int SelectedIndex { get; private set; } = -1;
 
+    /// <summary>ソート状態を取得（ウィンドウ閉鎖時に外部で保存するため）</summary>
+    public bool IsSorted => _isSorted;
+
     public InventoryWindow(List<Item> items, Player player,
-        Action<int>? onUseItem = null, Action<int>? onDropItem = null, Func<List<Item>>? getItems = null)
+        Action<Item>? onUseItem = null, Action<Item>? onDropItem = null, Func<List<Item>>? getItems = null,
+        Dictionary<int, (int GridX, int GridY)>? savedPositions = null,
+        Action<EquipmentSlot>? onUnequipItem = null,
+        bool isSorted = false)
     {
         InitializeComponent();
         _items = items;
         _player = player;
         _onUseItem = onUseItem;
         _onDropItem = onDropItem;
+        _onUnequipItem = onUnequipItem;
         _getItems = getItems;
+        _isSorted = isSorted;
+        if (savedPositions != null && savedPositions.Count > 0)
+        {
+            foreach (var kvp in savedPositions)
+                _savedPositions[kvp.Key] = kvp.Value;
+        }
+
+        // ソート状態が復元された場合、初回レンダリング前にソートを適用
+        if (_isSorted)
+        {
+            _items = _items.OrderBy(i => GetItemSortCategory(i))
+                           .ThenByDescending(i => (int)i.Rarity)
+                           .ThenBy(i => i.GetDisplayName())
+                           .ToList();
+        }
 
         RenderGrid();
         RenderEquipmentPanel();
         RenderStats();
+
+        // 装備パネルのD&Dイベント
+        EquipmentCanvas.MouseMove += EquipmentCanvas_MouseMove;
+        EquipmentCanvas.MouseLeftButtonUp += EquipmentCanvas_MouseUp;
+    }
+
+    /// <summary>現在のグリッド位置情報を取得（ウィンドウ閉鎖時に外部で保存するため）</summary>
+    public Dictionary<int, (int GridX, int GridY)> GetSavedPositions()
+    {
+        var positions = new Dictionary<int, (int GridX, int GridY)>(_savedPositions);
+        foreach (var cell in _gridCells)
+        {
+            positions[cell.Index] = (cell.GridX, cell.GridY);
+        }
+        return positions;
     }
 
     private void RenderGrid()
@@ -116,6 +159,13 @@ public partial class InventoryWindow : Window
 
         foreach (var item in _items)
         {
+            // 装備中のアイテムはグリッドに表示しない
+            if (IsEquipped(item))
+            {
+                itemIndex++;
+                continue;
+            }
+
             var size = GetGridSize(item);
             var (w, h) = GridInventorySystem.GetDimensions(size);
 
@@ -144,7 +194,10 @@ public partial class InventoryWindow : Window
             {
                 var freePos = FindFreePosition(placed, w, h);
                 if (freePos == null)
-                    break;
+                {
+                    itemIndex++;
+                    continue;
+                }
                 (gx, gy) = freePos.Value;
             }
 
@@ -312,13 +365,23 @@ public partial class InventoryWindow : Window
         if (_isDragging && _draggedCell != null)
         {
             var pos = e.GetPosition(GridCanvas);
+            var windowPos = e.GetPosition(this);
+
+            // 装備パネルへのドロップ判定
+            if (_draggedCell.Item is EquipmentItem && IsOverEquipmentPanel(windowPos))
+            {
+                if (_onUseItem != null)
+                {
+                    _onUseItem(_draggedCell.Item);
+                    RefreshItems();
+                }
+            }
             // グリッド外にドロップした場合はアイテムを地面に落とす
-            if (pos.X < 0 || pos.Y < 0 || pos.X > GridWidth * CellSize || pos.Y > GridHeight * CellSize)
+            else if (pos.X < 0 || pos.Y < 0 || pos.X > GridWidth * CellSize || pos.Y > GridHeight * CellSize)
             {
                 if (_onDropItem != null)
                 {
-                    int dropIndex = _draggedCell.Index;
-                    _onDropItem(dropIndex);
+                    _onDropItem(_draggedCell.Item);
                     RefreshItems();
                 }
             }
@@ -347,7 +410,7 @@ public partial class InventoryWindow : Window
             Opacity = 0.8
         };
         Panel.SetZIndex(_dragGhost, 100);
-        GridCanvas.Children.Add(_dragGhost);
+        DragOverlayCanvas.Children.Add(_dragGhost);
 
         _dragGhostChar = new TextBlock
         {
@@ -358,7 +421,7 @@ public partial class InventoryWindow : Window
             IsHitTestVisible = false
         };
         Panel.SetZIndex(_dragGhostChar, 101);
-        GridCanvas.Children.Add(_dragGhostChar);
+        DragOverlayCanvas.Children.Add(_dragGhostChar);
 
         _dropPreview = new Rectangle
         {
@@ -374,13 +437,28 @@ public partial class InventoryWindow : Window
         GridCanvas.Children.Add(_dropPreview);
     }
 
-    private void UpdateDragGhost(Point pos)
+    private void UpdateDragGhost(Point gridPos)
     {
-        if (_dragGhost == null || _dragGhostChar == null || _draggedCell == null)
+        if (_dragGhost == null || _dragGhostChar == null)
             return;
 
-        double left = pos.X - (_draggedCell.Width * CellSize / 2.0);
-        double top = pos.Y - (_draggedCell.Height * CellSize / 2.0);
+        // GridCanvas 座標をオーバーレイ座標に変換
+        var overlayPos = GridCanvas.TranslatePoint(gridPos, DragOverlayCanvas);
+
+        double ghostW, ghostH;
+        if (_draggedCell != null)
+        {
+            ghostW = _draggedCell.Width * CellSize;
+            ghostH = _draggedCell.Height * CellSize;
+        }
+        else
+        {
+            ghostW = _dragGhost.Width;
+            ghostH = _dragGhost.Height;
+        }
+
+        double left = overlayPos.X - (ghostW / 2.0);
+        double top = overlayPos.Y - (ghostH / 2.0);
         Canvas.SetLeft(_dragGhost, left);
         Canvas.SetTop(_dragGhost, top);
         Canvas.SetLeft(_dragGhostChar, left + 4);
@@ -447,12 +525,12 @@ public partial class InventoryWindow : Window
     {
         if (_dragGhost != null)
         {
-            GridCanvas.Children.Remove(_dragGhost);
+            DragOverlayCanvas.Children.Remove(_dragGhost);
             _dragGhost = null;
         }
         if (_dragGhostChar != null)
         {
-            GridCanvas.Children.Remove(_dragGhostChar);
+            DragOverlayCanvas.Children.Remove(_dragGhostChar);
             _dragGhostChar = null;
         }
         if (_dropPreview != null)
@@ -511,12 +589,12 @@ public partial class InventoryWindow : Window
 
     private bool IsEquipped(Item item)
     {
-        if (item is Weapon w && _player.Equipment.MainHand == w)
-            return true;
-        if (item is Armor a && _player.Equipment[EquipmentSlot.Body] == a)
-            return true;
-        if (item is Shield s && _player.Equipment.OffHand == s)
-            return true;
+        if (item is not EquipmentItem) return false;
+        foreach (EquipmentSlot slot in Enum.GetValues<EquipmentSlot>())
+        {
+            if (slot != EquipmentSlot.None && _player.Equipment[slot] == item)
+                return true;
+        }
         return false;
     }
 
@@ -600,7 +678,8 @@ public partial class InventoryWindow : Window
         {
             if (_onUseItem != null)
             {
-                _onUseItem(_selectedIndex);
+                var item = _items[_selectedIndex];
+                _onUseItem(item);
                 RefreshItems();
             }
             else
@@ -738,6 +817,7 @@ public partial class InventoryWindow : Window
                 Tag = slot
             };
             slotRect.MouseLeftButtonDown += EquipSlot_Click;
+            slotRect.MouseRightButtonDown += EquipSlot_RightClick;
             Canvas.SetLeft(slotRect, x);
             Canvas.SetTop(slotRect, y);
             EquipmentCanvas.Children.Add(slotRect);
@@ -820,7 +900,7 @@ public partial class InventoryWindow : Window
         EquipmentCanvas.Children.Add(new Line { X1 = 172, Y1 = 108, X2 = 184, Y2 = 108, Stroke = guideColor, StrokeThickness = 1, IsHitTestVisible = false });
     }
 
-    /// <summary>装備スロットクリック時の処理</summary>
+    /// <summary>装備スロットクリック時の処理（ドラッグ開始を兼ねる）</summary>
     private void EquipSlot_Click(object sender, MouseButtonEventArgs e)
     {
         if (sender is Rectangle rect && rect.Tag is EquipmentSlot slot)
@@ -828,9 +908,145 @@ public partial class InventoryWindow : Window
             var item = _player.Equipment[slot];
             if (item != null)
             {
+                string curseWarning = item.IsCursed ? "\n⚠ 呪われていて外せない" : "";
                 ItemDetailText.Text = $"[装備中] {item.GetDisplayName()}\n" +
                                       $"種類: {GetItemTypeText(item)} | " +
-                                      $"重さ: {item.Weight:F1} | 価値: {item.CalculatePrice()}G";
+                                      $"重さ: {item.Weight:F1} | 価値: {item.CalculatePrice()}G" +
+                                      curseWarning +
+                                      (item.IsCursed ? "" : "\n右クリックまたはグリッドへドラッグで装備を外す");
+                _selectedEquipSlot = slot;
+
+                // 装備パネルからのドラッグ開始準備
+                if (!item.IsCursed)
+                {
+                    _draggedEquipSlot = slot;
+                    _isDraggingFromEquip = false;
+                    _dragStartPos = e.GetPosition(this);
+                    EquipmentCanvas.CaptureMouse();
+                }
+            }
+            e.Handled = true;
+        }
+    }
+
+    private EquipmentSlot? _selectedEquipSlot;
+
+    /// <summary>装備パネル上のマウス移動でドラッグを検出</summary>
+    private void EquipmentCanvas_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_draggedEquipSlot == null || e.LeftButton != MouseButtonState.Pressed)
+            return;
+
+        var pos = e.GetPosition(this);
+        if (!_isDraggingFromEquip)
+        {
+            var diff = pos - _dragStartPos;
+            if (Math.Abs(diff.X) < DragThreshold && Math.Abs(diff.Y) < DragThreshold)
+                return;
+            _isDraggingFromEquip = true;
+
+            var item = _player.Equipment[_draggedEquipSlot.Value];
+            if (item != null)
+            {
+                CreateEquipDragGhost(item, e.GetPosition(GridCanvas));
+            }
+        }
+
+        if (_isDraggingFromEquip)
+        {
+            UpdateDragGhost(e.GetPosition(GridCanvas));
+        }
+    }
+
+    /// <summary>装備パネルからのマウスリリースで装備外し実行</summary>
+    private void EquipmentCanvas_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        EquipmentCanvas.ReleaseMouseCapture();
+
+        if (_isDraggingFromEquip && _draggedEquipSlot != null)
+        {
+            var windowPos = e.GetPosition(this);
+            // グリッド領域にドロップした場合は装備外し
+            if (IsOverGridPanel(windowPos))
+            {
+                if (_onUnequipItem != null)
+                {
+                    _onUnequipItem(_draggedEquipSlot.Value);
+                    RefreshItems();
+                }
+            }
+        }
+
+        _draggedEquipSlot = null;
+        _isDraggingFromEquip = false;
+        CleanupDrag();
+    }
+
+    /// <summary>マウス座標が装備パネルの領域内かどうか判定</summary>
+    private bool IsOverEquipmentPanel(Point windowPos)
+    {
+        var equipTopLeft = EquipmentCanvas.TranslatePoint(new Point(0, 0), this);
+        return windowPos.X >= equipTopLeft.X && windowPos.X <= equipTopLeft.X + EquipmentCanvas.Width
+            && windowPos.Y >= equipTopLeft.Y && windowPos.Y <= equipTopLeft.Y + EquipmentCanvas.Height;
+    }
+
+    /// <summary>マウス座標がグリッドパネルの領域内かどうか判定</summary>
+    private bool IsOverGridPanel(Point windowPos)
+    {
+        var gridTopLeft = GridCanvas.TranslatePoint(new Point(0, 0), this);
+        return windowPos.X >= gridTopLeft.X && windowPos.X <= gridTopLeft.X + GridCanvas.Width
+            && windowPos.Y >= gridTopLeft.Y && windowPos.Y <= gridTopLeft.Y + GridCanvas.Height;
+    }
+
+    /// <summary>装備パネルからのドラッグ用ゴースト作成</summary>
+    private void CreateEquipDragGhost(EquipmentItem item, Point gridPos)
+    {
+        var bgColor = GetRarityColor(item.Rarity);
+        var size = GetGridSize(item);
+        var (w, h) = GridInventorySystem.GetDimensions(size);
+
+        var overlayPos = GridCanvas.TranslatePoint(gridPos, DragOverlayCanvas);
+
+        _dragGhost = new Rectangle
+        {
+            Width = w * CellSize,
+            Height = h * CellSize,
+            Fill = new SolidColorBrush(bgColor) { Opacity = 0.6 },
+            Stroke = new SolidColorBrush(Color.FromRgb(0x4e, 0xcc, 0xa3)),
+            StrokeThickness = 2,
+            RadiusX = 4,
+            RadiusY = 4,
+            IsHitTestVisible = false,
+            Opacity = 0.8
+        };
+        Canvas.SetLeft(_dragGhost, overlayPos.X - w * CellSize / 2.0);
+        Canvas.SetTop(_dragGhost, overlayPos.Y - h * CellSize / 2.0);
+        DragOverlayCanvas.Children.Add(_dragGhost);
+
+        _dragGhostChar = new TextBlock
+        {
+            Text = item.DisplayChar.ToString(),
+            Foreground = Brushes.White,
+            FontSize = 14,
+            FontWeight = FontWeights.Bold,
+            IsHitTestVisible = false,
+            Opacity = 0.9
+        };
+        Canvas.SetLeft(_dragGhostChar, overlayPos.X - 6);
+        Canvas.SetTop(_dragGhostChar, overlayPos.Y - 10);
+        DragOverlayCanvas.Children.Add(_dragGhostChar);
+    }
+
+    /// <summary>装備スロット右クリック時の装備外し処理</summary>
+    private void EquipSlot_RightClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is Rectangle rect && rect.Tag is EquipmentSlot slot)
+        {
+            var item = _player.Equipment[slot];
+            if (item != null && !item.IsCursed && _onUnequipItem != null)
+            {
+                _onUnequipItem(slot);
+                RefreshItems();
             }
             e.Handled = true;
         }

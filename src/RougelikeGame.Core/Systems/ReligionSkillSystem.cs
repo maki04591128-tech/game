@@ -129,6 +129,23 @@ public static class ReligionSkillSystem
         return isApostate ? 0.7f : 1.0f;
     }
 
+    /// <summary>
+    /// 宗教スキルIDから日本語名を取得する。見つからない場合は null を返す。
+    /// </summary>
+    public static string? GetSkillName(string skillId)
+    {
+        var religions = new[] { ReligionId.LightTemple, ReligionId.DarkCult, ReligionId.NatureWorship, ReligionId.DeathFaith, ReligionId.ChaosCult };
+        foreach (var religion in religions)
+        {
+            foreach (var bonus in GetGrantedSkillBonuses(religion, FaithRank.Saint))
+            {
+                if (bonus.SkillId == skillId)
+                    return bonus.SkillName;
+            }
+        }
+        return null;
+    }
+
     #region Religion-Specific Skill Bonuses
 
     private static IReadOnlyList<ReligionSkillBonus> GetLightTempleBonuses(FaithRank rank)

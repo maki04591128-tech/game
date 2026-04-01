@@ -35,9 +35,9 @@ public static class MimicSystem
     /// <summary>ミミック撃破報酬の追加倍率</summary>
     public static float GetMimicRewardMultiplier() => 1.5f;
 
-    /// <summary>偽装タイプの一覧</summary>
+    /// <summary>偽装タイプの一覧（宝箱・収納容器のみ）</summary>
     public static IReadOnlyList<string> GetDisguiseTypes() => new[]
     {
-        "宝箱", "扉", "階段", "石像", "祭壇", "商人"
+        "宝箱", "木箱", "収納箱"
     };
 }

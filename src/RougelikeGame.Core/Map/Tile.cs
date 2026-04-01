@@ -86,6 +86,11 @@ public enum TileType
     Chest,
 
     /// <summary>
+    /// ルーン碑文（魔法言語習得用）
+    /// </summary>
+    RuneInscription,
+
+    /// <summary>
     /// 罠（隠れている）
     /// </summary>
     TrapHidden,
@@ -209,7 +214,29 @@ public enum TileType
     /// <summary>
     /// 宿屋主人（休息）
     /// </summary>
-    NpcInnkeeper
+    NpcInnkeeper,
+
+    /// <summary>
+    /// 訓練師（スキル習得・戦闘訓練）
+    /// </summary>
+    NpcTrainer,
+
+    /// <summary>
+    /// 図書館司書（魔法習得・知識取得）
+    /// </summary>
+    NpcLibrarian,
+
+    // === 町内建物入口 ===
+
+    /// <summary>
+    /// 建物入口（町マップ上のドアの代わり。踏むと建物内部マップへ遷移）
+    /// </summary>
+    BuildingEntrance,
+
+    /// <summary>
+    /// 建物出口（建物内部マップ上。踏むと町マップへ戻る）
+    /// </summary>
+    BuildingExit
 }
 
 /// <summary>
@@ -270,6 +297,36 @@ public class Tile
     public int LockDifficulty { get; set; }
 
     /// <summary>
+    /// 建物ID（BuildingEntrance/BuildingExit タイルで使用）
+    /// </summary>
+    public string? BuildingId { get; set; }
+
+    /// <summary>
+    /// 宝箱の中身アイテムIDリスト（Chestタイルで使用）
+    /// </summary>
+    public List<string>? ChestItems { get; set; }
+
+    /// <summary>
+    /// 宝箱が開封済みかどうか
+    /// </summary>
+    public bool ChestOpened { get; set; }
+
+    /// <summary>
+    /// 宝箱の施錠難易度（0=未施錠）
+    /// </summary>
+    public int ChestLockDifficulty { get; set; }
+
+    /// <summary>
+    /// ルーン碑文のルーン語ID（RuneInscriptionタイルで使用）
+    /// </summary>
+    public string? InscriptionWordId { get; set; }
+
+    /// <summary>
+    /// ルーン碑文が既に解読済みかどうか
+    /// </summary>
+    public bool InscriptionRead { get; set; }
+
+    /// <summary>
     /// 表示文字
     /// </summary>
     public char DisplayChar => GetDisplayChar();
@@ -316,6 +373,7 @@ public class Tile
             case TileType.Altar:
             case TileType.Fountain:
             case TileType.Chest:
+            case TileType.RuneInscription:
                 tile.BlocksSight = false;
                 tile.BlocksMovement = false;
                 break;
@@ -396,6 +454,14 @@ public class Tile
             case TileType.NpcShopkeeper:
             case TileType.NpcBlacksmith:
             case TileType.NpcInnkeeper:
+            case TileType.NpcTrainer:
+            case TileType.NpcLibrarian:
+                tile.BlocksSight = false;
+                tile.BlocksMovement = false;
+                break;
+
+            case TileType.BuildingEntrance:
+            case TileType.BuildingExit:
                 tile.BlocksSight = false;
                 tile.BlocksMovement = false;
                 break;
@@ -427,6 +493,7 @@ public class Tile
             TileType.Altar => '_',
             TileType.Fountain => '{',
             TileType.Chest => '□',
+            TileType.RuneInscription => 'ᚱ',
             TileType.TrapHidden => '.',  // 隠れている罠は床に見える
             TileType.TrapVisible => '^',
             TileType.SecretDoor => '#',  // 秘密のドアは壁に見える
@@ -451,6 +518,8 @@ public class Tile
             TileType.NpcShopkeeper => 'S',
             TileType.NpcBlacksmith => 'B',
             TileType.NpcInnkeeper => 'I',
+            TileType.BuildingEntrance => '⌂',
+            TileType.BuildingExit => '<',
             _ => '?'
         };
     }
@@ -608,6 +677,16 @@ public record struct DungeonGenerationParameters
     /// 乱数シード（省略可）
     /// </summary>
     public int? Seed { get; init; }
+
+    /// <summary>
+    /// ボス階かどうか（宝箱確定配置用）
+    /// </summary>
+    public bool IsBossFloor { get; init; }
+
+    /// <summary>
+    /// ダンジョンID（テーマ別アイテム・構造生成用）
+    /// </summary>
+    public string? DungeonId { get; init; }
 
     /// <summary>
     /// デフォルトパラメータ

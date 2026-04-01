@@ -54,6 +54,9 @@ public partial class MainWindow : Window
     private bool _minimapVisible = true;
     private DispatcherTimer? _autoExploreTimer;
     private readonly HashSet<Key> _heldMovementKeys = new();
+    private Dictionary<int, (int GridX, int GridY)> _inventoryGridPositions = new();
+    private bool _inventorySorted;
+    private KeyBindingSettings _keyBindings = KeyBindingSettings.Load();
 
     public MainWindow() : this(GameSettings.CreateDefault(), new SilentAudioManager(), false, false)
     {
@@ -106,6 +109,7 @@ public partial class MainWindow : Window
         _gameController.OnCraftingResult += OnCraftingResult;
         _gameController.OnEnhancementResult += OnEnhancementResult;
         _gameController.OnEnchantmentResult += OnEnchantmentResult;
+        _gameController.OnShowCrafting += OnShowCrafting;
         _gameController.OnShowTutorial += OnShowTutorial;
         _gameController.OnReligionChanged += OnReligionChanged;
         _gameController.OnTerritoryChanged += OnTerritoryChanged;
@@ -130,6 +134,7 @@ public partial class MainWindow : Window
         _gameController.OnShowBaseConstruction += ShowBaseConstructionDialog;
         _gameController.OnShowRecruitCompanion += ShowRecruitCompanionDialog;
         _gameController.OnShowQuestBoard += ShowQuestBoardDialog;
+        _gameController.OnShowVocabulary += ShowVocabularyDialog;
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -171,125 +176,140 @@ public partial class MainWindow : Window
     {
         GameAction? action = null;
 
+        // ESCキーでポーズ画面を開く
+        if (e.Key == Key.Escape)
+        {
+            ShowPauseDialog();
+            e.Handled = true;
+            return;
+        }
+
+        // 移動キーバインド取得
+        var moveUpKey = _keyBindings.Bindings.GetValueOrDefault(KeyBindAction.MoveUp)?.Key ?? Key.W;
+        var moveDownKey = _keyBindings.Bindings.GetValueOrDefault(KeyBindAction.MoveDown)?.Key ?? Key.S;
+        var moveLeftKey = _keyBindings.Bindings.GetValueOrDefault(KeyBindAction.MoveLeft)?.Key ?? Key.A;
+        var moveRightKey = _keyBindings.Bindings.GetValueOrDefault(KeyBindAction.MoveRight)?.Key ?? Key.D;
+
         // 移動キーの押下状態を追跡
-        if (e.Key is Key.W or Key.A or Key.S or Key.D or Key.Up or Key.Down or Key.Left or Key.Right)
+        if (e.Key == moveUpKey || e.Key == moveDownKey || e.Key == moveLeftKey || e.Key == moveRightKey
+            || e.Key is Key.Up or Key.Down or Key.Left or Key.Right)
         {
             _heldMovementKeys.Add(e.Key);
         }
 
         // WASD斜め移動判定（同時押し：自前追跡で判定）
-        if (e.Key == Key.W || e.Key == Key.Up)
+        bool isUp = e.Key == moveUpKey || e.Key == Key.Up;
+        bool isDown = e.Key == moveDownKey || e.Key == Key.Down;
+        bool isLeft = e.Key == moveLeftKey || e.Key == Key.Left;
+        bool isRight = e.Key == moveRightKey || e.Key == Key.Right;
+
+        bool holdLeft = _heldMovementKeys.Contains(moveLeftKey) || _heldMovementKeys.Contains(Key.Left);
+        bool holdRight = _heldMovementKeys.Contains(moveRightKey) || _heldMovementKeys.Contains(Key.Right);
+        bool holdUp = _heldMovementKeys.Contains(moveUpKey) || _heldMovementKeys.Contains(Key.Up);
+        bool holdDown = _heldMovementKeys.Contains(moveDownKey) || _heldMovementKeys.Contains(Key.Down);
+
+        if (isUp)
         {
-            if (_heldMovementKeys.Contains(Key.A) || _heldMovementKeys.Contains(Key.Left))
-                action = GameAction.MoveUpLeft;
-            else if (_heldMovementKeys.Contains(Key.D) || _heldMovementKeys.Contains(Key.Right))
-                action = GameAction.MoveUpRight;
-            else
-                action = GameAction.MoveUp;
+            if (holdLeft) action = GameAction.MoveUpLeft;
+            else if (holdRight) action = GameAction.MoveUpRight;
+            else action = GameAction.MoveUp;
         }
-        else if (e.Key == Key.S || e.Key == Key.Down)
+        else if (isDown)
         {
-            if (_heldMovementKeys.Contains(Key.A) || _heldMovementKeys.Contains(Key.Left))
-                action = GameAction.MoveDownLeft;
-            else if (_heldMovementKeys.Contains(Key.D) || _heldMovementKeys.Contains(Key.Right))
-                action = GameAction.MoveDownRight;
-            else
-                action = GameAction.MoveDown;
+            if (holdLeft) action = GameAction.MoveDownLeft;
+            else if (holdRight) action = GameAction.MoveDownRight;
+            else action = GameAction.MoveDown;
         }
-        else if (e.Key == Key.A || e.Key == Key.Left)
+        else if (isLeft)
         {
-            if (_heldMovementKeys.Contains(Key.W) || _heldMovementKeys.Contains(Key.Up))
-                action = GameAction.MoveUpLeft;
-            else if (_heldMovementKeys.Contains(Key.S) || _heldMovementKeys.Contains(Key.Down))
-                action = GameAction.MoveDownLeft;
-            else
-                action = GameAction.MoveLeft;
+            if (holdUp) action = GameAction.MoveUpLeft;
+            else if (holdDown) action = GameAction.MoveDownLeft;
+            else action = GameAction.MoveLeft;
         }
-        else if (e.Key == Key.D || e.Key == Key.Right)
+        else if (isRight)
         {
-            if (_heldMovementKeys.Contains(Key.W) || _heldMovementKeys.Contains(Key.Up))
-                action = GameAction.MoveUpRight;
-            else if (_heldMovementKeys.Contains(Key.S) || _heldMovementKeys.Contains(Key.Down))
-                action = GameAction.MoveDownRight;
-            else
-                action = GameAction.MoveRight;
+            if (holdUp) action = GameAction.MoveUpRight;
+            else if (holdDown) action = GameAction.MoveDownRight;
+            else action = GameAction.MoveRight;
         }
         else
         {
-            action = e.Key switch
-            {
-                Key.Space => GameAction.Wait,
-                Key.G => GameAction.Pickup,
-                Key.I => GameAction.OpenInventory,
-                Key.C => GameAction.OpenStatus,
-                Key.L => GameAction.OpenMessageLog,
-                Key.Tab => GameAction.AutoExplore,
-                Key.F5 => GameAction.Save,
-                Key.F9 => GameAction.Load,
-                Key.Q => GameAction.Quit,
-                Key.OemPeriod when Keyboard.Modifiers == ModifierKeys.Shift => GameAction.UseStairs,
-                Key.OemComma when Keyboard.Modifiers == ModifierKeys.Shift => GameAction.AscendStairs,
-                Key.F => GameAction.Search,
-                Key.X => GameAction.CloseDoor,
-                Key.R => GameAction.RangedAttack,
-                Key.T => _gameController.IsOnSurface ? GameAction.EnterTown : GameAction.ThrowItem,
-                Key.V => GameAction.StartCasting,
-                Key.P => GameAction.Pray,
-                Key.E => GameAction.OpenSkillTree,
-                Key.J => GameAction.OpenWorldMap,
-                Key.Y => GameAction.OpenEncyclopedia,
-                Key.U => GameAction.OpenCompanion,
-                Key.Z => GameAction.OpenDeathLog,
-                _ => null
-            };
+            // キーバインド辞書からアクションを検索
+            var modifiers = Keyboard.Modifiers;
+            var bindAction = _keyBindings.FindAction(e.Key, modifiers);
 
-            // スキルスロット実行（1-6キー）
-            if (e.Key >= Key.D1 && e.Key <= Key.D6)
+            if (bindAction != null)
             {
-                int slotIndex = e.Key - Key.D1;
-                int slotCost;
-                bool slotUsed = _gameController.TryUseSkillSlot(slotIndex, out slotCost);
-                if (slotUsed)
+                action = bindAction.Value switch
                 {
-                    _gameController.AdvanceTurnFromSkillSlot(slotCost);
+                    KeyBindAction.Wait => GameAction.Wait,
+                    KeyBindAction.Pickup => GameAction.Pickup,
+                    KeyBindAction.UseStairs => GameAction.UseStairs,
+                    KeyBindAction.AscendStairs => GameAction.AscendStairs,
+                    KeyBindAction.AutoExplore => GameAction.AutoExplore,
+                    KeyBindAction.Search => GameAction.Search,
+                    KeyBindAction.CloseDoor => GameAction.CloseDoor,
+                    KeyBindAction.RangedAttack => GameAction.RangedAttack,
+                    KeyBindAction.ThrowItem => _gameController.IsOnSurface ? GameAction.EnterTown : GameAction.ThrowItem,
+                    KeyBindAction.EnterTown => _gameController.IsOnSurface ? GameAction.EnterTown : (GameAction?)null,
+                    KeyBindAction.StartCasting => GameAction.StartCasting,
+                    KeyBindAction.Pray => GameAction.Pray,
+                    KeyBindAction.OpenInventory => GameAction.OpenInventory,
+                    KeyBindAction.OpenStatus => GameAction.OpenStatus,
+                    KeyBindAction.OpenMessageLog => GameAction.OpenMessageLog,
+                    KeyBindAction.OpenSkillTree => GameAction.OpenSkillTree,
+                    KeyBindAction.OpenWorldMap => GameAction.OpenWorldMap,
+                    KeyBindAction.OpenEncyclopedia => GameAction.OpenEncyclopedia,
+                    KeyBindAction.OpenCompanion => GameAction.OpenCompanion,
+                    KeyBindAction.OpenDeathLog => GameAction.OpenDeathLog,
+                    KeyBindAction.OpenVocabulary => GameAction.OpenVocabulary,
+                    KeyBindAction.Save => GameAction.Save,
+                    KeyBindAction.Load => GameAction.Load,
+                    _ => null
+                };
+
+                // スキルスロット処理
+                if (bindAction.Value >= KeyBindAction.SkillSlot1 && bindAction.Value <= KeyBindAction.SkillSlot6)
+                {
+                    int slotIndex = bindAction.Value - KeyBindAction.SkillSlot1;
+                    int slotCost;
+                    bool slotUsed = _gameController.TryUseSkillSlot(slotIndex, out slotCost);
+                    if (slotUsed)
+                    {
+                        _gameController.AdvanceTurnFromSkillSlot(slotCost);
+                    }
+                    UpdateDisplay();
+                    e.Handled = true;
+                    return;
                 }
-                UpdateDisplay();
-                e.Handled = true;
-                return;
-            }
 
-            // クエストログ（直接ダイアログ表示）
-            if (e.Key == Key.K)
-            {
-                ShowQuestLogDialog();
-                e.Handled = true;
-                return;
-            }
-
-            // 宗教画面（直接ダイアログ表示）
-            if (e.Key == Key.O)
-            {
-                ShowReligionDialog();
-                e.Handled = true;
-                return;
-            }
-
-            // ミニマップ切り替え（GameActionを経由しない直接処理）
-            if (e.Key == Key.M)
-            {
-                _minimapVisible = !_minimapVisible;
-                MinimapBorder.Visibility = _minimapVisible ? Visibility.Visible : Visibility.Collapsed;
-                e.Handled = true;
-                return;
-            }
-
-            // スタンス切替（Nキー）
-            if (e.Key == Key.N)
-            {
-                _gameController.CycleCombatStance();
-                UpdateDisplay();
-                e.Handled = true;
-                return;
+                // UI専用アクション（GameActionを経由しない直接処理）
+                if (bindAction.Value == KeyBindAction.OpenQuestLog)
+                {
+                    ShowQuestLogDialog();
+                    e.Handled = true;
+                    return;
+                }
+                if (bindAction.Value == KeyBindAction.OpenReligion)
+                {
+                    ShowReligionDialog();
+                    e.Handled = true;
+                    return;
+                }
+                if (bindAction.Value == KeyBindAction.ToggleMinimap)
+                {
+                    _minimapVisible = !_minimapVisible;
+                    MinimapBorder.Visibility = _minimapVisible ? Visibility.Visible : Visibility.Collapsed;
+                    e.Handled = true;
+                    return;
+                }
+                if (bindAction.Value == KeyBindAction.CycleCombatStance)
+                {
+                    _gameController.CycleCombatStance();
+                    UpdateDisplay();
+                    e.Handled = true;
+                    return;
+                }
             }
         }
 
@@ -318,16 +338,23 @@ public partial class MainWindow : Window
     private void UpdateDisplay()
     {
         // ステータス更新
-        FloorText.Text = $"第{_gameController.CurrentFloor}層";
+        if (_gameController.IsInLocationMap || _gameController.IsOnSurface)
+        {
+            FloorText.Text = "";
+        }
+        else
+        {
+            FloorText.Text = $"第{_gameController.CurrentFloor}層";
+        }
         DateText.Text = _gameController.GameTime.ToFullString();
         TimePeriodText.Text = _gameController.GameTime.TimePeriod;
 
         // 領地名・地上/ダンジョン表示
         var territory = TerritoryDefinition.Get(_gameController.CurrentTerritory);
         TerritoryText.Text = territory.Name;
-        if (_gameController.IsOnSurface)
+        if (_gameController.IsOnSurface || _gameController.IsInLocationMap)
         {
-            SurfaceStatusText.Text = "【地上】";
+            SurfaceStatusText.Text = _gameController.IsInLocationMap ? "【町】" : "【地上】";
             SurfaceStatusText.Foreground = System.Windows.Media.Brushes.LimeGreen;
         }
         else
@@ -439,14 +466,14 @@ public partial class MainWindow : Window
         };
 
         // 渇き表示
-        ThirstText.Text = _gameController.PlayerThirstName;
-        ThirstText.Foreground = _gameController.PlayerThirstLevel switch
+        ThirstText.Text = $"{_gameController.PlayerThirst}({_gameController.PlayerThirstName})";
+        ThirstText.Foreground = _gameController.PlayerThirstStage switch
         {
-            ThirstLevel.Hydrated => System.Windows.Media.Brushes.DeepSkyBlue,
-            ThirstLevel.Thirsty => System.Windows.Media.Brushes.Yellow,
-            ThirstLevel.Dehydrated => System.Windows.Media.Brushes.Orange,
-            ThirstLevel.SevereDehydration => System.Windows.Media.Brushes.Red,
-            _ => System.Windows.Media.Brushes.DeepSkyBlue
+            ThirstStage.Hydrated => System.Windows.Media.Brushes.DeepSkyBlue,
+            ThirstStage.Thirsty => System.Windows.Media.Brushes.Yellow,
+            ThirstStage.Dehydrated => System.Windows.Media.Brushes.Orange,
+            ThirstStage.SevereDehydration => System.Windows.Media.Brushes.Red,
+            _ => System.Windows.Media.Brushes.DarkRed
         };
 
         // カルマ表示
@@ -478,44 +505,96 @@ public partial class MainWindow : Window
         };
 
         // 疲労表示
-        FatigueText.Text = _gameController.PlayerFatigueName;
-        FatigueText.Foreground = _gameController.PlayerFatigueLevel switch
+        FatigueText.Text = $"{_gameController.PlayerFatigue}({_gameController.PlayerFatigueName})";
+        FatigueText.Foreground = _gameController.PlayerFatigueStage switch
         {
-            FatigueLevel.Fresh => System.Windows.Media.Brushes.LimeGreen,
-            FatigueLevel.Mild => System.Windows.Media.Brushes.Yellow,
-            FatigueLevel.Tired => System.Windows.Media.Brushes.Orange,
-            FatigueLevel.Exhausted => System.Windows.Media.Brushes.Red,
+            FatigueStage.Fresh => System.Windows.Media.Brushes.LimeGreen,
+            FatigueStage.Mild => System.Windows.Media.Brushes.Yellow,
+            FatigueStage.Tired => System.Windows.Media.Brushes.Orange,
+            FatigueStage.Exhausted => System.Windows.Media.Brushes.Red,
             _ => System.Windows.Media.Brushes.DarkRed
         };
 
         // 衛生表示
-        HygieneText.Text = _gameController.PlayerHygieneName;
-        HygieneText.Foreground = _gameController.PlayerHygieneLevel switch
+        HygieneText.Text = $"{_gameController.PlayerHygiene}({_gameController.PlayerHygieneName})";
+        HygieneText.Foreground = _gameController.PlayerHygieneStage switch
         {
-            HygieneLevel.Clean => System.Windows.Media.Brushes.LightBlue,
-            HygieneLevel.Normal => System.Windows.Media.Brushes.LightGreen,
-            HygieneLevel.Dirty => System.Windows.Media.Brushes.Yellow,
-            HygieneLevel.Filthy => System.Windows.Media.Brushes.Orange,
+            HygieneStage.Clean => System.Windows.Media.Brushes.LightBlue,
+            HygieneStage.Normal => System.Windows.Media.Brushes.LightGreen,
+            HygieneStage.Dirty => System.Windows.Media.Brushes.Yellow,
+            HygieneStage.Filthy => System.Windows.Media.Brushes.Orange,
             _ => System.Windows.Media.Brushes.Red
         };
 
         // 病気表示
         DiseaseText.Text = _gameController.PlayerDiseaseName != null
             ? $"🤒{_gameController.PlayerDiseaseName}"
-            : "";
-        DiseaseText.Foreground = System.Windows.Media.Brushes.OrangeRed;
+            : "健康";
+        DiseaseText.Foreground = _gameController.PlayerDiseaseName != null
+            ? System.Windows.Media.Brushes.OrangeRed
+            : System.Windows.Media.Brushes.LimeGreen;
 
-        // スキルスロット表示
+        // スキルスロット表示（PoE風アイコン）
         var slots = _gameController.GetSkillSlots();
-        var slotParts = new string[5];
-        for (int i = 0; i < 5; i++)
+        SkillSlotIconPanel.Children.Clear();
+        for (int i = 0; i < SkillTreeSystem.MaxSkillSlots; i++)
         {
-            slotParts[i] = slots[i] != null ? $"[{i + 1}:{slots[i]}]" : $"[{i + 1}:-]";
+            var skillId = i < slots.Count ? slots[i] : null;
+            var displayName = skillId != null
+                ? (SkillDatabase.GetById(skillId)?.Name
+                   ?? _gameController.GetSkillTreeSystem().AllNodes.GetValueOrDefault(skillId)?.Name
+                   ?? ReligionSkillSystem.GetSkillName(skillId)
+                   ?? skillId)
+                : null;
+            var iconChar = displayName != null && displayName.Length > 0
+                ? displayName.Substring(0, 1) : "-";
+
+            var iconBorder = new Border
+            {
+                Width = 32,
+                Height = 32,
+                Background = skillId != null
+                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1a, 0x3a, 0x2a))
+                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x14, 0x14, 0x20)),
+                BorderBrush = skillId != null
+                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x4e, 0xcc, 0xa3))
+                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x0f, 0x34, 0x60)),
+                BorderThickness = new Thickness(skillId != null ? 2 : 1),
+                CornerRadius = new CornerRadius(4),
+                Margin = new Thickness(2, 0, 2, 0),
+                ToolTip = displayName != null ? $"[{i + 1}] {displayName}" : $"[{i + 1}] 空"
+            };
+
+            var grid = new Grid();
+            // スロット番号（左上小さく）
+            var numText = new TextBlock
+            {
+                Text = $"{i + 1}",
+                Foreground = System.Windows.Media.Brushes.Gray,
+                FontSize = 8,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(2, 0, 0, 0)
+            };
+            grid.Children.Add(numText);
+
+            // スキル頭文字（中央）
+            var charText = new TextBlock
+            {
+                Text = iconChar,
+                Foreground = skillId != null
+                    ? System.Windows.Media.Brushes.White
+                    : System.Windows.Media.Brushes.DarkGray,
+                FontSize = 14,
+                FontWeight = FontWeights.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            grid.Children.Add(charText);
+
+            iconBorder.Child = grid;
+            SkillSlotIconPanel.Children.Add(iconBorder);
         }
-        SkillSlotText.Text = string.Join("", slotParts);
-        SkillSlotText.Foreground = slots.Any(s => s != null)
-            ? System.Windows.Media.Brushes.LightGreen
-            : System.Windows.Media.Brushes.Gray;
 
         // マップ描画
         _renderer.Render(
@@ -525,8 +604,8 @@ public partial class MainWindow : Window
             _gameController.GroundItems
         );
 
-        // ミニマップ描画
-        if (_minimapVisible)
+        // ミニマップ描画（町・フィールド内ではスキップして軽量化）
+        if (_minimapVisible && !_gameController.IsInLocationMap)
         {
             _renderer.RenderMinimap(
                 MinimapCanvas,
@@ -664,13 +743,11 @@ public partial class MainWindow : Window
             return inv.Items.ToList();
         };
 
-        Action<int> onDropItem = (int index) =>
+        Action<Item> onDropItem = (Item item) =>
         {
             var inv = (RougelikeGame.Core.Entities.Inventory)_gameController.Player.Inventory;
-            var itemsList = inv.Items.ToList();
-            if (index >= 0 && index < itemsList.Count)
+            if (inv.Items.Contains(item))
             {
-                var item = itemsList[index];
                 inv.Remove(item);
                 _gameController.GroundItems.Add((item, _gameController.Player.Position));
                 _gameController.AddMessage($"{item.GetDisplayName()}を地面に置いた");
@@ -678,11 +755,16 @@ public partial class MainWindow : Window
         };
 
         var dialog = new InventoryWindow(items, _gameController.Player,
-            onUseItem: (int idx) => _gameController.UseItem(idx),
+            onUseItem: (Item item) => _gameController.UseItem(item),
             onDropItem: onDropItem,
-            getItems: getItems);
+            getItems: getItems,
+            savedPositions: _inventoryGridPositions,
+            onUnequipItem: (slot) => _gameController.UnequipItem(slot),
+            isSorted: _inventorySorted);
         dialog.Owner = this;
         dialog.ShowDialog();
+        _inventoryGridPositions = dialog.GetSavedPositions();
+        _inventorySorted = dialog.IsSorted;
 
         Focus();
     }
@@ -780,6 +862,15 @@ public partial class MainWindow : Window
 
     #region 追加イベントハンドラ
 
+    private void ShowVocabularyDialog()
+    {
+        StopAutoExploreTimer();
+        var dialog = new VocabularyWindow(_gameController.Player);
+        dialog.Owner = this;
+        dialog.ShowDialog();
+        Focus();
+    }
+
     private void OnCastingStarted()
     {
         StopAutoExploreTimer();
@@ -851,6 +942,16 @@ public partial class MainWindow : Window
         Focus();
     }
 
+    private void OnShowCrafting()
+    {
+        StopAutoExploreTimer();
+
+        var craftingWindow = new CraftingWindow(_gameController);
+        craftingWindow.Owner = this;
+        craftingWindow.ShowDialog();
+        Focus();
+    }
+
     private void OnQuestUpdated(string questId)
     {
         AddMessage($"📋 クエスト更新: {questId}");
@@ -913,6 +1014,40 @@ public partial class MainWindow : Window
         var territory = TerritoryDefinition.Get(newTerritory);
         AddMessage($"🗺️ {territory.Name}に到着した");
         _audioManager.PlaySe("territory_change");
+    }
+
+    private void ShowPauseDialog()
+    {
+        StopAutoExploreTimer();
+        var pauseWindow = new PauseWindow(_keyBindings) { Owner = this };
+        if (pauseWindow.ShowDialog() == true)
+        {
+            // キーバインドが更新された場合
+            if (pauseWindow.UpdatedKeyBindings != null)
+            {
+                _keyBindings = pauseWindow.UpdatedKeyBindings;
+                _keyBindings.Save();
+            }
+
+            switch (pauseWindow.Result)
+            {
+                case PauseResult.Save:
+                    _gameController.ProcessInput(GameAction.Save);
+                    break;
+                case PauseResult.Load:
+                    _gameController.ProcessInput(GameAction.Load);
+                    break;
+                case PauseResult.ReturnToTitle:
+                    ExitReason = GameExitReason.ReturnToTitle;
+                    Close();
+                    return;
+                case PauseResult.Resume:
+                default:
+                    break;
+            }
+        }
+        UpdateDisplay();
+        Focus();
     }
 
     private void ShowQuestLogDialog()

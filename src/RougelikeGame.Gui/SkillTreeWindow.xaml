@@ -51,7 +51,7 @@
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0" Background="#0d1b2a" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3">
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                            <Canvas x:Name="RaceTreeCanvas" Width="1600" Height="280" Background="#0d1b2a" 
+                            <Canvas x:Name="RaceTreeCanvas" Width="2200" Height="560" Background="#0d1b2a"
                                     MouseLeftButtonDown="TreeCanvas_MouseDown"/>
                         </ScrollViewer>
                     </Border>
@@ -76,7 +76,7 @@
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0" Background="#0d1b2a" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3">
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                            <Canvas x:Name="ClassTreeCanvas" Width="1600" Height="500" Background="#0d1b2a"
+                            <Canvas x:Name="ClassTreeCanvas" Width="2200" Height="560" Background="#0d1b2a"
                                     MouseLeftButtonDown="TreeCanvas_MouseDown"/>
                         </ScrollViewer>
                     </Border>
@@ -102,7 +102,7 @@
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0" Background="#0d1b2a" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3">
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                            <Canvas x:Name="BackgroundTreeCanvas" Width="1600" Height="280" Background="#0d1b2a"
+                            <Canvas x:Name="BackgroundTreeCanvas" Width="2200" Height="560" Background="#0d1b2a"
                                     MouseLeftButtonDown="TreeCanvas_MouseDown"/>
                         </ScrollViewer>
                     </Border>
@@ -127,7 +127,7 @@
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0" Background="#0d1b2a" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3">
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                            <Canvas x:Name="WeaponTreeCanvas" Width="1200" Height="400" Background="#0d1b2a"
+                            <Canvas x:Name="WeaponTreeCanvas" Width="2200" Height="560" Background="#0d1b2a"
                                     MouseLeftButtonDown="TreeCanvas_MouseDown"/>
                         </ScrollViewer>
                     </Border>
@@ -152,7 +152,7 @@
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0" Background="#0d1b2a" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3">
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                            <Canvas x:Name="MagicTreeCanvas" Width="1200" Height="400" Background="#0d1b2a"
+                            <Canvas x:Name="MagicTreeCanvas" Width="2200" Height="560" Background="#0d1b2a"
                                     MouseLeftButtonDown="TreeCanvas_MouseDown"/>
                         </ScrollViewer>
                     </Border>
@@ -163,6 +163,33 @@
                             <TextBlock x:Name="MagicNodeDescText" Foreground="White" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
                             <TextBlock x:Name="MagicNodePrereqText" Foreground="#c0a0ff" FontSize="10" TextWrapping="Wrap" Margin="0,6,0,0"/>
                             <TextBlock x:Name="MagicNodeBonusText" Foreground="#4ecca3" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- 習得済みスキル一覧タブ -->
+            <TabItem Header="習得済み" Background="#0f3460" Foreground="White">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="260"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="#0d1b2a" BorderBrush="#0f3460" BorderThickness="1" CornerRadius="3" Padding="6">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <WrapPanel x:Name="AcquiredSkillsPanel"/>
+                        </ScrollViewer>
+                    </Border>
+                    <Border Grid.Column="1" Background="#0f3460" CornerRadius="4" Padding="8" Margin="6,0,0,0">
+                        <StackPanel x:Name="AcquiredDetailPanel">
+                            <TextBlock Text="■ 習得済みスキル" Foreground="#ffd93d" FontSize="14" FontWeight="Bold" Margin="0,0,0,6"/>
+                            <TextBlock x:Name="AcquiredNodeNameText" Foreground="#4ecca3" FontSize="14" FontWeight="Bold" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="AcquiredNodeDescText" Foreground="White" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            <TextBlock x:Name="AcquiredNodeBonusText" Foreground="#4ecca3" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            <TextBlock x:Name="AcquiredEquipStatusText" Foreground="#808080" FontSize="11" Margin="0,6,0,0"/>
+                            <Button x:Name="EquipToSlotButton" Content="スロットに装備" Width="140" Margin="0,8,0,0"
+                                    Click="EquipToSlotButton_Click" Visibility="Collapsed"
+                                    Background="#0f3460" Foreground="White" BorderBrush="#4ecca3" Padding="5,3"/>
                         </StackPanel>
                     </Border>
                 </Grid>

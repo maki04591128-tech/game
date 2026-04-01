@@ -2,6 +2,7 @@ using Xunit;
 using RougelikeGame.Core;
 using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Interfaces;
+using RougelikeGame.Core.Items;
 using RougelikeGame.Data.MagicLanguage;
 using RougelikeGame.Engine.Magic;
 
@@ -413,8 +414,8 @@ public class MagicLanguageSystemTests
     {
         var system = new SpellCastingSystem();
         var player = CreateTestPlayer();
-        // Not learned
-        bool added = system.AddWord("brenna", player);
+        // Not learned (binda is not in Mage initial rune words)
+        bool added = system.AddWord("binda", player);
         Assert.False(added);
     }
 
@@ -613,11 +614,11 @@ public class MagicLanguageSystemTests
     public void VocabularyAcquisition_LearnFromRuneStone_NewWord()
     {
         var player = CreateTestPlayer();
-        var result = VocabularyAcquisitionSystem.LearnFromRuneStone(player, "brenna");
+        var result = VocabularyAcquisitionSystem.LearnFromRuneStone(player, "binda");
         Assert.True(result.Success);
         Assert.True(result.IsNewWord);
-        Assert.Equal("brenna", result.WordId);
-        Assert.True(player.LearnedWords.ContainsKey("brenna"));
+        Assert.Equal("binda", result.WordId);
+        Assert.True(player.LearnedWords.ContainsKey("binda"));
     }
 
     [Fact]
@@ -971,7 +972,7 @@ public class MagicLanguageSystemTests
     public void Player_GetWordMastery_UnlearnedWord_ReturnsZero()
     {
         var player = CreateTestPlayer();
-        Assert.Equal(0, player.GetWordMastery("brenna"));
+        Assert.Equal(0, player.GetWordMastery("binda"));
     }
 
     #endregion
@@ -1186,6 +1187,80 @@ public class MagicLanguageSystemTests
         Assert.Equal(2, system.SavedSpells.Count);
         Assert.Equal("炎の矢", system.SavedSpells[0].Name);
         Assert.Equal("回復", system.SavedSpells[1].Name);
+    }
+
+    #endregion
+
+    #region AncientBook Item Tests
+
+    [Fact]
+    public void ItemDefinitions_Create_AncientBook_ReturnsScroll()
+    {
+        var item = ItemDefinitions.Create("ancient_book");
+        Assert.NotNull(item);
+        Assert.Equal("ancient_book", item.ItemId);
+        Assert.Equal("古代の書", item.Name);
+        var scroll = Assert.IsType<Scroll>(item);
+        Assert.Equal(ScrollType.AncientBook, scroll.ScrollType);
+    }
+
+    [Fact]
+    public void AncientBook_Use_Returns_LearnRuneWord_Effect()
+    {
+        var book = ItemDefinitions.Create("ancient_book");
+        Assert.NotNull(book);
+        var scroll = Assert.IsType<Scroll>(book);
+        var player = CreateTestPlayer();
+        var result = scroll.Use(player);
+        Assert.NotNull(result.Effect);
+        Assert.Equal(ItemEffectType.LearnRuneWord, result.Effect.Type);
+    }
+
+    #endregion
+
+    #region SuccessRate Mastery Bonus Tests
+
+    [Fact]
+    public void SuccessRate_HighMastery_GivesBonus()
+    {
+        // 全語の理解度を100にすると成功率にボーナスが付く
+        var player = CreateTestPlayer();
+        foreach (var wordId in player.LearnedWords.Keys.ToList())
+        {
+            while (player.GetWordMastery(wordId) < 100)
+                player.ImproveWordMastery(wordId, 10);
+        }
+
+        var system = new SpellCastingSystem();
+        system.AddWord("brenna", player);
+        system.AddWord("fjandi", player);
+        var preview = system.GetPreview(player);
+
+        Assert.True(preview.IsValid);
+        // 理解度100で各語に-0.05（=+0.05ボーナス）→ 成功率は高い
+        Assert.True(preview.SuccessRate >= 0.95);
+    }
+
+    [Fact]
+    public void SuccessRate_LowMastery_HasPenalty()
+    {
+        // Fighter（初期ルーン語なし）で新しい語を低理解度で詠唱
+        var player = CreateTestPlayer(CharacterClass.Fighter);
+        // 手動で語を追加（初期理解度で追加後、直接辞書を操作して低理解度にする）
+        player.LearnWord("brenna");
+        player.LearnWord("fjandi");
+        // 理解度を10に設定（LearnedWords辞書を直接操作）
+        player.LearnedWords["brenna"] = 10;
+        player.LearnedWords["fjandi"] = 10;
+
+        var system = new SpellCastingSystem();
+        system.AddWord("brenna", player);
+        system.AddWord("fjandi", player);
+        var preview = system.GetPreview(player);
+
+        Assert.True(preview.IsValid);
+        // 理解度10は20未満なのでペナルティ0.20×2語 = 0.40減
+        Assert.True(preview.SuccessRate <= 0.65);
     }
 
     #endregion

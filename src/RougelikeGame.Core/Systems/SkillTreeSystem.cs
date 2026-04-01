@@ -1,4 +1,4 @@
-namespace RougelikeGame.Core.Systems;
+﻿namespace RougelikeGame.Core.Systems;
 
 /// <summary>
 /// スキルノード定義
@@ -521,7 +521,7 @@ public class SkillTreeSystem
             "bg_adventurer_2", "歴戦の直感", "罠回避+15%",
             SkillNodeType.Passive, null, 2, new[] { "bg_adventurer_1" },
             new() { ["TrapEvasion"] = 15 },
-            RequiredBackground: Background.Adventurer, Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Background, TreeX: 0, TreeY: 120));
+            RequiredBackground: Background.Adventurer, Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Background, TreeX: 0, TreeY: 120));
 
         // Soldier（兵士） x=160
         RegisterNode(new SkillNodeDefinition(
@@ -533,7 +533,7 @@ public class SkillTreeSystem
             "bg_soldier_2", "鉄の規律", "防御力+15",
             SkillNodeType.Passive, null, 2, new[] { "bg_soldier_1" },
             new() { ["Defense"] = 15 },
-            RequiredBackground: Background.Soldier, Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Background, TreeX: 160, TreeY: 120));
+            RequiredBackground: Background.Soldier, Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Background, TreeX: 160, TreeY: 120));
 
         // Scholar（学者） x=320
         RegisterNode(new SkillNodeDefinition(
@@ -545,7 +545,7 @@ public class SkillTreeSystem
             "bg_scholar_2", "知恵の泉", "最大MP+25",
             SkillNodeType.Passive, null, 2, new[] { "bg_scholar_1" },
             new() { ["MaxMp"] = 25 },
-            RequiredBackground: Background.Scholar, Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Background, TreeX: 320, TreeY: 120));
+            RequiredBackground: Background.Scholar, Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Background, TreeX: 320, TreeY: 120));
 
         // Merchant（商人） x=480
         RegisterNode(new SkillNodeDefinition(
@@ -557,7 +557,7 @@ public class SkillTreeSystem
             "bg_merchant_2", "値切り", "購入価格-10%",
             SkillNodeType.Passive, null, 2, new[] { "bg_merchant_1" },
             new() { ["BuyDiscount"] = 10 },
-            RequiredBackground: Background.Merchant, Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Background, TreeX: 480, TreeY: 120));
+            RequiredBackground: Background.Merchant, Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Background, TreeX: 480, TreeY: 120));
 
         // Peasant（農民） x=640
         RegisterNode(new SkillNodeDefinition(
@@ -569,7 +569,7 @@ public class SkillTreeSystem
             "bg_peasant_2", "大地の恵み", "HP自然回復+20%",
             SkillNodeType.Passive, null, 2, new[] { "bg_peasant_1" },
             new() { ["HpRegen"] = 20 },
-            RequiredBackground: Background.Peasant, Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Background, TreeX: 640, TreeY: 120));
+            RequiredBackground: Background.Peasant, Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Background, TreeX: 640, TreeY: 120));
 
         // Noble（貴族） x=800
         RegisterNode(new SkillNodeDefinition(
@@ -581,7 +581,7 @@ public class SkillTreeSystem
             "bg_noble_2", "権威の力", "NPC好感度+15%",
             SkillNodeType.Passive, null, 2, new[] { "bg_noble_1" },
             new() { ["NpcFavor"] = 15 },
-            RequiredBackground: Background.Noble, Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Background, TreeX: 800, TreeY: 120));
+            RequiredBackground: Background.Noble, Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Background, TreeX: 800, TreeY: 120));
 
         // Wanderer（流浪者） x=960
         RegisterNode(new SkillNodeDefinition(
@@ -593,7 +593,7 @@ public class SkillTreeSystem
             "bg_wanderer_2", "旅の知恵", "マップ発見率+15%",
             SkillNodeType.Passive, null, 2, new[] { "bg_wanderer_1" },
             new() { ["MapReveal"] = 15 },
-            RequiredBackground: Background.Wanderer, Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Background, TreeX: 960, TreeY: 120));
+            RequiredBackground: Background.Wanderer, Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Background, TreeX: 960, TreeY: 120));
 
         // Criminal（犯罪者） x=1120
         RegisterNode(new SkillNodeDefinition(
@@ -605,7 +605,7 @@ public class SkillTreeSystem
             "bg_criminal_2", "闇の手", "盗み成功率+20%",
             SkillNodeType.Passive, null, 2, new[] { "bg_criminal_1" },
             new() { ["StealRate"] = 20 },
-            RequiredBackground: Background.Criminal, Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Background, TreeX: 1120, TreeY: 120));
+            RequiredBackground: Background.Criminal, Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Background, TreeX: 1120, TreeY: 120));
 
         // Priest（聖職者） x=1280
         RegisterNode(new SkillNodeDefinition(
@@ -617,7 +617,7 @@ public class SkillTreeSystem
             "bg_priest_2", "聖なる加護", "聖属性耐性+20%",
             SkillNodeType.Passive, null, 2, new[] { "bg_priest_1" },
             new() { ["HolyResist"] = 20 },
-            RequiredBackground: Background.Priest, Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Background, TreeX: 1280, TreeY: 120));
+            RequiredBackground: Background.Priest, Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Background, TreeX: 1280, TreeY: 120));
 
         // Penitent（贖罪者） x=1440
         RegisterNode(new SkillNodeDefinition(
@@ -629,7 +629,7 @@ public class SkillTreeSystem
             "bg_penitent_2", "苦行の果て", "HP50%以下で防御力+20%",
             SkillNodeType.Passive, null, 2, new[] { "bg_penitent_1" },
             new() { ["LowHpDefense"] = 20 },
-            RequiredBackground: Background.Penitent, Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Background, TreeX: 1440, TreeY: 120));
+            RequiredBackground: Background.Penitent, Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Background, TreeX: 1440, TreeY: 120));
 
         // ── 武器習熟ノード（6武器種×3ノード） ──
 
@@ -643,7 +643,7 @@ public class SkillTreeSystem
             "weapon_sword_2", "剣術応用", "剣クリティカル+10%",
             SkillNodeType.Passive, null, 2, new[] { "weapon_sword_1" },
             new() { ["SwordCrit"] = 10 },
-            Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Weapon, TreeX: 0, TreeY: 120));
+            Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Weapon, TreeX: 0, TreeY: 120));
         RegisterNode(new SkillNodeDefinition(
             "weapon_sword_3", "剣聖", "剣ダメージ+25%",
             SkillNodeType.Passive, null, 3, new[] { "weapon_sword_2" },
@@ -660,7 +660,7 @@ public class SkillTreeSystem
             "weapon_axe_2", "斧術応用", "斧攻撃速度+10%",
             SkillNodeType.Passive, null, 2, new[] { "weapon_axe_1" },
             new() { ["AxeSpeed"] = 10 },
-            Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Weapon, TreeX: 200, TreeY: 120));
+            Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Weapon, TreeX: 200, TreeY: 120));
         RegisterNode(new SkillNodeDefinition(
             "weapon_axe_3", "豪斧", "斧ダメージ+25%、出血付与+15%",
             SkillNodeType.Passive, null, 3, new[] { "weapon_axe_2" },
@@ -677,7 +677,7 @@ public class SkillTreeSystem
             "weapon_dagger_2", "暗器術", "短剣クリティカル+15%",
             SkillNodeType.Passive, null, 2, new[] { "weapon_dagger_1" },
             new() { ["DaggerCrit"] = 15 },
-            Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Weapon, TreeX: 400, TreeY: 120));
+            Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Weapon, TreeX: 400, TreeY: 120));
         RegisterNode(new SkillNodeDefinition(
             "weapon_dagger_3", "暗殺", "背後攻撃ダメージ+30%",
             SkillNodeType.Passive, null, 3, new[] { "weapon_dagger_2" },
@@ -694,7 +694,7 @@ public class SkillTreeSystem
             "weapon_bow_2", "弓術応用", "弓射程+1",
             SkillNodeType.Passive, null, 2, new[] { "weapon_bow_1" },
             new() { ["BowRange"] = 1 },
-            Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Weapon, TreeX: 600, TreeY: 120));
+            Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Weapon, TreeX: 600, TreeY: 120));
         RegisterNode(new SkillNodeDefinition(
             "weapon_bow_3", "狙撃", "弓クリティカルダメージ+25%",
             SkillNodeType.Passive, null, 3, new[] { "weapon_bow_2" },
@@ -711,7 +711,7 @@ public class SkillTreeSystem
             "weapon_staff_2", "杖術応用", "杖装備時MP-5%",
             SkillNodeType.Passive, null, 2, new[] { "weapon_staff_1" },
             new() { ["StaffMpCost"] = 5 },
-            Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Weapon, TreeX: 800, TreeY: 120));
+            Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Weapon, TreeX: 800, TreeY: 120));
         RegisterNode(new SkillNodeDefinition(
             "weapon_staff_3", "魔杖", "杖装備時全魔法+20%",
             SkillNodeType.Passive, null, 3, new[] { "weapon_staff_2" },
@@ -728,7 +728,7 @@ public class SkillTreeSystem
             "weapon_shield_2", "盾術応用", "盾ブロック率+10%",
             SkillNodeType.Passive, null, 2, new[] { "weapon_shield_1" },
             new() { ["ShieldBlock"] = 10 },
-            Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Weapon, TreeX: 1000, TreeY: 120));
+            Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Weapon, TreeX: 1000, TreeY: 120));
         RegisterNode(new SkillNodeDefinition(
             "weapon_shield_3", "不動の盾", "盾装備時被ダメ-15%",
             SkillNodeType.Passive, null, 3, new[] { "weapon_shield_2" },
@@ -747,7 +747,7 @@ public class SkillTreeSystem
             "magic_fire_2", "火炎術応用", "火属性範囲+10%",
             SkillNodeType.Passive, null, 2, new[] { "magic_fire_1" },
             new() { ["FireArea"] = 10 },
-            Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Magic, TreeX: 0, TreeY: 120));
+            Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Magic, TreeX: 0, TreeY: 120));
         RegisterNode(new SkillNodeDefinition(
             "magic_fire_3", "火炎の極致", "火属性ダメージ+25%、燃焼付与+15%",
             SkillNodeType.Passive, null, 3, new[] { "magic_fire_2" },
@@ -764,7 +764,7 @@ public class SkillTreeSystem
             "magic_ice_2", "氷結術応用", "氷属性の鈍化効果+10%",
             SkillNodeType.Passive, null, 2, new[] { "magic_ice_1" },
             new() { ["IceSlow"] = 10 },
-            Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Magic, TreeX: 240, TreeY: 120));
+            Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Magic, TreeX: 240, TreeY: 120));
         RegisterNode(new SkillNodeDefinition(
             "magic_ice_3", "氷結の極致", "氷属性ダメージ+25%、凍結付与+15%",
             SkillNodeType.Passive, null, 3, new[] { "magic_ice_2" },
@@ -781,7 +781,7 @@ public class SkillTreeSystem
             "magic_thunder_2", "雷撃術応用", "雷属性クリティカル+10%",
             SkillNodeType.Passive, null, 2, new[] { "magic_thunder_1" },
             new() { ["ThunderCrit"] = 10 },
-            Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Magic, TreeX: 480, TreeY: 120));
+            Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Magic, TreeX: 480, TreeY: 120));
         RegisterNode(new SkillNodeDefinition(
             "magic_thunder_3", "雷撃の極致", "雷属性ダメージ+25%、麻痺付与+15%",
             SkillNodeType.Passive, null, 3, new[] { "magic_thunder_2" },
@@ -798,7 +798,7 @@ public class SkillTreeSystem
             "magic_holy_2", "聖術応用", "聖属性ダメージ+10%",
             SkillNodeType.Passive, null, 2, new[] { "magic_holy_1" },
             new() { ["HolyDamage"] = 10 },
-            Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Magic, TreeX: 720, TreeY: 120));
+            Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Magic, TreeX: 720, TreeY: 120));
         RegisterNode(new SkillNodeDefinition(
             "magic_holy_3", "聖術の極致", "回復+25%、アンデッド特攻+20%",
             SkillNodeType.Passive, null, 3, new[] { "magic_holy_2" },
@@ -815,12 +815,323 @@ public class SkillTreeSystem
             "magic_dark_2", "暗黒術応用", "闇属性デバフ+10%",
             SkillNodeType.Passive, null, 2, new[] { "magic_dark_1" },
             new() { ["DarkDebuff"] = 10 },
-            Tier: 2, RequiredLevel: 1, Tab: SkillTreeTab.Magic, TreeX: 960, TreeY: 120));
+            Tier: 2, RequiredLevel: 5, Tab: SkillTreeTab.Magic, TreeX: 960, TreeY: 120));
         RegisterNode(new SkillNodeDefinition(
             "magic_dark_3", "暗黒の極致", "闇ダメージ+25%、呪い付与+15%",
             SkillNodeType.Passive, null, 3, new[] { "magic_dark_2" },
             new() { ["DarkDamage"] = 25, ["CurseChance"] = 15 },
             Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Magic, TreeX: 960, TreeY: 240));
+
+        // ── アクティブスキル（武器タブ） ──
+
+        // 剣系アクティブ: 十字斬り
+        RegisterNode(new SkillNodeDefinition(
+            "active_sword_cross_slash", "十字斬り", "前方の敵に攻撃力150%の二連撃を行う（MP8消費）",
+            SkillNodeType.Active, null, 3, new[] { "weapon_sword_3" },
+            new() { ["SwordDamage"] = 50 },
+            Tier: 4, RequiredLevel: 12, Tab: SkillTreeTab.Weapon, TreeX: 0, TreeY: 360));
+
+        // 斧系アクティブ: 大地割り
+        RegisterNode(new SkillNodeDefinition(
+            "active_axe_ground_slam", "大地割り", "周囲3マスの敵全てに攻撃力120%ダメージ（MP10消費）",
+            SkillNodeType.Active, null, 3, new[] { "weapon_axe_3" },
+            new() { ["AxeDamage"] = 20 },
+            Tier: 4, RequiredLevel: 12, Tab: SkillTreeTab.Weapon, TreeX: 192, TreeY: 360));
+
+        // 短剣系アクティブ: 影縫い
+        RegisterNode(new SkillNodeDefinition(
+            "active_dagger_shadow_stitch", "影縫い", "対象を2ターン行動不能にする暗器（MP6消費）",
+            SkillNodeType.Active, null, 3, new[] { "weapon_dagger_3" },
+            new() { ["StunChance"] = 100 },
+            Tier: 4, RequiredLevel: 12, Tab: SkillTreeTab.Weapon, TreeX: 384, TreeY: 360));
+
+        // 弓系アクティブ: 貫通矢
+        RegisterNode(new SkillNodeDefinition(
+            "active_bow_piercing_shot", "貫通矢", "直線上の敵全てに攻撃力130%ダメージ（MP8消費）",
+            SkillNodeType.Active, null, 3, new[] { "weapon_bow_3" },
+            new() { ["BowDamage"] = 30 },
+            Tier: 4, RequiredLevel: 12, Tab: SkillTreeTab.Weapon, TreeX: 576, TreeY: 360));
+
+        // 杖系アクティブ: マナバースト
+        RegisterNode(new SkillNodeDefinition(
+            "active_staff_mana_burst", "マナバースト", "MPを20消費し周囲に魔法ダメージ200%の爆発",
+            SkillNodeType.Active, null, 3, new[] { "weapon_staff_3" },
+            new() { ["MagicDamage"] = 100 },
+            Tier: 4, RequiredLevel: 12, Tab: SkillTreeTab.Weapon, TreeX: 768, TreeY: 360));
+
+        // 盾系アクティブ: シールドバッシュ
+        RegisterNode(new SkillNodeDefinition(
+            "active_shield_bash", "シールドバッシュ", "盾で殴り攻撃力80%ダメージ＋1ターンスタン（MP5消費）",
+            SkillNodeType.Active, null, 3, new[] { "weapon_shield_3" },
+            new() { ["ShieldDamage"] = 80, ["StunChance"] = 100 },
+            Tier: 4, RequiredLevel: 12, Tab: SkillTreeTab.Weapon, TreeX: 960, TreeY: 360));
+
+        // ── アクティブスキル（魔法タブ） ── 補助系統のみ（魔法は詠唱で発動するため）
+
+        // 瞑想: MP回復アクティブスキル
+        RegisterNode(new SkillNodeDefinition(
+            "active_magic_meditation", "瞑想", "その場で精神を集中しMPを最大MPの15%回復する（3ターン詠唱）",
+            SkillNodeType.Active, null, 2, new[] { "shared_mp_2" },
+            new() { ["MpRegen"] = 15 },
+            Tier: 3, RequiredLevel: 8, Tab: SkillTreeTab.Magic, TreeX: 0, TreeY: 360));
+
+        // 深い瞑想: 上位MP回復
+        RegisterNode(new SkillNodeDefinition(
+            "active_magic_deep_meditation", "深い瞑想", "深い集中によりMPを最大MPの30%回復する（5ターン詠唱）",
+            SkillNodeType.Active, null, 3, new[] { "active_magic_meditation" },
+            new() { ["MpRegen"] = 30 },
+            Tier: 4, RequiredLevel: 15, Tab: SkillTreeTab.Magic, TreeX: 0, TreeY: 480));
+
+        // 精神集中: 詠唱速度向上
+        RegisterNode(new SkillNodeDefinition(
+            "active_magic_focus", "精神集中", "3ターンの間、魔法の詠唱速度を50%短縮する（MP8消費）",
+            SkillNodeType.Active, null, 2, new[] { "shared_int_1" },
+            new() { ["CastSpeed"] = 50 },
+            Tier: 3, RequiredLevel: 8, Tab: SkillTreeTab.Magic, TreeX: 240, TreeY: 360));
+
+        // 魔力障壁: 防御補助
+        RegisterNode(new SkillNodeDefinition(
+            "active_magic_barrier", "魔力障壁", "MPを10消費し5ターンの間魔法防御+30%のバリアを展開",
+            SkillNodeType.Active, null, 3, new[] { "active_magic_focus" },
+            new() { ["MagicDefense"] = 30 },
+            Tier: 4, RequiredLevel: 12, Tab: SkillTreeTab.Magic, TreeX: 240, TreeY: 480));
+
+        // 魔力譲渡: 味方MP回復
+        RegisterNode(new SkillNodeDefinition(
+            "active_magic_transfer", "魔力譲渡", "自身のMPを20消費し味方1体のMPを15回復する",
+            SkillNodeType.Active, null, 2, new[] { "shared_mp_1" },
+            new() { ["MpTransfer"] = 15 },
+            Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Magic, TreeX: 480, TreeY: 360));
+
+        // 魔力感知: 探索補助
+        RegisterNode(new SkillNodeDefinition(
+            "active_magic_sense", "魔力感知", "MP5消費で周囲のマジックアイテムや隠し通路を感知する",
+            SkillNodeType.Active, null, 2, new[] { "shared_int_1" },
+            new() { ["DetectMagic"] = 1 },
+            Tier: 3, RequiredLevel: 8, Tab: SkillTreeTab.Magic, TreeX: 720, TreeY: 360));
+
+        // マナシールド: HP防御をMP肩代わり
+        RegisterNode(new SkillNodeDefinition(
+            "active_magic_mana_shield", "マナシールド", "10ターンの間、受けるダメージの30%をMPで肩代わりする（MP10消費）",
+            SkillNodeType.Active, null, 3, new[] { "active_magic_focus" },
+            new() { ["DamageToMp"] = 30 },
+            Tier: 4, RequiredLevel: 15, Tab: SkillTreeTab.Magic, TreeX: 480, TreeY: 480));
+
+        // ── アクティブスキル（種族タブ） ──
+
+        // Human: 万能適応
+        RegisterNode(new SkillNodeDefinition(
+            "active_race_human_versatile", "万能適応", "5ターンの間、全ステータス+3（MP8消費）",
+            SkillNodeType.Active, null, 2, new[] { "race_human_quick_learner" },
+            new() { ["AllStats"] = 3 },
+            RequiredRace: Race.Human, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Race, TreeX: 0, TreeY: 240));
+
+        // Elf: 精霊の加護
+        RegisterNode(new SkillNodeDefinition(
+            "active_race_elf_spirit_grace", "精霊の加護", "5ターンの間、魔法ダメージ+20%・MP自然回復2倍（MP10消費）",
+            SkillNodeType.Active, null, 2, new[] { "race_elf_forest_stride" },
+            new() { ["MagicDamage"] = 20, ["MpRegen"] = 100 },
+            RequiredRace: Race.Elf, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Race, TreeX: 160, TreeY: 240));
+
+        // Dwarf: 岩石防壁
+        RegisterNode(new SkillNodeDefinition(
+            "active_race_dwarf_stone_wall", "岩石防壁", "3ターンの間、物理防御+50%・移動不可（MP6消費）",
+            SkillNodeType.Active, null, 2, new[] { "race_dwarf_forge_mastery" },
+            new() { ["Defense"] = 50 },
+            RequiredRace: Race.Dwarf, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Race, TreeX: 320, TreeY: 240));
+
+        // Orc: 戦嵐
+        RegisterNode(new SkillNodeDefinition(
+            "active_race_orc_war_frenzy", "戦嵐", "3ターンの間、攻撃力+30%・被ダメージ+15%（SP20消費）",
+            SkillNodeType.Active, null, 2, new[] { "race_orc_war_cry" },
+            new() { ["PhysicalDamage"] = 30 },
+            RequiredRace: Race.Orc, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Race, TreeX: 480, TreeY: 240));
+
+        // Beastfolk: 野生解放
+        RegisterNode(new SkillNodeDefinition(
+            "active_race_beast_wild_release", "野生解放", "5ターンの間、AGI+5・回避率+15%（SP15消費）",
+            SkillNodeType.Active, null, 2, new[] { "race_beast_feral_instinct" },
+            new() { ["AGI"] = 5, ["Evasion"] = 15 },
+            RequiredRace: Race.Beastfolk, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Race, TreeX: 640, TreeY: 240));
+
+        // Halfling: 幸運の一撃
+        RegisterNode(new SkillNodeDefinition(
+            "active_race_halfling_lucky_strike", "幸運の一撃", "次の攻撃のクリティカル率を100%にする（MP5消費）",
+            SkillNodeType.Active, null, 2, new[] { "race_halfling_nimble" },
+            new() { ["CritRate"] = 100 },
+            RequiredRace: Race.Halfling, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Race, TreeX: 800, TreeY: 240));
+
+        // Undead: 腐食の抱擁
+        RegisterNode(new SkillNodeDefinition(
+            "active_race_undead_rot_embrace", "腐食の抱擁", "隣接する敵に毒+出血を付与（MP8消費）",
+            SkillNodeType.Active, null, 2, new[] { "race_undead_drain_touch" },
+            new() { ["PoisonChance"] = 100, ["BleedChance"] = 100 },
+            RequiredRace: Race.Undead, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Race, TreeX: 960, TreeY: 240));
+
+        // Demon: 魔炎放射
+        RegisterNode(new SkillNodeDefinition(
+            "active_race_demon_hellblaze", "魔炎放射", "前方3マスに火+闇属性の複合ダメージ（MP12消費）",
+            SkillNodeType.Active, null, 2, new[] { "race_demon_dark_aura" },
+            new() { ["FireDamage"] = 30, ["DarkDamage"] = 30 },
+            RequiredRace: Race.Demon, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Race, TreeX: 1120, TreeY: 240));
+
+        // FallenAngel: 黄昏の裁き
+        RegisterNode(new SkillNodeDefinition(
+            "active_race_fallen_judgment", "黄昏の裁き", "聖+闇属性の複合攻撃で敵単体に大ダメージ（MP15消費）",
+            SkillNodeType.Active, null, 3, new[] { "race_fallen_divine_wrath" },
+            new() { ["HolyDamage"] = 40, ["DarkDamage"] = 40 },
+            RequiredRace: Race.FallenAngel, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Race, TreeX: 1280, TreeY: 240));
+
+        // Slime: 分裂
+        RegisterNode(new SkillNodeDefinition(
+            "active_race_slime_split", "分裂", "HPを30%消費してスライム分身を1体召喚する",
+            SkillNodeType.Active, null, 2, new[] { "race_slime_absorb" },
+            new() { ["SummonPower"] = 30 },
+            RequiredRace: Race.Slime, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Race, TreeX: 1440, TreeY: 240));
+
+        // ── アクティブスキル（職業タブ） ──
+
+        // Fighter: 渾身の一撃
+        RegisterNode(new SkillNodeDefinition(
+            "active_class_fighter_full_swing", "渾身の一撃", "SP30消費で攻撃力250%の単体攻撃",
+            SkillNodeType.Active, CharacterClass.Fighter, 3, new[] { "fighter_berserker" },
+            new() { ["PhysicalDamage"] = 150 },
+            Tier: 4, RequiredLevel: 15, Tab: SkillTreeTab.Class, TreeX: 30, TreeY: 360));
+
+        // Knight: 聖なる盾撃
+        RegisterNode(new SkillNodeDefinition(
+            "active_class_knight_holy_bash", "聖なる盾撃", "盾で敵を打ち据え2ターンスタン+聖ダメージ（MP10消費）",
+            SkillNodeType.Active, CharacterClass.Knight, 3, new[] { "knight_fortress" },
+            new() { ["HolyDamage"] = 50, ["StunChance"] = 100 },
+            Tier: 4, RequiredLevel: 15, Tab: SkillTreeTab.Class, TreeX: 190, TreeY: 360));
+
+        // Thief: 影分身
+        RegisterNode(new SkillNodeDefinition(
+            "active_class_thief_shadow_clone", "影分身", "3ターンの間、回避率+40%・次の攻撃が必ず背面攻撃に（SP20消費）",
+            SkillNodeType.Active, CharacterClass.Thief, 3, new[] { "thief_treasure_hunter" },
+            new() { ["Evasion"] = 40, ["BackstabChance"] = 100 },
+            Tier: 4, RequiredLevel: 15, Tab: SkillTreeTab.Class, TreeX: 350, TreeY: 360));
+
+        // Ranger: 鷹の急降下
+        RegisterNode(new SkillNodeDefinition(
+            "active_class_ranger_hawk_dive", "鷹の急降下", "遠距離から飛び込み攻撃力200%+出血付与（SP25消費）",
+            SkillNodeType.Active, CharacterClass.Ranger, 3, new[] { "ranger_swift_shot" },
+            new() { ["PhysicalDamage"] = 100, ["BleedChance"] = 50 },
+            Tier: 4, RequiredLevel: 15, Tab: SkillTreeTab.Class, TreeX: 510, TreeY: 360));
+
+        // Mage: 魔力暴走
+        RegisterNode(new SkillNodeDefinition(
+            "active_class_mage_arcane_surge", "魔力暴走", "5ターンの間、全魔法ダメージ+50%・MP消費+30%（MP15消費）",
+            SkillNodeType.Active, CharacterClass.Mage, 3, new[] { "mage_elemental_mastery" },
+            new() { ["MagicDamage"] = 50 },
+            Tier: 4, RequiredLevel: 15, Tab: SkillTreeTab.Class, TreeX: 670, TreeY: 360));
+
+        // Cleric: 聖域展開
+        RegisterNode(new SkillNodeDefinition(
+            "active_class_cleric_sanctuary", "聖域展開", "周囲3マスに聖域を展開し味方全体をHP15%回復+状態異常解除（MP20消費）",
+            SkillNodeType.Active, CharacterClass.Cleric, 3, new[] { "cleric_purify" },
+            new() { ["HealPercent"] = 15, ["StatusCureRate"] = 100 },
+            Tier: 4, RequiredLevel: 15, Tab: SkillTreeTab.Class, TreeX: 830, TreeY: 360));
+
+        // Monk: 練気発勁
+        RegisterNode(new SkillNodeDefinition(
+            "active_class_monk_qi_blast", "練気発勁", "内なる気を解放し前方の敵を吹き飛ばす（SP25消費）",
+            SkillNodeType.Active, CharacterClass.Monk, 3, new[] { "monk_evasion_mastery" },
+            new() { ["UnarmedDamage"] = 80, ["Knockback"] = 3 },
+            Tier: 4, RequiredLevel: 15, Tab: SkillTreeTab.Class, TreeX: 990, TreeY: 360));
+
+        // Bard: 英雄の讃歌
+        RegisterNode(new SkillNodeDefinition(
+            "active_class_bard_hero_anthem", "英雄の讃歌", "5ターンの間、味方全体の全ステータス+10%（MP12消費）",
+            SkillNodeType.Active, CharacterClass.Bard, 3, new[] { "bard_lullaby" },
+            new() { ["PartyAllStats"] = 10 },
+            Tier: 4, RequiredLevel: 15, Tab: SkillTreeTab.Class, TreeX: 1150, TreeY: 360));
+
+        // Alchemist: 秘薬調合
+        RegisterNode(new SkillNodeDefinition(
+            "active_class_alchemist_elixir", "秘薬調合", "素材を消費せず即座に高効果ポーションを生成・使用（MP10消費）",
+            SkillNodeType.Active, CharacterClass.Alchemist, 3, new[] { "alchemist_volatile_mix" },
+            new() { ["PotionPower"] = 50 },
+            Tier: 4, RequiredLevel: 15, Tab: SkillTreeTab.Class, TreeX: 1310, TreeY: 360));
+
+        // Necromancer: 死霊大召喚
+        RegisterNode(new SkillNodeDefinition(
+            "active_class_necro_mass_summon", "死霊大召喚", "アンデッド3体を同時に召喚する（MP25消費）",
+            SkillNodeType.Active, CharacterClass.Necromancer, 3, new[] { "necro_undead_mastery" },
+            new() { ["SummonPower"] = 60 },
+            Tier: 4, RequiredLevel: 15, Tab: SkillTreeTab.Class, TreeX: 1470, TreeY: 360));
+
+        // ── アクティブスキル（素性タブ） ──
+
+        // Adventurer: サバイバル術
+        RegisterNode(new SkillNodeDefinition(
+            "active_bg_adventurer_survive", "サバイバル術", "HP/MP/SPを各10%回復する（クールダウン50ターン）",
+            SkillNodeType.Active, null, 2, new[] { "bg_adventurer_2" },
+            new() { ["HealPercent"] = 10 },
+            RequiredBackground: Background.Adventurer, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Background, TreeX: 0, TreeY: 240));
+
+        // Soldier: 鼓舞号令
+        RegisterNode(new SkillNodeDefinition(
+            "active_bg_soldier_rally", "鼓舞号令", "5ターンの間、自身と味方の攻撃力+15%（SP15消費）",
+            SkillNodeType.Active, null, 2, new[] { "bg_soldier_2" },
+            new() { ["PartyAttack"] = 15 },
+            RequiredBackground: Background.Soldier, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Background, TreeX: 160, TreeY: 240));
+
+        // Scholar: 弱点看破
+        RegisterNode(new SkillNodeDefinition(
+            "active_bg_scholar_analyze", "弱点看破", "敵1体の弱点を看破し3ターン被ダメージ+25%にする（MP8消費）",
+            SkillNodeType.Active, null, 2, new[] { "bg_scholar_2" },
+            new() { ["EnemyWeakness"] = 25 },
+            RequiredBackground: Background.Scholar, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Background, TreeX: 320, TreeY: 240));
+
+        // Merchant: 緊急仕入れ
+        RegisterNode(new SkillNodeDefinition(
+            "active_bg_merchant_emergency_buy", "緊急仕入れ", "ゴールドを消費してランダムな回復アイテムを即座に入手",
+            SkillNodeType.Active, null, 2, new[] { "bg_merchant_2" },
+            new() { ["ItemFind"] = 1 },
+            RequiredBackground: Background.Merchant, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Background, TreeX: 480, TreeY: 240));
+
+        // Peasant: 大地の息吹
+        RegisterNode(new SkillNodeDefinition(
+            "active_bg_peasant_earth_breath", "大地の息吹", "10ターンの間、HP自然回復速度2倍（MP5消費）",
+            SkillNodeType.Active, null, 2, new[] { "bg_peasant_2" },
+            new() { ["HpRegen"] = 100 },
+            RequiredBackground: Background.Peasant, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Background, TreeX: 640, TreeY: 240));
+
+        // Noble: 権威の宣言
+        RegisterNode(new SkillNodeDefinition(
+            "active_bg_noble_authority", "権威の宣言", "人間型の敵1体を3ターンの間行動不能にする（MP10消費）",
+            SkillNodeType.Active, null, 2, new[] { "bg_noble_2" },
+            new() { ["StunChance"] = 100 },
+            RequiredBackground: Background.Noble, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Background, TreeX: 800, TreeY: 240));
+
+        // Wanderer: 霧隠れ
+        RegisterNode(new SkillNodeDefinition(
+            "active_bg_wanderer_mist_hide", "霧隠れ", "5ターンの間、敵から視認されなくなる（SP15消費）",
+            SkillNodeType.Active, null, 2, new[] { "bg_wanderer_2" },
+            new() { ["Stealth"] = 100 },
+            RequiredBackground: Background.Wanderer, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Background, TreeX: 960, TreeY: 240));
+
+        // Criminal: 急所突き
+        RegisterNode(new SkillNodeDefinition(
+            "active_bg_criminal_vital_strike", "急所突き", "敵の急所を突き通常の200%ダメージ+出血（SP20消費）",
+            SkillNodeType.Active, null, 2, new[] { "bg_criminal_2" },
+            new() { ["PhysicalDamage"] = 100, ["BleedChance"] = 80 },
+            RequiredBackground: Background.Criminal, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Background, TreeX: 1120, TreeY: 240));
+
+        // Priest: 神聖祈祷
+        RegisterNode(new SkillNodeDefinition(
+            "active_bg_priest_holy_prayer", "神聖祈祷", "味方全体のHP20%回復+状態異常1つ解除（MP15消費）",
+            SkillNodeType.Active, null, 2, new[] { "bg_priest_2" },
+            new() { ["HealPercent"] = 20, ["StatusCureRate"] = 1 },
+            RequiredBackground: Background.Priest, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Background, TreeX: 1280, TreeY: 240));
+
+        // Penitent: 贖罪の覚悟
+        RegisterNode(new SkillNodeDefinition(
+            "active_bg_penitent_resolve", "贖罪の覚悟", "HPを20%消費し10ターンの間攻撃力+40%・防御力+20%",
+            SkillNodeType.Active, null, 2, new[] { "bg_penitent_2" },
+            new() { ["PhysicalDamage"] = 40, ["Defense"] = 20 },
+            RequiredBackground: Background.Penitent, Tier: 3, RequiredLevel: 10, Tab: SkillTreeTab.Background, TreeX: 1440, TreeY: 240));
     }
 
 
@@ -872,5 +1183,57 @@ public class SkillTreeSystem
             return false;
         _equippedSkillSlots.RemoveAt(slotIndex);
         return true;
+    }
+
+    // ── 宗教スキル連携 ──
+
+    /// <summary>宗教スキルをスキルツリーに登録し、自動的にアンロックする</summary>
+    public void RegisterReligionSkills(ReligionId religionId)
+    {
+        var bonuses = ReligionSkillSystem.GetGrantedSkillBonuses(religionId, FaithRank.Saint);
+        var religion = ReligionDatabase.GetById(religionId);
+        if (religion == null) return;
+
+        foreach (var bonus in bonuses)
+        {
+            if (!_allNodes.ContainsKey(bonus.SkillId))
+            {
+                RegisterNode(new SkillNodeDefinition(
+                    bonus.SkillId,
+                    bonus.SkillName,
+                    bonus.Description,
+                    SkillNodeType.Active,
+                    null,
+                    0,
+                    Array.Empty<string>(),
+                    new Dictionary<string, int>(),
+                    Tab: SkillTreeTab.Magic,
+                    Tier: 1,
+                    RequiredLevel: 1,
+                    TreeX: 0,
+                    TreeY: 0
+                ));
+            }
+
+            // 入信時に付与されたスキルのみアンロック
+            if (religion.GrantedSkills.Contains(bonus.SkillId))
+            {
+                _unlockedNodes.Add(bonus.SkillId);
+            }
+        }
+    }
+
+    /// <summary>宗教スキルをスキルツリーからアンロック解除する（脱退時）</summary>
+    public void RemoveReligionSkills(ReligionId religionId)
+    {
+        var religion = ReligionDatabase.GetById(religionId);
+        if (religion == null) return;
+
+        foreach (var skillId in religion.GrantedSkills)
+        {
+            _unlockedNodes.Remove(skillId);
+            _equippedSkillSlots.Remove(skillId);
+            _allNodes.Remove(skillId);
+        }
     }
 }

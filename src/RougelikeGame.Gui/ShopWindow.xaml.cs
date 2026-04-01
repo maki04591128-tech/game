@@ -61,7 +61,6 @@ public partial class ShopWindow : Window
     {
         ShopGridCanvas.Children.Clear();
         _shopCells.Clear();
-        _selectedShopIndex = -1;
 
         DrawGridLines(ShopGridCanvas, ShopGridWidth, ShopGridHeight);
         PlaceShopItemsOnGrid();
@@ -179,7 +178,6 @@ public partial class ShopWindow : Window
     {
         PlayerGridCanvas.Children.Clear();
         _playerCells.Clear();
-        _selectedPlayerIndex = -1;
 
         DrawGridLines(PlayerGridCanvas, PlayerGridWidth, PlayerGridHeight);
         PlacePlayerItemsOnGrid();
@@ -306,6 +304,18 @@ public partial class ShopWindow : Window
 
         if (clickedCell != null)
         {
+            // Ctrl+Click で即購入
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                ExecuteBuy(clickedCell);
+                return;
+            }
+
+            // D&D開始
+            _dragSource = DragSourceType.Shop;
+            _dragShopCell = clickedCell;
+            _dragStartPoint = pos;
+
             _selectedShopIndex = clickedCell.Index;
             _selectedPlayerIndex = -1;
             BuyButton.IsEnabled = true;
@@ -334,6 +344,18 @@ public partial class ShopWindow : Window
 
         if (clickedCell != null)
         {
+            // Ctrl+Click で即売却
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+            {
+                ExecuteSell(clickedCell);
+                return;
+            }
+
+            // D&D開始
+            _dragSource = DragSourceType.Player;
+            _dragPlayerCell = clickedCell;
+            _dragStartPoint = pos;
+
             _selectedPlayerIndex = clickedCell.Index;
             _selectedShopIndex = -1;
             SellButton.IsEnabled = true;
@@ -348,13 +370,192 @@ public partial class ShopWindow : Window
 
     #endregion
 
+    #region Drag & Drop
+
+    private enum DragSourceType { None, Shop, Player }
+    private DragSourceType _dragSource = DragSourceType.None;
+    private ShopGridCellInfo? _dragShopCell;
+    private PlayerGridCellInfo? _dragPlayerCell;
+    private Point _dragStartPoint;
+    private const double DragThreshold = 10;
+    private bool _isDragging;
+    private Rectangle? _dragGhost;
+    private TextBlock? _dragGhostText;
+
+    private void ShopGridCanvas_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_dragSource != DragSourceType.Shop || _dragShopCell == null) return;
+        if (e.LeftButton != MouseButtonState.Pressed) { CleanupDrag(); return; }
+
+        var pos = e.GetPosition(ShopGridCanvas);
+        if (!_isDragging)
+        {
+            if (Math.Abs(pos.X - _dragStartPoint.X) + Math.Abs(pos.Y - _dragStartPoint.Y) > DragThreshold)
+            {
+                _isDragging = true;
+                ShopGridCanvas.CaptureMouse();
+                CreateShopDragGhost(_dragShopCell, e.GetPosition(DragOverlayCanvas));
+            }
+        }
+    }
+
+    private void PlayerGridCanvas_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_dragSource != DragSourceType.Player || _dragPlayerCell == null) return;
+        if (e.LeftButton != MouseButtonState.Pressed) { CleanupDrag(); return; }
+
+        var pos = e.GetPosition(PlayerGridCanvas);
+        if (!_isDragging)
+        {
+            if (Math.Abs(pos.X - _dragStartPoint.X) + Math.Abs(pos.Y - _dragStartPoint.Y) > DragThreshold)
+            {
+                _isDragging = true;
+                PlayerGridCanvas.CaptureMouse();
+                CreatePlayerDragGhost(_dragPlayerCell, e.GetPosition(DragOverlayCanvas));
+            }
+        }
+    }
+
+    private void Window_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_isDragging) return;
+        if (e.LeftButton != MouseButtonState.Pressed) { CleanupDrag(); return; }
+        UpdateDragGhost(e.GetPosition(DragOverlayCanvas));
+    }
+
+    private void Window_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isDragging) { CleanupDrag(); return; }
+
+        // ドロップ先判定: マウスがどのキャンバス上にあるか
+        var shopPos = e.GetPosition(ShopGridCanvas);
+        var playerPos = e.GetPosition(PlayerGridCanvas);
+
+        bool overShop = shopPos.X >= 0 && shopPos.Y >= 0 &&
+                        shopPos.X <= ShopGridWidth * CellSize && shopPos.Y <= ShopGridHeight * CellSize;
+        bool overPlayer = playerPos.X >= 0 && playerPos.Y >= 0 &&
+                          playerPos.X <= PlayerGridWidth * CellSize && playerPos.Y <= PlayerGridHeight * CellSize;
+
+        if (_dragSource == DragSourceType.Shop && _dragShopCell != null && overPlayer)
+        {
+            ExecuteBuy(_dragShopCell);
+        }
+        else if (_dragSource == DragSourceType.Player && _dragPlayerCell != null && overShop)
+        {
+            ExecuteSell(_dragPlayerCell);
+        }
+
+        CleanupDrag();
+    }
+
+    private void CreateShopDragGhost(ShopGridCellInfo cell, Point pos)
+    {
+        var bgColor = GetShopItemColor(cell.ShopItem);
+        _dragGhost = new Rectangle
+        {
+            Width = cell.Width * CellSize - 2,
+            Height = cell.Height * CellSize - 2,
+            Fill = new SolidColorBrush(bgColor) { Opacity = 0.7 },
+            Stroke = new SolidColorBrush(Color.FromRgb(0xff, 0xd9, 0x3d)),
+            StrokeThickness = 2,
+            RadiusX = 3,
+            RadiusY = 3,
+            IsHitTestVisible = false,
+            Opacity = 0.8
+        };
+        Panel.SetZIndex(_dragGhost, 100);
+        DragOverlayCanvas.Children.Add(_dragGhost);
+
+        _dragGhostText = new TextBlock
+        {
+            Text = cell.ShopItem.Name.Length > 6 ? cell.ShopItem.Name[..5] + "…" : cell.ShopItem.Name,
+            Foreground = Brushes.White,
+            FontSize = 11,
+            FontWeight = FontWeights.Bold,
+            IsHitTestVisible = false
+        };
+        Panel.SetZIndex(_dragGhostText, 101);
+        DragOverlayCanvas.Children.Add(_dragGhostText);
+
+        UpdateDragGhost(pos);
+    }
+
+    private void CreatePlayerDragGhost(PlayerGridCellInfo cell, Point pos)
+    {
+        var bgColor = GetRarityColor(cell.Item.Rarity);
+        _dragGhost = new Rectangle
+        {
+            Width = cell.Width * CellSize - 2,
+            Height = cell.Height * CellSize - 2,
+            Fill = new SolidColorBrush(bgColor) { Opacity = 0.7 },
+            Stroke = new SolidColorBrush(Color.FromRgb(0xff, 0xd9, 0x3d)),
+            StrokeThickness = 2,
+            RadiusX = 3,
+            RadiusY = 3,
+            IsHitTestVisible = false,
+            Opacity = 0.8
+        };
+        Panel.SetZIndex(_dragGhost, 100);
+        DragOverlayCanvas.Children.Add(_dragGhost);
+
+        _dragGhostText = new TextBlock
+        {
+            Text = cell.Item.DisplayChar.ToString(),
+            Foreground = Brushes.White,
+            FontSize = 16,
+            FontWeight = FontWeights.Bold,
+            IsHitTestVisible = false
+        };
+        Panel.SetZIndex(_dragGhostText, 101);
+        DragOverlayCanvas.Children.Add(_dragGhostText);
+
+        UpdateDragGhost(pos);
+    }
+
+    private void UpdateDragGhost(Point pos)
+    {
+        if (_dragGhost == null) return;
+
+        double ghostW = _dragGhost.Width;
+        double ghostH = _dragGhost.Height;
+        double left = pos.X - (ghostW / 2.0);
+        double top = pos.Y - (ghostH / 2.0);
+        Canvas.SetLeft(_dragGhost, left);
+        Canvas.SetTop(_dragGhost, top);
+
+        if (_dragGhostText != null)
+        {
+            Canvas.SetLeft(_dragGhostText, left + 4);
+            Canvas.SetTop(_dragGhostText, top + 2);
+        }
+    }
+
+    private void CleanupDrag()
+    {
+        if (_dragGhost != null)
+        {
+            DragOverlayCanvas.Children.Remove(_dragGhost);
+            _dragGhost = null;
+        }
+        if (_dragGhostText != null)
+        {
+            DragOverlayCanvas.Children.Remove(_dragGhostText);
+            _dragGhostText = null;
+        }
+        _isDragging = false;
+        _dragSource = DragSourceType.None;
+        _dragShopCell = null;
+        _dragPlayerCell = null;
+        ShopGridCanvas.ReleaseMouseCapture();
+        PlayerGridCanvas.ReleaseMouseCapture();
+    }
+
+    #endregion
+
     #region Buy/Sell Actions
 
-    private void BuyButton_Click(object sender, RoutedEventArgs e)
+    private void ExecuteBuy(ShopGridCellInfo cell)
     {
-        var cell = _shopCells.FirstOrDefault(c => c.Index == _selectedShopIndex);
-        if (cell == null) return;
-
         bool success = _controller.TryBuyItem(_shopType, cell.Index);
         if (success)
         {
@@ -364,13 +565,14 @@ public partial class ShopWindow : Window
             RenderBothGrids();
             ItemInfoText.Text = "購入しました";
         }
+        else
+        {
+            ItemInfoText.Text = "購入できません（所持金不足またはインベントリ容量不足）";
+        }
     }
 
-    private void SellButton_Click(object sender, RoutedEventArgs e)
+    private void ExecuteSell(PlayerGridCellInfo cell)
     {
-        var cell = _playerCells.FirstOrDefault(c => c.Index == _selectedPlayerIndex);
-        if (cell == null) return;
-
         var inventory = (Inventory)_controller.Player.Inventory;
         if (cell.Index < inventory.Items.Count)
         {
@@ -386,6 +588,20 @@ public partial class ShopWindow : Window
                 ItemInfoText.Text = "売却しました";
             }
         }
+    }
+
+    private void BuyButton_Click(object sender, RoutedEventArgs e)
+    {
+        var cell = _shopCells.FirstOrDefault(c => c.Index == _selectedShopIndex);
+        if (cell == null) return;
+        ExecuteBuy(cell);
+    }
+
+    private void SellButton_Click(object sender, RoutedEventArgs e)
+    {
+        var cell = _playerCells.FirstOrDefault(c => c.Index == _selectedPlayerIndex);
+        if (cell == null) return;
+        ExecuteSell(cell);
     }
 
     #endregion

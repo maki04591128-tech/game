@@ -1030,9 +1030,9 @@ public class WorldMapSystemTests
         shop.InitializeShop(FacilityType.MagicShop, TerritoryId.Capital, 1);
 
         var items = shop.GetShopItems(FacilityType.MagicShop);
-        var wand = items.FirstOrDefault(i => i.Name == "火の杖");
-        Assert.NotNull(wand);
-        Assert.Equal(GridItemSize.Size1x2, wand.GridSize);
+        var fireball = items.FirstOrDefault(i => i.Name == "火炎の巻物");
+        Assert.NotNull(fireball);
+        Assert.Equal(GridItemSize.Size1x1, fireball.GridSize);
     }
 
     [Fact]

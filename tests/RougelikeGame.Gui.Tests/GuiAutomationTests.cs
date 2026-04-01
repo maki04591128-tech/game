@@ -38,7 +38,7 @@ namespace RougelikeGame.Gui.Tests;
 ///      === NPC対話・地形効果 ===
 ///      - NPC位置へ移動→対話確認、水タイル移動
 ///      === 各ダイアログ・キー操作 ===
-///      - ミニマップ切替（M）、ステータスバー全19要素（構え/疲労/衛生/病気追加）
+///      - ミニマップ切替（M）、ステータスバー全19要素（構え/疲労/衛生/病気（健康時「健康」表示）追加）
 ///      - ダイアログ: C/L/V/J/K/O/H/B/E/P/N、探索F、自動探索Tab
 ///      === 移動・戦闘・階段・日時進行 ===
 ///      - WASD/矢印/斜め、戦闘→HP確認、R射撃/T投擲、階段Shift+&lt;/&gt;
@@ -526,6 +526,11 @@ public class GuiAutomationTests : IDisposable
             Assert.False(string.IsNullOrWhiteSpace(el!.Name), $"{id}が空");
         }
         Log("  → ステータスバー全19要素OK");
+
+        // スキルスロットアイコンパネルの存在チェック
+        var skillSlotPanel = FindElement(window, "SkillSlotIconPanel");
+        Assert.NotNull(skillSlotPanel);
+        Log("  → スキルスロットアイコンパネルOK");
 
         var dialogKeys = new[]
         {

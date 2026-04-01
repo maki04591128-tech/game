@@ -227,6 +227,21 @@ public class DungeonMap : IMap
     }
 
     /// <summary>
+    /// 全タイルを可視・探索済みにする（町など安全な場所用）
+    /// </summary>
+    public void RevealAll()
+    {
+        for (int x = 0; x < Width; x++)
+        {
+            for (int y = 0; y < Height; y++)
+            {
+                _tiles[x, y].IsVisible = true;
+                _tiles[x, y].IsExplored = true;
+            }
+        }
+    }
+
+    /// <summary>
     /// 指定位置からの視界を計算（簡易版：円形視界）
     /// </summary>
     public void ComputeFov(Position center, int radius)

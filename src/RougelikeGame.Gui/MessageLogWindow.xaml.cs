@@ -23,6 +23,7 @@ public partial class MessageLogWindow : Window
         switch (e.Key)
         {
             case Key.Escape:
+            case Key.L:
                 Close();
                 break;
             case Key.Up:

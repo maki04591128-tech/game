@@ -91,4 +91,14 @@ public partial class SettingsWindow : Window
             e.Handled = true;
         }
     }
+
+    private void OpenKeyBindButton_Click(object sender, RoutedEventArgs e)
+    {
+        var keyBindings = KeyBindingSettings.Load();
+        var keyBindWindow = new KeyBindingWindow(keyBindings) { Owner = this };
+        if (keyBindWindow.ShowDialog() == true && keyBindWindow.ResultBindings != null)
+        {
+            keyBindWindow.ResultBindings.Save();
+        }
+    }
 }

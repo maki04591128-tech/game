@@ -27,68 +27,322 @@ public class LocationMapGenerator
     {
         return location.Type switch
         {
-            LocationType.Town => GenerateTownMap(location.Id, location.Name),
+            LocationType.Town => GenerateTownMap(location.Id, location.Name, location.Territory),
             LocationType.Village => GenerateVillageMap(location.Id, location.Name),
             LocationType.Facility => GenerateFacilityMap(location.Id, location.Name),
             LocationType.ReligiousSite => GenerateShrineMap(location.Id, location.Name),
             LocationType.Field => GenerateFieldMap(location.Id, location.Name),
-            _ => GenerateTownMap(location.Id, location.Name)
+            _ => GenerateTownMap(location.Id, location.Name, location.Territory)
         };
     }
 
     /// <summary>
     /// 町マップを生成（50x30）
-    /// 建物が並ぶ通りと中央広場のある町
+    /// 領地ごとに異なるデザインのマップを返す
     /// </summary>
-    public DungeonMap GenerateTownMap(string locationId, string locationName)
+    public DungeonMap GenerateTownMap(string locationId, string locationName, TerritoryId territory = TerritoryId.Capital)
+    {
+        return territory switch
+        {
+            TerritoryId.Capital => GenerateCapitalTown(locationId),
+            TerritoryId.Forest => GenerateForestTown(locationId),
+            TerritoryId.Mountain => GenerateMountainTown(locationId),
+            TerritoryId.Coast => GenerateCoastTown(locationId),
+            TerritoryId.Southern => GenerateSouthernTown(locationId),
+            TerritoryId.Frontier => GenerateFrontierTown(locationId),
+            _ => GenerateCapitalTown(locationId)
+        };
+    }
+
+    /// <summary>王都領の街 - 石畳の大通りと大きな建物が並ぶ壮麗な首都</summary>
+    private DungeonMap GenerateCapitalTown(string locationId)
     {
         const int width = 50;
         const int height = 30;
         var map = new DungeonMap(width, height) { Depth = 0, Name = locationId };
 
-        // 全体を草地で埋める
         FillAll(map, TileType.Grass);
 
-        // 外周は通行可能（端から外へ出ると町を出る）
-
-        // 中央に十字の道路を敷く
+        // 十字の大通り
         int midX = width / 2;
         int midY = height / 2;
         DrawHorizontalRoad(map, midY, 2, width - 3);
         DrawVerticalRoad(map, midX, 2, height - 3);
 
-        // 中央広場（5x5）
+        // 中央広場（7x7の石畳）と噴水
+        FillRect(map, midX - 3, midY - 3, 7, 7, TileType.Floor);
+        map.SetTile(new Position(midX, midY), TileType.Fountain);
+        // 広場の四隅に柱
+        map.SetTile(new Position(midX - 2, midY - 2), TileType.Pillar);
+        map.SetTile(new Position(midX + 2, midY - 2), TileType.Pillar);
+        map.SetTile(new Position(midX - 2, midY + 2), TileType.Pillar);
+        map.SetTile(new Position(midX + 2, midY + 2), TileType.Pillar);
+
+        // 建物配置: 王都は大きくて立派な建物
+        PlaceBuilding(map, 3, 3, 10, 7, "inn");                // 左上: 大きな宿屋
+        PlaceBuilding(map, width - 14, 3, 10, 7, "shop");      // 右上: 大商店
+        PlaceBuilding(map, 3, height - 11, 10, 7, "smithy");   // 左下: 王立鍛冶場
+        PlaceBuilding(map, width - 14, height - 11, 10, 7, "guild"); // 右下: ギルド本部
+
+        PlaceBuilding(map, midX + 5, 3, 7, 5, "church");       // 大聖堂
+        PlaceBuilding(map, midX + 5, height - 9, 7, 5, "training"); // 闘技場
+        PlaceBuilding(map, 3, midY + 4, 7, 5, "library");      // 王立図書館
+        PlaceBuilding(map, width - 11, midY + 4, 7, 5, "magic_shop"); // 魔法学院
+
+        var entrancePos = new Position(midX, height - 2);
+        map.SetEntrance(entrancePos);
+        return map;
+    }
+
+    /// <summary>森林領の街 - 樹木が点在する自然と調和した都市</summary>
+    private DungeonMap GenerateForestTown(string locationId)
+    {
+        const int width = 50;
+        const int height = 30;
+        var map = new DungeonMap(width, height) { Depth = 0, Name = locationId };
+
+        FillAll(map, TileType.Grass);
+
+        // 緑の中に蛇行する小道
+        int midX = width / 2;
+        int midY = height / 2;
+        for (int x = 2; x < width - 2; x++)
+        {
+            int roadY = midY + (int)(Math.Sin(x * 0.2) * 2);
+            roadY = Math.Clamp(roadY, 2, height - 3);
+            map.SetTile(new Position(x, roadY), TileType.Floor);
+            if (roadY + 1 < height) map.SetTile(new Position(x, roadY + 1), TileType.Floor);
+        }
+        DrawVerticalRoad(map, midX, 2, height - 3);
+
+        // 散らばる木々（街の中にも自然が残る）
+        for (int x = 1; x < width - 1; x++)
+            for (int y = 1; y < height - 1; y++)
+                if (_random.NextDouble() < 0.12 && map.GetTile(new Position(x, y)).Type == TileType.Grass)
+                    map.SetTile(new Position(x, y), TileType.Tree);
+
+        // 中央に世界樹風の大木（噴水で代用）
         FillRect(map, midX - 2, midY - 2, 5, 5, TileType.Floor);
         map.SetTile(new Position(midX, midY), TileType.Fountain);
 
-        // 四隅に建物を配置
-        PlaceBuilding(map, 3, 3, 8, 6);        // 左上: 宿屋風
-        PlaceBuilding(map, width - 12, 3, 8, 6);  // 右上: 商店風
-        PlaceBuilding(map, 3, height - 10, 8, 6);  // 左下: 鍛冶屋風
-        PlaceBuilding(map, width - 12, height - 10, 8, 6); // 右下: ギルド風
+        // 建物は小さめで自然に馴染む配置
+        PlaceBuilding(map, 4, 3, 7, 5, "inn");
+        PlaceBuilding(map, width - 12, 3, 7, 5, "shop");
+        PlaceBuilding(map, 4, height - 9, 7, 5, "smithy");
+        PlaceBuilding(map, width - 12, height - 9, 7, 5, "guild");
+        PlaceBuilding(map, midX + 5, 3, 6, 5, "church");
+        PlaceBuilding(map, 4, midY + 4, 6, 5, "library");
 
-        // 道路沿いに小さな建物を追加
-        PlaceBuilding(map, midX + 4, 3, 6, 5);
-        PlaceBuilding(map, midX + 4, height - 9, 6, 5);
-        PlaceBuilding(map, 3, midY + 3, 6, 5);
-        PlaceBuilding(map, width - 10, midY + 3, 6, 5);
-
-        // NPC配置（建物内部に配置）
-        // 左上建物（宿屋）: 宿屋主人
-        map.SetTile(new Position(6, 5), TileType.NpcInnkeeper);
-        // 右上建物（商店）: 商人
-        map.SetTile(new Position(width - 9, 5), TileType.NpcShopkeeper);
-        // 左下建物（鍛冶屋）: 鍛冶屋
-        map.SetTile(new Position(6, height - 8), TileType.NpcBlacksmith);
-        // 右下建物（ギルド）: ギルド受付
-        map.SetTile(new Position(width - 9, height - 8), TileType.NpcGuildReceptionist);
-        // 道路沿い右上建物: 神父
-        map.SetTile(new Position(midX + 6, 5), TileType.NpcPriest);
-
-        // 町の入口（南側道路中央）にスポーンポイントを設定
         var entrancePos = new Position(midX, height - 2);
         map.SetEntrance(entrancePos);
+        return map;
+    }
 
+    /// <summary>山岳領の街 - 岩壁に囲まれた堅固な要塞都市</summary>
+    private DungeonMap GenerateMountainTown(string locationId)
+    {
+        const int width = 50;
+        const int height = 30;
+        var map = new DungeonMap(width, height) { Depth = 0, Name = locationId };
+
+        FillAll(map, TileType.Floor);
+
+        // 外周を岩壁（Wall）で囲む
+        for (int x = 0; x < width; x++)
+        {
+            map.SetTile(new Position(x, 0), TileType.Wall);
+            map.SetTile(new Position(x, height - 1), TileType.Wall);
+        }
+        for (int y = 0; y < height; y++)
+        {
+            map.SetTile(new Position(0, y), TileType.Wall);
+            map.SetTile(new Position(width - 1, y), TileType.Wall);
+        }
+
+        // 内壁でセクション分け（要塞感を演出）
+        int midX = width / 2;
+        int midY = height / 2;
+
+        // 横通路
+        DrawHorizontalRoad(map, midY, 1, width - 2);
+        // 縦通路
+        DrawVerticalRoad(map, midX, 1, height - 2);
+
+        // 岩壁をランダムに点在（山岳感）
+        for (int x = 2; x < width - 2; x++)
+            for (int y = 2; y < height - 2; y++)
+                if (_random.NextDouble() < 0.06 && map.GetTile(new Position(x, y)).Type == TileType.Floor
+                    && Math.Abs(x - midX) > 2 && Math.Abs(y - midY) > 2)
+                    map.SetTile(new Position(x, y), TileType.Pillar);
+
+        // 中央に鍛冶の炉（祭壇で代用）
+        FillRect(map, midX - 2, midY - 2, 5, 5, TileType.Floor);
+        map.SetTile(new Position(midX, midY), TileType.Altar);
+
+        // 建物: 頑丈な石造りの大きな建物
+        PlaceBuilding(map, 3, 3, 9, 6, "smithy");            // 左上: 大鍛冶場
+        PlaceBuilding(map, width - 13, 3, 9, 6, "shop");      // 右上: 鉱物商店
+        PlaceBuilding(map, 3, height - 10, 9, 6, "inn");      // 左下: 山岳宿屋
+        PlaceBuilding(map, width - 13, height - 10, 9, 6, "guild"); // 右下: ギルド支部
+        PlaceBuilding(map, midX + 4, 3, 7, 5, "training");    // 訓練場
+        PlaceBuilding(map, midX + 4, height - 9, 7, 5, "church"); // 山頂の祠
+
+        // 門（南側中央に出入口）
+        map.SetTile(new Position(midX, height - 1), TileType.Floor);
+        map.SetTile(new Position(midX + 1, height - 1), TileType.Floor);
+        var entrancePos = new Position(midX, height - 2);
+        map.SetEntrance(entrancePos);
+        return map;
+    }
+
+    /// <summary>海岸領の街 - 港と水辺が特徴的な海運都市</summary>
+    private DungeonMap GenerateCoastTown(string locationId)
+    {
+        const int width = 50;
+        const int height = 30;
+        var map = new DungeonMap(width, height) { Depth = 0, Name = locationId };
+
+        FillAll(map, TileType.Grass);
+
+        // 右側を海（水タイル）で埋める
+        for (int x = width - 10; x < width; x++)
+            for (int y = 0; y < height; y++)
+                map.SetTile(new Position(x, y), TileType.Water);
+
+        // 海岸線をランダム化
+        for (int y = 0; y < height; y++)
+        {
+            int shore = width - 10 + _random.Next(-1, 2);
+            shore = Math.Clamp(shore, width - 12, width - 8);
+            for (int x = shore; x < width; x++)
+                map.SetTile(new Position(x, y), TileType.Water);
+        }
+
+        // 桟橋（Floor）を海に突き出す
+        int pierY = height / 2;
+        for (int x = width - 12; x < width - 4; x++)
+        {
+            map.SetTile(new Position(x, pierY), TileType.Floor);
+            map.SetTile(new Position(x, pierY + 1), TileType.Floor);
+        }
+
+        // 町の通り
+        int midX = width / 3;
+        int midY = height / 2;
+        DrawHorizontalRoad(map, midY, 2, width - 13);
+        DrawVerticalRoad(map, midX, 2, height - 3);
+
+        // 中央に灯台風（噴水代用）
+        FillRect(map, midX - 1, midY - 1, 3, 3, TileType.Floor);
+        map.SetTile(new Position(midX, midY), TileType.Fountain);
+
+        // 建物
+        PlaceBuilding(map, 3, 3, 8, 6, "inn");               // 港の宿屋
+        PlaceBuilding(map, midX + 4, 3, 8, 6, "shop");        // 海産物商店
+        PlaceBuilding(map, 3, height - 10, 8, 6, "guild");    // 海運ギルド
+        PlaceBuilding(map, midX + 4, height - 10, 8, 6, "smithy"); // 船大工
+
+        var entrancePos = new Position(midX, height - 2);
+        map.SetEntrance(entrancePos);
+        return map;
+    }
+
+    /// <summary>南部領の街 - 城壁に守られた貴族の城下町</summary>
+    private DungeonMap GenerateSouthernTown(string locationId)
+    {
+        const int width = 50;
+        const int height = 30;
+        var map = new DungeonMap(width, height) { Depth = 0, Name = locationId };
+
+        FillAll(map, TileType.Grass);
+
+        // 城壁（外周をWallで囲む）
+        for (int x = 2; x < width - 2; x++)
+        {
+            map.SetTile(new Position(x, 2), TileType.Wall);
+            map.SetTile(new Position(x, height - 3), TileType.Wall);
+        }
+        for (int y = 2; y < height - 2; y++)
+        {
+            map.SetTile(new Position(2, y), TileType.Wall);
+            map.SetTile(new Position(width - 3, y), TileType.Wall);
+        }
+
+        // 城壁内部を石畳に
+        FillRect(map, 3, 3, width - 6, height - 6, TileType.Floor);
+
+        // 十字大通り
+        int midX = width / 2;
+        int midY = height / 2;
+
+        // 中央に城（大きなWall建物）
+        FillRect(map, midX - 5, 4, 11, 8, TileType.Wall);
+        FillRect(map, midX - 3, 6, 7, 4, TileType.Floor); // 城内部
+        // 城入口を壁の外側（南1マス下）に配置
+        map.SetTile(new Position(midX, 12), TileType.BuildingEntrance);
+        var castleDoor = map.GetTile(new Position(midX, 12));
+        castleDoor.BuildingId = "castle";
+
+        // 建物
+        PlaceBuilding(map, 4, height - 12, 8, 6, "inn");
+        PlaceBuilding(map, width - 13, height - 12, 8, 6, "shop");
+        PlaceBuilding(map, 4, midY + 2, 7, 5, "guild");
+        PlaceBuilding(map, width - 12, midY + 2, 7, 5, "church");
+        PlaceBuilding(map, midX + 6, height - 12, 7, 5, "training");
+
+        // 城門（南側中央）
+        map.SetTile(new Position(midX, height - 3), TileType.Floor);
+        map.SetTile(new Position(midX + 1, height - 3), TileType.Floor);
+
+        var entrancePos = new Position(midX, height - 2);
+        map.SetEntrance(entrancePos);
+        return map;
+    }
+
+    /// <summary>辺境領の街 - 荒廃した砦風の粗末な拠点</summary>
+    private DungeonMap GenerateFrontierTown(string locationId)
+    {
+        const int width = 50;
+        const int height = 30;
+        var map = new DungeonMap(width, height) { Depth = 0, Name = locationId };
+
+        FillAll(map, TileType.Grass);
+
+        // 壊れかけた柵（Wall+隙間）で囲む
+        for (int x = 3; x < width - 3; x++)
+        {
+            if (_random.NextDouble() < 0.7) map.SetTile(new Position(x, 3), TileType.Wall);
+            if (_random.NextDouble() < 0.7) map.SetTile(new Position(x, height - 4), TileType.Wall);
+        }
+        for (int y = 3; y < height - 3; y++)
+        {
+            if (_random.NextDouble() < 0.7) map.SetTile(new Position(3, y), TileType.Wall);
+            if (_random.NextDouble() < 0.7) map.SetTile(new Position(width - 4, y), TileType.Wall);
+        }
+
+        // 内部は荒れた地面（Floor+Grass混在）
+        for (int x = 4; x < width - 4; x++)
+            for (int y = 4; y < height - 4; y++)
+                map.SetTile(new Position(x, y), _random.NextDouble() < 0.6 ? TileType.Floor : TileType.Grass);
+
+        // 不規則な道
+        int midX = width / 2;
+        int midY = height / 2;
+        DrawHorizontalRoad(map, midY, 4, width - 5);
+
+        // 焚き火（噴水代用）
+        map.SetTile(new Position(midX, midY), TileType.Fountain);
+
+        // 建物: 小さくて粗末
+        PlaceBuilding(map, 6, 5, 7, 5, "inn");                // ボロ宿
+        PlaceBuilding(map, width - 14, 5, 7, 5, "shop");       // 雑貨屋
+        PlaceBuilding(map, 6, height - 10, 7, 5, "guild");     // ギルド小屋
+        PlaceBuilding(map, width - 14, height - 10, 7, 5, "smithy"); // 修繕屋
+
+        // 門（南側）
+        map.SetTile(new Position(midX, height - 4), TileType.Floor);
+        var entrancePos = new Position(midX, height - 2);
+        map.SetEntrance(entrancePos);
         return map;
     }
 
@@ -112,9 +366,9 @@ public class LocationMapGenerator
         DrawHorizontalRoad(map, midY, 2, width - 3);
 
         // 小屋を3つ配置
-        PlaceBuilding(map, 4, 4, 6, 5);
-        PlaceBuilding(map, 14, 4, 6, 5);
-        PlaceBuilding(map, 4, midY + 3, 6, 5);
+        PlaceBuilding(map, 4, 4, 6, 5, "village_house_1");
+        PlaceBuilding(map, 14, 4, 6, 5, "village_house_2");
+        PlaceBuilding(map, 4, midY + 3, 6, 5, "village_house_3");
 
         // 畑エリア（右側）
         FillRect(map, width - 14, 4, 10, 8, TileType.Floor);
@@ -492,7 +746,7 @@ public class LocationMapGenerator
             "capital_guild" => GenerateFacilityMap(mapName, "王都・冒険者ギルド"),
             "capital_barracks" => GenerateFacilityMap(mapName, "王都・兵舎"),
             "capital_academy" => GenerateFacilityMap(mapName, "王都・学院"),
-            "capital_market" => GenerateTownMap(mapName, "王都・市場通り"),
+            "capital_market" => GenerateTownMap(mapName, "王都・市場通り", TerritoryId.Capital),
             "capital_slums" => GenerateVillageMap(mapName, "王都・貧民街"),
             "capital_manor" => GenerateFacilityMap(mapName, "王都・貴族邸"),
             "capital_cathedral" => GenerateShrineMap(mapName, "王都・大聖堂"),
@@ -501,7 +755,7 @@ public class LocationMapGenerator
             // 種族系
             "forest_village" => GenerateVillageMap(mapName, "森の集落"),
             "mountain_hold" => GenerateVillageMap(mapName, "山岳砦"),
-            "coast_port" => GenerateTownMap(mapName, "海岸港町"),
+            "coast_port" => GenerateTownMap(mapName, "海岸港町", TerritoryId.Coast),
             // 特殊種族系
             "underground_ruins" => GenerateShrineMap(mapName, "地下遺跡"),
             "dark_sanctuary" => GenerateShrineMap(mapName, "暗黒聖域"),
@@ -592,34 +846,131 @@ public class LocationMapGenerator
     }
 
     /// <summary>
-    /// 矩形の建物を配置（壁で囲み、入口にドアを配置）
+    /// 矩形の建物を配置（壁で囲み、入口タイルを建物の外側に配置）
     /// </summary>
-    private void PlaceBuilding(DungeonMap map, int x, int y, int w, int h)
+    private void PlaceBuilding(DungeonMap map, int x, int y, int w, int h, string? buildingId = null)
     {
-        // 壁で囲む
+        // 壁で囲む（内部は壁で埋める — 建物内部は別マップ）
         for (int dx = 0; dx < w; dx++)
         {
             for (int dy = 0; dy < h; dy++)
             {
                 var pos = new Position(x + dx, y + dy);
-                if (dx == 0 || dx == w - 1 || dy == 0 || dy == h - 1)
-                {
-                    map.SetTile(pos, TileType.Wall);
-                }
-                else
-                {
-                    map.SetTile(pos, TileType.Floor);
-                }
+                map.SetTile(pos, TileType.Wall);
             }
         }
 
-        // 入口（南側中央にドア）
+        // 入口を建物の外側（南1マス下）に配置
         int doorX = x + w / 2;
-        int doorY = y + h - 1;
-        if (map.IsInBounds(new Position(doorX, doorY)))
+        int doorY = y + h; // 壁の1マス外側
+        var doorPos = new Position(doorX, doorY);
+        if (map.IsInBounds(doorPos))
         {
-            map.SetTile(new Position(doorX, doorY), TileType.DoorClosed);
+            map.SetTile(doorPos, TileType.BuildingEntrance);
+            if (buildingId != null)
+            {
+                var tile = map.GetTile(doorPos);
+                tile.BuildingId = buildingId;
+            }
         }
+
+        // 入口の外側（さらに南1マス下）も通行可能にして確実にアクセスできるようにする
+        var accessPos = new Position(doorX, doorY + 1);
+        if (map.IsInBounds(accessPos) && map.GetTile(accessPos).BlocksMovement)
+        {
+            map.SetTile(accessPos, TileType.Floor);
+        }
+    }
+
+    /// <summary>
+    /// 建物内部マップを生成（建物IDに応じた内装とNPCを配置）
+    /// </summary>
+    /// <param name="buildingId">生成する建物のID</param>
+    /// <param name="visitedBuildings">訪問済み建物IDのリスト（階段で移動可能な他建物）</param>
+    public DungeonMap GenerateBuildingInterior(string buildingId, IReadOnlyList<string>? visitedBuildings = null)
+    {
+        const int width = 12;
+        const int height = 10;
+        var map = new DungeonMap(width, height) { Depth = 0, Name = $"building_{buildingId}" };
+
+        // 壁で囲んだ部屋
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                if (x == 0 || x == width - 1 || y == 0 || y == height - 1)
+                    map.SetTile(new Position(x, y), TileType.Wall);
+                else
+                    map.SetTile(new Position(x, y), TileType.Floor);
+            }
+        }
+
+        // 出口（南側中央）
+        int exitX = width / 2;
+        int exitY = height - 1;
+        var exitPos = new Position(exitX, exitY);
+        map.SetTile(exitPos, TileType.BuildingExit);
+        var exitTile = map.GetTile(exitPos);
+        exitTile.BuildingId = buildingId;
+
+        // スポーンポイント（出口の1マス上）
+        map.SetEntrance(new Position(exitX, exitY - 1));
+
+        // 建物IDに応じたNPC配置
+        var npcPos = new Position(width / 2, 2);
+        switch (buildingId)
+        {
+            case "inn":
+                map.SetTile(npcPos, TileType.NpcInnkeeper);
+                break;
+            case "shop":
+            case "magic_shop":
+                map.SetTile(npcPos, TileType.NpcShopkeeper);
+                break;
+            case "smithy":
+                map.SetTile(npcPos, TileType.NpcBlacksmith);
+                break;
+            case "guild":
+                map.SetTile(npcPos, TileType.NpcGuildReceptionist);
+                break;
+            case "church":
+                map.SetTile(npcPos, TileType.NpcPriest);
+                break;
+            case "training":
+                map.SetTile(npcPos, TileType.NpcTrainer);
+                break;
+            case "library":
+                map.SetTile(npcPos, TileType.NpcLibrarian);
+                break;
+        }
+
+        // 訪問済み他建物への階段を配置
+        if (visitedBuildings != null)
+        {
+            var otherBuildings = visitedBuildings
+                .Where(id => id != buildingId)
+                .ToList();
+
+            // 左壁と右壁に交互に配置（y=2から開始、間隔2）
+            int slotIndex = 0;
+            foreach (var otherBuildingId in otherBuildings)
+            {
+                int slotY = 2 + (slotIndex / 2) * 2;
+                if (slotY >= height - 2) break; // 壁際に到達したら終了
+
+                // 偶数スロットは左壁、奇数スロットは右壁
+                int slotX = (slotIndex % 2 == 0) ? 0 : width - 1;
+                var slotPos = new Position(slotX, slotY);
+
+                map.SetTile(slotPos, TileType.BuildingEntrance);
+                var entranceTile = map.GetTile(slotPos);
+                entranceTile.BuildingId = otherBuildingId;
+
+                slotIndex++;
+            }
+        }
+
+        return map;
     }
 
     #endregion
