@@ -715,6 +715,12 @@ public class GameController
 
         // 視界計算
         Map.ComputeFov(Player.Position, 8);
+
+        // ダンジョンショートカット用: 訪問済み階を記録
+        if (!string.IsNullOrEmpty(_currentMapName))
+        {
+            _dungeonShortcutSystem.MarkFloorVisited(_currentMapName, CurrentFloor);
+        }
     }
 
     private void SpawnEnemies()

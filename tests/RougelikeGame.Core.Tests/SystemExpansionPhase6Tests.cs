@@ -1989,9 +1989,11 @@ public class Phase6Expansion_ThirstSystemTests
 public class Phase6Expansion_GamblingSystemTests
 {
     [Theory]
-    [InlineData(3, 3, true)]
-    [InlineData(3, 4, false)]
-    [InlineData(6, 6, true)]
+    [InlineData(4, 4, true)]   // 大予想、結果大 → 勝ち
+    [InlineData(4, 3, false)]  // 大予想、結果小 → 負け
+    [InlineData(1, 2, true)]   // 小予想、結果小 → 勝ち
+    [InlineData(1, 5, false)]  // 小予想、結果大 → 負け
+    [InlineData(6, 6, true)]   // 大予想、結果大 → 勝ち
     public void JudgeDice_CorrectResult(int guess, int result, bool expected)
     {
         Assert.Equal(expected, GamblingSystem.JudgeDice(guess, result));
@@ -2021,9 +2023,9 @@ public class Phase6Expansion_GamblingSystemTests
     }
 
     [Theory]
-    [InlineData(GamblingGameType.Dice, 6.0f)]
-    [InlineData(GamblingGameType.ChoHan, 2.0f)]
-    [InlineData(GamblingGameType.Card, 2.0f)]
+    [InlineData(GamblingGameType.Dice, 1.9f)]
+    [InlineData(GamblingGameType.ChoHan, 1.9f)]
+    [InlineData(GamblingGameType.Card, 1.9f)]
     public void GetPayoutMultiplier_CorrectValues(GamblingGameType type, float expected)
     {
         Assert.Equal(expected, GamblingSystem.GetPayoutMultiplier(type));
@@ -2035,7 +2037,7 @@ public class Phase6Expansion_GamblingSystemTests
     [InlineData(0)]
     public void GetLuckBonus_IncreasesWithLuck(int luck)
     {
-        float expected = luck * 0.01f;
+        float expected = Math.Min(luck * 0.005f, 0.05f);
         Assert.Equal(expected, GamblingSystem.GetLuckBonus(luck), 4);
     }
 

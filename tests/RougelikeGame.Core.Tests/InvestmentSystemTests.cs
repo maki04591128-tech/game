@@ -15,17 +15,17 @@ public class InvestmentSystemTests
     }
 
     [Theory]
-    [InlineData(InvestmentType.Shop, 0.8f)]
-    [InlineData(InvestmentType.AdventurerParty, 0.5f)]
+    [InlineData(InvestmentType.Shop, 0.6f)]
+    [InlineData(InvestmentType.AdventurerParty, 0.3f)]
     public void GetSuccessRate_ReturnsExpected(InvestmentType type, float expected)
     {
         Assert.Equal(expected, InvestmentSystem.GetSuccessRate(type));
     }
 
     [Fact]
-    public void GetExpectedReturn_ShopReturns120Percent()
+    public void GetExpectedReturn_ShopReturns130Percent()
     {
-        Assert.Equal(1200f, InvestmentSystem.GetExpectedReturn(InvestmentType.Shop, 1000));
+        Assert.Equal(1300f, InvestmentSystem.GetExpectedReturn(InvestmentType.Shop, 1000));
     }
 
     [Fact]

@@ -1349,6 +1349,8 @@ public class Phase8_ActivityIntegrationTests
     public void DungeonShortcutSystem_UnlockAndCheck()
     {
         var system = new DungeonShortcutSystem();
+        system.MarkFloorVisited("dungeon1", 1);
+        system.MarkFloorVisited("dungeon1", 5);
         system.UnlockShortcut("dungeon1", 1, 5);
         Assert.True(system.IsUnlocked("dungeon1", 1, 5));
         Assert.False(system.IsUnlocked("dungeon1", 1, 10));
@@ -1359,6 +1361,9 @@ public class Phase8_ActivityIntegrationTests
     public void DungeonShortcutSystem_GetShortcuts_ListsAll()
     {
         var system = new DungeonShortcutSystem();
+        system.MarkFloorVisited("dungeon1", 1);
+        system.MarkFloorVisited("dungeon1", 5);
+        system.MarkFloorVisited("dungeon1", 10);
         system.UnlockShortcut("dungeon1", 1, 5);
         system.UnlockShortcut("dungeon1", 5, 10);
         var shortcuts = system.GetShortcuts("dungeon1");

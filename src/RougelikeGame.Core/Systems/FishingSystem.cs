@@ -45,8 +45,11 @@ public static class FishingSystem
     public static IReadOnlyList<FishDefinition> GetAllFish() => FishList;
 
     /// <summary>現在の条件で釣れる魚のリストを取得</summary>
-    public static IReadOnlyList<FishDefinition> GetAvailableFish(Season season, TimePeriod time, int fishingLevel)
+    public static IReadOnlyList<FishDefinition> GetAvailableFish(Season season, TimePeriod time, int fishingLevel, bool isNearWater = true)
     {
+        // 水辺でない場合は魚が釣れない
+        if (!isNearWater) return Array.Empty<FishDefinition>();
+
         return FishList.Where(f =>
             f.MinFishingLevel <= fishingLevel &&
             f.Rarity > 0 &&

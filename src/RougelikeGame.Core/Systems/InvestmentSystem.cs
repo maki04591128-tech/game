@@ -28,21 +28,21 @@ public class InvestmentSystem
         return true;
     }
 
-    /// <summary>期待リターンを計算</summary>
+    /// <summary>期待リターンを計算（成功時の返却額）</summary>
     public static float GetExpectedReturn(InvestmentType type, int amount) => type switch
     {
-        InvestmentType.Shop => amount * 1.2f,
-        InvestmentType.AdventurerParty => amount * 1.8f,
-        InvestmentType.Business => amount * 1.5f,
+        InvestmentType.Shop => amount * 1.3f,           // 成功時30%利益
+        InvestmentType.AdventurerParty => amount * 2.0f, // 成功時100%利益（高リスク）
+        InvestmentType.Business => amount * 1.6f,       // 成功時60%利益
         _ => amount * 1.0f
     };
 
-    /// <summary>成功確率を取得</summary>
+    /// <summary>成功確率を取得（失敗時は投資額を失う）</summary>
     public static float GetSuccessRate(InvestmentType type) => type switch
     {
-        InvestmentType.Shop => 0.8f,
-        InvestmentType.AdventurerParty => 0.5f,
-        InvestmentType.Business => 0.65f,
+        InvestmentType.Shop => 0.6f,            // 60%（期待値: 0.78 — 胴元有利）
+        InvestmentType.AdventurerParty => 0.3f,  // 30%（期待値: 0.6 — 高リスク高リターン）
+        InvestmentType.Business => 0.45f,        // 45%（期待値: 0.72 — 中リスク）
         _ => 0.5f
     };
 

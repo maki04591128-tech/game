@@ -1117,7 +1117,7 @@ public class SystemExpansionPhase5Tests
     {
         var sys = new InvestmentSystem();
         sys.Invest(InvestmentType.Shop, "test", 100, 1);
-        Assert.Equal(120f, sys.Investments[0].ExpectedReturn, 1);
+        Assert.Equal(130f, sys.Investments[0].ExpectedReturn, 1);
     }
 
     #endregion
@@ -1125,9 +1125,9 @@ public class SystemExpansionPhase5Tests
     #region InvestmentSystem - GetExpectedReturn
 
     [Theory]
-    [InlineData(InvestmentType.Shop, 100, 120f)]
-    [InlineData(InvestmentType.AdventurerParty, 100, 180f)]
-    [InlineData(InvestmentType.Business, 100, 150f)]
+    [InlineData(InvestmentType.Shop, 100, 130f)]
+    [InlineData(InvestmentType.AdventurerParty, 100, 200f)]
+    [InlineData(InvestmentType.Business, 100, 160f)]
     public void Invest_GetExpectedReturn_ByType(InvestmentType type, int amount, float expected)
     {
         Assert.Equal(expected, InvestmentSystem.GetExpectedReturn(type, amount), 1);
@@ -1138,9 +1138,9 @@ public class SystemExpansionPhase5Tests
     #region InvestmentSystem - GetSuccessRate
 
     [Theory]
-    [InlineData(InvestmentType.Shop, 0.8f)]
-    [InlineData(InvestmentType.AdventurerParty, 0.5f)]
-    [InlineData(InvestmentType.Business, 0.65f)]
+    [InlineData(InvestmentType.Shop, 0.6f)]
+    [InlineData(InvestmentType.AdventurerParty, 0.3f)]
+    [InlineData(InvestmentType.Business, 0.45f)]
     public void Invest_GetSuccessRate_ByType(InvestmentType type, float expected)
     {
         Assert.Equal(expected, InvestmentSystem.GetSuccessRate(type));
@@ -1263,10 +1263,10 @@ public class SystemExpansionPhase5Tests
     #region CookingSystem - CalculateQuality
 
     [Theory]
-    [InlineData(0, 0.5f)]
-    [InlineData(50, 1.0f)]
-    [InlineData(100, 1.5f)]
-    [InlineData(150, 1.5f)]  // capped at 100
+    [InlineData(0, 0.3f)]
+    [InlineData(50, 0.8f)]
+    [InlineData(100, 1.3f)]
+    [InlineData(150, 1.3f)]  // capped at 100
     public void Cooking_CalculateQuality_Proficiency(int prof, float expected)
     {
         Assert.Equal(expected, CookingSystem.CalculateQuality(prof), 2);

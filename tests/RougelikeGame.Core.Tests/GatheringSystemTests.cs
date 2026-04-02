@@ -61,9 +61,9 @@ public class GatheringSystemTests
     [Fact]
     public void CalculateSuccessRate_BaseProficiency_ReturnsBaseRate()
     {
-        // 熟練度0、季節ボーナスなし → 0.5f
+        // 熟練度0、季節ボーナスなし → 0.3f（修正後: baseRate=0.3, Miningは季節ボーナスなし）
         float rate = GatheringSystem.CalculateSuccessRate(GatheringType.Mining, 0, Season.Spring);
-        Assert.Equal(0.5f, rate);
+        Assert.Equal(0.3f, rate);
     }
 
     [Fact]
