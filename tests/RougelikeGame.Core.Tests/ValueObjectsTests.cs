@@ -264,6 +264,49 @@ public class ValueObjectsTests
         Assert.Equal(30, stats.ActionSpeed);
     }
 
+    [Fact]
+    public void Stats_MaxHp_NeverNegative()
+    {
+        // 極端な負のステータスでもMaxHpは1以上
+        var stats = new Stats(-20, -20, 0, 0, 0, 0, 0, 0, 0);
+        Assert.True(stats.MaxHp >= 1, $"MaxHp={stats.MaxHp} should be >= 1");
+    }
+
+    [Fact]
+    public void Stats_MaxMp_NeverNegative()
+    {
+        var stats = new Stats(0, 0, 0, 0, -20, -20, 0, 0, 0);
+        Assert.True(stats.MaxMp >= 0, $"MaxMp={stats.MaxMp} should be >= 0");
+    }
+
+    [Fact]
+    public void Stats_MaxSp_NeverNegative()
+    {
+        var stats = new Stats(0, -60, 0, 0, 0, 0, 0, 0, 0);
+        Assert.True(stats.MaxSp >= 0, $"MaxSp={stats.MaxSp} should be >= 0");
+    }
+
+    [Fact]
+    public void Stats_HitRate_NeverNegative()
+    {
+        var stats = new Stats(0, 0, 0, -50, 0, 0, 0, 0, 0);
+        Assert.True(stats.HitRate >= 0.05, $"HitRate={stats.HitRate} should be >= 0.05");
+    }
+
+    [Fact]
+    public void Stats_EvasionRate_NeverNegative()
+    {
+        var stats = new Stats(0, 0, -50, 0, 0, 0, 0, 0, 0);
+        Assert.True(stats.EvasionRate >= 0.0, $"EvasionRate={stats.EvasionRate} should be >= 0");
+    }
+
+    [Fact]
+    public void Stats_CriticalRate_NeverNegative()
+    {
+        var stats = new Stats(0, 0, 0, -100, 0, 0, 0, 0, -100);
+        Assert.True(stats.CriticalRate >= 0.0, $"CriticalRate={stats.CriticalRate} should be >= 0");
+    }
+
     #endregion
 
     #region Stats - 修正適用テスト

@@ -5402,7 +5402,7 @@ public class GameController
 
         // INTに応じて学べる最大難度を決定（INT 5→難度2, INT 10→難度3, INT 15→難度4, INT 20→難度5）
         int maxDifficulty = Math.Clamp(1 + Player.EffectiveStats.Intelligence / 5, 1, 5);
-        var result = VocabularyAcquisitionSystem.LearnRandomWord(Player, maxDifficulty, new RandomProvider());
+        var result = VocabularyAcquisitionSystem.LearnRandomWord(Player, maxDifficulty, _random);
         if (!result.Success)
         {
             AddMessage("📖 学べる新しいルーン語が見つからなかった（より高い知力が必要かもしれない）");
@@ -5725,6 +5725,8 @@ public class GameController
         {
             case "register_guild":
                 TryRegisterGuild();
+                TurnCount += 3;
+                GameTime.AdvanceTurn(3);
                 break;
             case "view_quests":
                 OnShowQuestBoard?.Invoke();
@@ -5750,12 +5752,18 @@ public class GameController
                 break;
             case "train_combat":
                 TryTrainCombat();
+                TurnCount += 5;
+                GameTime.AdvanceTurn(5);
                 break;
             case "learn_magic":
                 TryLearnMagic();
+                TurnCount += 5;
+                GameTime.AdvanceTurn(5);
                 break;
             case "learn_rune_word":
                 TryLearnRuneWord();
+                TurnCount += 5;
+                GameTime.AdvanceTurn(5);
                 break;
             // === 料理 ===
             case "cook":
@@ -6094,7 +6102,7 @@ public class GameController
                 {
                     var fusionParts = action["fuse_".Length..];
                     var underscoreIdx = fusionParts.IndexOf('_');
-                    if (underscoreIdx > 0)
+                    if (underscoreIdx > 0 && underscoreIdx < fusionParts.Length - 1)
                     {
                         var skillA = fusionParts[..underscoreIdx];
                         var skillB = fusionParts[(underscoreIdx + 1)..];
@@ -7624,7 +7632,7 @@ public class GameController
         }
 
         var contraband = contrabands[_random.Next(contrabands.Count)];
-        float detectionChance = 0.3f;
+        const float detectionChance = 0.3f;
         bool evaded = SmugglingSystem.CheckEvasion(detectionChance, Player.EffectiveStats.Dexterity, _random.NextDouble());
 
         if (!evaded)

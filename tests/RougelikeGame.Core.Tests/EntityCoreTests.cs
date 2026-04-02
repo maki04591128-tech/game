@@ -484,6 +484,17 @@ public class EntityCoreTests
         Assert.Equal(1.0f, player.GetStatusEffectTurnModifier());
     }
 
+    [Fact]
+    public void Character_GetStatusEffectTurnModifier_NeverBelowMinimum()
+    {
+        var player = CreateDefaultPlayer();
+        // ターンコスト修正0のステータス効果を追加
+        var effect = new StatusEffect(StatusEffectType.Poison, 5) { TurnCostModifier = 0f };
+        player.ApplyStatusEffect(effect);
+        float modifier = player.GetStatusEffectTurnModifier();
+        Assert.True(modifier >= 0.1f, $"Modifier {modifier} should be >= 0.1");
+    }
+
     #endregion
 
     // ================================================================

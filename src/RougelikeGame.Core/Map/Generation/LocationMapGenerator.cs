@@ -124,13 +124,13 @@ public class LocationMapGenerator
         FillRect(map, midX - 2, midY - 2, 5, 5, TileType.Floor);
         map.SetTile(new Position(midX, midY), TileType.Fountain);
 
-        // 建物は小さめで自然に馴染む配置
+        // 建物は小さめで自然に馴染む配置（重複なし）
         PlaceBuilding(map, 4, 3, 7, 5, "inn");
         PlaceBuilding(map, width - 12, 3, 7, 5, "shop");
         PlaceBuilding(map, 4, height - 9, 7, 5, "smithy");
         PlaceBuilding(map, width - 12, height - 9, 7, 5, "guild");
         PlaceBuilding(map, midX + 5, 3, 6, 5, "church");
-        PlaceBuilding(map, 4, midY + 4, 6, 5, "library");
+        PlaceBuilding(map, 4, midY - 1, 6, 5, "library");
 
         var entrancePos = new Position(midX, height - 2);
         map.SetEntrance(entrancePos);
@@ -282,12 +282,12 @@ public class LocationMapGenerator
         var castleDoor = map.GetTile(new Position(midX, 12));
         castleDoor.BuildingId = "castle";
 
-        // 建物
-        PlaceBuilding(map, 4, height - 12, 8, 6, "inn");
-        PlaceBuilding(map, width - 13, height - 12, 8, 6, "shop");
+        // 建物（重複なし配置: inn/shopを南側、guild/church/trainingを中央帯に分離）
+        PlaceBuilding(map, 4, height - 10, 8, 6, "inn");
+        PlaceBuilding(map, width - 13, height - 10, 8, 6, "shop");
         PlaceBuilding(map, 4, midY + 2, 7, 5, "guild");
         PlaceBuilding(map, width - 12, midY + 2, 7, 5, "church");
-        PlaceBuilding(map, midX + 6, height - 12, 7, 5, "training");
+        PlaceBuilding(map, midX + 6, midY + 2, 7, 5, "training");
 
         // 城門（南側中央）
         map.SetTile(new Position(midX, height - 3), TileType.Floor);

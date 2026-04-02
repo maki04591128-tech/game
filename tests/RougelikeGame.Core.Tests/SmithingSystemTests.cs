@@ -209,6 +209,14 @@ public class SmithingSystemTests
         Assert.Equal(expected, SmithingSystem.CalculateEnhanceCost(currentLevel));
     }
 
+    [Fact]
+    public void CalculateEnhanceCost_NoOverflowAtHighLevel()
+    {
+        // 非常に高い強化レベルでもオーバーフローしない
+        int cost = SmithingSystem.CalculateEnhanceCost(50000);
+        Assert.True(cost > 0, $"Cost {cost} should be positive (no overflow)");
+    }
+
     // ============================================================
     // SmithingResult レコードテスト
     // ============================================================

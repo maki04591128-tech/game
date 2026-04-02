@@ -67,7 +67,7 @@ public class SmithingSystem
 
     /// <summary>強化コストを計算</summary>
     public static int CalculateEnhanceCost(int currentEnhance) =>
-        100 * (currentEnhance + 1) * (currentEnhance + 1);
+        (int)Math.Min((long)100 * (currentEnhance + 1) * (currentEnhance + 1), int.MaxValue);
 }
 
 /// <summary>

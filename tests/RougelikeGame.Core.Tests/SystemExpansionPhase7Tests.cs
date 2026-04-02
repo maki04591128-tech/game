@@ -1075,6 +1075,15 @@ public class Phase7Expansion_PriceFluctuationSystemTests
         int price = PriceFluctuationSystem.CalculateFinalPrice(1, 0.5f, 0.5f, 0.5f, 0.5f, false);
         Assert.True(price >= 1);
     }
+
+    [Fact]
+    public void CalculateFinalPrice_SellingLessThanBuying()
+    {
+        int buyPrice = PriceFluctuationSystem.CalculateFinalPrice(100, 1.0f, 1.0f, 1.0f, 1.0f, true);
+        int sellPrice = PriceFluctuationSystem.CalculateFinalPrice(100, 1.0f, 1.0f, 1.0f, 1.0f, false);
+        Assert.True(sellPrice < buyPrice, $"Sell {sellPrice} should be less than buy {buyPrice}");
+        Assert.Equal(70, sellPrice); // 70% of buy price
+    }
 }
 
 #endregion
