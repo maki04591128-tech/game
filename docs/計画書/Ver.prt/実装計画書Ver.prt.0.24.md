@@ -667,6 +667,129 @@
 
 ---
 
+## カテゴリBG: バフ・デバフ・状態異常の未機能（11件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BG-1 | StatusEffectのAttackMultiplier/DefenseMultiplier/AllStatsMultiplierが一度も適用されない。GetAllStatModifiers()がStatModifierのみ処理し、乗算フィールドを無視。CreateStrengthBuff(1.25x)/CreateProtection(1.50x)/CreateBlessing(1.10x)の全バフが実効果ゼロ | 致命的 | `Character.cs:32-37`, `StatusEffectSystem.cs:267,279` | |
+| BG-2 | StatusEffectsリストがセーブデータに含まれない。ゲームロード時に全てのアクティブバフ/デバフ/呪いが消失する | 致命的 | `SaveData.cs`, `Character.cs:79` | |
+| BG-3 | StatusEffect適用時にCheckResistance()がPoison免疫チェックのみ実行。他の状態異常（Stun/Freeze/Sleep等）の耐性値が完全に無視される | 高 | `StatusEffectSystem.cs:297-344`, `GameController.cs:1940-2000` | |
+| BG-4 | Equipment.OnEquip()のStatBuffエフェクトループが空実装。装備エンチャントのバフ効果が一切適用されない | 高 | `Equipment.cs:107-114` | |
+| BG-5 | 祈祷の祝福バフがAllStatsMultiplier=1.10fを設定するが、BG-1により実効果ゼロ。祈祷が完全に視覚的のみ | 高 | `GameController.cs:4414-4416` | |
+| BG-6 | 呪いステータスがAllStatsMultiplier=0.80fを設定するが、BG-1により実効果ゼロ。呪いが設計より20%弱い | 高 | `StatusEffectSystem.cs:174-181` | |
+| BG-7 | PotionType.CureAllがStun/Freeze/Sleep/Petrification/Curseを除去対象に含まない。重篤なデバフの治療手段がない | 中 | `Consumables.cs:85-96` | |
+| BG-8 | 食品アイテムがバフ効果を一切付与しない。Food.Use()がModifyHunger()/Heal()のみ呼び出し、戦術的な食事バフが存在しない | 中 | `Consumables.cs:150-218` | |
+| BG-9 | アクティブバフ数に上限がない。無制限のバフスタックが可能で、パフォーマンス劣化やバランス崩壊の原因となりうる | 中 | `Character.cs:124-146` | |
+| BG-10 | 環境デバフ（寒冷/灼熱/湿潤）のStatusEffectTypeが未定義。環境ハザードが状態異常を付与しない | 中 | `StatusEffectSystem.cs`, `Enums.cs` | |
+| BG-11 | 状態異常メッセージの一部がenum名（英語）をそのまま表示。ローカライズされた日本語名でなく「Vulnerability」等と表示される | 低 | `GameController.cs` | |
+
+---
+
+## カテゴリBH: 転職・職業・スキルの未機能（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BH-1 | Player.CharacterClassプロパティがprivate set。転職ロジック（TryClassChange）が動作してもクラスを実際に変更不可能。O-2の根本原因 | 致命的 | `Player.cs:19`, `GameController.cs:7261-7282` | |
+| BH-2 | SkillDatabaseの6つのパッシブスキル（weapon_mastery/hp_boost/mp_boost/poison_resist/critical_eye/treasure_sense）が定義のみで効果実装なし。ダメージ計算/HP/MP/耐性/クリティカル/ルート率に一切影響しない | 致命的 | `SkillSystem.cs:95,156-160`, `GameController.cs:1440-1515`, `Player.cs:247-248` | |
+| BH-3 | GetLearnableSkills()がスキルメニュー表示時に呼ばれない。職業制限なしで全スキルが習得可能 | 高 | `SkillSystem.cs:336-338`, `GameController.cs` | |
+| BH-4 | パッシブスキル「knowledge_collect」（バード自動鑑定能力）が登録されるが自動鑑定ロジックなし | 高 | `SkillSystem.cs:142` | |
+| BH-5 | ProficiencySystem.GetBonusDamage()が一つのコードパスでのみ呼ばれ、他の戦闘パスではバイパスされる | 中 | `GameController.cs:1455-1459` | |
+
+---
+
+## カテゴリBI: ショップ経済・投資・通貨の未機能（9件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BI-1 | ショップ在庫がランダム性ゼロの固定リスト。同じショップタイプで毎回同一アイテムが並ぶ | 高 | `WorldMapSystem.cs:527-631` | |
+| BI-2 | ショップ在庫の時間経過リフレッシュが未実装。InitializeShop()が同一ロジックで再生成するのみ | 高 | `WorldMapSystem.cs:465-469`, `GameController.cs:5451-5454` | |
+| BI-3 | InvestmentSystem.Invest()がGameControllerから一度も呼ばれない。投資したゴールドが永久に消失し、配当/損失通知なし | 高 | `InvestmentSystem.cs:1-72`, `GameController.cs:49` | |
+| BI-4 | BaseConstructionSystem.GetDailyFoodProduction()がGameControllerから一度も呼ばれない。「畑」建設の自動食料生産が非機能 | 高 | `BaseConstructionSystem.cs:118-121`, `GameController.cs` | |
+| BI-5 | PriceFluctuationSystemの需給/テリトリー/カルマ/評判修飾子がUI表示のみで実際のBuy()/Sell()価格に適用されない。表示価格と取引価格が不一致 | 高 | `PriceFluctuationSystem.cs:1-72`, `WorldMapSystem.cs:482-507` | |
+| BI-6 | ショップ価格が難易度設定（ExpMultiplier等）を無視。Hard/Nightmareでも同一価格 | 中 | `WorldMapSystem.cs:516-541`, `GameController.cs:205` | |
+| BI-7 | 取引に手数料/税金システムが存在しない。売却時の固定60%損失以外の経済シンクなし | 中 | `WorldMapSystem.cs:482-507` | |
+| BI-8 | 通貨がゴールド単一。ジェム/トークン等の高額通貨や通貨交換メカニクスが未実装 | 中 | `Enums.cs:517`, `GameController.cs` | |
+| BI-9 | NPC購入嗜好/値切り/物々交換システムが未実装。全NPCで同一の売買ロジック | 低 | `NpcSystem.cs`, `WorldMapSystem.cs` | |
+
+---
+
+## カテゴリBJ: ワールドマップ・テリトリー探索の未機能（10件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BJ-1 | RollTerritoryEvent()がGameControllerから一度も呼ばれない。テリトリー固有イベント（森林の精霊/山岳の崩落等）が完全に非トリガー | 致命的 | `WorldMapSystem.cs:743-791`, `GameController.cs` | |
+| BJ-2 | 旅行イベント（商人遭遇/盗賊襲撃/宝箱発見等）が表示されるが解決ハンドラなし。報酬/戦闘/選択が発生しない装飾イベント | 高 | `GameController.cs:4961-4973` | |
+| BJ-3 | テリトリー間で敵/アイテムの差異なし。ダンジョン生成がテリトリーコンテキストを無視して同一プール使用 | 高 | `DungeonGenerator.cs`, `LocationMapGenerator.cs` | |
+| BJ-4 | シンボルマップが全ロケーションを即座に表示（霧の向こう機能なし）。IsExplored追跡がダンジョンタイルのみでワールドマップに存在しない | 高 | `SymbolMapSystem.cs:38-51` | |
+| BJ-5 | テリトリー発見時にXP/報酬/実績が一切付与されない。VisitedTerritoriesの追跡が報酬に未連動 | 高 | `WorldMapSystem.cs`, `GameController.cs` | |
+| BJ-6 | テリトリー間の高速移動（ファストトラベル）が未実装。隣接テリトリーへの順次移動のみで後半のバックトラッキングが冗長 | 中 | `WorldMapSystem.cs:208-238` | |
+| BJ-7 | ダンジョン内イベントがテリトリー別に分化しない。全テリトリーで同一のイベントプール使用 | 中 | `WorldMapSystem.cs:794-811` | |
+| BJ-8 | TravelEventType列挙型の6タイプ（Merchant/Ambush/HelpRequest/Shrine/BadWeather/TreasureChest）に解決ロジックなし | 中 | `WorldMapSystem.cs:317-325` | |
+| BJ-9 | テリトリー境界が静的定義のみ。動的な国境変動/戦争/占領メカニクスが未実装 | 低 | `WorldMapSystem.cs:129-173` | |
+| BJ-10 | SymbolMapEventSystemとWorldMapSystemに重複するイベント処理が存在。責任境界が不明確 | 低 | `SymbolMapEventSystem.cs:46-57`, `WorldMapSystem.cs:743-987` | |
+
+---
+
+## カテゴリBK: 正気度システムの未機能（4件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BK-1 | 正気度が戦闘パフォーマンスに影響しない。Player.Sanityがミミック検出（line 2398）のみで使用され、命中率/ダメージ/防御力に一切の修正なし | 高 | `GameController.cs:2398`, `Character.cs` | |
+| BK-2 | RestSystemの正気度回復がGameControllerで適用されない。休息品質に基づく回復率（0.05-0.2）が定義済みだが未呼出 | 高 | `RestSystem.cs:9`, `GameController.cs:7354,7376` | |
+| BK-3 | 正気度回復アイテム（回復ポーション/瞑想/祈祷ボーナス）が未実装。正気度は減少のみで回復手段が死亡時のRescue以外にない | 中 | `Player.cs:400-407`, `ItemFactory.cs` | |
+| BK-4 | 幻覚エフェクトが定義済み（Perception-0.3f）だが低正気度で発動しない。マップ歪曲/偽敵等の視覚効果も未実装 | 中 | `ExtendedStatusEffectSystem.cs:35`, `GameController.cs` | |
+
+---
+
+## カテゴリBL: カルマシステムの未機能（4件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BL-1 | KarmaSystem.GetShopPriceModifier()がGameControllerから一度も呼ばれない。PriceFluctuationSystemが独自に再計算するため完全なデッドコード | 高 | `KarmaSystem.cs:60-70`, `GameController.cs:5483-5514` | |
+| BL-2 | KarmaSystem.GetNpcDispositionModifier()がGameControllerから一度も呼ばれない。聖者も悪人もNPC対話結果が同一 | 高 | `KarmaSystem.cs:72-83`, `GameController.cs:5694,5707` | |
+| BL-3 | KarmaSystem.CanEnterHolyGround()がGameControllerから一度も呼ばれない。Criminal/Villainプレイヤーが教会/神殿に無制限アクセス可能 | 高 | `KarmaSystem.cs:89`, `GameController.cs` | |
+| BL-4 | カルマ変動トリガーが3箇所のみ（処刑+5/+3、密輸-5、闇市-2）。NPC支援/窃盗/対話中の嘘等の大半の選択がカルマ無影響 | 中 | `GameController.cs:1522,7646,7709` | |
+
+---
+
+## カテゴリBM: 評判システムの未機能（3件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BM-1 | ReputationSystem.GetShopDiscount()がGameControllerから一度も呼ばれない。PriceFluctuationSystem.GetReputationModifier()で代替計算され、本来のメソッドがデッドコード | 高 | `ReputationSystem.cs:53-63`, `GameController.cs:5482,5513` | |
+| BM-2 | ReputationSystem.IsWelcome()がGameControllerから一度も呼ばれない。「嫌悪」評判でもテリトリーに自由アクセス可能 | 高 | `ReputationSystem.cs:79-80`, `GameController.cs` | |
+| BM-3 | 評判は増加のみ（正の修正値）で低下メカニクスが存在しない。クエスト失敗/NPC裏切り/犯罪行為が評判無影響 | 中 | `GameController.cs`, `NpcSystem.cs` | |
+
+---
+
+## カテゴリBN: NPC関係性・好感度の未機能（4件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BN-1 | NPC好感度データがRebirth（死亡→転生）時に引き継がれない。NpcSystem.CreateTransferData()が存在するがGameControllerで一度も呼ばれず、死亡時に全NPCの好感度が50にリセット | 致命的 | `Player.cs:484-496`, `NpcSystem.cs:122-129`, `GameController.cs:3017,3097,3120` | |
+| BN-2 | ModifyAffinity()が対話システムの2箇所でのみ呼ばれる。クエスト完了/贈り物/戦闘協力/祈祷等のアクションが好感度に影響しない | 高 | `GameController.cs:5694,5707`, `NpcSystem.cs:108-112` | |
+| BN-3 | 好感度ランクに基づく特殊対話/クエスト解放が未実装。高好感度NPCも低好感度NPCも同一の対話ツリー | 高 | `NpcSystem.cs:177-196`, `GameController.cs:5641-5710` | |
+| BN-4 | NpcDefinition.GetAffinityRank()がUI表示に使用されない。プレイヤーがNPCとの関係レベルを確認する手段がない | 中 | `NpcSystem.cs:16-23`, `GameController.cs:6184` | |
+
+---
+
+## カテゴリBO: RelationshipSystemの完全未使用（1件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BO-1 | RelationshipSystem全体がGameControllerで初期化・リセットのみされ、SetRelation()/GetRelation()/ModifyRelation()が一度も呼ばれない。種族/テリトリー/宗教/個人関係の4種の関係性追跡が完全にデッドコード | 致命的 | `RelationshipSystem.cs:1-78`, `GameController.cs:55,3146` | |
+
+---
+
+## カテゴリBP: 価格計算システムの重複・不整合（2件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BP-1 | ReputationSystem/KarmaSystem/RelationshipSystemの各GetShopDiscount()が全てデッドコード。PriceFluctuationSystemのみが使用され、3システムの価格メソッドが冗長 | 高 | `ReputationSystem.cs:53-63`, `KarmaSystem.cs:60-70`, `RelationshipSystem.cs:52-59` | |
+| BP-2 | カルマ/評判がNPCエンカウント率に影響しない。WorldMapSystem.RollRandomEvent()の確率がカルマ/評判無関係の固定値 | 中 | `WorldMapSystem.cs:794-811` | |
+
+---
+
 ## 全体集計
 
 | カテゴリ | 致命的 | 高 | 中 | 低 | 設計課題 | 合計 |
@@ -729,7 +852,17 @@
 | **BD: キーバインド・UI・難易度** | **2** | **2** | **0** | **0** | **0** | **4** |
 | **BE: パーティ・隊列システム** | **0** | **2** | **0** | **0** | **0** | **2** |
 | **BF: ランダムイベントクールダウン** | **0** | **0** | **1** | **0** | **0** | **1** |
-| **合計** | **64** | **84** | **65** | **5** | **2** | **228** |
+| **BG: バフ・デバフ・状態異常** | **2** | **4** | **4** | **1** | **0** | **11** |
+| **BH: 転職・職業・スキル** | **2** | **2** | **1** | **0** | **0** | **5** |
+| **BI: ショップ経済・投資・通貨** | **0** | **5** | **3** | **1** | **0** | **9** |
+| **BJ: ワールドマップ・テリトリー** | **1** | **4** | **3** | **2** | **0** | **10** |
+| **BK: 正気度システム** | **0** | **2** | **2** | **0** | **0** | **4** |
+| **BL: カルマシステム** | **0** | **3** | **1** | **0** | **0** | **4** |
+| **BM: 評判システム** | **0** | **2** | **1** | **0** | **0** | **3** |
+| **BN: NPC関係性・好感度** | **1** | **2** | **1** | **0** | **0** | **4** |
+| **BO: RelationshipSystem未使用** | **1** | **0** | **0** | **0** | **0** | **1** |
+| **BP: 価格計算の重複** | **0** | **1** | **1** | **0** | **0** | **2** |
+| **合計** | **71** | **109** | **83** | **9** | **2** | **281** |
 
 ---
 
@@ -739,10 +872,10 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（64件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（84件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（65件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（5件）: 軽微なテーマ不一致 → 余裕があれば修正
+1. **致命的**（71件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（109件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（83件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（9件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（2件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
@@ -805,3 +938,15 @@
 - **BD: キーバインド・UI・難易度** — Tキー重複バインド、2アクションのキー未定義、難易度設定の80%の乗数が未使用
 - **BE: パーティ・隊列システム** — 隊列システム自体が存在しない、パーティ全体回復/バフ伝播なし
 - **BF: ランダムイベントクールダウン** — イベント連続発生防止メカニズムなし
+
+### 新規追加カテゴリの概要（第8回調査分）
+- **BG: バフ・デバフ・状態異常** — バフ乗数（AttackMultiplier/DefenseMultiplier/AllStatsMultiplier）が完全未適用、状態異常がセーブに含まれない、耐性チェックがPoison免疫のみ、装備エンチャントバフ空実装、祝福/呪い実効果ゼロ
+- **BH: 転職・職業・スキル** — Player.CharacterClassがprivate setで変更不可（転職の根本障害）、6パッシブスキル効果未実装、職業制限なしで全スキル習得可能
+- **BI: ショップ経済・投資・通貨** — 在庫ランダム性ゼロ/リフレッシュなし、InvestmentSystem完全未呼出、BaseConstruction食料生産未適用、PriceFluctuation修飾子がBuy/Sell未適用（UI表示のみ）
+- **BJ: ワールドマップ・テリトリー** — テリトリー固有イベント未トリガー、旅行イベント解決ハンドラなし、テリトリー間の敵/アイテム差異なし、霧の向こう機能なし、探索XP/報酬なし
+- **BK: 正気度システム** — 正気度が戦闘パフォーマンス無影響、休息の正気度回復未適用、回復アイテム/幻覚エフェクト未実装
+- **BL: カルマシステム** — GetShopPriceModifier/GetNpcDispositionModifier/CanEnterHolyGround全てデッドコード、カルマ変動トリガーが3箇所のみ
+- **BM: 評判システム** — GetShopDiscount/IsWelcome全てデッドコード、評判低下メカニクス不在
+- **BN: NPC関係性・好感度** — 好感度データがRebirth時に消失（CreateTransferData未呼出）、好感度変動が対話2箇所のみ、好感度ランクによる対話分岐なし
+- **BO: RelationshipSystem未使用** — 全メソッドが完全デッドコード（初期化/リセットのみ）
+- **BP: 価格計算の重複** — 3システムの価格メソッドがPriceFluctuationSystemに重複、エンカウント率がカルマ/評判無関係
