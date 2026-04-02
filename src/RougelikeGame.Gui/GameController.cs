@@ -6006,7 +6006,10 @@ public class GameController
                         break;
                     }
                     Player.AddGold(-investAmount);
-                    AddMessage($"💰 店舗に{investAmount}G投資した。将来的なリターンが期待できる");
+                    _investmentSystem.Invest(InvestmentType.Shop, "一般商店", investAmount, TurnCount);
+                    float expectedReturn = InvestmentSystem.GetExpectedReturn(InvestmentType.Shop, investAmount);
+                    float successRate = InvestmentSystem.GetSuccessRate(InvestmentType.Shop);
+                    AddMessage($"💰 店舗に{investAmount}G投資した。期待リターン: {expectedReturn:F0}G (成功率{successRate:P0})");
                     OnStateChanged?.Invoke();
                 }
                 break;
