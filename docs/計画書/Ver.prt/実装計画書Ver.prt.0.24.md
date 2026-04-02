@@ -790,6 +790,127 @@
 
 ---
 
+## カテゴリBQ: セーブデータ永続性 — システムステート大量未保存（24件）
+
+24個のシステムがCreateSaveData()/LoadSaveData()に含まれず、ロード時に全進捗が消失する。
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BQ-1 | KarmaSystemステート（カルマ値/履歴）がセーブされない。店舗価格/NPC態度/聖地アクセスに影響するカルマが消失 | 高 | `GameController.cs:41,6694-6801` | |
+| BQ-2 | ReputationSystemステート（テリトリー別評判値）がセーブされない | 高 | `GameController.cs:42,6694-6801` | |
+| BQ-3 | CompanionSystemステート（仲間/忠誠度/ステータス）がセーブされない。パーティ全消失 | 致命的 | `GameController.cs:43,6694-6801` | |
+| BQ-4 | EncyclopediaSystemステート（モンスター討伐数/発見ティア）がセーブされない | 中 | `GameController.cs:44,6694-6801` | |
+| BQ-5 | DeathLogSystemステート（死亡記録/統計）がセーブされない | 中 | `GameController.cs:45,6694-6801` | |
+| BQ-6 | OathSystemステート（誓約/盟約進捗）がセーブされない | 中 | `GameController.cs:46,6694-6801` | |
+| BQ-7 | SkillTreeSystemステート（習得スキル/パッシブ）がセーブされない。スキルツリー進捗全消失 | 致命的 | `GameController.cs:47,6694-6801` | |
+| BQ-8 | BaseConstructionSystemステート（建設済み建物/アップグレード）がセーブされない。拠点建設全消失 | 致命的 | `GameController.cs:48,6694-6801` | |
+| BQ-9 | InvestmentSystemステート（投資記録/リターン）がセーブされない | 中 | `GameController.cs:49,6694-6801` | |
+| BQ-10 | GridInventorySystemステート（グリッドレイアウト）がセーブされない | 中 | `GameController.cs:50,6694-6801` | |
+| BQ-11 | NpcMemorySystemステート（NPC記憶/知識）がセーブされない | 中 | `GameController.cs:54,6694-6801` | |
+| BQ-12 | RelationshipSystemステート（NPC間関係値）がセーブされない | 中 | `GameController.cs:55,6694-6801` | |
+| BQ-13 | ItemIdentificationSystemステート（アイテム識別状態）がセーブされない | 低 | `GameController.cs:56,6694-6801` | |
+| BQ-14 | DungeonEcosystemSystemステート（生態系状態）がセーブされない | 中 | `GameController.cs:57,6694-6801` | |
+| BQ-15 | PetSystemステート（ペット名簿/ステータス）がセーブされない。全ペット消失 | 致命的 | `GameController.cs:58,6694-6801` | |
+| BQ-16 | MerchantGuildSystemステート（ギルドランク/進捗）がセーブされない | 中 | `GameController.cs:59,6694-6801` | |
+| BQ-17 | InscriptionSystemステート（刻印ルーン/効果）がセーブされない | 中 | `GameController.cs:60,6694-6801` | |
+| BQ-18 | FactionWarSystemステート（派閥戦争/領土）がセーブされない | 中 | `GameController.cs:61,6694-6801` | |
+| BQ-19 | TerritoryInfluenceSystemステート（テリトリー影響力）がセーブされない | 中 | `GameController.cs:62,6694-6801` | |
+| BQ-20 | ProficiencySystemステート（武器/スキル熟練度）がセーブされない | 中 | `GameController.cs:65,6694-6801` | |
+| BQ-21 | DungeonShortcutSystemステート（発見済みショートカット）がセーブされない | 中 | `GameController.cs:66,6694-6801` | |
+| BQ-22 | SmithingSystemステート（鍛冶レシピ/進捗）がセーブされない | 中 | `GameController.cs:67,6694-6801` | |
+| BQ-23 | AchievementSystemステート（解除済み実績）がセーブされない。実績がロード時にリセット | 高 | `GameController.cs:68,6694-6801` | |
+| BQ-24 | TutorialSystemステート（完了済みチュートリアルステップ）がセーブされない。毎回チュートリアル再表示 | 高 | `GameController.cs,SmithingSystem.cs:167-173` | |
+
+---
+
+## カテゴリBR: セーブデータ永続性 — プレイヤー/ゲームステート（6件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BR-1 | 病気タイプ/残りターン（_playerDisease/_diseaseRemainingTurns）がセーブされない。ロード時に病気が自動治癒 | 致命的 | `GameController.cs:90-93,6694-6801` | |
+| BR-2 | 戦闘スタンス（_playerStance）がセーブされない。ロード時にBalancedにリセット | 中 | `GameController.cs:87,6694-6801` | |
+| BR-3 | NG+ティア（_ngPlusTier）とゲームクリア状態（_hasCleared）がセーブされない。NG+進行が追跡不可 | 致命的 | `GameController.cs:155-158,6694-6801` | |
+| BR-4 | 無限ダンジョンモード（_infiniteDungeonMode）とキル数（_infiniteDungeonKills）がセーブされない。100キル実績進捗消失 | 高 | `GameController.cs:164-167,6694-6801` | |
+| BR-5 | ダンジョン特性（_currentDungeonFeature）がセーブされない。敵密度/ルート倍率/罠確率がリセット | 高 | `GameController.cs:78,6694-6801` | |
+| BR-6 | Player.HasPrayedTodayがセーブされない。毎日の祈りフラグがリセット | 中 | `Player.cs:303,GameController.cs:6694-6801` | |
+
+---
+
+## カテゴリBS: Engine層戦闘計算不整合（20件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BS-1 | 武器ダメージレンジ（Weapon.DamageRange）が物理ダメージ計算で完全に無視される。EffectiveStats.PhysicalAttackのみ使用 | 致命的 | `Engine/Combat/CombatSystem.cs:154` | |
+| BS-2 | 両手武器ダメージボーナスが未実装。IsTwoHandedプロパティがダメージ計算で参照されない | 高 | `Engine/Combat/CombatSystem.cs:140-213` | |
+| BS-3 | 武器熟練度がSkillMultiplierとして誤適用（攻撃力ボーナスではなくスキル倍率に適用） | 中 | `Engine/Combat/CombatSystem.cs:195` | |
+| BS-4 | 防御貫通（Armor Penetration）が完全未実装。防御は常にdefensePower×0.5の固定割合 | 高 | `Engine/Combat/DamageCalculator.cs:35` | |
+| BS-5 | クリティカルダメージ倍率が1.5f固定。設計書の「特化ビルドで最大×2.5」が不可能 | 高 | `Engine/Combat/CombatSystem.cs:199` | |
+| BS-6 | 防御計算が物理0.5/魔法0.3のハードコード定数。GameConstantsに未定義 | 中 | `Engine/Combat/DamageCalculator.cs:35,82` | |
+| BS-7 | 再生（Regeneration）回復量がhealPerTick=3固定。MND/INTスケーリングなし | 中 | `Engine/StatusEffectSystem.cs:286` | |
+| BS-8 | レベルによるダメージスケーリングが完全未実装。PhysicalDamageParams/MagicalDamageParamsにレベルフィールドなし | 高 | `Engine/Combat/DamageCalculator.cs,CombatSystem.cs` | |
+| BS-9 | WeaponCritBonus/SkillCritBonusが常に0にハードコード。武器固有クリティカルボーナスが無効 | 高 | `Engine/Combat/CombatSystem.cs:293-294` | |
+| BS-10 | ダメージ分散範囲が0.9-1.1固定。名前付き定数未定義 | 低 | `Engine/Combat/DamageCalculator.cs:39,86` | |
+| BS-11 | 盾ブロック/パリィメカニクスがDamageCalculatorに未実装。Shield.BlockChanceが参照されない | 高 | `Engine/Combat/DamageCalculator.cs:192` | |
+| BS-12 | 防具タイプ別物理耐性なし。重装/軽装が同じ防御計算 | 中 | `Engine/Combat/DamageCalculator.cs:32` | |
+| BS-13 | 回復魔法の威力がBaseMpCost×3固定。MND/INTスケーリングなし | 高 | `Engine/Magic/SpellCastingSystem.cs:362-363` | |
+| BS-14 | 呪文成功率にキャスターステータス（INT/MND）が反映されない。SpellParser固定値のみ | 高 | `Engine/Magic/SpellCastingSystem.cs:161` | |
+| BS-15 | DoTダメージ（毒2%/猛毒5%）がハードコード。毒源による威力差なし | 中 | `Engine/StatusEffectSystem.cs:26,41` | |
+| BS-16 | 攻撃者/防御者のレベル差によるダメージスケーリングなし | 中 | `Engine/Combat/DamageCalculator.cs,CombatSystem.cs` | |
+| BS-17 | 武器の属性ダメージ増強未適用。Weapon.Elementは攻撃シグネチャにのみ使用 | 中 | `Engine/Combat/CombatSystem.cs:196` | |
+| BS-18 | 武器攻撃速度（AttackSpeed）がダメージ分散に影響しない | 低 | `Engine/Combat/DamageCalculator.cs` | |
+| BS-19 | オフハンド武器ダメージが未計算。二刀流時にメインハンドのみ処理 | 高 | `Engine/Combat/CombatSystem.cs:154` | |
+| BS-20 | 武器射程（Weapon.Range）がダメージ計算で無視。近接武器が任意距離で全ダメージ | 低 | `Engine/Combat/CombatSystem.cs` | |
+
+---
+
+## カテゴリBT: アイテム生成・エンチャント・クラフト不整合（17件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BT-1 | GenerateRandomEquipment()が4種のみ生成（IronSword/Dagger/LeatherArmor/WoodenShield）。Greatsword/BattleAxe/Spear等10+装備が生成不可 | 致命的 | `ItemFactory.cs:865-874` | |
+| BT-2 | GenerateRandomConsumable()が4種のみ生成。8+巻物/7+ポーション（Fireball/Lightning/Strength/Invisibility等）が生成不可 | 致命的 | `ItemFactory.cs:910-919` | |
+| BT-3 | Scroll.Use()のswitchで3種（Freeze/Summon/Return）がdefaultに落ち「何も起こらなかった」を返す | 高 | `Consumables.cs:256-319` | |
+| BT-4 | レアリティスケーリングが弱すぎ。Depth 1とDepth 100のLegendary確率が同じ5%上限 | 中 | `ItemFactory.cs:848-861` | |
+| BT-5 | エンチャントがEquipmentItemに実際に保存されない。Enchant()がsuccessを返すが**アイテムオブジェクトを変更しない** | 致命的 | `EnchantmentSystem.cs:139,Equipment.cs:60-76` | |
+| BT-6 | エンチャント種別制限なし。ダメージエンチャント（FireDamage等）が防具に適用可。Lifestealが防具に適用可 | 高 | `EnchantmentSystem.cs:128-134` | |
+| BT-7 | 8エンチャント種（Lifesteal/ManaSteal/ParalysisChance/ExpBoost/DropBoost/CriticalBoost/SpeedBoost/DefenseBoost）の効果計算が未実装（return 0） | 致命的 | `EnchantmentSystem.cs:186-206` | |
+| BT-8 | エンチャント除去/置換メソッドが存在しない。RemoveEnchantment()/ReplaceEnchantment()なし | 高 | `EnchantmentSystem.cs:1-209` | |
+| BT-9 | 複数エンチャント非対応。同一装備に2つ以上のエンチャントを持てない | 中 | `Equipment.cs:60-76` | |
+| BT-10 | クラフトレシピが参照する`material_coal`がItemDefinitionsに定義されていない。鋼鉄の剣がクラフト不可 | 致命的 | `CraftingSystem.cs:275,ItemFactory.cs:1159-1260` | |
+| BT-11 | クラフトにスキル/ツール/職業要件なし。全職業が全アイテムをクラフト可能 | 中 | `CraftingSystem.cs:92-111` | |
+| BT-12 | ItemFactory.GenerateLoot()がDropTableSystemを使用しない。ボスドラゴンがゴブリンと同じランダムアイテムをドロップ | 致命的 | `ItemFactory.cs:950-969` | |
+| BT-13 | 非人型敵（Dragon/Undead/Demon）がゴールドをドロップしない。Humanoidのみゴールド生成 | 高 | `DropTableSystem.cs:188` | |
+| BT-14 | 宝箱システム（TreasureChest/ChestGeneration）が存在しない。ダンジョン宝箱のアイテム生成不可 | 高 | リポジトリ全体 | |
+| BT-15 | 強化レベルの上限検証なし。Legendary生成でEnhancementLevel=9が可能だが上限チェックなし | 低 | `ItemFactory.cs:879-886` | |
+| BT-16 | 未識別アイテムのUnidentifiedNameが設定されない。IsIdentified=falseだが未識別名なし | 中 | `ItemFactory.cs:888-890` | |
+| BT-17 | 呪いアイテム率の計算式が不適切。Math.Min(5+depth*2,30)でdepth=13で31→30にclamp | 低 | `ItemFactory.cs:892-896` | |
+
+---
+
+## カテゴリBU: 時間・デイリー処理・チュートリアル・実績不整合（17件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BU-1 | 日変更検出メカニズムが存在しない。GameTime.Dayの変化を検出するパターンなし | 致命的 | `GameController.cs:2125+` | |
+| BU-2 | ProcessReligionDailyTick()が定義済みだが**一度も呼び出されない**。信仰減衰/背教呪い/祈り日数が機能しない | 高 | `GameController.cs:4882` | |
+| BU-3 | PetSystem.TickHunger()が一度も呼び出されない。ペットの空腹/忠誠度減衰が機能しない | 中 | `GameController.cs:58,PetSystem.cs:112` | |
+| BU-4 | GameTimeのStartYear/StartMonth/StartDay/StartHour/StartMinuteがSaveDataに含まれない。ロード時にデフォルト値にリセット | 中 | `GameTime.cs:52-64,SaveData.cs:241-244` | |
+| BU-5 | コンパニオンの忠誠度減衰/空腹メカニクスが未実装。戦闘時のみ処理される | 中 | `CompanionSystem.cs,GameController.cs:1796` | |
+| BU-6 | 施設/ショップの営業時間チェックなし。TimeOfDaySystemが施設可用性に接続されていない | 低 | `WorldMapSystem.cs:372` | |
+| BU-7 | NPC行動スケジュールが600ターンごとの固定間隔で更新。時間帯変更との連動なし | 中 | `GameController.cs:2313-2320` | |
+| BU-8 | 天候システムの日次リセットなし。300ターンごとの固定間隔で変化 | 低 | `GameController.cs:2329-2337` | |
+| BU-9 | TurnCountとGameTime.TotalTurnsの二重追跡。同期保証メカニズムなし | 低 | `GameController.cs:191-192` | |
+| BU-10 | DifficultySettings.ExpMultiplier（0.6～1.5）が経験値獲得に適用されない。GoldMultiplierは適用済み | 高 | `GameController.cs:1540,DifficultySettings.cs:18-42` | |
+| BU-11 | AchievementSystemステートがセーブされない（BQ-23と同根）。実績解除がセッション間で消失 | 高 | `GameController.cs:68,1727,2357-2359` | |
+| BU-12 | TutorialSystemステートがセーブされない（BQ-24と同根）。完了済みチュートリアルが毎回再表示 | 高 | `SmithingSystem.cs:167-173` | |
+| BU-13 | チュートリアル個別スキップ機能なし。IsEnabled=falseで全無効のみ。個別ステップのスキップ不可 | 中 | `SmithingSystem.cs:92,140-152` | |
+| BU-14 | 難易度設定がゲーム中に制限なく変更可能。SetDifficulty()にターン数/ダンジョン状態のバリデーションなし | 中 | `GameController.cs:3228-3233` | |
+| BU-15 | EncyclopediaSystemの発見進捗がセーブされない（BQ-4と同根）。モンスター討伐数が消失 | 中 | `GameController.cs:44,7092` | |
+| BU-16 | DeathLogSystemの死亡記録がセーブされない（BQ-5と同根）。メタ統計が消失 | 中 | `GameController.cs:45,DeathLogSystem.cs:42-79` | |
+| BU-17 | 時間ベースのステータス効果期限切れ未実装。「日没まで持続」等の効果パターンなし | 低 | `StatusEffect.cs,TimeOfDaySystem.cs` | |
+
+---
+
 ## 全体集計
 
 | カテゴリ | 致命的 | 高 | 中 | 低 | 設計課題 | 合計 |
@@ -862,7 +983,12 @@
 | **BN: NPC関係性・好感度** | **1** | **2** | **1** | **0** | **0** | **4** |
 | **BO: RelationshipSystem未使用** | **1** | **0** | **0** | **0** | **0** | **1** |
 | **BP: 価格計算の重複** | **0** | **1** | **1** | **0** | **0** | **2** |
-| **合計** | **71** | **109** | **83** | **9** | **2** | **281** |
+| **BQ: セーブ永続性(システム)** | **4** | **4** | **14** | **1** | **0** | **24** |
+| **BR: セーブ永続性(プレイヤー)** | **2** | **2** | **2** | **0** | **0** | **6** |
+| **BS: Engine層戦闘計算** | **1** | **10** | **6** | **3** | **0** | **20** |
+| **BT: アイテム生成・エンチャント** | **6** | **4** | **4** | **3** | **0** | **17** |
+| **BU: 時間・チュートリアル・実績** | **1** | **4** | **6** | **3** | **0** | **17** |
+| **合計** | **85** | **133** | **115** | **19** | **2** | **365** |
 
 ---
 
@@ -872,10 +998,10 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（71件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（109件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（83件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（9件）: 軽微なテーマ不一致 → 余裕があれば修正
+1. **致命的**（85件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（133件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（115件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（19件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（2件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
@@ -950,3 +1076,10 @@
 - **BN: NPC関係性・好感度** — 好感度データがRebirth時に消失（CreateTransferData未呼出）、好感度変動が対話2箇所のみ、好感度ランクによる対話分岐なし
 - **BO: RelationshipSystem未使用** — 全メソッドが完全デッドコード（初期化/リセットのみ）
 - **BP: 価格計算の重複** — 3システムの価格メソッドがPriceFluctuationSystemに重複、エンカウント率がカルマ/評判無関係
+
+### 新規追加カテゴリの概要（第9回調査分）
+- **BQ: セーブデータ永続性（システムステート大量未保存）** — Karma/Reputation/Companion/SkillTree/Pet/Achievement/Encyclopedia/BaseConstruction等24システムのステートがSaveDataに含まれない。ロード時に全進捗消失
+- **BR: セーブデータ永続性（プレイヤー/ゲームステート）** — 病気状態/戦闘スタンス/NG+ティア/ゲームクリア状態/無限ダンジョンモード/ダンジョン特性がセーブされない
+- **BS: Engine層戦闘計算不整合** — 武器ダメージレンジ未参照/両手武器ボーナスなし/防御貫通なし/クリティカル上限固定/盾ブロックなし/オフハンド攻撃なし/レベルスケーリングなし
+- **BT: アイテム生成・エンチャント・クラフト不整合** — 装備生成が4種のみ/消耗品生成が4種のみ/エンチャント効果が実際に適用されない/8エンチャント種が効果ゼロ/クラフト素材定義欠落
+- **BU: 時間・デイリー処理・チュートリアル・実績** — 日変更検出なし/宗教デイリーティック未呼出/ペット空腹ティック未呼出/難易度ExpMultiplier未適用/実績セーブなし/チュートリアルスキップ不可
