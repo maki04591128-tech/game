@@ -319,6 +319,98 @@
 
 ---
 
+## カテゴリAB: セーブデータ追加欠落（9件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AB-1 | `PetSystem`のペット状態（ID/名前/種類/レベル/経験値/空腹度/忠誠度/HP/騎乗状態）がセーブされない。ロード時にペット全消失 | 致命的 | `GameController.cs:6694-6801`, `PetSystem.cs` | |
+| AB-2 | `CombatStance`（戦闘構え）がセーブされない。ロード時にBalancedにリセット。攻撃/防御修正が失われる | 高 | `GameController.cs:87,6694-6801` | |
+| AB-3 | キャラクターの全`StatusEffects`（活性バフ/デバフとその残りターン数）がセーブされない。ロード時に全状態異常が消滅 | 致命的 | `Character.cs:79`, `GameController.cs:6694-6801` | |
+| AB-4 | `ProficiencySystem`の全12カテゴリ（武器/採掘/釣り/鍛冶/料理等）の習熟レベル・経験値がセーブされない | 致命的 | `GameController.cs:65,6694-6801`, `ProficiencySystem.cs` | |
+| AB-5 | `DiseaseSystem`の現在の病気種類と残りターン数（`_playerDisease`/`_diseaseRemainingTurns`）がセーブされない | 致命的 | `GameController.cs:90,2256-2293,6694-6801` | |
+| AB-6 | `BodyConditionSystem`の傷の状態（切り傷/打撲/穿刺傷/骨折/火傷とその回復ターン）がセーブされない | 高 | `BodyConditionSystem.cs:8-24`, `GameController.cs:6694-6801` | |
+| AB-7 | `Player.HasPrayedToday`フラグがセーブされない。ロード後に再度祈りが可能（1日1回制限が無効化） | 中 | `Player.cs:303`, `GameController.cs:6694-6801` | |
+| AB-8 | `WeaponProficiency`（武器熟練度）の個別武器種ごとのレベル/経験値がセーブされない | 高 | `WeaponProficiencySystem.cs`, `GameController.cs:6694-6801` | |
+| AB-9 | `Player.RestoreFromSave()`がThirst/Fatigue/Hygieneのパラメータを受け付けるが、LoadSaveData()から値が渡されず常にデフォルト100（最大値）でリセットされる | 致命的 | `Player.cs:698-724`, `GameController.cs:6810-6822` | |
+
+---
+
+## カテゴリAC: クエストシステムの不整合（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AC-1 | クエスト`quest_rat_hunt`の討伐対象`"enemy_rat"`がEnemyFactoryに存在しない。クエスト完了不可能 | 致命的 | `NpcSystem.cs:785-788`, `EnemyFactory.cs` | |
+| AC-2 | クエスト`quest_bandit_clear`の討伐対象`"enemy_bandit"`がEnemyFactoryに存在しない。クエスト完了不可能 | 致命的 | `NpcSystem.cs:801-804`, `EnemyFactory.cs` | |
+| AC-3 | クエスト`quest_herb_collect`の収集対象IDが`"item_herb"`だが、実際のアイテムIDは`"material_herb"`。ID不一致でクエスト完了判定が動作しない | 致命的 | `NpcSystem.cs:790-793`, `ItemFactory.cs` | |
+| AC-4 | クエスト目標のNPC参照が名前ベース（`"deliver_ore_marco"`/`"talk_elwen"`）でNPC IDベース（`"npc_xxx"`）と不一致。完了判定の整合性なし | 高 | `NpcSystem.cs:808,819` | |
+| AC-5 | クエスト目標のフロア参照（`"floor_forest_3"`/`"floor_coast_5"`/`"boss_mine_golem"`/`"floor_ruins_10"`）が検証不能。対応するフロア構造の実在が不明 | 中 | `NpcSystem.cs:797,813,825,841` | |
+
+---
+
+## カテゴリAD: 実績・エンディングシステムの不整合（3件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AD-1 | `AchievementSystem`に実績が**1件も登録されていない**。`Register()`が一度も呼ばれず、インフラだけが存在。Unlock()は動作するが実績一覧が空 | 致命的 | `AchievementSystem.cs:42-46`, `GameController.cs:68` | |
+| AD-2 | `DetermineEnding()`の`allTerritoriesVisited`パラメータが**常にfalse**でハードコード。放浪者エンディング（Wanderer）が達成不可能 | 致命的 | `GameController.cs:7792-7795`, `MultiEndingSystem.cs:54` | |
+| AD-3 | 実績ボーナス効果（`"stat_boost_small"=1`/`"gold_bonus"=50`/`"exp_multiplier"=10`等）が定義済みだが、実績未登録のためCalculateNextPlayBonus()が常に0を返す到達不能コード | 中 | `AchievementSystem.cs:86-95` | |
+
+---
+
+## カテゴリAE: マップ生成・タイルの不整合（7件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AE-1 | `TileType.DeepWater`/`Lava`/`Pit`/`Tree`の4種がプロパティ定義済みだがダンジョン生成で一切配置されない。遭遇不可能な地形 | 高 | `DungeonGenerator.cs`, `Tile.cs` | |
+| AE-2 | `TileType.Altar`が祠部屋に配置されるが、GameControllerにインタラクションハンドラなし。踏んでも何も起こらない | 致命的 | `RoomCorridorGenerator.cs:487`, `GameController.cs:1406-1430` | |
+| AE-3 | `TileType.Fountain`が通常部屋に50%確率で配置されるが、インタラクションハンドラなし。踏んでも何も起こらない | 致命的 | `RoomCorridorGenerator.cs:197`, `GameController.cs` | |
+| AE-4 | `RoomType.Library`/`Prison`/`Storage`の3種が定義済みだが生成ロジックなし。ダンジョンに出現しない | 高 | `Tile.cs:531-577`, `DungeonGenerator.cs` | |
+| AE-5 | `FeaturePlacer.cs`（秘密部屋生成）がコードベース全体で一度もインスタンス化されない。`RoomType.Secret`の部屋が完全に無効化 | 高 | `FeaturePlacer.cs`, 全ソース | |
+| AE-6 | `GameRenderer.TileColors`辞書に21種のTileType（DeepWater/Lava/Pit/Pillar/RuneInscription/SecretDoor/Grass/Tree/全SymbolMap10種/NpcTrainer/NpcLibrarian）のカラーマッピングがない | 高 | `GameRenderer.cs:35-65` | |
+| AE-7 | `EnvironmentalCombatSystem`のSurfaceType（Water/Fire/Poison等）とTileType（Lava/Water/DeepWater）が未接続。溶岩タイルを踏んでも火炎ダメージが適用されない | 高 | `EnvironmentalCombatSystem.cs`, `GameController.cs` | |
+
+---
+
+## カテゴリAF: ランダムイベントの不整合（3件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AF-1 | `RandomEventType.NpcEncounter`（NPC遭遇）がイベントプールに登録済みだがResolveメソッドが存在しない。イベント発生時にハンドラなし | 致命的 | `WorldMapSystem.cs:729,749` | |
+| AF-2 | `RandomEventType.MerchantEncounter`（商人遭遇）が同様にResolveメソッドなし | 致命的 | `WorldMapSystem.cs:730,761` | |
+| AF-3 | `RandomEventType.AmbushEvent`（待ち伏せ）が同様にResolveメソッドなし。イベントタイプからハンドラへのディスパッチswitch文自体が存在しない | 致命的 | `WorldMapSystem.cs:733,771` | |
+
+---
+
+## カテゴリAG: ギャンブルシステムの不整合（2件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AG-1 | `GamblingSystem.GetLuckBonus()`が定義済み（LUK1あたり0.5%、上限5%）だが**一度も呼び出されない**。高LUCKキャラでもギャンブル勝率に影響なし | 高 | `GamblingSystem.cs:40-44` | |
+| AG-2 | カードゲーム（ハイロー）の引き分けが「負け」扱い。他のゲーム（サイコロ/丁半）は50%勝率だがカードは約48%で期待値0.912（8.8%のハウスエッジ）。他ゲームの5%と比較して不公平 | 中 | `GamblingSystem.cs:24-29` | |
+
+---
+
+## カテゴリAH: Engine層のEnum/計算不整合（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AH-1 | `ResourceSystem.GetClassHpBonus()`/`GetClassMpBonus()`がCore層と異なるクラス名（Warrior/Berserker/Summoner）を使用。Fighter/Knight/Thief/Ranger/Bard/Alchemistの6クラスがデフォルト値にフォールスルーし不正なHP/MP成長率 | 致命的 | `ResourceSystem.cs:30-102` | |
+| AH-2 | `CalculateExpGain()`で`param.PlayerLevel`のゼロチェックがない。PlayerLevel=0時に`DivideByZeroException`でクラッシュ | 致命的 | `ResourceSystem.cs:309` | |
+| AH-3 | `SpellCastingSystem`の三項演算子が常にMagicalを返す: `element == Element.None ? DamageType.Magical : DamageType.Magical`。純粋/物理ダメージ呪文が作成不可 | 高 | `SpellCastingSystem.cs:369` | |
+| AH-4 | `Character.GetResistanceAgainst()`が常に0fを返す。種族の属性耐性（火耐性/毒耐性等）がダメージ計算に反映されない | 高 | `Character.cs:105` | |
+| AH-5 | `Character.ConsumeMp()`に入力検証なし。負の値を渡すとMPが増加する（`ConsumeMp(-50)`でMP+50）。セキュリティリスク | 高 | `Character.cs:119` | |
+
+---
+
+## カテゴリAI: ダメージ計算の不整合（2件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AI-1 | `DamageType.Pure`と`DamageType.Healing`がswitch文のdefaultケース（防御力0）にフォールスルー。明示的な処理がなく挙動が曖昧 | 中 | `Character.cs:85-90` | |
+| AI-2 | 経験値計算で`Math.Pow(1.5, 98)`がint.MaxValueを超える可能性。レベル99以上の経験値テーブルがオーバーフロー | 中 | `ResourceSystem.cs:280-287` | |
+
+---
+
 ## 全体集計
 
 | カテゴリ | 致命的 | 高 | 中 | 低 | 設計課題 | 合計 |
@@ -342,15 +434,23 @@
 | Q: タイルドキュメント | 0 | 0 | 1 | 0 | 0 | 1 |
 | R: 建設・投資 | 0 | 2 | 0 | 0 | 0 | 2 |
 | S: ステータスシステム | 0 | 0 | 2 | 0 | 0 | 2 |
-| **T: Enum未使用値** | **0** | **1** | **2** | **0** | **0** | **3** |
-| **U: 未使用食材タイプ** | **0** | **1** | **0** | **0** | **0** | **1** |
-| **V: 魔法・呪文システム** | **2** | **2** | **2** | **0** | **0** | **6** |
-| **W: クラフト・料理素材** | **5** | **0** | **0** | **0** | **0** | **5** |
-| **X: ポーション効果値** | **0** | **4** | **0** | **0** | **0** | **4** |
-| **Y: 種族特性の未実装** | **4** | **0** | **2** | **0** | **0** | **6** |
-| **Z: 背景・コンパニオン** | **1** | **1** | **0** | **0** | **0** | **2** |
-| **AA: トラップ・GC不整合** | **1** | **0** | **1** | **0** | **0** | **2** |
-| **合計** | **24** | **33** | **36** | **4** | **1** | **98** |
+| T: Enum未使用値 | 0 | 1 | 2 | 0 | 0 | 3 |
+| U: 未使用食材タイプ | 0 | 1 | 0 | 0 | 0 | 1 |
+| V: 魔法・呪文システム | 2 | 2 | 2 | 0 | 0 | 6 |
+| W: クラフト・料理素材 | 5 | 0 | 0 | 0 | 0 | 5 |
+| X: ポーション効果値 | 0 | 4 | 0 | 0 | 0 | 4 |
+| Y: 種族特性の未実装 | 4 | 0 | 2 | 0 | 0 | 6 |
+| Z: 背景・コンパニオン | 1 | 1 | 0 | 0 | 0 | 2 |
+| AA: トラップ・GC不整合 | 1 | 0 | 1 | 0 | 0 | 2 |
+| **AB: セーブデータ追加欠落** | **5** | **3** | **1** | **0** | **0** | **9** |
+| **AC: クエストシステム** | **3** | **1** | **1** | **0** | **0** | **5** |
+| **AD: 実績・エンディング** | **2** | **0** | **1** | **0** | **0** | **3** |
+| **AE: マップ生成・タイル** | **2** | **4** | **0** | **0** | **1** | **7** |
+| **AF: ランダムイベント** | **3** | **0** | **0** | **0** | **0** | **3** |
+| **AG: ギャンブルシステム** | **0** | **1** | **1** | **0** | **0** | **2** |
+| **AH: Engine層Enum/計算** | **2** | **3** | **0** | **0** | **0** | **5** |
+| **AI: ダメージ計算** | **0** | **0** | **2** | **0** | **0** | **2** |
+| **合計** | **41** | **45** | **41** | **4** | **2** | **133** |
 
 ---
 
@@ -360,11 +460,11 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（24件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（33件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（36件）: 違和感・バランス問題 → 選択的に修正
+1. **致命的**（41件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（45件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（41件）: 違和感・バランス問題 → 選択的に修正
 4. **低**（4件）: 軽微なテーマ不一致 → 余裕があれば修正
-5. **設計課題**（1件）: アーキテクチャ改善 → 長期検討
+5. **設計課題**（2件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
 - **J: 経験値カーブ** — 1.5倍指数関数により実質Lv20が上限。推奨レベルが到達不能
@@ -387,3 +487,13 @@
 - **Y: 種族特性の未実装** — スライム分裂/デーモン魔力吸収/堕天使浮遊/スライム装備制限が定義のみで不活性
 - **Z: 背景・コンパニオン** — 全10職歴の初期装備未適用、CompanionSystem未接続
 - **AA: トラップ・GC不整合** — TriggerTrap()に5種のトラップケース欠落、14箇所のマジックナンバー
+
+### 新規追加カテゴリの概要（第4回調査分）
+- **AB: セーブデータ追加欠落** — ペット/戦闘構え/状態異常/習熟度/病気/傷/祈りフラグ/武器熟練度の9システムがセーブ非対応。Thirst/Fatigue/Hygieneが常に最大値でリセット
+- **AC: クエストシステム** — enemy_rat/enemy_banditがEnemyFactory未定義でクエスト完了不可、item_herbのID不一致、NPC名/ID混在
+- **AD: 実績・エンディング** — AchievementSystemに実績0件登録、放浪者エンディングのパラメータがfalseハードコードで達成不可能
+- **AE: マップ生成・タイル** — Altar/Fountainにインタラクションなし、Library/Prison/Storage部屋未生成、FeaturePlacer未使用、21種のTileColorマッピング欠落
+- **AF: ランダムイベント** — NpcEncounter/MerchantEncounter/AmbushEventの3イベントにResolveハンドラなし
+- **AG: ギャンブルシステム** — GetLuckBonus()未呼び出し、カードゲームのハウスエッジが他ゲームの約2倍
+- **AH: Engine層Enum/計算** — ResourceSystemがCore層と異なるクラス名使用（6クラスのHP/MP成長率が不正）、PlayerLevel=0でゼロ除算、呪文DamageType三項演算子が常にMagical
+- **AI: ダメージ計算** — DamageType.Pure/Healingの明示的処理なし、レベル99+の経験値テーブルオーバーフロー
