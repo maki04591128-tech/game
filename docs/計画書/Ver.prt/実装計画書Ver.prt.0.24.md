@@ -411,6 +411,87 @@
 
 ---
 
+## カテゴリAJ: デッドコードシステム（3件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AJ-1 | `MerchantGuildSystem`が完全なデッドコード。初期化（GC:59）とReset（GC:3153）のみで、JoinGuild()/EstablishRoute()/ExecuteTrade()が一度も呼ばれない。交易システムが完全に無機能 | 高 | `MerchantGuildSystem.cs`, `GameController.cs:59,3153` | |
+| AJ-2 | `TerritoryInfluenceSystem`が完全なデッドコード。初期化（GC:62）とReset（GC:3147）のみで、Initialize()/ModifyInfluence()/GetDominantFaction()が一度も呼ばれない | 高 | `TerritoryInfluenceSystem.cs`, `GameController.cs:62,3147` | |
+| AJ-3 | `ModLoaderSystem`が完全なデッドコード。初期化（GC:72）のみでLoadMod()/Validate()が呼ばれない。ファイルI/Oも未実装でモッド読み込みは機能しない | 中 | `ModLoaderSystem.cs`, `GameController.cs:72` | |
+
+---
+
+## カテゴリAK: カルマ・無限ダンジョンの永続性欠落（3件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AK-1 | `KarmaSystem`のカルマ値・履歴がセーブされない。カルマはショップ価格（GC:5482-5485）・NPC態度・闇市場アクセスに影響するが、セーブ/ロードで全消失 | 致命的 | `GameController.cs:6694-6800(CreateSaveData)`, `KarmaSystem.cs` | |
+| AK-2 | `_infiniteDungeonMode`フラグと`_infiniteDungeonKills`がセーブされない。無限ダンジョン進行中にセーブ→ロードするとモード解除され通常ダンジョンに戻る | 高 | `GameController.cs:164,167,6694-6800` | |
+| AK-3 | `BaseConstructionSystem`の建設済み施設データがセーブされない。建設した7種の施設（キャンプ/鍛冶場/農場等）がロード時に全消失 | 高 | `BaseConstructionSystem.cs`, `GameController.cs:48,6694-6800` | |
+
+---
+
+## カテゴリAL: 天候効果の未適用（3件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AL-1 | `WeatherSystem.GetElementDamageModifier()`/`GetRangedHitModifier()`が戦闘ダメージ計算から呼ばれない。雨天の雷+20%/火-20%、嵐の遠距離-30%等が全て無効 | 致命的 | `WeatherSystem.cs:102,105`, `GameController.cs:1874-1885` | |
+| AL-2 | `WeatherSystem.GetMovementCostModifier()`が移動処理から呼ばれない。吹雪の移動コスト+50%、雨の+10%等が全て無効 | 高 | `WeatherSystem.cs:105`, `GameController.cs` | |
+| AL-3 | `WeatherSystem.GetSightModifier()`が視界計算から呼ばれない。霧の視界50%低下、嵐の40%低下が無効。視界は常にComputeFov(12)の固定値 | 高 | `WeatherSystem.cs:90`, `GameController.cs:2224,2718` | |
+
+---
+
+## カテゴリAM: 釣り・採掘アイテムID不一致（4件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AM-1 | `FishingSystem`の全9種の魚ID（fish_common_1/fish_common_2/fish_medium_1等）がItemFactoryに未定義。釣り成功時にItemFactory.Create()が失敗しアイテム生成不可 | 致命的 | `FishingSystem.cs:22-42`, `ItemFactory.cs` | |
+| AM-2 | `GatheringSystem`の鉱石ID（ore_iron/ore_silver/ore_gold/ore_mithril/gem_rough）がItemFactoryに未定義。採掘成功時にアイテム生成不可。唯一存在する`material_iron_ore`とも異なるID | 致命的 | `GatheringSystem.cs:28-31`, `ItemFactory.cs` | |
+| AM-3 | `FishingSystem`の魚IDとGatheringSystemの魚IDが不一致。FishingSystemは`fish_common_1`、GatheringSystemは`fish_common`を使用 | 高 | `FishingSystem.cs:22-42`, `GatheringSystem.cs:38-41` | |
+| AM-4 | マップ上に釣りスポットが配置されない。DungeonFeatureGeneratorにWaterTileChanceが存在するが、水タイルへのインタラクション（釣り開始）がGameControllerに未実装 | 高 | `DungeonFeatureGenerator.cs`, `GameController.cs` | |
+
+---
+
+## カテゴリAN: ルーン学習・エンチャント永続性（4件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AN-1 | プレイヤーにKnownRunes/LearnedRunesフィールドが存在しない。RuneWordDatabase（54+ルーン語定義済み）をプレイヤーが学習する手段がない | 致命的 | `Player.cs`, `RuneWordDatabase.cs:176-183` | |
+| AN-2 | ルーン組み合わせシステム（SpellParser）がGameControllerに未接続。ルーンを組み合わせて呪文を作成するUIもメソッドもない | 高 | `SpellParser.cs`, `GameController.cs` | |
+| AN-3 | エンチャントデータがアイテムに永続化されない。Item.csにAppliedEnchantmentsフィールドがなく、セーブ/ロードでエンチャント情報が全消失 | 致命的 | `EnchantmentSystem.cs`, `Item.cs`, `SaveData.cs` | |
+| AN-4 | ソウルジェムがItemFactoryに定義されていない。EnchantmentSystemがソウルジェムを必要とするが、アイテムとして入手不可能 | 高 | `EnchantmentSystem.cs:98-106`, `ItemFactory.cs` | |
+
+---
+
+## カテゴリAO: ボスフロア・クエスト報酬の不整合（4件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AO-1 | ボスフロアで階段が制限されない。TryDescendStairs()にIsBossFloorチェックがなく、プレイヤーがボス戦をスキップして次の階に進める | 致命的 | `GameController.cs:2635-2683` | |
+| AO-2 | クエスト報酬のItemIdsが処理されない。QuestRewardにItemIds配列が定義済みだが、TurnInQuest()でGold/Experience/GuildPointsのみ処理されItemIdsは無視される | 致命的 | `NpcSystem.cs:434-456`, `GameController.cs:6333-6346` | |
+| AO-3 | クエスト報酬アイテム付与時にインベントリ容量チェックがない。報酬アイテムがインベントリ満杯時に消失する可能性 | 高 | `NpcSystem.cs:434-456` | |
+| AO-4 | `HasPrayedToday`の日次リセットが実装されていない。ProcessTurnEffects()に日替わりリセットコードがなく、祈りの1日1回制限が保持されない（AB-7と関連するが根本原因が異なる） | 高 | `Player.cs:303,317`, `GameController.cs:2125+` | |
+
+---
+
+## カテゴリAP: 建設システムの未接続（2件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AP-1 | `BaseConstructionSystem.Build()`メソッドが一度も呼ばれない。7種の施設（Camp/Workbench/Smithy/Storage/Farm/Barricade/Barracks）が建設不可能。GetRestHpRecoveryMultiplier()とGetCraftingSuccessBonus()のみ使用 | 致命的 | `BaseConstructionSystem.cs`, `GameController.cs:48,7287,7293` | |
+| AP-2 | `AmbientSoundSystem.GetCurrentAmbientSound()`（GC:7968）が一度も呼ばれない。9種のアンビエント音（Dungeon/Forest/Mountain等）が定義済みだが再生システムなし。`_currentAmbientSound`（GC:640）は設定されるが消費されない | 中 | `AmbientSoundSystem.cs`, `GameController.cs:640,2668,7968` | |
+
+---
+
+## カテゴリAQ: 環境パズル・ターンカウンタの不整合（2件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| AQ-1 | `EnvironmentalPuzzleSystem`の名前に反しパズルがダンジョン床に配置されない。NPC対話イベントとしてのみ動作し、探索型の環境パズルは存在しない | 中 | `EnvironmentalPuzzleSystem.cs`, `GameController.cs:7718-7734` | |
+| AQ-2 | `TurnCount`がint型で宣言。int.MaxValue（2,147,483,647）到達後にオーバーフローし、TurnCount%600==0等の全周期処理が破綻。GameTimeのモジュロ演算も負値で不正動作 | 中 | `GameController.cs:191`, `GameTime.cs:38` | |
+
+---
+
 ## 全体集計
 
 | カテゴリ | 致命的 | 高 | 中 | 低 | 設計課題 | 合計 |
@@ -442,15 +523,23 @@
 | Y: 種族特性の未実装 | 4 | 0 | 2 | 0 | 0 | 6 |
 | Z: 背景・コンパニオン | 1 | 1 | 0 | 0 | 0 | 2 |
 | AA: トラップ・GC不整合 | 1 | 0 | 1 | 0 | 0 | 2 |
-| **AB: セーブデータ追加欠落** | **5** | **3** | **1** | **0** | **0** | **9** |
-| **AC: クエストシステム** | **3** | **1** | **1** | **0** | **0** | **5** |
-| **AD: 実績・エンディング** | **2** | **0** | **1** | **0** | **0** | **3** |
-| **AE: マップ生成・タイル** | **2** | **4** | **0** | **0** | **1** | **7** |
-| **AF: ランダムイベント** | **3** | **0** | **0** | **0** | **0** | **3** |
-| **AG: ギャンブルシステム** | **0** | **1** | **1** | **0** | **0** | **2** |
-| **AH: Engine層Enum/計算** | **2** | **3** | **0** | **0** | **0** | **5** |
-| **AI: ダメージ計算** | **0** | **0** | **2** | **0** | **0** | **2** |
-| **合計** | **41** | **45** | **41** | **4** | **2** | **133** |
+| AB: セーブデータ追加欠落 | 5 | 3 | 1 | 0 | 0 | 9 |
+| AC: クエストシステム | 3 | 1 | 1 | 0 | 0 | 5 |
+| AD: 実績・エンディング | 2 | 0 | 1 | 0 | 0 | 3 |
+| AE: マップ生成・タイル | 2 | 4 | 0 | 0 | 1 | 7 |
+| AF: ランダムイベント | 3 | 0 | 0 | 0 | 0 | 3 |
+| AG: ギャンブルシステム | 0 | 1 | 1 | 0 | 0 | 2 |
+| AH: Engine層Enum/計算 | 2 | 3 | 0 | 0 | 0 | 5 |
+| AI: ダメージ計算 | 0 | 0 | 2 | 0 | 0 | 2 |
+| **AJ: デッドコードシステム** | **0** | **2** | **1** | **0** | **0** | **3** |
+| **AK: カルマ・無限D永続性** | **1** | **2** | **0** | **0** | **0** | **3** |
+| **AL: 天候効果の未適用** | **1** | **2** | **0** | **0** | **0** | **3** |
+| **AM: 釣り・採掘ID不一致** | **2** | **2** | **0** | **0** | **0** | **4** |
+| **AN: ルーン・エンチャント** | **2** | **2** | **0** | **0** | **0** | **4** |
+| **AO: ボスフロア・報酬** | **2** | **2** | **0** | **0** | **0** | **4** |
+| **AP: 建設・サウンド未接続** | **1** | **0** | **1** | **0** | **0** | **2** |
+| **AQ: パズル・ターンカウンタ** | **0** | **0** | **2** | **0** | **0** | **2** |
+| **合計** | **50** | **56** | **45** | **4** | **2** | **158** |
 
 ---
 
@@ -460,9 +549,9 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（41件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（45件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（41件）: 違和感・バランス問題 → 選択的に修正
+1. **致命的**（50件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（56件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（45件）: 違和感・バランス問題 → 選択的に修正
 4. **低**（4件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（2件）: アーキテクチャ改善 → 長期検討
 
@@ -497,3 +586,13 @@
 - **AG: ギャンブルシステム** — GetLuckBonus()未呼び出し、カードゲームのハウスエッジが他ゲームの約2倍
 - **AH: Engine層Enum/計算** — ResourceSystemがCore層と異なるクラス名使用（6クラスのHP/MP成長率が不正）、PlayerLevel=0でゼロ除算、呪文DamageType三項演算子が常にMagical
 - **AI: ダメージ計算** — DamageType.Pure/Healingの明示的処理なし、レベル99+の経験値テーブルオーバーフロー
+
+### 新規追加カテゴリの概要（第5回調査分）
+- **AJ: デッドコードシステム** — MerchantGuildSystem/TerritoryInfluenceSystem/ModLoaderSystemの3システムが完全なデッドコード。初期化・リセットのみで機能メソッド未呼び出し
+- **AK: カルマ・無限D永続性** — KarmaSystemのカルマ値（ショップ価格・NPC態度に影響）がセーブ非対応。無限ダンジョンモード・建設済み施設もロード時消失
+- **AL: 天候効果の未適用** — WeatherSystemの戦闘ダメージ修正/移動コスト修正/視界修正の3種がGameControllerから呼ばれず表示テキストのみ
+- **AM: 釣り・採掘ID不一致** — FishingSystemの全9魚/GatheringSystemの全5鉱石のIDがItemFactoryに未定義。釣り・採掘の成果物が生成不能
+- **AN: ルーン・エンチャント** — プレイヤーにルーン学習フィールドなし、エンチャントデータがItem/SaveDataに未永続化、ソウルジェムがItemFactory未定義
+- **AO: ボスフロア・報酬** — ボスフロアで階段制限なし（ボス戦スキップ可能）、クエスト報酬ItemIdsが処理されず消失
+- **AP: 建設・サウンド未接続** — BaseConstructionSystem.Build()未呼び出しで全施設建設不可、AmbientSoundの再生システムなし
+- **AQ: パズル・ターンカウンタ** — EnvironmentalPuzzleがNPC対話のみでダンジョン配置なし、TurnCountがintでオーバーフローリスク
