@@ -911,7 +911,96 @@
 
 ---
 
-## 全体集計
+## カテゴリBV: マップ生成・フロア遷移不整合（10件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BV-1 | PlaceStairs()で入口/ボス部屋がnullの場合に階段が生成されない。フォールバックなしでフロア進行不可 | 致命的 | `DungeonGenerator.cs:365-392` | |
+| BV-2 | IsReachable() BFSがトラップ/チェスト配置前に実行される。配置後に通路がブロックされる可能性あり | 高 | `DungeonGenerator.cs:414-456` | |
+| BV-3 | フロアキャッシュヒット時にプレイヤー位置が古いキャッシュ位置に復帰。初回訪問と再訪問の区別なし | 高 | `GameController.cs:650-663` | |
+| BV-4 | キャッシュ復元時に階段存在確認なし。StairsUpPosition/EntrancePosition両方nullの場合、フォールバック(5,5)が壁の可能性 | 致命的 | `GameController.cs:650-663` | |
+| BV-5 | 階段到達性リトライが階段位置を更新しない。回廊追加後も古い到達不可位置のまま | 中 | `DungeonGenerator.cs:395-408` | |
+| BV-6 | ConnectRooms()のMSTが入口/ボス部屋の接続を保証しない。rooms[0]が入口でない場合に未接続 | 中 | `DungeonGenerator.cs:286-339` | |
+| BV-7 | TryAscendStairs()がキャッシュマップのStairsDownPositionを使用。新フロアではなく古いマップの位置を参照 | 高 | `GameController.cs:2733` | |
+| BV-8 | モンスター配置が階段タイル上を除外しない。敵が階段をブロックする可能性 | 中 | `GameController.cs:908-922` | |
+| BV-9 | NewGame+/Rebirthでフロアキャッシュがクリアされない。前回プレイの古いフロアが再利用される | 中 | `GameController.cs:644-646` | |
+| BV-10 | PlaceStairs()で入口/ボス部屋null時の緊急フォールバック（任意歩行可能タイル）が未実装 | 低 | `DungeonGenerator.cs:373-392` | |
+
+---
+
+## カテゴリBW: 転生・NewGame+・エンディング不整合（7件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BW-1 | InitializeNewGamePlus()がキャリーオーバーを表示するが適用しない。レベル1/初期ゴールド/無装備にリセット | 高 | `GameController.cs:7154-7167` | |
+| BW-2 | NG+敵スケーリング乗数が計算されるが適用されない。EXPボーナスのみ使用でダンジョン生成時の敵強化なし | 高 | `GameController.cs:751-752,1666` | |
+| BW-3 | Wandererエンディングが到達不可能。allTerritoriesVisitedがfalse固定値でハードコード | 高 | `GameController.cs:7811,MultiEndingSystem.cs:54-61` | |
+| BW-4 | ExecuteRebirth()がGetRebirthEffect()を呼ばない。宗教による転生ボーナス（HP/MP/ステータス）が破棄 | 中 | `GameController.cs:4894-4896,3085-3100` | |
+| BW-5 | TransferDataにLevelフィールドなし。転生時に常にLv1に戻る。進捗保持の手段がない | 高 | `Player.cs:849-860` | |
+| BW-6 | TransferDataにGoldフィールドなし。転生時に全ゴールド消失。背景初期ゴールドのみ | 高 | `Player.cs:849-860,659` | |
+| BW-7 | テリトリー訪問追跡メカニズム不在。6テリトリーのうちどれを訪問したか記録する仕組みがない | 高 | `GameController.cs:7810,MultiEndingSystem.cs:101` | |
+
+---
+
+## カテゴリBX: インベントリ・装備・重量詳細不整合（10件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BX-1 | Inventory.Add()が重量制限を無視。UsedSlots < MaxSlotsのみチェックし、TotalWeight vs MaxWeightを検証しない | 高 | `Inventory.cs:35-56` | |
+| BX-2 | 盾が両手武器装備中でもオフハンドに装備可能。両手武器→盾装備禁止の逆チェックなし | 致命的 | `Equipment.cs:341-367` | |
+| BX-3 | 両手武器装備時にオフハンド装備が消失。previousItemとしてMainHandのみ返却、OffHandはインベントリに戻らない | 致命的 | `Equipment.cs:349-356,GameController.cs:2828-2839` | |
+| BX-4 | Armor.SpeedModifierが完全未適用。革鎧(0.95)/板金鎧(0.8)等の速度補正がStats.ActionSpeed計算に反映されない | 高 | `Equipment.cs:264,Stats.cs:33` | |
+| BX-5 | OnUnequip()が空実装。統計修正以外の永続的効果が解除されない。呪い装備のチェックのみ | 中 | `Equipment.cs:116-123` | |
+| BX-6 | 装備比較/プレビュー機能が完全未実装。装備前のステータス差分表示なし | 中 | リポジトリ全体 | |
+| BX-7 | 耐久度0以下の装備が装備可能。CanEquip()にDurability <= 0チェックなし | 高 | `Item.cs:246-249,Equipment.cs:83` | |
+| BX-8 | IsOverweightプロパティが存在するが効果なし。移動速度低下/スタミナ消費増/行動コスト増なし | 中 | `Player.cs:172` | |
+| BX-9 | アクセサリスロット（Neck/Ring1/Ring2/Back/Waist）5箇所が未テスト。全スロット動作確認なし | 低 | `Item.cs:7-11` | |
+| BX-10 | 両手武器装備時OffHandアイテムのOnUnequip()は呼ばれるが、返却処理のTODOコメントが放置 | 高 | `Equipment.cs:349-356` | |
+
+---
+
+## カテゴリBY: 魔法・呪文・言語システム詳細不整合（16件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BY-1 | ApplySpellHealがAllAlliesターゲットを無視。`graeda vinir`（全味方回復）がプレイヤーのみ回復 | 致命的 | `GameController.cs:4362-4377` | |
+| BY-2 | ApplySpellBuffがTargetTypeを一切チェックしない。`styrkja vinir`（全味方バフ）がプレイヤーのみバフ | 致命的 | `GameController.cs:4401-4438` | |
+| BY-3 | ApplySpellControlにAllAlliesケース欠落。`binda vinir`のハンドラなし | 致命的 | `GameController.cs:4441-4482` | |
+| BY-4 | ApplySpellSealがAllAlliesターゲットを無視。`banna vinir`が失敗 | 致命的 | `GameController.cs:4648-4679` | |
+| BY-5 | Object(hlutr)/Ground(jord)ターゲットタイプが全呪文適用で未処理。`opna hlutr`（解錠）が機能しない | 致命的 | `GameController.cs:4255-4314` | |
+| BY-6 | ApplySpellDetectがトラップのみ検出。オブジェクト検出(`sja hlutr`)と地面透視(`sja jord`)が未実装 | 高 | `GameController.cs:4485-4511` | |
+| BY-7 | ApplySpellUnlockがTargetTypeを未チェック。環境オブジェクトとの連携なし | 高 | `GameController.cs:4512-4535` | |
+| BY-8 | 回復呪文にSingleAlly/AllAllies/SingleEnemyのケースなし。Selfのみ処理 | 致命的 | `GameController.cs:4362-4377` | |
+| BY-9 | ApplySpellResurrectがTargetType未チェック。コンパニオン蘇生不可、プレイヤーのみ | 高 | `GameController.cs:4682-4702` | |
+| BY-10 | 敵の魔法耐性が未実装。全敵が全属性に0%耐性。炎敵も炎呪文で通常ダメージ | 高 | `Enemy.cs (GetResistanceAgainst未オーバーライド)` | |
+| BY-11 | 聖職者の初期単語に`vinir`（ターゲット修飾子）が含まれるが、単体では無効な呪文。効果語なしエラー | 高 | `Player.cs:682` | |
+| BY-12 | 巻物アイテム（scroll_fireball/scroll_teleport等）がダンジョンに配置されるが使用メカニズムなし | 高 | `DungeonGenerator.cs:687,742` | |
+| BY-13 | テレポート呪文が射程語を無視。`senda beinn`（5マス）も`senda heimr`（99マス）も同じランダム移動 | 中 | `GameController.cs:4536-4549` | |
+| BY-14 | 呪文熟練度が上限100に到達してもフィードバックなし。プレイヤーが上限認識不可 | 低 | `Player.cs:216-220` | |
+| BY-15 | SpellEffect.IsNoneの判定がPower==0 AND Range==0のみ。Power>0/Range=0の無効呪文が通過 | 中 | `SpellCastingSystem.cs:545-546` | |
+| BY-16 | 呪文巻物とLearnFromAncientBookの接続なし。巻物から言葉を学習するパスが未実装 | 中 | `GameController.cs,DungeonGenerator.cs` | |
+
+---
+
+## カテゴリBZ: クエスト・ギルド・派閥詳細不整合（15件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| BZ-1 | TurnInQuest()がアイテム報酬を配布しない。Gold/Experienceのみ処理し、ItemIdsフィールドを無視 | 致命的 | `NpcSystem.cs:434-456` | |
+| BZ-2 | メインクエストのGiverNpcIdが`guild_master`（接頭辞なし）。他の全クエストは`npc_*`接頭辞使用 | 高 | `NpcSystem.cs:539` | |
+| BZ-3 | Deliver/Talk/Escortクエストタイプのハンドラなし。UpdateObjective()がID一致のみで進捗を増加 | 致命的 | `NpcSystem.cs:412-431` | |
+| BZ-4 | クエスト前提条件/チェーンシステムなし。QuestDefinitionにPrerequisiteQuestIdsフィールドなし | 高 | `NpcSystem.cs:327-336` | |
+| BZ-5 | MerchantGuildSystemがセーブ/ロードされない。ギルド会員/交易ルートが消失（BQ-16と同根） | 高 | `GameController.cs:6694-7000` | |
+| BZ-6 | FactionWarSystemがセーブ/ロードされない。派閥戦争状態が消失（BQ-18と同根） | 高 | `GameController.cs:6694-7000` | |
+| BZ-7 | MerchantGuildSystemの全機能がGameControllerから未公開。ギルド加入/交易実行の手段なし | 致命的 | `GameController.cs:59` | |
+| BZ-8 | FactionWarSystemの全機能がGameControllerから未公開。派閥戦争参加/選択の手段なし | 致命的 | `GameController.cs:61` | |
+| BZ-9 | QuestState.Failedが定義済みだが一度もセットされない。クエスト失敗条件/タイムアウトなし | 中 | `Enums.cs:484-490,NpcSystem.cs` | |
+| BZ-10 | ギルドランクボーナスがショップ価格/NPC対話に適用されない。ランク上昇のゲームプレイ効果なし | 高 | `MerchantGuildSystem.cs:115-127` | |
+| BZ-11 | QuestBoardWindowの「完了タブ」がGetActiveQuests()を呼ぶ紛らわしい実装。機能的には正常 | 低 | `QuestBoardWindow.xaml.cs:148-192` | |
+| BZ-12 | QuestLogWindowが読み取り専用。クエスト受注/報告ボタンなし。QuestBoardWindow必須 | 中 | `QuestLogWindow.xaml.cs:42-79` | |
+| BZ-13 | MerchantGuild JoinGuild()が初期ランクNone（ランク無し）を設定。GuildSystemはCopper設定。一貫性なし | 中 | `MerchantGuildSystem.cs:46-50` | |
+| BZ-14 | 派閥選択がNPC行動/対話/クエスト可用性に影響しない。派閥選択が装飾のみ | 高 | `FactionWarSystem.cs:81-102` | |
+| BZ-15 | ゲームロード時にクエスト完了状態の検証なし。破損データがサイレントに復元される | 低 | `GameController.cs:6957-6962` | |
 
 | カテゴリ | 致命的 | 高 | 中 | 低 | 設計課題 | 合計 |
 |---------|--------|---|---|---|---------|------|
@@ -988,7 +1077,12 @@
 | **BS: Engine層戦闘計算** | **1** | **10** | **6** | **3** | **0** | **20** |
 | **BT: アイテム生成・エンチャント** | **6** | **4** | **4** | **3** | **0** | **17** |
 | **BU: 時間・チュートリアル・実績** | **1** | **4** | **6** | **3** | **0** | **17** |
-| **合計** | **85** | **133** | **115** | **19** | **2** | **365** |
+| **BV: マップ生成・フロア遷移** | **2** | **3** | **4** | **1** | **0** | **10** |
+| **BW: 転生・NG+・エンディング** | **0** | **6** | **1** | **0** | **0** | **7** |
+| **BX: インベントリ・装備・重量詳細** | **2** | **4** | **3** | **1** | **0** | **10** |
+| **BY: 魔法・呪文・言語詳細** | **6** | **5** | **3** | **1** | **0** | **16** |
+| **BZ: クエスト・ギルド・派閥詳細** | **4** | **5** | **3** | **2** | **0** | **15** |
+| **合計** | **99** | **156** | **129** | **24** | **2** | **423** |
 
 ---
 
@@ -998,10 +1092,10 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（85件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（133件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（115件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（19件）: 軽微なテーマ不一致 → 余裕があれば修正
+1. **致命的**（99件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（156件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（129件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（24件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（2件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
@@ -1083,3 +1177,10 @@
 - **BS: Engine層戦闘計算不整合** — 武器ダメージレンジ未参照/両手武器ボーナスなし/防御貫通なし/クリティカル上限固定/盾ブロックなし/オフハンド攻撃なし/レベルスケーリングなし
 - **BT: アイテム生成・エンチャント・クラフト不整合** — 装備生成が4種のみ/消耗品生成が4種のみ/エンチャント効果が実際に適用されない/8エンチャント種が効果ゼロ/クラフト素材定義欠落
 - **BU: 時間・デイリー処理・チュートリアル・実績** — 日変更検出なし/宗教デイリーティック未呼出/ペット空腹ティック未呼出/難易度ExpMultiplier未適用/実績セーブなし/チュートリアルスキップ不可
+
+### 新規追加カテゴリの概要（第10回調査分）
+- **BV: マップ生成・フロア遷移** — 階段配置失敗時のフォールバック欠落/キャッシュ復元時の位置検証なし/到達性チェックがトラップ配置前/NG+でフロアキャッシュ未クリア/モンスター階段上配置
+- **BW: 転生・NG+・エンディング** — NG+キャリーオーバー未適用/敵スケーリング未適用/Wandererエンディング到達不可能/テリトリー訪問追跡なし/TransferDataにLevel/Gold欠落/転生ボーナス未呼出
+- **BX: インベントリ・装備・重量詳細** — 重量制限未強制/盾+両手武器同時装備可/オフハンド装備消失/ArmorSpeedModifier未適用/壊れた装備が装備可能/過重量ペナルティなし/装備比較未実装
+- **BY: 魔法・呪文・言語詳細** — AllAlliesターゲット全4呪文種で無視/Object/Groundターゲット未処理/回復呪文Self以外未対応/敵魔法耐性ゼロ固定/巻物使用不可/テレポート射程語無視/初期語「vinir」単体無効
+- **BZ: クエスト・ギルド・派閥詳細** — クエストアイテム報酬未配布/Deliver/Talk/Escort未処理/前提条件なし/MerchantGuild・FactionWar完全未公開/ギルドランク効果なし/派閥選択装飾のみ/Failed状態未使用
