@@ -1002,6 +1002,103 @@
 | BZ-14 | 派閥選択がNPC行動/対話/クエスト可用性に影響しない。派閥選択が装飾のみ | 高 | `FactionWarSystem.cs:81-102` | |
 | BZ-15 | ゲームロード時にクエスト完了状態の検証なし。破損データがサイレントに復元される | 低 | `GameController.cs:6957-6962` | |
 
+---
+
+## カテゴリCA: セーブデータ・シリアライズ詳細（8件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CA-1 | PlayerSaveDataにThirst/Fatigue/Hygieneフィールドなし。RestoreFromSave()がデフォルト値100で常にリセット | 致命的 | `SaveData.cs:83-163`, `GameController.cs:6810-6822` | |
+| CA-2 | StatusEffects（毒/バフ/デバフ等）がSaveDataに含まれない。ロード時に全状態異常が消失 | 致命的 | `SaveData.cs(欠落)`, `GameController.cs:6694-6980` | |
+| CA-3 | SaveDataにVersionフィールドあるが一切使用されない。スキーマ変更時のマイグレーションパスなし | 高 | `SaveData.cs:11`, `SaveManager.cs:36-43` | |
+| CA-4 | セーブ操作がターン処理中に同期なしで実行可能。ProcessTurnEffects中のセーブで不整合な中間状態をキャプチャ | 致命的 | `GameController.cs:1185-1197`, `MainWindow.xaml.cs:830-841` | |
+| CA-5 | SaveManager.Save()にtry/catchなし。ディスク容量不足/権限エラーで未処理例外によりクラッシュ | 高 | `SaveManager.cs:22-31` | |
+| CA-6 | SaveManager.Load()で不正JSONのデシリアライズ失敗が未処理。破損セーブファイルでクラッシュの可能性 | 高 | `SaveManager.cs:36-43` | |
+| CA-7 | MultiSlotSaveSystemがSaveManagerと連携しない。スロット管理がインメモリのみでファイルI/Oと不整合 | 中 | `MultiSlotSaveSystem.cs:6-69` | |
+| CA-8 | FacingDirection（キャラクターの向き）がセーブに含まれない。ロード時にデフォルト方向にリセット | 中 | `SaveData.cs(欠落)`, `Character.cs` | |
+
+---
+
+## カテゴリCB: 状態異常・バフ・デバフ詳細（14件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CB-1 | StatusEffectType.Slow/Vulnerability/Invisibility/Blessing/Apostasyの5種がCombatSystem.CreateStatusEffectでnull返却。ファクトリメソッド欠落 | 致命的 | `CombatSystem.cs:343-370` | |
+| CB-2 | StatusEffectSystemにCreateSlow/CreateVulnerability/CreateInvisibility/CreateBlessing/CreateApostasyの5メソッドなし | 高 | `StatusEffectSystem.cs:19-295` | |
+| CB-3 | CureAllポーションが22種中9種のみ解除。「全てのデバフを解除」コメントと矛盾。Charm/Madness/Petrification/Fear/Sleep等13種が解除されない | 致命的 | `Consumables.cs:85-96` | |
+| CB-4 | Curse/Petrificationがint.MaxValue持続だが解除手段がCurseのみ（専用アイテム）。Petrificationの解除方法なし | 高 | `StatusEffectSystem.cs:174-228` | |
+| CB-5 | MonsterRaceSystem.IsStatusEffectImmune()がCombatSystem.TryApplyStatusEffect()で呼び出されない。ボス免疫が機能しない | 致命的 | `CombatSystem.cs:307-338`, `MonsterRaceSystem.cs:132` | |
+| CB-6 | 耐性チェックが最大95%キャップ。真の免疫（100%確定）と耐性（確率的）の区別なし | 中 | `StatusEffectSystem.cs:299-332` | |
+| CB-7 | 矛盾する効果（Haste+Slow、Strength+Weakness）が同時適用可能。相反効果の管理ロジックなし | 中 | `Character.cs:124-146` | |
+| CB-8 | 出血効果が「移動ごとにHP減少」設計だがTickStatusEffects()はターン単位のみ。移動時ダメージハンドラなし | 中 | `Character.cs:161-187` | |
+| CB-9 | Vulnerability効果にDefenseMultiplierなし。StatusEffectとして適用されるが実際の被ダメージ増加効果がゼロ | 致命的 | `StatusEffect.cs`, `CombatSystem.cs:368` | |
+| CB-10 | Invisibility効果にHitRate/Evasion修飾なし。適用されても回避率/被命中率に影響なし | 致命的 | `StatusEffect.cs`, `CombatSystem.cs:368` | |
+| CB-11 | フロア遷移時の状態異常クリア/永続化が未定義。無限持続効果が100フロア蓄積する可能性 | 中 | `GameController.cs(フロア遷移)` | |
+| CB-12 | 毒による死亡はDeathCause.Poisonで検出されるが専用死亡シーケンスなし（汎用死亡と同一） | 低 | `GameController.cs:2364,3034` | |
+| CB-13 | Slow効果のTurnCostModifier=1.50fがGameControllerで手動設定のみ。CombatSystemからのSlow適用はnull返却で機能しない | 高 | `GameController.cs:4455`, `CombatSystem.cs:368` | |
+| CB-14 | Blessing/Apostasyの2種がEnum定義のみで完全未実装。ファクトリ/適用/効果の全ロジックなし | 中 | `Enums.cs(StatusEffectType)` | |
+
+---
+
+## カテゴリCC: ペット・コンパニオン・召喚詳細（15件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CC-1 | ペットの戦闘アクション（Attack/Guard/Heal/Forage）が未実装。SpecialAbility文字列は格納のみで実行メソッドなし | 致命的 | `PetSystem.cs:31,43-48` | |
+| CC-2 | ペットの死亡/餓死メカニクスなし。Hunger=0でもLoyalty-2のみでペット消滅しない | 高 | `PetSystem.cs:10-21,112-120` | |
+| CC-3 | ペットのLevel/Experienceフィールドが存在するが経験値付与/レベルアップメソッドなし。成長システムが完全未実装 | 高 | `PetSystem.cs:10-21` | |
+| CC-4 | ペット装備スロットなし。PetStateに装備関連フィールドが一切存在しない | 中 | `PetSystem.cs:10-32` | |
+| CC-5 | コンパニオンがIsAlive=false後にRemoveDeadCompanions()で永久削除。復活/蘇生メカニクスなし | 高 | `CompanionSystem.cs:155-183` | |
+| CC-6 | コンパニオンがスキル/特殊能力を使用しない。全AIモードでCalculateCompanionDamage()の基本攻撃のみ | 高 | `CompanionSystem.cs:98-152` | |
+| CC-7 | PartySystemが存在しない。前列/後列の隊列システムなし。全コンパニオンが同一条件で戦闘 | 中 | `CompanionSystem.cs(List<CompanionData>のみ)` | |
+| CC-8 | コンパニオンのFollowMode/SupportModeがメッセージ返却のみで実行動（回復/バフ等）なし | 高 | `CompanionSystem.cs:143-145` | |
+| CC-9 | コンパニオンがクエスト/ストーリーに反応しない。対話/意見/リアクションシステムなし | 中 | `CompanionSystem.cs:9-21` | |
+| CC-10 | 召喚呪文で生成されたクリーチャーに持続時間なし。無限に存在し、自発的解散メカニクスもなし | 高 | `GameController.cs:4560-4596` | |
+| CC-11 | ペットがマップ上に位置を持たない。PetStateにPosition/座標フィールドなし | 中 | `PetSystem.cs:10-21` | |
+| CC-12 | ペット数の上限なし。CompanionSystem(MaxPartySize=4)と異なりPetSystemはDictionary上限なし | 中 | `PetSystem.cs:34,56-62` | |
+| CC-13 | PetSystem.TickHunger()がGameControllerのProcessTurnEffects()から呼び出されない。ペット空腹が永遠に減少しない | 致命的 | `GameController.cs(ProcessTurnEffects)`, `PetSystem.cs` | |
+| CC-14 | CompanionSystem.CheckDesertion()が定義済みだが一度も呼び出されない。低忠誠度コンパニオンが脱走しない | 高 | `CompanionSystem.cs:76-86` | |
+| CC-15 | ペットExperienceフィールドが0で初期化後、値を変更するコードが全コードベースに存在しない | 高 | `PetSystem.cs:15,59` | |
+
+---
+
+## カテゴリCD: 難易度・バランス・設定不整合（9件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CD-1 | DifficultyConfig.ExpMultiplierが経験値計算に未適用。Hard/Nightmareの経験値減少が機能しない | 致命的 | `GameController.cs:1540` | |
+| CD-2 | DifficultyConfig.HungerDecayMultiplierが空腹減少に未適用。全難易度で同一の空腹減少速度 | 高 | `GameController.cs:2132` | |
+| CD-3 | DifficultyConfig.DamageTakenMultiplier/DamageDealtMultiplierがDamageCalculatorで未使用。Easyでも被ダメージ同一 | 致命的 | `DamageCalculator.cs:28-93` | |
+| CD-4 | DifficultyConfig.ItemDropMultiplierがDropTableSystem呼び出しに未適用。全難易度でドロップ率同一 | 高 | `GameController.cs:1577-1593` | |
+| CD-5 | DifficultyConfig.EnemyStatMultiplierが敵生成に未適用。深度スケーリングのみで難易度スケーリングなし | 高 | `DropTableSystem.cs:99-110` | |
+| CD-6 | RestSystem.GetRecovery()に難易度乗数なし。Easy+高回復で戦闘が些末化する | 中 | `RestSystem.cs:9-16` | |
+| CD-7 | AudioManager.ApplyVolumeSettings()がGameSettings.EffectiveVolume系プロパティを使用しない。設定UIとオーディオシステムが未接続 | 高 | `AudioManager.cs:129-138`, `GameSettings.cs:53-58` | |
+| CD-8 | レベル50キャップ到達後の報酬/称号/特殊ボーナスなし。エンドゲームコンテンツが欠如 | 中 | `Player.cs:359` | |
+| CD-9 | Ironman難易度のUI説明「敵ダメージ1.5倍」が実コード値1.2倍と不一致 | 高 | `DifficultySettings.cs:158-173`, `DifficultySelectWindow.xaml.cs` | |
+
+---
+
+## カテゴリCE: チュートリアル・ヘルプ・UIフロー（16件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CE-1 | ThrowItemとEnterTownが両方ともKey.Tにバインド。キー競合で一方のみ動作 | 致命的 | `KeyBindingSettings.cs:162,165` | |
+| CE-2 | ContextHelpSystem.RegisterDefaultTopics()が一度も呼び出されない。ヘルプシステムが完全に空 | 致命的 | `GameController.cs:7830,7833`, `ContextHelpSystem.cs:124-133` | |
+| CE-3 | ヘルプ表示用のキーバインド/メニュー項目が存在しない。プレイヤーがヘルプにアクセスする手段なし | 高 | `MainWindow.xaml.cs:175-313` | |
+| CE-4 | TutorialSystem.OnTrigger()が_triggeredEventsで同一セッション内の再トリガーを完全ブロック。チュートリアル再表示不可 | 中 | `TutorialSystem.cs(OnTrigger)` | |
+| CE-5 | ゲームオーバー時に「リスタート」オプションなし。タイトルへ戻る/ゲーム終了の2択のみ | 中 | `MainWindow.xaml.cs:631-665` | |
+| CE-6 | チュートリアル表示がMessageBox.Show()のモーダルダイアログ。ゲーム入力を完全ブロックし、キャンセル/スキップ不可 | 中 | `MainWindow.xaml.cs:1000-1005` | |
+| CE-7 | キャラクター作成時の名前バリデーションが最大長チェック/禁止文字チェックなし。空白時はサイレントにデフォルト名設定 | 低 | `CharacterCreationWindow.xaml.cs:95-112` | |
+| CE-8 | SettingsWindow.SaveButton_Click()後にMainWindowへのコールバックなし。設定変更が再起動まで反映されない | 中 | `SettingsWindow.xaml.cs:59-68` | |
+| CE-9 | ミニマップ表示/非表示状態がGameSettingsに永続化されない。ゲーム再起動で常にデフォルトに戻る | 低 | `MainWindow.xaml.cs:54,301-302` | |
+| CE-10 | InventoryWindowのグリッド位置がアイテム数変更後に境界外参照の可能性。保存位置のバリデーションなし | 低 | `InventoryWindow.xaml.cs:40-78` | |
+| CE-11 | DialogueWindow生成時に前回のウィンドウが明示的に破棄されない。繰り返し対話でメモリリーク | 低 | `MainWindow.xaml.cs:919-931` | |
+| CE-12 | Fog of War（探索済み領域）の永続化が未確認。セーブ/ロードで探索状態が失われる可能性 | 中 | `GameRenderer.cs` | |
+| CE-13 | メッセージログがMaxMessages=50で無通知で切り捨て。古いメッセージの消失をプレイヤーに通知しない | 低 | `MainWindow.xaml.cs:619-629` | |
+| CE-14 | キャラクターステータス画面が装備/バフ/デバフ別のステータス内訳を表示しない。最終値のみで原因特定不可 | 中 | `StatusWindow.xaml.cs:37-58` | |
+| CE-15 | ContextHelpSystem未初期化状態でもエラー表示なし。ヘルプが故障しているのか未実装なのか判別不可 | 中 | `全UIウィンドウ` | |
+| CE-16 | PauseWindow/SettingsWindowの子ウィンドウがフォーカス喪失時にオーファンになる可能性。エラーハンドリングなし | 低 | `MainWindow.xaml.cs:1022` | |
+
 | カテゴリ | 致命的 | 高 | 中 | 低 | 設計課題 | 合計 |
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
@@ -1082,7 +1179,12 @@
 | **BX: インベントリ・装備・重量詳細** | **2** | **4** | **3** | **1** | **0** | **10** |
 | **BY: 魔法・呪文・言語詳細** | **6** | **5** | **3** | **1** | **0** | **16** |
 | **BZ: クエスト・ギルド・派閥詳細** | **4** | **5** | **3** | **2** | **0** | **15** |
-| **合計** | **99** | **156** | **129** | **24** | **2** | **423** |
+| **CA: セーブデータ・シリアライズ詳細** | **3** | **3** | **2** | **0** | **0** | **8** |
+| **CB: 状態異常・バフ・デバフ詳細** | **4** | **3** | **5** | **1** | **0** | **14** |
+| **CC: ペット・コンパニオン・召喚詳細** | **2** | **7** | **5** | **0** | **0** | **15** |
+| **CD: 難易度・バランス・設定不整合** | **2** | **4** | **2** | **0** | **0** | **9** |
+| **CE: チュートリアル・ヘルプ・UIフロー** | **2** | **1** | **6** | **6** | **0** | **16** |
+| **合計** | **112** | **174** | **149** | **31** | **2** | **485** |
 
 ---
 
@@ -1092,10 +1194,10 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（99件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（156件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（129件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（24件）: 軽微なテーマ不一致 → 余裕があれば修正
+1. **致命的**（112件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（174件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（149件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（31件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（2件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
@@ -1184,3 +1286,10 @@
 - **BX: インベントリ・装備・重量詳細** — 重量制限未強制/盾+両手武器同時装備可/オフハンド装備消失/ArmorSpeedModifier未適用/壊れた装備が装備可能/過重量ペナルティなし/装備比較未実装
 - **BY: 魔法・呪文・言語詳細** — AllAlliesターゲット全4呪文種で無視/Object/Groundターゲット未処理/回復呪文Self以外未対応/敵魔法耐性ゼロ固定/巻物使用不可/テレポート射程語無視/初期語「vinir」単体無効
 - **BZ: クエスト・ギルド・派閥詳細** — クエストアイテム報酬未配布/Deliver/Talk/Escort未処理/前提条件なし/MerchantGuild・FactionWar完全未公開/ギルドランク効果なし/派閥選択装飾のみ/Failed状態未使用
+
+### 新規追加カテゴリの概要（第11回調査分）
+- **CA: セーブデータ・シリアライズ詳細** — Thirst/Fatigue/Hygiene/StatusEffects/FacingDirectionがセーブ非対応。SaveDataバージョンマイグレーションなし。ターン処理中のセーブで中間状態キャプチャ。SaveManager I/Oエラー未処理。MultiSlotSaveSystem未連携
+- **CB: 状態異常・バフ・デバフ詳細** — 5種StatusEffectType(Slow/Vulnerability/Invisibility/Blessing/Apostasy)のファクトリ欠落。CureAllが22種中9種のみ解除。ボス免疫チェック未呼出。矛盾効果同時適用可。Vulnerability/Invisibility効果ゼロ。出血が移動ごとでなくターンごと
+- **CC: ペット・コンパニオン・召喚詳細** — ペット戦闘アクション全未実装。死亡/餓死/経験値/装備/レベルアップ全なし。コンパニオン復活不可・スキル未使用・SupportMode空実装。召喚永続。TickHunger/CheckDesertion未呼出。ペット上限なし
+- **CD: 難易度・バランス・設定不整合** — DifficultyConfigの6種乗数(Exp/Hunger/Damage×2/ItemDrop/EnemyStat)が実際の計算に未適用。AudioManager設定未接続。Ironman UI説明と実値の不一致。レベルキャップ報酬なし
+- **CE: チュートリアル・ヘルプ・UIフロー** — T キー競合(ThrowItem/EnterTown)。ContextHelp未初期化。ヘルプキーバインドなし。チュートリアル再表示不可。ゲームオーバーにリスタートなし。設定変更のライブ反映なし。名前バリデーション不足。メッセージログ切り捨て無通知
