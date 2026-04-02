@@ -3443,16 +3443,20 @@ public class GameController
             }
         }
 
-        // 水辺での釣り
-        if (nearWater && !found)
+        // 水辺での釣り（50%の確率で釣りに移行）
+        if (nearWater && !found && _random.NextDouble() < 0.5)
         {
             AddMessage("🔍 水辺を発見した。釣りを試みる...");
             TryFish();
             return true;
         }
+        else if (nearWater && !found)
+        {
+            AddMessage("🔍 近くに水辺がある。もう一度探索すれば釣りができるかもしれない。");
+        }
 
-        // フィールドでの採集
-        if (_isLocationField && !found)
+        // フィールドでの採集（50%の確率で採集に移行）
+        if (_isLocationField && !found && _random.NextDouble() < 0.5)
         {
             var currentTile = Map.GetTile(Player.Position);
             var gatherType = currentTile.Type switch
@@ -3461,15 +3465,20 @@ public class GameController
                 TileType.Tree => GatheringType.Logging,
                 _ => GatheringType.Foraging
             };
-            AddMessage($"🔍 周囲を探索して採集を試みる...");
+            AddMessage("🔍 周囲を探索して採集を試みる...");
             TryGather(gatherType);
             return true;
         }
-
-        // ダンジョン内での野営判定（敵が近くにいない場合）
-        if (!_worldMapSystem.IsOnSurface && !_isInLocationMap && !found && !IsInCombat())
+        else if (_isLocationField && !found)
         {
-            AddMessage("🔍 周囲の安全を確認した。ここで野営できそうだ。");
+            AddMessage("🔍 このあたりで採集できそうな場所がある。もう一度探してみよう。");
+        }
+
+        // ダンジョン内での野営判定（敵が近くにいなく、何も見つからなかった場合）
+        if (!_worldMapSystem.IsOnSurface && !_isInLocationMap && !found && !IsInCombat()
+            && !nearWater && !_isLocationField)
+        {
+            AddMessage("🔍 周囲の安全を確認した。ここで仮眠をとった。");
             TryCamp(SleepQuality.Nap);
             return true;
         }
@@ -5140,7 +5149,7 @@ public class GameController
                         new DialogueChoice("武器を見る", "action:open_shop_WeaponShop"),
                         new DialogueChoice("防具を見る", "action:open_shop_ArmorShop"),
                         new DialogueChoice("装備を鍛える", "action:open_crafting"),
-                        new DialogueChoice("装備を修理する", "action:smith_repair_auto"),
+                        new DialogueChoice("装備を修理する（最も破損した装備）", "action:smith_repair_auto"),
                         new DialogueChoice("罠を製作する", "action:craft_trap_menu"),
                         new DialogueChoice("立ち去る", "action:close")
                     }),
@@ -5857,27 +5866,41 @@ public class GameController
                 }
                 break;
 
-            // === スキル融合（所持スキルから自動的に最初の融合可能ペアを試行） ===
+            // === スキル融合（融合候補ペアをメニュー提示） ===
             case "fuse_skills_auto":
                 {
                     var skills = _skillTreeSystem.UnlockedNodes.ToList();
-                    bool fused = false;
+                    var fusionChoices = new List<DialogueChoice>();
                     if (skills.Count >= 2)
                     {
-                        for (int i = 0; i < skills.Count && !fused; i++)
+                        for (int i = 0; i < skills.Count; i++)
                         {
-                            for (int j = i + 1; j < skills.Count && !fused; j++)
+                            for (int j = i + 1; j < skills.Count; j++)
                             {
                                 if (SkillFusionSystem.CanFuse(skills[i], skills[j], Player.Level * 3))
                                 {
-                                    fused = TryFuseSkills(skills[i], skills[j]);
+                                    fusionChoices.Add(new DialogueChoice(
+                                        $"{skills[i]} + {skills[j]}",
+                                        $"action:fuse_{skills[i]}_{skills[j]}"));
                                 }
                             }
                         }
                     }
-                    if (!fused)
+                    if (fusionChoices.Count == 0)
                     {
                         AddMessage("現在融合可能なスキルの組み合わせはない");
+                    }
+                    else
+                    {
+                        fusionChoices.Add(new DialogueChoice("やめておく", "action:close"));
+                        var fusionNode = new DialogueNode(
+                            "npc_fuse_skills_menu",
+                            "ギルド受付",
+                            "融合可能なスキルの組み合わせがあります。どれを融合しますか？",
+                            fusionChoices.ToArray());
+                        _dialogueSystem.RegisterNode(fusionNode);
+                        _dialogueSystem.StartDialogue(fusionNode.Id);
+                        OnShowDialogue?.Invoke(fusionNode);
                     }
                 }
                 break;
@@ -5966,7 +5989,7 @@ public class GameController
                 }
                 break;
 
-            // === 密輸 ===
+            // === 密輸（TrySmuggleは内部でランダムに密輸品を選択する） ===
             case "smuggle":
                 TrySmuggle("");
                 break;
@@ -5974,10 +5997,12 @@ public class GameController
             // === 投資 ===
             case "invest_shop":
                 {
-                    int investAmount = Math.Min(500, Player.Gold);
-                    if (investAmount < 100)
+                    const int MinInvestment = 100;
+                    const int MaxInvestment = 500;
+                    int investAmount = Math.Min(MaxInvestment, Player.Gold);
+                    if (investAmount < MinInvestment)
                     {
-                        AddMessage("投資には最低100G必要だ");
+                        AddMessage($"投資には最低{MinInvestment}G必要だ");
                         break;
                     }
                     Player.AddGold(-investAmount);
@@ -5990,6 +6015,18 @@ public class GameController
                 // 何もせず会話を終了
                 break;
             default:
+                // スキル融合系: fuse_{skillA}_{skillB}
+                if (action.StartsWith("fuse_"))
+                {
+                    var fusionParts = action["fuse_".Length..];
+                    var underscoreIdx = fusionParts.IndexOf('_');
+                    if (underscoreIdx > 0)
+                    {
+                        var skillA = fusionParts[..underscoreIdx];
+                        var skillB = fusionParts[(underscoreIdx + 1)..];
+                        TryFuseSkills(skillA, skillB);
+                    }
+                }
                 // 転職系: class_change_{CharacterClass}
                 if (action.StartsWith("class_change_") && Enum.TryParse<Core.CharacterClass>(action["class_change_".Length..], out var targetClassValue))
                 {
