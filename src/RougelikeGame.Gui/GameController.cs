@@ -2637,6 +2637,12 @@ public class GameController
             GenerateFloor();
             AddMessage($"第{CurrentFloor}層に降りた");
 
+            // 5階ごとにショートカット自動解放
+            if (CurrentFloor % 5 == 0)
+            {
+                TryUnlockShortcut();
+            }
+
             // クエスト自動進行（フロア到達）
             var floorMessages = _questSystem.UpdateExploreObjective(CurrentFloor);
             foreach (var msg in floorMessages)
@@ -3393,6 +3399,7 @@ public class GameController
         bool found = false;
 
         // 周囲8マスを探索
+        bool nearWater = false;
         for (int dx = -1; dx <= 1; dx++)
         {
             for (int dy = -1; dy <= 1; dy++)
@@ -3402,6 +3409,12 @@ public class GameController
                 if (!Map.IsInBounds(pos)) continue;
 
                 var tile = Map.GetTile(pos);
+
+                // 水辺判定（釣り用）
+                if (tile.Type == TileType.Water || tile.Type == TileType.DeepWater)
+                {
+                    nearWater = true;
+                }
 
                 // 隠し通路の発見（PER判定: d20 + PER >= 15）
                 if (tile.Type == TileType.SecretDoor)
@@ -3428,6 +3441,37 @@ public class GameController
                     }
                 }
             }
+        }
+
+        // 水辺での釣り
+        if (nearWater && !found)
+        {
+            AddMessage("🔍 水辺を発見した。釣りを試みる...");
+            TryFish();
+            return true;
+        }
+
+        // フィールドでの採集
+        if (_isLocationField && !found)
+        {
+            var currentTile = Map.GetTile(Player.Position);
+            var gatherType = currentTile.Type switch
+            {
+                TileType.Grass => GatheringType.Herb,
+                TileType.Tree => GatheringType.Logging,
+                _ => GatheringType.Foraging
+            };
+            AddMessage($"🔍 周囲を探索して採集を試みる...");
+            TryGather(gatherType);
+            return true;
+        }
+
+        // ダンジョン内での野営判定（敵が近くにいない場合）
+        if (!_worldMapSystem.IsOnSurface && !_isInLocationMap && !found && !IsInCombat())
+        {
+            AddMessage("🔍 周囲の安全を確認した。ここで野営できそうだ。");
+            TryCamp(SleepQuality.Nap);
+            return true;
         }
 
         if (!found)
@@ -5058,6 +5102,8 @@ public class GameController
                     {
                         new DialogueChoice("クエストを確認する", "action:view_quests"),
                         new DialogueChoice("仲間を募集する", "action:recruit_companion"),
+                        new DialogueChoice("転職する", "action:class_change_menu"),
+                        new DialogueChoice("スキル融合", "action:fuse_skills_auto"),
                         new DialogueChoice("話を聞く", "action:close")
                     }),
             TileType.NpcPriest when Player.CurrentReligion == null
@@ -5082,6 +5128,9 @@ public class GameController
                     new[]
                     {
                         new DialogueChoice("商品を見る", "action:open_shop_GeneralShop"),
+                        new DialogueChoice("投資する", "action:invest_shop"),
+                        new DialogueChoice("裏の商品を見る", "action:black_market_browse"),
+                        new DialogueChoice("密輸を依頼する", "action:smuggle"),
                         new DialogueChoice("立ち去る", "action:close")
                     }),
             TileType.NpcBlacksmith
@@ -5091,6 +5140,8 @@ public class GameController
                         new DialogueChoice("武器を見る", "action:open_shop_WeaponShop"),
                         new DialogueChoice("防具を見る", "action:open_shop_ArmorShop"),
                         new DialogueChoice("装備を鍛える", "action:open_crafting"),
+                        new DialogueChoice("装備を修理する", "action:smith_repair_auto"),
+                        new DialogueChoice("罠を製作する", "action:craft_trap_menu"),
                         new DialogueChoice("立ち去る", "action:close")
                     }),
             TileType.NpcInnkeeper
@@ -5098,6 +5149,8 @@ public class GameController
                     new[]
                     {
                         new DialogueChoice("宿に泊まる", "action:use_inn"),
+                        new DialogueChoice("料理する", "action:cook"),
+                        new DialogueChoice("賭博をする", "action:gamble_menu"),
                         new DialogueChoice("食料を買う", "action:open_shop_GeneralShop"),
                         new DialogueChoice("立ち去る", "action:close")
                     }),
@@ -5107,6 +5160,7 @@ public class GameController
                     {
                         new DialogueChoice("スキルツリーを開く", "action:open_skill_tree"),
                         new DialogueChoice("戦闘訓練を受ける（50G）", "action:train_combat", 3),
+                        new DialogueChoice("転職する", "action:class_change_menu"),
                         new DialogueChoice("立ち去る", "action:close")
                     }),
             TileType.NpcLibrarian
@@ -5115,6 +5169,8 @@ public class GameController
                     {
                         new DialogueChoice("魔法を学ぶ（100G）", "action:learn_magic", 5),
                         new DialogueChoice("ルーン語を学ぶ（150G）", "action:learn_rune_word"),
+                        new DialogueChoice("エンチャントを依頼する", "action:enchant_menu"),
+                        new DialogueChoice("パズルに挑戦する", "action:attempt_puzzle_menu"),
                         new DialogueChoice("スキルツリーを開く", "action:open_skill_tree"),
                         new DialogueChoice("立ち去る", "action:close")
                     }),
@@ -5685,12 +5741,290 @@ public class GameController
             case "learn_rune_word":
                 TryLearnRuneWord();
                 break;
+            // === 料理 ===
+            case "cook":
+                OnShowCooking?.Invoke();
+                break;
+
+            // === 賭博メニュー ===
+            case "gamble_menu":
+                {
+                    var gamblingNode = new DialogueNode(
+                        "npc_gambling_menu",
+                        "宿屋主人",
+                        $"賭け事に興味があるのかい？ 50Gからだ。（所持金: {Player.Gold}G）",
+                        new[]
+                        {
+                            new DialogueChoice("サイコロ（出目予想）", "action:gamble_dice"),
+                            new DialogueChoice("丁半（偶数奇数）", "action:gamble_chohan"),
+                            new DialogueChoice("ハイ＆ロー（カード）", "action:gamble_card"),
+                            new DialogueChoice("やめておく", "action:close")
+                        });
+                    _dialogueSystem.RegisterNode(gamblingNode);
+                    _dialogueSystem.StartDialogue(gamblingNode.Id);
+                    OnShowDialogue?.Invoke(gamblingNode);
+                }
+                break;
+            case "gamble_dice":
+                TryGamble(GamblingGameType.Dice, 50, _random.Next(6) + 1);
+                break;
+            case "gamble_chohan":
+                TryGamble(GamblingGameType.ChoHan, 50, _random.Next(2));
+                break;
+            case "gamble_card":
+                TryGamble(GamblingGameType.Card, 50, _random.Next(2));
+                break;
+
+            // === 装備修理（自動: 最も耐久度の低い装備を修理） ===
+            case "smith_repair_auto":
+                {
+                    var damaged = Player.Inventory.Items
+                        .OfType<Item>()
+                        .Where(i => i.MaxDurability > 0 && i.Durability >= 0 && i.Durability < i.MaxDurability)
+                        .OrderBy(i => (float)i.Durability / i.MaxDurability)
+                        .FirstOrDefault();
+                    if (damaged != null)
+                    {
+                        TrySmithRepair(damaged.Name, damaged.MaxDurability - damaged.Durability);
+                    }
+                    else
+                    {
+                        AddMessage("修理が必要な装備はない");
+                    }
+                }
+                break;
+
+            // === 罠製作メニュー ===
+            case "craft_trap_menu":
+                {
+                    var trapNode = new DialogueNode(
+                        "npc_craft_trap_menu",
+                        "鍛冶屋",
+                        "どんな罠を作りたいんだ？",
+                        new[]
+                        {
+                            new DialogueChoice("棘罠（物理ダメージ）", "action:craft_trap_spike"),
+                            new DialogueChoice("落とし穴（移動阻害）", "action:craft_trap_pitfall"),
+                            new DialogueChoice("爆発罠（範囲ダメージ）", "action:craft_trap_explosive"),
+                            new DialogueChoice("睡眠罠（状態異常）", "action:craft_trap_sleep"),
+                            new DialogueChoice("警報罠（敵誘引）", "action:craft_trap_alarm"),
+                            new DialogueChoice("やめておく", "action:close")
+                        });
+                    _dialogueSystem.RegisterNode(trapNode);
+                    _dialogueSystem.StartDialogue(trapNode.Id);
+                    OnShowDialogue?.Invoke(trapNode);
+                }
+                break;
+            case "craft_trap_spike":
+                TryCraftTrap(PlayerTrapType.SpikeTrap);
+                break;
+            case "craft_trap_pitfall":
+                TryCraftTrap(PlayerTrapType.PitfallTrap);
+                break;
+            case "craft_trap_explosive":
+                TryCraftTrap(PlayerTrapType.ExplosiveTrap);
+                break;
+            case "craft_trap_sleep":
+                TryCraftTrap(PlayerTrapType.SleepTrap);
+                break;
+            case "craft_trap_alarm":
+                TryCraftTrap(PlayerTrapType.AlarmTrap);
+                break;
+
+            // === 転職メニュー ===
+            case "class_change_menu":
+                {
+                    var classChoices = new List<DialogueChoice>();
+                    foreach (var targetClass in Enum.GetValues<Core.CharacterClass>())
+                    {
+                        if (targetClass != Player.CharacterClass)
+                        {
+                            classChoices.Add(new DialogueChoice(
+                                $"{targetClass}に転職する",
+                                $"action:class_change_{targetClass}"));
+                        }
+                    }
+                    classChoices.Add(new DialogueChoice("やめておく", "action:close"));
+
+                    var classNode = new DialogueNode(
+                        "npc_class_change_menu",
+                        "ギルド受付",
+                        $"転職先を選んでくれ。（現在: {Player.CharacterClass}）",
+                        classChoices.ToArray());
+                    _dialogueSystem.RegisterNode(classNode);
+                    _dialogueSystem.StartDialogue(classNode.Id);
+                    OnShowDialogue?.Invoke(classNode);
+                }
+                break;
+
+            // === スキル融合（所持スキルから自動的に最初の融合可能ペアを試行） ===
+            case "fuse_skills_auto":
+                {
+                    var skills = _skillTreeSystem.UnlockedNodes.ToList();
+                    bool fused = false;
+                    if (skills.Count >= 2)
+                    {
+                        for (int i = 0; i < skills.Count && !fused; i++)
+                        {
+                            for (int j = i + 1; j < skills.Count && !fused; j++)
+                            {
+                                if (SkillFusionSystem.CanFuse(skills[i], skills[j], Player.Level * 3))
+                                {
+                                    fused = TryFuseSkills(skills[i], skills[j]);
+                                }
+                            }
+                        }
+                    }
+                    if (!fused)
+                    {
+                        AddMessage("現在融合可能なスキルの組み合わせはない");
+                    }
+                }
+                break;
+
+            // === エンチャントメニュー ===
+            case "enchant_menu":
+                {
+                    var enchantChoices = new List<DialogueChoice>();
+                    foreach (var enchType in Enum.GetValues<EnchantmentType>())
+                    {
+                        var info = EnchantmentSystem.GetEnchantmentInfo(enchType);
+                        var displayName = info?.Name ?? enchType.ToString();
+                        enchantChoices.Add(new DialogueChoice(
+                            $"{displayName}",
+                            $"action:enchant_{enchType}"));
+                    }
+                    enchantChoices.Add(new DialogueChoice("やめておく", "action:close"));
+
+                    var enchantNode = new DialogueNode(
+                        "npc_enchant_menu",
+                        "図書館司書",
+                        "どのエンチャントを付与しますか？ 装備中の武器に適用します。",
+                        enchantChoices.ToArray());
+                    _dialogueSystem.RegisterNode(enchantNode);
+                    _dialogueSystem.StartDialogue(enchantNode.Id);
+                    OnShowDialogue?.Invoke(enchantNode);
+                }
+                break;
+
+            // === パズルメニュー ===
+            case "attempt_puzzle_menu":
+                {
+                    var puzzleNode = new DialogueNode(
+                        "npc_puzzle_menu",
+                        "図書館司書",
+                        "知恵試しに挑戦しますか？ どのタイプがよいですか？",
+                        new[]
+                        {
+                            new DialogueChoice("ルーン語パズル", "action:attempt_puzzle_rune"),
+                            new DialogueChoice("属性パズル", "action:attempt_puzzle_elemental"),
+                            new DialogueChoice("物理パズル", "action:attempt_puzzle_physical"),
+                            new DialogueChoice("やめておく", "action:close")
+                        });
+                    _dialogueSystem.RegisterNode(puzzleNode);
+                    _dialogueSystem.StartDialogue(puzzleNode.Id);
+                    OnShowDialogue?.Invoke(puzzleNode);
+                }
+                break;
+            case "attempt_puzzle_rune":
+                TryAttemptPuzzle(PuzzleType.RuneLanguage);
+                break;
+            case "attempt_puzzle_elemental":
+                TryAttemptPuzzle(PuzzleType.Elemental);
+                break;
+            case "attempt_puzzle_physical":
+                TryAttemptPuzzle(PuzzleType.Physical);
+                break;
+
+            // === 闇市場 ===
+            case "black_market_browse":
+                {
+                    var karma = _karmaSystem.KarmaValue;
+                    var items = BlackMarketSystem.GetAvailableItems(karma);
+                    if (items.Count == 0)
+                    {
+                        AddMessage("闇市場にアクセスするにはカルマが低い必要がある（現在のカルマでは利用不可）");
+                        break;
+                    }
+                    var bmChoices = new List<DialogueChoice>();
+                    foreach (var item in items)
+                    {
+                        bmChoices.Add(new DialogueChoice(
+                            $"{item.Name}（{item.Price}G）",
+                            $"action:black_market_buy_{item.Name}"));
+                    }
+                    bmChoices.Add(new DialogueChoice("やめておく", "action:close"));
+
+                    var bmNode = new DialogueNode(
+                        "npc_black_market",
+                        "商人",
+                        "（小声で）特別な商品がありますよ...",
+                        bmChoices.ToArray());
+                    _dialogueSystem.RegisterNode(bmNode);
+                    _dialogueSystem.StartDialogue(bmNode.Id);
+                    OnShowDialogue?.Invoke(bmNode);
+                }
+                break;
+
+            // === 密輸 ===
+            case "smuggle":
+                TrySmuggle("");
+                break;
+
+            // === 投資 ===
+            case "invest_shop":
+                {
+                    int investAmount = Math.Min(500, Player.Gold);
+                    if (investAmount < 100)
+                    {
+                        AddMessage("投資には最低100G必要だ");
+                        break;
+                    }
+                    Player.AddGold(-investAmount);
+                    AddMessage($"💰 店舗に{investAmount}G投資した。将来的なリターンが期待できる");
+                    OnStateChanged?.Invoke();
+                }
+                break;
+
             case "close":
                 // 何もせず会話を終了
                 break;
             default:
+                // 転職系: class_change_{CharacterClass}
+                if (action.StartsWith("class_change_") && Enum.TryParse<Core.CharacterClass>(action["class_change_".Length..], out var targetClassValue))
+                {
+                    TryClassChange(targetClassValue);
+                }
+                // エンチャント系: enchant_{EnchantmentType}
+                else if (action.StartsWith("enchant_") && Enum.TryParse<EnchantmentType>(action["enchant_".Length..], out var enchantType))
+                {
+                    var mainHand = Player.Equipment.MainHand;
+                    if (mainHand != null)
+                    {
+                        TryEnchant(mainHand, enchantType, SoulGemQuality.Fragment);
+                    }
+                    else
+                    {
+                        AddMessage("エンチャント対象の武器を装備していない");
+                    }
+                }
+                // 闇市場購入系: black_market_buy_{ItemName}
+                else if (action.StartsWith("black_market_buy_"))
+                {
+                    var itemName = action["black_market_buy_".Length..];
+                    var allItems = BlackMarketSystem.GetAvailableItems(_karmaSystem.KarmaValue);
+                    var targetItem = allItems.FirstOrDefault(i => i.Name == itemName);
+                    if (targetItem != null)
+                    {
+                        TryBlackMarketBuy(targetItem);
+                    }
+                    else
+                    {
+                        AddMessage("その商品は既に売り切れだ");
+                    }
+                }
                 // ショップ系: open_shop_{FacilityType}
-                if (action.StartsWith("open_shop_") && Enum.TryParse<FacilityType>(action["open_shop_".Length..], out var shopType))
+                else if (action.StartsWith("open_shop_") && Enum.TryParse<FacilityType>(action["open_shop_".Length..], out var shopType))
                 {
                     OnOpenShop?.Invoke(shopType);
                 }
