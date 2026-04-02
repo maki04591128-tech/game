@@ -238,4 +238,14 @@ public class SmithingSystemTests
         var b = new SmithingResult(true, "成功", 5, "sword_1");
         Assert.Equal(a, b);
     }
+
+    [Fact]
+    public void Repair_LargeDurabilityLost_NoIntegerOverflow()
+    {
+        // int.MaxValue / 5 を超える値でもオーバーフローしない
+        var system = new SmithingSystem();
+        var player = CreateTestPlayer(0); // ゴールド不足で失敗するがクラッシュしない
+        var result = system.Repair(player, "テスト武器", int.MaxValue);
+        Assert.False(result.Success); // ゴールド不足で失敗するが例外は発生しない
+    }
 }

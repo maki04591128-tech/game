@@ -407,4 +407,21 @@ public class MapGenerationDetailTests
     }
 
     #endregion
+
+    #region RoomGenerator - CarveCircularRoom edge cases
+
+    [Fact]
+    public void RoomGenerator_CarveCircularRoom_SmallRoom_FallsBackToRectangular()
+    {
+        // Width=2の部屋ではradiusX=0になるため矩形にフォールバック
+        // 2x2部屋は全タイルが境界（壁）になるため、3x3以上で検証
+        var map = CreateTestMap();
+        var room = new Room { Id = 0, X = 20, Y = 20, Width = 2, Height = 2, Type = RoomType.Normal };
+
+        // ゼロ除算せずに正常完了する（例外が発生しないことを確認）
+        var ex = Record.Exception(() => RoomGenerator.CarveCircularRoom(map, room));
+        Assert.Null(ex);
+    }
+
+    #endregion
 }

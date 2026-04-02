@@ -7205,6 +7205,10 @@ public class GameController
             {
                 ((Inventory)Player.Inventory).Remove(concreteItem);
             }
+            else
+            {
+                AddMessage($"⚠ 素材が見つからなかった: {ingredient}");
+            }
         }
 
         // 料理結果の品質計算

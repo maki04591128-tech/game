@@ -39,6 +39,13 @@ public static class RoomGenerator
         int radiusX = room.Width / 2 - 1;
         int radiusY = room.Height / 2 - 1;
 
+        // 半径が0以下の場合は矩形として彫る（Width/Heightが2以下のケース）
+        if (radiusX <= 0 || radiusY <= 0)
+        {
+            CarveRoom(map, room);
+            return;
+        }
+
         for (int x = room.X; x < room.X + room.Width; x++)
         {
             for (int y = room.Y; y < room.Y + room.Height; y++)

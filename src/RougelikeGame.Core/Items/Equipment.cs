@@ -204,7 +204,10 @@ public class Weapon : EquipmentItem
     /// <summary>実際のダメージを計算</summary>
     public int CalculateDamage(Random random)
     {
-        int baseDmg = random.Next(DamageRange.Min, DamageRange.Max + 1);
+        int min = DamageRange.Min;
+        int max = DamageRange.Max;
+        if (min > max) (min, max) = (max, min);
+        int baseDmg = random.Next(min, max + 1);
         return baseDmg + (EnhancementLevel * 2);
     }
 
@@ -212,7 +215,8 @@ public class Weapon : EquipmentItem
     public int GetAttackTurnCost()
     {
         // 基本1ターン、攻撃速度で調整
-        return Math.Max(1, (int)(1.0f / AttackSpeed));
+        float speed = AttackSpeed > 0f ? AttackSpeed : 1.0f;
+        return Math.Max(1, (int)(1.0f / speed));
     }
 
     protected override char GetDefaultDisplayChar() => WeaponType switch

@@ -168,8 +168,9 @@ public class Enemy : Character
     /// </summary>
     public bool ShouldFlee()
     {
+        if (MaxHp <= 0) return false;
         float hpRatio = (float)CurrentHp / MaxHp;
-        return hpRatio <= FleeThreshold;
+        return hpRatio <= FleeThreshold && hpRatio > 0;
     }
 
     /// <summary>
