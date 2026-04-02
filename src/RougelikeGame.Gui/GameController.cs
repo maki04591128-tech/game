@@ -1610,8 +1610,8 @@ public class GameController
     /// </summary>
     private void OnEnemyDefeated(Enemy enemy)
     {
-        // ボス撃破カウント（高経験値＝ボス級とみなす）
-        if (enemy.ExperienceReward >= 80)
+        // ボス撃破カウント（Rankベースで判定）
+        if (enemy.Rank == EnemyRank.Boss || enemy.Rank == EnemyRank.HiddenBoss)
         {
             _clearSystem.IncrementFlag("boss_kills");
 
@@ -1800,7 +1800,11 @@ public class GameController
                     {
                         AddMessage($"{nearestEnemy.Name}を倒した！（仲間の功績）");
                         Player.GainExperience(nearestEnemy.ExperienceReward / 2);
-                        OnEnemyDefeated(nearestEnemy);
+                        // 仲間が倒した場合はクエスト進行を50%の確率に制限
+                        if (_random.NextDouble() < 0.5)
+                        {
+                            OnEnemyDefeated(nearestEnemy);
+                        }
                     }
                 }
             }
@@ -3443,8 +3447,8 @@ public class GameController
             }
         }
 
-        // 水辺での釣り（50%の確率で釣りに移行）
-        if (nearWater && !found && _random.NextDouble() < 0.5)
+        // 水辺での釣り（15%の確率で釣りに移行 — 50%は高すぎて意図せず発動する）
+        if (nearWater && !found && _random.NextDouble() < 0.15)
         {
             AddMessage("🔍 水辺を発見した。釣りを試みる...");
             TryFish();
@@ -3455,8 +3459,8 @@ public class GameController
             AddMessage("🔍 近くに水辺がある。もう一度探索すれば釣りができるかもしれない。");
         }
 
-        // フィールドでの採集（50%の確率で採集に移行）
-        if (_isLocationField && !found && _random.NextDouble() < 0.5)
+        // フィールドでの採集（15%の確率で採集に移行）
+        if (_isLocationField && !found && _random.NextDouble() < 0.15)
         {
             var currentTile = Map.GetTile(Player.Position);
             var gatherType = currentTile.Type switch
@@ -3474,13 +3478,11 @@ public class GameController
             AddMessage("🔍 このあたりで採集できそうな場所がある。もう一度探してみよう。");
         }
 
-        // ダンジョン内での野営判定（敵が近くにいなく、何も見つからなかった場合）
+        // ダンジョン内での安全確認（自動仮眠は削除 — 探索コマンドで眠るのは不自然）
         if (!_worldMapSystem.IsOnSurface && !_isInLocationMap && !found && !IsInCombat()
             && !nearWater && !_isLocationField)
         {
-            AddMessage("🔍 周囲の安全を確認した。ここで仮眠をとった。");
-            TryCamp(SleepQuality.Nap);
-            return true;
+            AddMessage("🔍 周囲の安全を確認した。敵の気配はない。");
         }
 
         if (!found)
@@ -5159,7 +5161,6 @@ public class GameController
                     {
                         new DialogueChoice("宿に泊まる", "action:use_inn"),
                         new DialogueChoice("料理する", "action:cook"),
-                        new DialogueChoice("賭博をする", "action:gamble_menu"),
                         new DialogueChoice("食料を買う", "action:open_shop_GeneralShop"),
                         new DialogueChoice("立ち去る", "action:close")
                     }),
@@ -5180,7 +5181,6 @@ public class GameController
                         new DialogueChoice("ルーン語を学ぶ（150G）", "action:learn_rune_word"),
                         new DialogueChoice("エンチャントを依頼する", "action:enchant_menu"),
                         new DialogueChoice("パズルに挑戦する", "action:attempt_puzzle_menu"),
-                        new DialogueChoice("スキルツリーを開く", "action:open_skill_tree"),
                         new DialogueChoice("立ち去る", "action:close")
                     }),
             _ => ("", "", Array.Empty<DialogueChoice>())
@@ -5503,10 +5503,11 @@ public class GameController
     {
         double charismaBonus = ShopSystem.CalculateCharismaDiscount(Player.EffectiveStats.Charisma);
 
-        // === GUI統合: 売却価格変動 ===
+        // === GUI統合: 売却価格変動（領地修飾子も含む — 購入と同じ基準で公平性を確保） ===
         float reputationMod = PriceFluctuationSystem.GetReputationModifier(PlayerReputationRank, false);
         float karmaMod = PriceFluctuationSystem.GetKarmaModifier(PlayerKarmaRank, false);
-        charismaBonus *= (double)(reputationMod * karmaMod);
+        float territoryMod = PriceFluctuationSystem.GetTerritoryModifier(_worldMapSystem.CurrentTerritory, "general");
+        charismaBonus *= (double)(reputationMod * karmaMod * territoryMod);
 
         var result = _shopSystem.Sell(Player, itemName, baseValue, charismaBonus);
         AddMessage(result.Message);
@@ -5760,11 +5761,11 @@ public class GameController
                 {
                     var gamblingNode = new DialogueNode(
                         "npc_gambling_menu",
-                        "宿屋主人",
+                        "賭博師",
                         $"賭け事に興味があるのかい？ 50Gからだ。（所持金: {Player.Gold}G）",
                         new[]
                         {
-                            new DialogueChoice("サイコロ（出目予想）", "action:gamble_dice"),
+                            new DialogueChoice("サイコロ（大小予想）", "action:gamble_dice"),
                             new DialogueChoice("丁半（偶数奇数）", "action:gamble_chohan"),
                             new DialogueChoice("ハイ＆ロー（カード）", "action:gamble_card"),
                             new DialogueChoice("やめておく", "action:close")
@@ -5775,13 +5776,73 @@ public class GameController
                 }
                 break;
             case "gamble_dice":
-                TryGamble(GamblingGameType.Dice, 50, _random.Next(6) + 1);
+                {
+                    var diceChoiceNode = new DialogueNode(
+                        "npc_gambling_dice_choice",
+                        "賭博師",
+                        "サイコロの出目が大(4-6)か小(1-3)か予想しな！",
+                        new[]
+                        {
+                            new DialogueChoice("大 (4-6)", "action:gamble_dice_big"),
+                            new DialogueChoice("小 (1-3)", "action:gamble_dice_small"),
+                            new DialogueChoice("やめておく", "action:close")
+                        });
+                    _dialogueSystem.RegisterNode(diceChoiceNode);
+                    _dialogueSystem.StartDialogue(diceChoiceNode.Id);
+                    OnShowDialogue?.Invoke(diceChoiceNode);
+                }
+                break;
+            case "gamble_dice_big":
+                TryGamble(GamblingGameType.Dice, 50, 4);
+                break;
+            case "gamble_dice_small":
+                TryGamble(GamblingGameType.Dice, 50, 1);
                 break;
             case "gamble_chohan":
-                TryGamble(GamblingGameType.ChoHan, 50, _random.Next(2));
+                {
+                    var chohanChoiceNode = new DialogueNode(
+                        "npc_gambling_chohan_choice",
+                        "賭博師",
+                        "丁（偶数）か半（奇数）か、さあ張った張った！",
+                        new[]
+                        {
+                            new DialogueChoice("丁 (偶数)", "action:gamble_chohan_cho"),
+                            new DialogueChoice("半 (奇数)", "action:gamble_chohan_han"),
+                            new DialogueChoice("やめておく", "action:close")
+                        });
+                    _dialogueSystem.RegisterNode(chohanChoiceNode);
+                    _dialogueSystem.StartDialogue(chohanChoiceNode.Id);
+                    OnShowDialogue?.Invoke(chohanChoiceNode);
+                }
+                break;
+            case "gamble_chohan_cho":
+                TryGamble(GamblingGameType.ChoHan, 50, 0);
+                break;
+            case "gamble_chohan_han":
+                TryGamble(GamblingGameType.ChoHan, 50, 1);
                 break;
             case "gamble_card":
-                TryGamble(GamblingGameType.Card, 50, _random.Next(2));
+                {
+                    var cardChoiceNode = new DialogueNode(
+                        "npc_gambling_card_choice",
+                        "賭博師",
+                        "次のカードは今より高いか低いか、さあどっちだ！",
+                        new[]
+                        {
+                            new DialogueChoice("ハイ (高い)", "action:gamble_card_high"),
+                            new DialogueChoice("ロー (低い)", "action:gamble_card_low"),
+                            new DialogueChoice("やめておく", "action:close")
+                        });
+                    _dialogueSystem.RegisterNode(cardChoiceNode);
+                    _dialogueSystem.StartDialogue(cardChoiceNode.Id);
+                    OnShowDialogue?.Invoke(cardChoiceNode);
+                }
+                break;
+            case "gamble_card_high":
+                TryGamble(GamblingGameType.Card, 50, 1);
+                break;
+            case "gamble_card_low":
+                TryGamble(GamblingGameType.Card, 50, 0);
                 break;
 
             // === 装備修理（自動: 最も耐久度の低い装備を修理） ===
@@ -5992,6 +6053,8 @@ public class GameController
             // === 密輸（TrySmuggleは内部でランダムに密輸品を選択する） ===
             case "smuggle":
                 TrySmuggle("");
+                TurnCount += 10;
+                GameTime.AdvanceTurn(10);
                 break;
 
             // === 投資 ===
@@ -6010,6 +6073,8 @@ public class GameController
                     float expectedReturn = InvestmentSystem.GetExpectedReturn(InvestmentType.Shop, investAmount);
                     float successRate = InvestmentSystem.GetSuccessRate(InvestmentType.Shop);
                     AddMessage($"💰 店舗に{investAmount}G投資した。期待リターン: {expectedReturn:F0}G (成功率{successRate:P0})");
+                    TurnCount += 5;
+                    GameTime.AdvanceTurn(5);
                     OnStateChanged?.Invoke();
                 }
                 break;
@@ -7325,19 +7390,22 @@ public class GameController
             case GamblingGameType.Dice:
                 int diceResult = _random.Next(6) + 1;
                 won = GamblingSystem.JudgeDice(playerGuess, diceResult);
-                AddMessage($"🎲 サイコロの目: {diceResult}");
+                string guessLabel = playerGuess >= 4 ? "大(4-6)" : "小(1-3)";
+                AddMessage($"🎲 あなたの予想: {guessLabel}  サイコロの目: {diceResult}");
                 break;
             case GamblingGameType.ChoHan:
                 int dice1 = _random.Next(6) + 1;
                 int dice2 = _random.Next(6) + 1;
                 won = GamblingSystem.JudgeChoHan(playerGuess == 0, dice1, dice2);
-                AddMessage($"🎲 丁半: {dice1}+{dice2}={dice1 + dice2} ({((dice1 + dice2) % 2 == 0 ? "丁" : "半")})");
+                string choHanGuess = playerGuess == 0 ? "丁(偶数)" : "半(奇数)";
+                AddMessage($"🎲 あなたの予想: {choHanGuess}  丁半: {dice1}+{dice2}={dice1 + dice2} ({((dice1 + dice2) % 2 == 0 ? "丁" : "半")})");
                 break;
             case GamblingGameType.Card:
                 int currentCard = _random.Next(13) + 1;
                 int nextCard = _random.Next(13) + 1;
                 won = GamblingSystem.JudgeHighLow(playerGuess == 1, currentCard, nextCard);
-                AddMessage($"🃏 ハイ＆ロー: {currentCard} → {nextCard}");
+                string cardGuess = playerGuess == 1 ? "ハイ" : "ロー";
+                AddMessage($"🃏 あなたの予想: {cardGuess}  ハイ＆ロー: {currentCard} → {nextCard}");
                 break;
         }
 
@@ -7354,6 +7422,9 @@ public class GameController
             AddMessage($"😞 残念... {betAmount}G失った");
         }
 
+        // 賭博はターンを消費する
+        TurnCount += 5;
+        GameTime.AdvanceTurn(5);
         OnStateChanged?.Invoke();
         return true;
     }
@@ -7618,6 +7689,9 @@ public class GameController
 
         Player.AddGold(-item.Price);
         _karmaSystem.ModifyKarma(-2, "闇市場");
+        // 闇市場取引はターンを消費する
+        TurnCount += 5;
+        GameTime.AdvanceTurn(5);
         AddMessage($"🏴 闇市場: {item.Name}を{item.Price}Gで購入（カルマ低下）");
         OnStateChanged?.Invoke();
         return true;

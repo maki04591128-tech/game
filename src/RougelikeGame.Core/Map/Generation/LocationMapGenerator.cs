@@ -78,16 +78,15 @@ public class LocationMapGenerator
         map.SetTile(new Position(midX - 2, midY + 2), TileType.Pillar);
         map.SetTile(new Position(midX + 2, midY + 2), TileType.Pillar);
 
-        // 建物配置: 王都は大きくて立派な建物
-        PlaceBuilding(map, 3, 3, 10, 7, "inn");                // 左上: 大きな宿屋
-        PlaceBuilding(map, width - 14, 3, 10, 7, "shop");      // 右上: 大商店
-        PlaceBuilding(map, 3, height - 11, 10, 7, "smithy");   // 左下: 王立鍛冶場
-        PlaceBuilding(map, width - 14, height - 11, 10, 7, "guild"); // 右下: ギルド本部
-
-        PlaceBuilding(map, midX + 5, 3, 7, 5, "church");       // 大聖堂
-        PlaceBuilding(map, midX + 5, height - 9, 7, 5, "training"); // 闘技場
-        PlaceBuilding(map, 3, midY + 4, 7, 5, "library");      // 王立図書館
-        PlaceBuilding(map, width - 11, midY + 4, 7, 5, "magic_shop"); // 魔法学院
+        // 建物配置: 王都は大きくて立派な建物（重ならないよう4象限に配置）
+        PlaceBuilding(map, 2, 2, 10, 6, "inn");                // 左上: 大きな宿屋
+        PlaceBuilding(map, 14, 2, 7, 5, "library");            // 左上寄り: 王立図書館
+        PlaceBuilding(map, width - 13, 2, 10, 6, "shop");      // 右上: 大商店
+        PlaceBuilding(map, midX + 3, 2, 7, 5, "church");       // 右上寄り: 大聖堂
+        PlaceBuilding(map, 2, height - 8, 10, 6, "smithy");    // 左下: 王立鍛冶場
+        PlaceBuilding(map, 14, height - 8, 7, 5, "training");  // 左下寄り: 闘技場
+        PlaceBuilding(map, width - 13, height - 8, 10, 6, "guild"); // 右下: ギルド本部
+        PlaceBuilding(map, midX + 3, height - 8, 7, 5, "magic_shop"); // 右下寄り: 魔法学院
 
         var entrancePos = new Position(midX, height - 2);
         map.SetEntrance(entrancePos);
@@ -944,31 +943,8 @@ public class LocationMapGenerator
                 break;
         }
 
-        // 訪問済み他建物への階段を配置
-        if (visitedBuildings != null)
-        {
-            var otherBuildings = visitedBuildings
-                .Where(id => id != buildingId)
-                .ToList();
-
-            // 左壁と右壁に交互に配置（y=2から開始、間隔2）
-            int slotIndex = 0;
-            foreach (var otherBuildingId in otherBuildings)
-            {
-                int slotY = 2 + (slotIndex / 2) * 2;
-                if (slotY >= height - 2) break; // 壁際に到達したら終了
-
-                // 偶数スロットは左壁、奇数スロットは右壁
-                int slotX = (slotIndex % 2 == 0) ? 0 : width - 1;
-                var slotPos = new Position(slotX, slotY);
-
-                map.SetTile(slotPos, TileType.BuildingEntrance);
-                var entranceTile = map.GetTile(slotPos);
-                entranceTile.BuildingId = otherBuildingId;
-
-                slotIndex++;
-            }
-        }
+        // 建物内から他の建物への直接移動は物理的に不自然なため廃止
+        // プレイヤーは一度建物を出てから別の建物に入る必要がある
 
         return map;
     }
