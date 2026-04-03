@@ -1412,6 +1412,128 @@
 | DE-4 | ボス部屋配置が最遠部屋選択のみ。部屋サイズ（小部屋にボス）や接続数（袋小路）の検証がなく不適切な部屋がボス部屋になる | 中 | `DungeonGenerator.cs` | |
 | DE-5 | マップ内のWater/Lavaタイルが定義(TileType enum)されているがDungeonGeneratorの通常フロア生成で配置されない。テーマダンジョン以外で環境タイルが不在 | 中 | `DungeonGenerator.cs`, `Tile.cs` | |
 
+---
+
+## カテゴリDF: マルチスロットセーブ・ゲームクリアスコア不整合（6件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DF-1 | MultiSlotSaveSystem.GetOldestSlot()でSaveTimeがnullableのDateTime?型だが、.OrderBy(s => s.SaveTime)でnull比較が未定義動作。SaveTimeがnullのスロットが混在すると並べ替え結果が不確定 | 高 | `MultiSlotSaveSystem.cs:37` | |
+| DF-2 | GetOldestSlot()で全スロットが空の場合にIsEmpty==trueでフィルタ後のコレクションが空になり、SlotNumber取得がnull参照例外のリスク。フォールバックのスロット1返却ロジックが不安定 | 高 | `MultiSlotSaveSystem.cs:64-67` | |
+| DF-3 | GameClearSystem.CalculateScore()のターンボーナス計算で`totalTurns / 5`が整数除算。totalTurns=4999と5001でスコアが逆転する段差が発生し、ターンを多く消費した方が高スコアになるケースがある | 致命的 | `GameClearSystem.cs:70` | |
+| DF-4 | GameClearSystem.DetermineRank()のタプルパターンマッチ順序バグ。ターン数4999/死亡5回のプレイヤーがB評価になるが、ターン数5001/死亡0回のプレイヤーがA評価。少ないターン数が低評価につながる逆転現象 | 致命的 | `GameClearSystem.cs:45-51` | |
+| DF-5 | NewGamePlusSystem.DetermineInitialTier()がclearRank引数に関わらず常にPlus1を返却。DetermineInitialTier()メソッド全体がデッドロジック | 中 | `NewGamePlusSystem.cs:94-100` | |
+| DF-6 | NewGamePlusSystem.GetCarryOverItems()のティア別キャリーオーバーが累積的でない。Plus5プレイヤーがPlus2/Plus3/Plus4の持ち越しアイテムをチェックしない可能性 | 中 | `NewGamePlusSystem.cs:52-55` | |
+
+---
+
+## カテゴリDG: ゲームオーバー・エンディング分岐不整合（6件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DG-1 | MultiEndingSystem.DetermineEnding()でDarkエンディング(karma<=-50)がTrueエンディング(clearRank S/A)より先にチェックされる。高ランククリア+低カルマプレイヤーが常にDarkエンディングになりTrueエンディング不可 | 高 | `MultiEndingSystem.cs:24,44` | |
+| DG-2 | Salvationエンディングの条件がtotalDeaths==0。ローグライクゲームで死亡0回は極端に制限的であり実質到達不能。条件は`totalDeaths <= 3`等が適切 | 中 | `MultiEndingSystem.cs:34` | |
+| DG-3 | Wandererエンディング(!hasClearedFinalBoss && allTerritoriesVisited)が、Dark/Salvation/Trueの条件と重なりDarkエンディングに吸収される。karma<=-50かつ全テリトリー訪問済みプレイヤーはWandererにならない | 中 | `MultiEndingSystem.cs:54-61` | |
+| DG-4 | GameOverSystem.CanRebirth()がsanity>0のみチェック。転生のSanityコスト消費処理が未実装で、転生し放題の可能性 | 高 | `GameOverSystem.cs:29-31` | |
+| DG-5 | GameOverSystem.GetAvailableChoices()とProcessChoice()でCanRebirth判定が二重実行。選択肢表示後にSanityが変化した場合に不整合が発生する可能性 | 中 | `GameOverSystem.cs:39,64-67` | |
+| DG-6 | InfiniteDungeonSystem.GetFloorConfig()の敵レベル計算`10 + floor * 2`とドロップ率`1.0f + floor * 0.05f`と経験値`1.0f + floor * 0.03f`に上限キャップなし。floor 1000で敵レベル2010、ドロップ51倍、経験値31倍となり経済破綻 | 中 | `InfiniteDungeonSystem.cs:28,36-37,56` | |
+
+---
+
+## カテゴリDH: 描画最適化・ビューポート計算エラー（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DH-1 | RenderOptimizationSystem.CalculateViewport()のビューポート計算で`playerX + halfW`がMaxXに設定されるが、奇数幅ビューポートで最右列が切断される。halfW = viewportWidth/2（整数除算）で1ピクセル分不足 | 高 | `RenderOptimizationSystem.cs:14` | |
+| DH-2 | 同様にMaxY計算でも奇数高さビューポートで最下行が切断される | 高 | `RenderOptimizationSystem.cs:14` | |
+| DH-3 | IsInViewport()の境界チェックが`<=`演算子を使用。MaxX/MaxYの位置が隣接ビューポートと重複し、ビューポート境界上のエンティティが二重描画される可能性 | 高 | `RenderOptimizationSystem.cs:20` | |
+| DH-4 | ShouldUpdate()が`updateFrequency <= 0`の場合trueを返却。負の更新頻度は論理的に無意味であり、falseを返却するか例外をスローすべき | 中 | `RenderOptimizationSystem.cs:45` | |
+| DH-5 | ModularHudSystem.SetElementScale()でスケール値が`[0.5f, 2.0f]`にサイレントクランプ。アクセシビリティ用途で2.5倍以上のスケールが必要な場合に無通知で制限される | 中 | `ModularHudSystem.cs:51-54` | |
+
+---
+
+## カテゴリDI: 百科事典・MOD検証・ヘルプシステム不整合（6件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DI-1 | EncyclopediaSystem.RegisterMonsterEntry()で新規モンスターのDiscoveryLevelが1（名前・種族可視）で登録される。未遭遇モンスターの名前が初回から判明してしまう。初期値は0であるべき | 高 | `EncyclopediaSystem.cs:58` | |
+| DI-2 | CalculateMonsterDiscoveryLevel(killCount=0)が0を返却するが、RegisterMonsterEntry()でDiscoveryLevel=1設定済み。レジストリと計算結果が矛盾し、初回遭遇で発見レベルが退化する | 高 | `EncyclopediaSystem.cs:82-86` | |
+| DI-3 | ModLoaderSystem.ParseManifest()がIsValid=trueを常に返却。MOD IDが空文字/nullでもバリデーション通過。不正なMODがロードされるリスク | 高 | `ModLoaderSystem.cs:56` | |
+| DI-4 | ModLoaderSystem.ParseManifest()のパラメータ(modId, name, author等)にnull/空白チェックなし。フィールド未定義のマニフェストから不正なMODオブジェクトが生成される | 中 | `ModLoaderSystem.cs:52-58` | |
+| DI-5 | ContextHelpSystem.GetContextualHelp()がTake(5)でハードコード。コンテキストに関連するヘルプが6件以上あっても5件しか表示されず、残りが切り捨てられる通知なし | 低 | `ContextHelpSystem.cs:106` | |
+| DI-6 | ContextHelpSystem.CompleteTutorialStep()でstep完了後にcurrentStep++を実行。最終ステップ完了時にcurrentStepがsteps.Countと等しくなり、GetCurrentTutorial()が永続的にnullを返却。チュートリアル再開不可 | 中 | `ContextHelpSystem.cs:86-92` | |
+
+---
+
+## カテゴリDJ: アクセシビリティ・色覚補正・ゲーム速度計算（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DJ-1 | AccessibilitySystem.CalculateEffectiveFontSize()がフロート→int変換で切り捨て。FontSize 11 × 1.5 = 16.5 → 16に切り捨て。Math.Round()を使用すべき | 中 | `AccessibilitySystem.cs:113` | |
+| DJ-2 | AccessibilitySystem.TransformForColorBlindness()がRed/Green/Blue/Yellowの4色のみ対応。Orange/Brown/Cyan/Pink/Gray等の色が未変換で色覚障害者に視認困難 | 中 | `AccessibilitySystem.cs:142-161` | |
+| DJ-3 | Protanopia(赤色覚異常)の色変換でRed→DarkYellowに変換するが、医学的に赤色覚異常者にはDarkYellowも視認困難な場合がある。Tritanopia(青色覚異常)ではBlue→Cyanに変換するが同系色のため変換効果が不十分 | 低 | `AccessibilitySystem.cs:142-163` | |
+| DJ-4 | DifficultySettings.Nightmare: rescueCount=1とPermaDeath=falseが矛盾。PermaDeath=falseなら転生可能であり、rescueCountの意味が不明確。Nightmareは実質Hard+αになってしまう | 高 | `DifficultySettings.cs:150` | |
+| DJ-5 | DifficultySettings.Nightmare: hungerDecayMultiplier=1.5かつturnLimitMultiplier=0.6の組み合わせ。ターン制限315,360内に1.5倍速空腹でプレイヤーが餓死し、turnLimitが実質無意味なパラメータになる | 中 | `DifficultySettings.cs:148-149` | |
+
+---
+
+## カテゴリDK: 成長システム・レベル1ステータス欠如（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DK-1 | GrowthSystem.GetLevelBonus()が`level - 1`を使用。レベル1キャラクターの成長ボーナスが全ステータスで0になり、レベル1→2のレベルアップまでベースステータスのみで戦闘することになる | 高 | `GrowthSystem.cs:20-40` | |
+| DK-2 | GrowthSystem.GetHpBonus()/GetMpBonus()が`(int)(HpPerLevel * (level - 1))`を計算。レベル1でHP/MPボーナスが0。レベル1キャラクターのHP/MPが定義値そのままで成長システムが機能しない | 高 | `GrowthSystem.cs:37-40` | |
+| DK-3 | CalculateTotalExpForLevel()で`raceExpMultiplier`で除算。倍率>1.0の種族は必要経験値が減少し、倍率<1.0の種族は必要経験値が増加。通常のRPG設計（高倍率=レベルアップ容易）と逆の挙動 | 中 | `GrowthSystem.cs:161-168` | |
+| DK-4 | HP/MP成長計算で`(int)`キャストによる切り捨てが蓄積。レベル30到達時に最大3-5ポイントのHP/MPが失われる誤差が発生 | 低 | `GrowthSystem.cs:177,191` | |
+| DK-5 | CalculateLevelUpBonus()とGetHpBonus()で異なる丸め方式（前者はRollGrowth()でランダム、後者は固定値×切り捨て）。同じレベルのキャラクターでもHP/MPが計算方法により異なる値になる | 中 | `GrowthSystem.cs` | |
+
+---
+
+## カテゴリDL: フラグ条件解析・イベント確率不整合（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DL-1 | FlagConditionSystem.ParseCondition()でkarma条件パース時に文字列位置オフセットが不正。"karma >= 50"をパースする際にキーワード"karma"をスキップせずにsplitするため、演算子と値の抽出が失敗しカルマ基準の条件判定が常に不成立 | 致命的 | `FlagConditionSystem.cs:71-76` | |
+| DL-2 | FlagConditionSystem.ParseCondition()がAND/OR混在条件を非対応。"A AND B OR C"のような複合条件でパーサーが最初のANDのみを処理しORを無視 | 中 | `FlagConditionSystem.cs:88-90` | |
+| DL-3 | SymbolMapEventSystem.RollEvent()の累積確率計算で全イベントのBaseChance合計が0.69（1.0未満）。残り31%の確率でイベントが何も発生しない。意図的な設計かバグか不明 | 中 | `SymbolMapEventSystem.cs:18-40,55-66` | |
+| DL-4 | SymbolMapEventSystem.RollEvent()でrandomValueの範囲検証なし。randomValueが1.0以上の場合、どのイベントも選択されないサイレント失敗 | 中 | `SymbolMapEventSystem.cs:55-66` | |
+| DL-5 | BackgroundClearSystem.IncrementFlag()でamount引数に負値が渡せてしまい、フラグ値がデクリメントされる。boss_killsなどのカウンターが不正に減少する可能性 | 中 | `BackgroundClearSystem.cs:31` | |
+
+---
+
+## カテゴリDM: 難易度パラメータ矛盾・Ironman設計不備（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DM-1 | DifficultySettings: Ironman難易度のdamageTakenMultiplier=1.2がNightmare(1.6)より低い。Ironman（永久死亡）がNightmare（復活1回）より被ダメージが少なく、難易度の階層が逆転 | 高 | `DifficultySettings.cs:159-162` | |
+| DM-2 | DifficultySettings: NightmareのexpMultiplier=0.6が極端に低い。レベルキャップに到達できずダメージ乗数(1.6倍被弾)と組み合わせると実質クリア不可能な難易度になる | 中 | `DifficultySettings.cs` | |
+| DM-3 | DifficultySettings: 難易度enum拡張時にdefault => Normalへのサイレントフォールバック。新難易度追加時にIronmanプレイヤーがNormal設定でプレイしてしまう致命的バグのリスク | 中 | `DifficultySettings.cs:86` | |
+| DM-4 | BackgroundClearSystem.GetFlagValue()が未設定フラグに対し0を返却。0が「未設定」なのか「値が0」なのか区別不能。"has_boss_defeated"フラグが初期値0と未設定で同一扱い | 中 | `BackgroundClearSystem.cs:37` | |
+| DM-5 | BackgroundClearSystem.CheckCondition()の`_ => false`デフォルトケースが、BackgroundBonusData側の新条件フラグ追加時にサイレント失敗を引き起こす。条件が常にfalseで解除不能な実績が発生する | 中 | `BackgroundClearSystem.cs:61` | |
+
+---
+
+## カテゴリDN: 開始マップ解決・テンプレートマップ（4件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DN-1 | StartingMapResolver: 新規Background enum値追加時にサイレントフォールバックで種族別マップ選択になる。新職業追加時に意図しない開始マップが設定される | 中 | `StartingMapResolver.cs:15-20` | |
+| DN-2 | StartingMapResolver: 新規Race enum値追加時に"capital_guild"がデフォルト返却。新種族が常にギルド開始になり種族特有の開始位置が無視される | 中 | `StartingMapResolver.cs:76-90` | |
+| DN-3 | SymbolMapSystem.GetLocationDescription()でLocationType.Fieldとdefaultが同一テキストを返却。Fieldケースが冗長なデッドコード | 低 | `SymbolMapSystem.cs:111-112` | |
+| DN-4 | NG+でEnemyMultiplier倍率がPlus4(3.0)→Plus5(4.0)で33%ジャンプ。Plus1→2→3→4が0.5ずつの均等増加に対し、Plus5のみ1.0増加で難易度スパイク | 低 | `NewGamePlusSystem.cs:29-33` | |
+
+---
+
+## カテゴリDO: 無限ダンジョンスコア・セーブスロットソート（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DO-1 | InfiniteDungeonSystem.GetScoreRank()のランク境界: floor 0-4がD評価だがfloor=0（未挑戦）もD。未挑戦とfloor 4到達が同一評価で区別不能 | 低 | `InfiniteDungeonSystem.cs:62-71` | |
+| DO-2 | MultiSlotSaveSystem: セーブスロットのSaveTime比較でnull SafeTimeを含むスロットのソートが非決定的。異なる実行でスロット選択結果が変わる可能性 | 高 | `MultiSlotSaveSystem.cs` | |
+| DO-3 | GameClearSystem.CalculateScore()でMath.Max(0, 10000 - totalTurns/5)のTurnBonus計算。totalTurns=50000以上でTurnBonus=0固定となり、50000ターン以上のプレイでターン効率の差がスコアに反映されない | 中 | `GameClearSystem.cs:70` | |
+| DO-4 | NewGamePlusSystem: GetCarryOverItems()のPlus2で「装備品」、Plus3で「ゴールド」のキャリーオーバーが記載されるが、実際の引き継ぎ処理(TransferToNewGame)がGameControllerに未実装 | 高 | `NewGamePlusSystem.cs`, `GameController.cs` | |
+| DO-5 | MultiEndingSystem: TrueエンディングとNormalエンディングが両方hasClearedFinalBoss==trueを条件としており、文の順序のみで分岐。コードリファクタリング時にelse if構造が崩れるとNormalがTrueを上書きするリスク | 中 | `MultiEndingSystem.cs:44-70` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -1522,7 +1644,17 @@
 | **DC: 死亡ログ未記録・ゲームオーバーフロー不備** | **2** | **2** | **2** | **0** | **0** | **6** |
 | **DD: 自動探索・パス計算不完全** | **1** | **2** | **2** | **0** | **0** | **5** |
 | **DE: タイル表示文字・ボス部屋生成エッジケース** | **1** | **2** | **2** | **0** | **0** | **5** |
-| **合計** | **144** | **244** | **209** | **40** | **1** | **638** |
+| **DF: マルチスロットセーブ・ゲームクリアスコア** | **2** | **2** | **2** | **0** | **0** | **6** |
+| **DG: ゲームオーバー・エンディング分岐** | **0** | **2** | **3** | **1** | **0** | **6** |
+| **DH: 描画最適化・ビューポート計算エラー** | **0** | **3** | **2** | **0** | **0** | **5** |
+| **DI: 百科事典・MOD検証・ヘルプシステム** | **0** | **3** | **2** | **1** | **0** | **6** |
+| **DJ: アクセシビリティ・色覚補正・ゲーム速度** | **0** | **1** | **3** | **1** | **0** | **5** |
+| **DK: 成長システム・レベル1ステータス欠如** | **0** | **2** | **2** | **1** | **0** | **5** |
+| **DL: フラグ条件解析・イベント確率不整合** | **1** | **0** | **4** | **0** | **0** | **5** |
+| **DM: 難易度パラメータ矛盾・Ironman設計不備** | **0** | **1** | **4** | **0** | **0** | **5** |
+| **DN: 開始マップ解決・テンプレートマップ** | **0** | **0** | **2** | **2** | **0** | **4** |
+| **DO: 無限ダンジョンスコア・セーブスロットソート** | **0** | **2** | **2** | **1** | **0** | **5** |
+| **合計** | **147** | **260** | **235** | **47** | **1** | **690** |
 
 ---
 
@@ -1532,10 +1664,10 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（144件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（244件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（209件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（40件）: 軽微なテーマ不一致 → 余裕があれば修正
+1. **致命的**（147件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（260件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（235件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（47件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（1件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
@@ -1663,3 +1795,15 @@
 - **DC: 死亡ログ未記録・ゲームオーバーフロー不備** — DeathLogSystem.AddLog()がHandlePlayerDeath()で未呼出。ゲームオーバーUIにリスタート/転生選択肢なし。Ironmanモードでセーブ未削除。状態異常死の死因テキストが汎用のみ。Sanity<=0時のセーブ削除/スコア記録なし。死亡統計閲覧UI不在
 - **DD: 自動探索・パス計算不完全** — AutoExploreSystemにFindPath()/GetNextStep()不在。空腹/渇き/疲労の危険閾値停止条件なし。BFS経路探索にイテレーション上限なし。自動探索状態がSaveData未保存。ボスフロア到達時の強制停止条件なし
 - **DE: タイル表示文字・ボス部屋生成エッジケース** — NpcTrainer/NpcLibrarianのGetDisplayChar()ケース欠落で'?'表示。単一部屋ダンジョンでボス部屋未設定。ボス部屋選択で部屋サイズ/接続数未検証。Water/Lavaタイルが通常フロアに未配置
+
+### 新規追加カテゴリの概要（第15回調査分）
+- **DF: マルチスロットセーブ・ゲームクリアスコア** — SaveTimeがnullableでOrderByソート非決定的。GetOldestSlot()空スロット時null参照リスク。CalculateScore()整数除算でスコア逆転。DetermineRank()タプル順序でランク逆転。DetermineInitialTier()常にPlus1返却。キャリーオーバー非累積
+- **DG: ゲームオーバー・エンディング分岐** — Dark/True/Salvationエンディング優先度不整合。Salvation条件(死亡0回)実質到達不能。Wanderer条件がDarkに吸収。転生Sanityコスト未消費。CanRebirth二重判定。無限ダンジョン乗数無上限
+- **DH: 描画最適化・ビューポート計算エラー** — CalculateViewport()奇数幅/高さで最端行列切断。IsInViewport境界<=演算子で二重描画。updateFrequency<=0でtrue返却。HUDスケール2.0上限でアクセシビリティ制限
+- **DI: 百科事典・MOD検証・ヘルプシステム** — モンスター登録時DiscoveryLevel=1で未遭遇名前判明。killCount=0とレジストリ値矛盾。ParseManifest()常にIsValid=true。パラメータnullチェックなし。ヘルプTake(5)切り捨て。チュートリアル再開不可
+- **DJ: アクセシビリティ・色覚補正・ゲーム速度** — FontSize int切り捨て。色変換4色のみで不完全。Protanopia/Tritanopia変換が医学的に不正確。Nightmare rescueCount/permaDeath矛盾。hungerDecay+turnLimit組み合わせで餓死必至
+- **DK: 成長システム・レベル1ステータス欠如** — GetLevelBonus(level=1)=0でレベル1成長なし。HP/MPボーナスもlevel-1で0。raceExpMultiplier除算で高倍率種族が有利(逆設計)。int切り捨て蓄積誤差。RollGrowthとGetHpBonusで丸め方式不統一
+- **DL: フラグ条件解析・イベント確率不整合** — karma条件パースオフセット不正で条件常時不成立。AND/OR混在非対応。イベント確率合計0.69で31%空振り。randomValue範囲未検証。IncrementFlag負値許容でカウンター不正減少
+- **DM: 難易度パラメータ矛盾・Ironman設計不備** — Ironman被ダメ1.2<Nightmare被ダメ1.6で難易度逆転。Nightmare expMultiplier=0.6で実質クリア不可。default=>Normalサイレントフォールバック。GetFlagValue()の0と未設定が区別不能。新条件フラグのサイレント失敗
+- **DN: 開始マップ解決・テンプレートマップ** — 新Background/Race enum追加時のサイレントフォールバック。LocaionType.Fieldデッドコード。NG+ Plus5難易度スパイク(1.0ジャンプ)
+- **DO: 無限ダンジョンスコア・セーブスロットソート** — floor=0と未挑戦が同一D評価。SaveTimeソート非決定的。TurnBonus 50000ターン以上で差がなくなる。NG+キャリーオーバー転送処理未実装。True/Normalエンディング順序依存
