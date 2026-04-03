@@ -1181,6 +1181,112 @@
 | CK-4 | ルーンワード習熟度が難易度と逆相関。gain=Max(1,10-Difficulty)で高難度ワードの習熟が遅い。学習インセンティブが逆転 | 低 | `SpellCastingSystem.cs:292-294`, `RuneWordDatabase.cs` | |
 | CK-5 | InvestmentSystem.ExpectedReturnが計算可能だが実際のゴールド支払いメカニズムなし。IsCompletedフラグが設定されるコードなし。投資が一方通行 | 中 | `InvestmentSystem.cs:6-65` | |
 | CK-6 | レシピ発見システムなし。CookingSystemの5レシピが全て初期状態でアクセス可能。料理の発見/学習ループが存在しない | 中 | `CookingSystem.cs:19-26` | |
+
+### CL: Enum未使用値・重複定義
+
+| ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
+|----|------------|--------|-----------|---------|
+| CL-1 | GameCommand列挙型（25値）が完全未使用デッドコード。Move/Attack/Skill/Magic/Item等25値全てがコードベースで一切参照されていない | 中 | `Enums.cs:160-187` | |
+| CL-2 | ItemType列挙型がEnums.csとItem.csで重複定義。Enums.cs版（6値: Weapon/Armor/Accessory/KeyItem/Scroll/Book）は完全にシャドウされItem.cs版のみ使用 | 高 | `Enums.cs:192-202`, `Item.cs:9-21` | |
+| CL-3 | CharacterClass列挙型がEnums.csとResourceSystem.csで重複定義。値が異なる（Fighter/Knight vs Warrior/Berserker）。Enums.cs版はシャドウ | 高 | `Enums.cs:286-308`, `ResourceSystem.cs:400-421` | |
+| CL-4 | Item.csのItemType.Miscellaneousが定義されているが一切参照なし。アイテム分類として使用されていない | 低 | `Item.cs:9-21` | |
+| CL-5 | SkillTarget.SingleAllyとSkillTarget.AllAlliesが定義済みだが使用されていない。味方対象スキルのターゲティングが機能しない | 高 | `Enums.cs:442-450` | |
+| CL-6 | NpcType列挙型の7値（Bard/MagicShopkeeper/BlackMarketDealer/Trainer/Alchemist/Guardian等）が未使用。対応NPCが生成されない | 中 | `Enums.cs:455-479` | |
+
+### CM: セーブデータ永続性（追加33システム未保存）
+
+| ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
+|----|------------|--------|-----------|---------|
+| CM-1 | _ngPlusTier（NewGamePlusTier?）がセーブされない。ロード時にNG+ティア情報が消失し、NG+特有の敵強化/報酬が適用されなくなる | 致命的 | `GameController.cs:155` | |
+| CM-2 | _hasCleared（bool）/_clearRank（string）がセーブされない。ゲームクリア状態とクリアランクがロード後に消失 | 致命的 | `GameController.cs:158,161` | |
+| CM-3 | _infiniteDungeonMode（bool）/_infiniteDungeonKills（int）がセーブされない。無限ダンジョンの進行状況がロード後にリセット | 致命的 | `GameController.cs:164,167` | |
+| CM-4 | _surfaceMap（Dictionary<Position, SurfaceType>）がセーブされない。環境戦闘システムの地形効果（濡れた床/燃焼等）がロード後に消失 | 高 | `GameController.cs:84` | |
+| CM-5 | _chantRemainingTurns/_pendingSpellResultがセーブされない。詠唱中の呪文がロード時に中断・消失 | 高 | `GameController.cs:178,181` | |
+| CM-6 | _isInLocationMap/_isLocationField/_symbolMapReturnPosition等ナビゲーション状態がセーブされない。町/建物内でセーブ→ロードすると位置コンテキスト消失 | 高 | `GameController.cs:135,138,141` | |
+| CM-7 | _buildingReturnMap/_buildingReturnPosition/_currentBuildingId/_visitedBuildingsがセーブされない。建物内でセーブ→ロードすると帰還先情報が消失 | 高 | `GameController.cs:144-149` | |
+| CM-8 | _playerFacing（Direction）がセーブされない。プレイヤーの向きがロード後にDirection.Southにリセット | 低 | `GameController.cs:75` | |
+
+### CN: スキルBasePower=0問題
+
+| ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
+|----|------------|--------|-----------|---------|
+| CN-1 | 挑発（provoke）のBasePower=0。「敵の注意を引き付ける」効果が数値的にゼロで機能しない | 高 | `SkillSystem.cs:97` | |
+| CN-2 | 瞑想（meditation）のBasePower=0。「HP・MP・SP回復」と説明があるが回復量ゼロ | 高 | `SkillSystem.cs:114` | |
+| CN-3 | 魔法障壁（arcane_shield）のBasePower=0。「魔法防御力上昇」バフだが上昇量ゼロ | 高 | `SkillSystem.cs:124` | |
+| CN-4 | 浄化（purify）/祝福（blessing）のBasePower=0。状態異常解除力/全ステ微増がゼロ | 高 | `SkillSystem.cs:128,130` | |
+| CN-5 | 死霊召喚（summon_undead）/呪詛（curse）のBasePower=0。召喚パワーとデバフ効果がゼロ | 高 | `SkillSystem.cs:133,135` | |
+| CN-6 | 鼓舞の歌（inspire_song）/子守唄（lullaby）/魅了の旋律（charm）のBasePower=0。バフ/睡眠/魅了効果が全てゼロ | 高 | `SkillSystem.cs:141,143,144` | |
+| CN-7 | 付与（enchant）/変成（transmute）のBasePower=0。属性付与と素材変換のパワーがゼロで実質効果なし | 中 | `SkillSystem.cs:149,150` | |
+| CN-8 | 解毒剤（potion_antidote）にEffectValueが未定義。解毒効果の数値が設定されていないため治癒が機能しない可能性 | 高 | `ItemFactory.cs:476` | |
+
+### CO: マップ生成・階段配置致命的欠陥
+
+| ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
+|----|------------|--------|-----------|---------|
+| CO-1 | PlaceStairs()で階段配置が失敗してもvoid返り値のためGenerate()が検出不可。階段なしマップを返す可能性 | 致命的 | `DungeonGenerator.cs:51,365-409` | |
+| CO-2 | GetRandomWalkablePositionInRoom()が50回試行で失敗→null返却。上り/下り階段が配置されずプレイヤーが階移動不能になる | 致命的 | `DungeonGenerator.cs:373-391` | |
+| CO-3 | TryAscendStairsで前フロアのStairsDownPositionがnullの場合、プレイヤー位置が設定されない。壁の中にスポーンする可能性 | 致命的 | `GameController.cs:2726-2741` | |
+| CO-4 | 宝物部屋がnormalRooms.Count>2の場合のみ配置。小規模ダンジョン（3部屋以下）では宝物部屋が生成されない | 中 | `DungeonGenerator.cs:468-474` | |
+| CO-5 | HasLineOfSight()にwhile(true)ループの最大反復制限なし。マップ状態破損時に無限ループのリスク | 中 | `DungeonMap.cs:187-200` | |
+
+### CP: 戦闘計算致命的不整合
+
+| ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
+|----|------------|--------|-----------|---------|
+| CP-1 | XP三重付与バグ。Player.GainExperience(totalExp) + OnEnemyDefeated内のreligionBonus + NG+bonusで1体の敵から3回XP獲得。レベリングが設計の3倍速 | 致命的 | `GameController.cs:1544,1653-1676` | |
+| CP-2 | CheckCritical(CriticalCheckParams)メソッド（DEX/LUK考慮版）が完全デッドコード。実際にはCheckCritical(double)のみ使用され、DEX/LUKがクリティカル率に影響しない | 致命的 | `DamageCalculator.cs:168-182` | |
+| CP-3 | maxHpが0の場合にGetHpStatePenalty()で除算ゼロクラッシュ。キャラ生成バグやセーブ破損時に発生 | 致命的 | `DamageCalculator.cs:202`, `ResourceSystem.cs:54` | |
+| CP-4 | AttackTypeが6種（Slash/Pierce/Blunt/Unarmed/Ranged/Magic）だがMagic以外は全て同一物理計算。武器タイプ別の差別化が存在しない | 高 | `DamageCalculator.cs:127-138` | |
+| CP-5 | CombatSystem.ExecuteAttack()がSP/MPコスト未消費で攻撃実行。リソース消費なしで無限攻撃可能 | 高 | `CombatSystem.cs:37-65` | |
+| CP-6 | 魔法攻撃でspellElement引数が渡されるがダメージ計算に未使用。属性弱点が魔法ダメージに反映されない | 高 | `CombatSystem.cs:215-270` | |
+| CP-7 | TryApplyStatusEffect()がtrue/false判定のみ返し、実際にキャラクターへの状態異常適用を行わない。戦闘中の状態異常が一切機能しない | 致命的 | `CombatSystem.cs:307-370` | |
+
+### CQ: クエスト報酬・宗教スキル欠落
+
+| ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
+|----|------------|--------|-----------|---------|
+| CQ-1 | クエスト報酬のItemIds（アイテム報酬）が配布されない。TurnInQuestでGoldとExperienceのみ処理しItemIds/GuildPoints/FaithPointsを無視 | 致命的 | `NpcSystem.cs:434-456` | |
+| CQ-2 | 宗教スキル23個中21個が未実装。LightTemple(divine_protection/divine_miracle)、DarkCult(3個)、NatureWorship(4個全て)、DeathFaith(4個全て)、ChaosCult(4個全て)がSkillSystem未定義 | 致命的 | `ReligionSystem.cs:238-345`, `SkillSystem.cs` | |
+| CQ-3 | ReligionBenefit（HealingBonus/DamageBonus/DefenseBonus等）のApplyBenefit()メソッドが見当たらない。宗教特典が定義のみで適用されない | 高 | `ReligionSystem.cs:223-345` | |
+| CQ-4 | 宗教タブー（ReligionTaboo）のCheckViolation()が未実装。プレイヤーがタブーを破っても一切のペナルティなし | 高 | `ReligionSystem.cs:232-343` | |
+| CQ-5 | 棄教呪い（Apostasy Curse）のDurationDaysが設定されるがデクリメントするコードなし。一時呪いが永続化 | 高 | `ReligionSystem.cs:395-414,529-530` | |
+| CQ-6 | DialogueSystem.CurrentNodeがセーブ/ロード対応していない。対話途中でセーブ→ロードすると対話進行状態消失 | 中 | `NpcSystem.cs:201-313` | |
+
+### CR: ランダムイベント・ワールドマップ欠落
+
+| ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
+|----|------------|--------|-----------|---------|
+| CR-1 | NpcEncounterイベントの解決ハンドラ（ResolveNpcEncounter）が未実装。NPC遭遇イベント発生時にクラッシュまたは無動作 | 致命的 | `WorldMapSystem.cs:729` | |
+| CR-2 | MerchantEncounterイベントの解決ハンドラ（ResolveMerchantEncounter）が未実装。商人遭遇イベント発生時に無動作 | 致命的 | `WorldMapSystem.cs:730` | |
+| CR-3 | AmbushEventの解決ハンドラ（ResolveAmbushEvent）が未実装。待ち伏せイベント発生時に無動作 | 致命的 | `WorldMapSystem.cs:733` | |
+| CR-4 | 人型種族以外の敵がゴールドをドロップしない。CalculateGoldReward()がRace!=Humanoidで即return 0。ドラゴン/アンデッド/ビースト等は報酬ゼロ | 高 | `GameController.cs:1558-1567` | |
+
+### CS: 誓約・タブー・実効果未実装
+
+| ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
+|----|------------|--------|-----------|---------|
+| CS-1 | OathSystem.IsViolation()が存在するが戦闘/アイテム使用/コンパニオン募集システムから自動呼出されない。誓約違反が検出されない | 高 | `OathSystem.cs:63-71` | |
+| CS-2 | 誓約完了条件（CompleteOath）メソッドが存在しない。TakeOath/BreakOathのみで、誓約を「達成」する方法がない | 高 | `OathSystem.cs` | |
+| CS-3 | SP上限（MaxStamina=100）がRestoreSp()等で強制されない。呼出元がMath.Min制約を忘れるとSP>100になる | 中 | `ResourceSystem.cs:135` | |
+| CS-4 | GetStaminaCost()にCharacterClass引数がない。全職業で同一SP消費。戦士のDashとシーフのDashが同コスト | 中 | `ResourceSystem.cs:140-162` | |
+
+### CT: 空腹ダメージ・攻撃タイプバランス
+
+| ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
+|----|------------|--------|-----------|---------|
+| CT-1 | HungerState.StarvingがDamagePerTurn=0でHP回復無効のみ。飢餓状態でダメージがないのは設計意図と矛盾する可能性 | 中 | `ResourceSystem.cs:226` | |
+| CT-2 | HungerState.StarvationがDamagePerTurn=999で即死級ダメージ。段階的な餓死ではなく突然死 | 中 | `ResourceSystem.cs:228` | |
+| CT-3 | XP計算にオーバーフロー/負数チェックなし。float→intキャストでNaN/Infinityの場合クラッシュ。NG+倍率が上限なし | 高 | `GameController.cs:1544,1653-1676` | |
+| CT-4 | レベルアップ時のHP/MP最大値更新・EffectiveStatsキャッシュ再計算が明示的に行われない。サイレントレベルアップで即時ステータス反映なし | 高 | `GameController.cs` | |
+
+### CU: アイテム生成・Create()null返却
+
+| ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
+|----|------------|--------|-----------|---------|
+| CU-1 | ItemFactory.Create()がitemId未定義の場合にnull返却。呼出元がnullチェックを怠るとNullReferenceExceptionでクラッシュ | 高 | `ItemFactory.cs:1267` | |
+| CU-2 | GenerateDungeonFloorItem()/GenerateEnemyDropItem()がアイテム生成失敗時にCreateStone()にフォールバック。レアドロップ枠で石が出る不具合 | 中 | `ItemFactory.cs:1053,1103` | |
+| CU-3 | NpcMemorySystemがReset()で全記憶消去。転生（Rebirth）後にNPC関係性が完全リセットされるが、これが設計通りか不明確 | 低 | `NpcMemorySystem.cs:64-68` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -1271,7 +1377,17 @@
 | **CI: ポーション・巻物・アクセサリ効果詳細** | **0** | **2** | **5** | **2** | **0** | **9** |
 | **CJ: 行動コスト・自動探索・メッセージ詳細** | **0** | **3** | **3** | **2** | **0** | **8** |
 | **CK: 百科事典・実績・識別・投資詳細** | **0** | **0** | **5** | **1** | **0** | **6** |
-| **合計** | **117** | **194** | **180** | **36** | **1** | **528** |
+| **CL: Enum未使用値・重複定義** | **0** | **3** | **2** | **1** | **0** | **6** |
+| **CM: セーブデータ永続性（追加33システム未保存）** | **3** | **4** | **0** | **1** | **0** | **8** |
+| **CN: スキルBasePower=0問題** | **0** | **7** | **1** | **0** | **0** | **8** |
+| **CO: マップ生成・階段配置致命的欠陥** | **3** | **0** | **2** | **0** | **0** | **5** |
+| **CP: 戦闘計算致命的不整合** | **4** | **3** | **0** | **0** | **0** | **7** |
+| **CQ: クエスト報酬・宗教スキル欠落** | **2** | **3** | **1** | **0** | **0** | **6** |
+| **CR: ランダムイベント・ワールドマップ欠落** | **3** | **1** | **0** | **0** | **0** | **4** |
+| **CS: 誓約・タブー・実効果未実装** | **0** | **2** | **2** | **0** | **0** | **4** |
+| **CT: 空腹ダメージ・攻撃タイプバランス** | **0** | **2** | **2** | **0** | **0** | **4** |
+| **CU: アイテム生成・Create()null返却** | **0** | **1** | **1** | **1** | **0** | **3** |
+| **合計** | **132** | **220** | **191** | **39** | **1** | **583** |
 
 ---
 
@@ -1281,10 +1397,10 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（117件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（194件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（180件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（36件）: 軽微なテーマ不一致 → 余裕があれば修正
+1. **致命的**（132件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（220件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（191件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（39件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（1件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
@@ -1388,3 +1504,15 @@
 - **CI: ポーション・巻物・アクセサリ効果詳細** — 6種ポーション/2種巻物のUse()ケース欠落。アクセサリPassiveAbility/ActivatedSkill非参照。Equipment.Effects未適用。識別巻物が実際に識別しない。料理熟練度なし
 - **CJ: 行動コスト・自動探索・メッセージ詳細** — UseInn/VisitChurchのactionCost未設定。自動探索に空腹/渇きチェックなし。メッセージ優先度なし。フィールドマップで町イベント発火。ボス配置フォールバック
 - **CK: 百科事典・実績・識別・投資詳細** — Encyclopedia/AchievementSystemがSaveData非保存。SpellParserルーン組合せ未検証。ルーン習熟度逆相関。Investment支払い未実装。レシピ発見システムなし
+
+### 新規追加カテゴリの概要（第13回調査分）
+- **CL: Enum未使用値・重複定義** — GameCommand列挙型(25値)が完全未使用。ItemType/CharacterClassがEnums.csと別ファイルで重複定義。SkillTarget.SingleAlly/AllAlliesが未使用でパーティスキル不能。NpcType7値(Bard/Trainer等)が未参照
+- **CM: セーブデータ永続性（追加33システム未保存）** — NG+ティア/ゲームクリア状態/クリアランク/無限ダンジョンモード・キル数がセーブされない。surfaceMap/詠唱状態/ナビゲーション状態/建物内コンテキストもロード後に消失
+- **CN: スキルBasePower=0問題** — 挑発/瞑想/魔法障壁/浄化/祝福/死霊召喚/呪詛/鼓舞の歌/子守唄/魅了/付与/変成の12スキルがBasePower=0で実質効果なし。解毒剤にEffectValue未定義
+- **CO: マップ生成・階段配置致命的欠陥** — PlaceStairs()失敗時のフォールバックなし(void返却で検出不可)。上り階段昇降時にStairsDownPosition=nullでプレイヤー位置未設定。HasLineOfSight無限ループリスク
+- **CP: 戦闘計算致命的不整合** — XP三重付与バグ(base+religion+NG+)。CheckCritical(DEX/LUK版)がデッドコード。maxHp=0で除算ゼロクラッシュ。攻撃タイプ6種がMagic以外全て同一計算。状態異常が適用されない(true/false返却のみ)
+- **CQ: クエスト報酬・宗教スキル欠落** — クエストItemIds/GuildPoints/FaithPointsが配布されない。宗教スキル21/23個が未実装。ReligionBenefit適用メソッドなし。タブー違反チェックなし。棄教呪い期限デクリメントなし
+- **CR: ランダムイベント・ワールドマップ欠落** — NpcEncounter/MerchantEncounter/AmbushEventの3種イベント解決ハンドラが未実装。非人型敵のゴールドドロップがゼロ
+- **CS: 誓約・タブー・実効果未実装** — OathSystem違反検出が自動化されていない。誓約完了条件(CompleteOath)なし。SP上限未強制。職業別SP消費なし
+- **CT: 空腹ダメージ・攻撃タイプバランス** — Starving DamagePerTurn=0(飢餓ダメージなし)。Starvation DamagePerTurn=999(即死)。XPオーバーフロー未チェック。レベルアップ時のステータス即時反映なし
+- **CU: アイテム生成・Create()null返却** — ItemFactory.Create()がnull返却可能でNullRefリスク。生成失敗時にStoneフォールバック。NpcMemory転生リセットの設計意図不明確
