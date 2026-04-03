@@ -2721,7 +2721,33 @@
 | **HT: Consumables CureAll不完全** | **0** | **2** | **1** | **0** | **0** | **3** |
 | **HU: DungeonMap FOV距離混在** | **0** | **1** | **1** | **1** | **0** | **3** |
 | **HV: Tile NPC表示欠落・罠不可視** | **0** | **0** | **1** | **2** | **0** | **3** |
-| **合計** | **177** | **367** | **420** | **126** | **1** | **1091** |
+| **HW: ItemFactory ItemType3種限定・デッドコード** | **1** | **2** | **2** | **1** | **0** | **6** |
+| **HX: ItemFactory GenerateLoot未使用パラメータ** | **0** | **2** | **2** | **1** | **0** | **5** |
+| **HY: ItemFactory深度スケーリング・確率飽和** | **0** | **2** | **3** | **1** | **0** | **6** |
+| **HZ: ItemFactoryドロップ池空アクセス・リフレクション** | **1** | **2** | **1** | **1** | **0** | **5** |
+| **IA: EnemyFactory深度スケーリング欠如** | **2** | **3** | **1** | **0** | **0** | **6** |
+| **IB: EnemyFactoryステータス範囲未検証・負値伝播** | **1** | **2** | **2** | **1** | **0** | **6** |
+| **IC: EnemyFactoryボス進行不整合・経験値逆転** | **0** | **2** | **3** | **1** | **0** | **6** |
+| **ID: Player経験値負値・信仰値上限未検証** | **1** | **2** | **2** | **0** | **0** | **5** |
+| **IE: PlayerレベルアップMaxHp計算順序** | **1** | **1** | **1** | **0** | **0** | **3** |
+| **IF: Player PickUp/Drop非Item型サイレント失敗** | **1** | **2** | **1** | **0** | **0** | **4** |
+| **IG: Player SetGoldイベント未発火・TransferData未検証** | **0** | **2** | **1** | **1** | **0** | **4** |
+| **IH: DropTableSystemゴールド計算・種族ゼロ化** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **II: Character回復負値受入・リソースクランプ欠如** | **0** | **2** | **2** | **0** | **0** | **4** |
+| **IJ: StatusEffectスタック無検証・永続持続** | **0** | **2** | **2** | **1** | **0** | **5** |
+| **IK: Damage抵抗値回復・最小ダメージ固定** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **IL: ObjectPoolスレッド非安全・リセット例外未処理** | **1** | **1** | **1** | **1** | **0** | **4** |
+| **IM: IAIBehavior nullチェック欠如・MoveTowardsループ** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **IN: Position方向デフォルト・座標オーバーフロー** | **0** | **0** | **2** | **2** | **0** | **4** |
+| **IO: TurnAction null Target・精度損失** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **IP: GameConstants MaxRescueCount死コード・閾値未検証** | **0** | **0** | **1** | **2** | **0** | **3** |
+| **IQ: ItemFactoryドロップ池重複バイアス・深度累積** | **0** | **0** | **2** | **2** | **0** | **4** |
+| **IR: EnemyFactory FleeThreshold範囲未検証・知覚矛盾** | **0** | **1** | **2** | **2** | **0** | **5** |
+| **IS: EnemyFactory EnemyDefinition無バリデーション** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **IT: Player JoinReligion初期値0・FaithCap連携欠如** | **0** | **1** | **2** | **0** | **0** | **3** |
+| **IU: Player CanPickUp重量検証バイパス** | **0** | **2** | **1** | **0** | **0** | **3** |
+| **IV: Interfaces IRandomProvider範囲曖昧・IMap境界未定義** | **0** | **0** | **1** | **2** | **0** | **3** |
+| **合計** | **186** | **403** | **465** | **150** | **1** | **1205** |
 
 ---
 
@@ -3001,3 +3027,31 @@
 - **HT: Consumables CureAll不完全・Random非決定性** — CureAllが一部StatusEffectType未対象。random==null時に毎回新規Random()で再現性なし。回復量値不一致
 - **HU: DungeonMap FOV距離メトリクス混在・環境修正子欠落** — ChebyshevDistanceとLOS併用でL字型視界ギャップ。環境修正子がMoveのみ対応で攻撃等に未適用
 - **HV: Tile NPC表示文字欠落・罠不可視** — NpcTrainer/NpcLibrarianが表示switch未登録で'?'表示。TrapHiddenがFloorと同一表示でデバッグ手段未提供
+
+### 新規追加カテゴリの概要（第24回調査分）
+- **HW: ItemFactory ItemType3種限定・デッドコード** — GenerateRandomItem()のNext(3)でEquipment/Consumable/Foodの3種のみ生成。Material/Key/Quest/Miscellaneousが完全除外。デフォルトケースCreateBread()は到達不能デッドコード。マジックナンバー(3,4,4,3)がenum定義と非連動
+- **HX: ItemFactory GenerateLoot未使用パラメータ** — GenerateLoot()のenemyLevel・baseRarityパラメータが未使用でdepthのみ参照。dropRateの範囲未検証で負値・1超過時に動作逆転（負値で常時ドロップ、1超過で絶対不ドロップ）。API設計と実装の乖離
+- **HY: ItemFactory深度スケーリング・確率飽和** — 深度100+でUncommon50%・Common0%に飽和しレアリティ分布が固定化。深度条件がif文累積で池が単調増加。深度10以降と3以降が重複し同一アイテムが二重加重
+- **HZ: ItemFactoryドロップ池空アクセス・リフレクション** — 空プールでrandom.Next(0)がArgumentOutOfRangeException。SetItemId()がリフレクションでinit-onlyプロパティ書換え。prop?.SetValue()でプロパティ名変更時サイレント失敗。EquipmentItem型チェック失敗時の未強化返却
+- **IA: EnemyFactory深度スケーリング欠如** — GetEnemiesForDepth()が静的定義を深度別に返却するのみでステータス調整なし。Orcが深度3～20で同一ステータス。floorBonusパラメータがnull渡しの便利メソッド経由で形骸化。ダンジョン別・領地別も深度非連動
+- **IB: EnemyFactoryステータス範囲未検証・負値伝播** — Stats.Apply()が無制限加算で負値ステータス生成可能。Strength-50でPhysicalAttack=-147。MaxHpのみMath.Max(1)で他ステータスは負値保護なし。EnemyDefinitionレコードにコンストラクタバリデーションなし
+- **IC: EnemyFactoryボス進行不整合・経験値逆転** — FloorBoss手動定義がBalanceConfig.GetDepthStatMultiplier()と非連携。FloorBoss5=150XPがElite敵(55-100XP)と比較して報酬不足。ボス25→30間の推奨レベル据え置き(45)でXPのみ2倍の不連続
+- **ID: Player経験値負値・信仰値上限未検証** — GainExperience()に負値検証なし。ApplyTransferData()でFaithPoints=data.FaithPointsがFaithCapを超過可能。RaceDefinition.Get()のKeyNotFoundException未処理で種族未登録時にクラッシュ
+- **IE: PlayerレベルアップMaxHp計算順序** — LevelUp()でLevel++後にoldMaxHpを取得。MaxHpがLevel依存の場合、増分計算が実際の成長量と不一致。HP回復量の過大/過小につながる
+- **IF: Player PickUp/Drop非Item型サイレント失敗** — PickUp()がItems.Item型チェックで非該当時にサイレント無視。アイテムがワールドから消滅するがインベントリに入らない消失バグ。Drop()も同様のサイレント失敗パス
+- **IG: Player SetGoldイベント未発火・TransferData未検証** — SetGold()がOnGoldChangedイベントを発火せずUI非更新。AddGold/SpendGoldはイベント発火で不整合。ApplyTransferData()にnull引数チェックなし
+- **IH: DropTableSystemゴールド計算・種族ゼロ化** — ゴールド範囲計算でMath.Maxの使用がカスタム値を無効化。非Humanoid敵のゴールドが一律0で意図的設計か不明。ItemDefinitions.Create() null時のサイレント無視でドロップ欠損
+- **II: Character回復負値受入・リソースクランプ欠如** — Heal()が負のamountを受け入れダメージとして機能。RestoreMp/RestoreSp/ConsumeMp/ConsumeSp内でのMath.Clamp欠如（プロパティsetterのみ依存）。Position未初期化で(0,0)スポーン
+- **IJ: StatusEffectスタック無検証・永続持続** — Stack()がother.StackCount<=0を未検証。Duration=Math.Max()で繰り返しスタックにより実質無限持続。DamagePerTick*StackCountが無制限乗算で異常ダメージ
+- **IK: Damage抵抗値回復・最小ダメージ固定** — resistance=-1.0fで2倍ダメージ増幅（回復ではなく増幅）の非直感的仕様。WithMultiplier()のMath.Max(1)で0.3倍率時もダメージ1固定（0にならない）。Amount負値・ゼロの未検証
+- **IL: ObjectPoolスレッド非安全・リセット例外未処理** — _pool.Countのロックなし読取とInterlocked.Decrementの非同期。_resetAction例外時にプール内破損オブジェクト残留。null item受入でプール汚染
+- **IM: IAIBehavior nullチェック欠如・MoveTowardsループ** — state.CurrentMap nullチェックなしでNullReferenceException。MoveTowards()が包囲状態でWait返却し敵が永久停滞。GetDirectionTo()のパラメータ名が意味逆転
+- **IN: Position方向デフォルト・座標オーバーフロー** — GetDirectionTo()が同一位置でDirection.North返却（恣意的デフォルト）。int.MaxValue近傍の座標でDistance計算オーバーフロー。Move()が負座標・マップ外座標を生成
+- **IO: TurnAction null Target・精度損失** — TurnAction.Attack(null)が許容されnullターゲット攻撃が実行パスに到達。Float modifier連鎖で0.05→Math.Ceiling(1)となりコスト差分消失。BaseTurnCost小値でmodifier効果が無意味化
+- **IP: GameConstants MaxRescueCount死コード・閾値未検証** — MaxRescueCount=3が全ソースで未参照の完全死コード。TurnLimitWarning閾値がTurnLimitYear変更時に自動追従せず。ゴールド範囲の整数演算で深度別粒度不足
+- **IQ: ItemFactoryドロップ池重複バイアス・深度累積** — MonsterRace別ドロップ池で同一アイテムが2回追加（Beast: beast_hide×2）。暗黙の重み付けだがコメント・ドキュメントなし。深度条件の累積if文でプール肥大化
+- **IR: EnemyFactory FleeThreshold範囲未検証・知覚矛盾** — FleeThreshold値が0.0f～0.4fで[0,1]範囲の強制なし。Sandworm SightRange:3/HearingRange:15の知覚バランス不自然。GiveUpDistance値のばらつき(8-30)に設計根拠なし
+- **IS: EnemyFactory EnemyDefinition無バリデーション** — recordコンストラクタにバリデーションなし。負値Stats/空Name/null TypeIdで不正定義が生成可能。FloorBoss定義がBalanceConfigと手動同期で乖離リスク
+- **IT: Player JoinReligion初期値0・FaithCap連携欠如** — JoinReligion()がFaithPoints=0設定だがGameConstants.InitialFaithOnJoin=20と不一致。入信直後にスキル使用不可の空白期間が発生
+- **IU: Player CanPickUp重量検証バイパス** — CanPickUp()がItems.Item型以外の場合に重量チェックをスキップしtrue返却。非標準アイテムが重量制限を無視してインベントリ追加可能
+- **IV: Interfaces IRandomProvider範囲曖昧・IMap境界未定義** — Next(min,max)の包含/排他範囲がXMLドキュメント未記載。GetTile()の境界外座標に対する戻り値（null/例外）未規定。イベントのnull安全性未文書化
