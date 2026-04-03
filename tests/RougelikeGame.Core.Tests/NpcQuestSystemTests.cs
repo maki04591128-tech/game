@@ -540,7 +540,7 @@ public class NpcQuestSystemTests
 
         var player = CreateTestPlayer();
         system.AcceptQuest("quest_herb_collect", 1, GuildRank.Copper);
-        system.UpdateObjective("item_herb", 3);
+        system.UpdateObjective("material_herb", 3);
         system.TurnInQuest("quest_herb_collect", player);
 
         // セーブ

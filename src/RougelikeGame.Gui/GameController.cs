@@ -3373,6 +3373,26 @@ public class GameController
             case TrapType.PitFall:
                 AddMessage("穴に落ちた！");
                 break;
+
+            case TrapType.Poison:
+                AddMessage("毒針が飛び出した！体に毒が回る…");
+                break;
+
+            case TrapType.Arrow:
+                AddMessage("壁から矢が飛んできた！");
+                break;
+
+            case TrapType.Fire:
+                AddMessage("足元から炎が噴き上がった！");
+                break;
+
+            case TrapType.Sleep:
+                AddMessage("睡眠ガスが噴き出した！意識が遠のく…");
+                break;
+
+            case TrapType.Confusion:
+                AddMessage("混乱ガスが噴き出した！方向感覚が狂う…");
+                break;
         }
 
         // プレイヤー死亡チェック
