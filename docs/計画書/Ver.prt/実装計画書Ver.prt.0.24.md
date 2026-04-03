@@ -1653,6 +1653,92 @@
 | EA-1 | RacialBehaviors.SpiritBehavior: テレポート判定後にMoveRandom()（隣接マスランダム移動）で代替実装。「瞬間移動」という設計意図と1マス移動の実装が乖離 | 低 | `RacialBehaviors.cs:214-216` | |
 | EA-2 | SpellEffectResolver.DetermineElement(): Element.Curse/Lightningに対応する効果語定義が不完全。一部属性が詠唱結果に反映されない可能性 | 低 | `SpellCastingSystem.cs:388-419` | |
 
+### EB: AddGold(-負値)サイレント失敗・ゴールド消費不能
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EB-1 | Player.AddGold()はamount>0のガードがあり負値を無視する。一方SpendGold()メソッドが別途存在する。GameControllerの6箇所でAddGold(-xxx)を呼び出しており、投資・雇用・ギャンブル・ペナルティ・クラフト・購入の全ゴールド消費が**サイレントに失敗**する | 致命的 | `Player.cs:118-125(AddGold)`, `Player.cs:128-137(SpendGold)` | |
+| EB-2 | 投資処理: Player.AddGold(-investAmount)が無効。投資金額が減らずに投資効果だけ得られる無限ゴールドバグ | 致命的 | `GameController.cs:6085` | |
+| EB-3 | コンパニオン雇用: Player.AddGold(-companion.HireCost)が無効。雇用コスト0で無制限雇用可能 | 致命的 | `GameController.cs:6277` | |
+| EB-4 | ギャンブル: Player.AddGold(-betAmount)が無効。賭け金が減らず常にプラス収支 | 致命的 | `GameController.cs:7403` | |
+| EB-5 | 密輸ペナルティ: Player.AddGold(-Math.Min(penalty, Player.Gold))が無効。密輸失敗のゴールドペナルティが適用されない | 高 | `GameController.cs:7645` | |
+| EB-6 | クラフト素材費: Player.AddGold(-recipe.MaterialCost)が無効。クラフト無料化 | 致命的 | `GameController.cs:7679` | |
+| EB-7 | ショップ購入: Player.AddGold(-item.Price)が無効。全商品が実質無料 | 致命的 | `GameController.cs:7708` | |
+| EB-8 | SpendGold()は3箇所（訓練・学習）でのみ使用。残り6箇所がAddGold(-xxx)パターンで不統一 | 高 | `GameController.cs:5371,5387,5412(SpendGold)` | |
+
+### EC: 死亡プレイヤーアクション制御不備
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EC-1 | ProcessInput()のメイン処理パスにPlayer.IsAlive検証なし。IsGameOver/IsRunningチェック後、状態異常チェック内でのみIsAliveを検証。通常行動（移動・攻撃・スキル・アイテム等）時にIsAlive未検証 | 致命的 | `GameController.cs:930-932,962-970` | |
+| EC-2 | UseItem()メソッドにIsAlive検証なし。死亡後に回復アイテム使用で疑似復活可能 | 高 | `GameController.cs:2762-2807` | |
+| EC-3 | TryUseFirstReadySkill()にIsAlive検証なし。死亡後もスキル発動可能 | 高 | `GameController.cs:3692-3724` | |
+| EC-4 | TryRangedAttack()にIsAlive検証なし。死亡後も遠距離攻撃可能 | 高 | `GameController.cs:3550付近` | |
+| EC-5 | IsGameOverフラグがtrueになるまでの間にIsAliveがfalseの状態が存在。HandlePlayerDeath()呼出前の複数ターン処理で死亡プレイヤーが行動継続 | 中 | `GameController.cs:952-955` | |
+
+### ED: スポーン位置ハードコードフォールバック・壁内配置リスク
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| ED-1 | ダンジョンフロア移動時: StairsUpPosition/EntrancePositionが両方nullの場合、Position(5,5)にフォールバック。マップサイズやタイルタイプ検証なしで壁内に配置される可能性 | 致命的 | `GameController.cs:690-691` | |
+| ED-2 | ロケーションマップ遷移時: locationMap.EntrancePosition/StairsUpPositionが両方nullの場合、Position(5,5)にフォールバック | 致命的 | `GameController.cs:5037-5038` | |
+| ED-3 | フィールドマップ遷移時: fieldMap.EntrancePositionがnullの場合、Position(Width/2, Height-1)にフォールバック。マップ最下端行が壁の場合に壁内配置 | 高 | `GameController.cs:5077-5078` | |
+| ED-4 | 建物内部マップ遷移時: interiorMap.EntrancePositionがnullの場合、Position(Width/2, Height-2)にフォールバック。検証なし | 高 | `GameController.cs:5228-5229` | |
+| ED-5 | 全フォールバックでGetRandomWalkablePosition()等の安全な代替手段を使用していない。壁内配置時はプレイヤーが移動不能になり詰み | 中 | `GameController.cs:690,5037,5077,5228` | |
+
+### EE: StatusEffects.First()のInvalidOperationException
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EE-1 | ProcessInput()内でHasStatusEffect()チェック（935-938行）とFirst()呼び出し（940行）が分離。チェック通過後にProcessTurnEffects()等のイベントで状態異常が解除された場合、First()がInvalidOperationExceptionをスロー | 高 | `GameController.cs:935-942` | |
+| EE-2 | FirstOrDefault()を使用してnullチェックすべきだが、First()で条件付き検索を行っている。コレクション変更のタイミング次第でクラッシュ | 中 | `GameController.cs:940-942` | |
+
+### EF: AudioManager Dispose不完全・リソースリーク
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EF-1 | Dispose()でStopAll()とイベント解除のみ実行。_bgmPlayer自体のDispose()/Close()が未呼び出しでMediaPlayerリソースリーク | 高 | `AudioManager.cs:198-206` | |
+| EF-2 | _sePlayers（最大8個のMediaPlayer）のDispose()/Close()が未呼び出し。長時間プレイでオーディオデバイスリソース枯渇の可能性 | 高 | `AudioManager.cs:198-206` | |
+| EF-3 | GC.SuppressFinalize(this)を呼び出すがファイナライザー未定義。Suppress不要だが害はない | 低 | `AudioManager.cs:205` | |
+
+### EG: SaveManager例外ハンドリング欠落
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EG-1 | Load()メソッドでJsonSerializer.Deserialize()にtry-catchなし。破損JSONでJsonExceptionがスロー、ゲーム起動時クラッシュ | 高 | `SaveManager.cs:36-42` | |
+| EG-2 | File.ReadAllText()にIOExceptionハンドリングなし。ファイル読み取り中のI/Oエラーで未処理例外 | 中 | `SaveManager.cs:40` | |
+| EG-3 | セーブファイル破損時のリカバリ手段なし。バックアップセーブ機構も不在 | 中 | `SaveManager.cs全体` | |
+
+### EH: Damage抵抗値の負値範囲によるダメージ増幅
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EH-1 | Damage.CalculateFinal()でresistanceが[-1f, 0.9f]にクランプ。resistance=-1.0fで(1-(-1))=2.0倍ダメージ増幅。防御側の抵抗値が負になるケースで味方攻撃が意図せず2倍化 | 高 | `Damage.cs:70` | |
+| EH-2 | 状態異常やデバフでresistanceが負値に設定される場合、最大2倍ダメージブーストが発生。バランス破壊の可能性 | 中 | `Damage.cs:70` | |
+| EH-3 | 意図的な「弱点」設計の場合でも上限-1.0f(2倍)が適切か不明。設計書に仕様記載なし | 低 | `Damage.cs:70` | |
+
+### EI: ObjectPool非アトミックサイズチェック
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EI-1 | Return()メソッドで_pool.Count < _maxSize判定後に_pool.Add()実行。ConcurrentBagのCountプロパティとAdd()がアトミックでないため、複数スレッドが同時にチェック通過してmaxSize超過の可能性 | 中 | `ObjectPool.cs:76-79` | |
+| EI-2 | maxSize超過時のelse分岐でInterlocked.Decrementを使用しスレッド安全だが、Add分岐のCount+Add非アトミック問題は残存 | 低 | `ObjectPool.cs:76-84` | |
+
+### EJ: クエスト状態遷移検証不備
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EJ-1 | NpcSystem内のクエスト完了遷移でprogress.State = QuestState.Completedの前にState == Activeの検証なし。IsComplete条件のみで遷移するため、既にCompleted/TurnedIn状態から再度Completedに戻る可能性 | 中 | `NpcSystem.cs:426-429` | |
+| EJ-2 | TurnInQuest()ではState != QuestState.Completedを検証するが、Active→Completed→TurnedInの厳密な状態マシン遷移ガードが不完全 | 中 | `NpcSystem.cs:434-456` | |
+| EJ-3 | クエスト状態の不正遷移がセーブデータ経由で持ち込まれた場合のバリデーションなし | 低 | `NpcSystem.cs全体` | |
+
+### EK: SkillDatabase.GetById() null-forgiving演算子
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EK-1 | TryUseFirstReadySkill()内のWhere句でs != nullチェック後、s!.Idでnull-forgiving演算子使用。Whereのnullチェックで安全だが、コンパイラ警告抑制の設計パターンとして不統一 | 低 | `GameController.cs:3698-3700` | |
+| EK-2 | SkillDatabase.GetById()のnull返却に対し、呼び出し側でのnullチェックが箇所により?.演算子/if null/!演算子と3パターン混在 | 中 | `GameController.cs:3698,584-587` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -1785,7 +1871,17 @@
 | **DY: アイテム等級・ドロップ・素材品質未機能** | **0** | **1** | **2** | **2** | **0** | **5** |
 | **DZ: GameController計算結果破棄・戻り値無視** | **1** | **0** | **4** | **0** | **0** | **5** |
 | **EA: AIビヘイビア・Spirit疑似テレポート** | **0** | **0** | **0** | **2** | **0** | **2** |
-| **合計** | **152** | **271** | **262** | **63** | **1** | **749** |
+| **EB: AddGold(-負値)サイレント失敗** | **5** | **2** | **0** | **0** | **0** | **8** |
+| **EC: 死亡プレイヤーアクション制御不備** | **1** | **3** | **1** | **0** | **0** | **5** |
+| **ED: スポーン位置ハードコードフォールバック** | **2** | **2** | **1** | **0** | **0** | **5** |
+| **EE: StatusEffects.First()例外リスク** | **0** | **1** | **1** | **0** | **0** | **2** |
+| **EF: AudioManager Dispose不完全** | **0** | **2** | **0** | **1** | **0** | **3** |
+| **EG: SaveManager例外ハンドリング欠落** | **0** | **1** | **2** | **0** | **0** | **3** |
+| **EH: Damage抵抗値負値ダメージ増幅** | **0** | **1** | **1** | **1** | **0** | **3** |
+| **EI: ObjectPool非アトミックサイズチェック** | **0** | **0** | **1** | **1** | **0** | **2** |
+| **EJ: クエスト状態遷移検証不備** | **0** | **0** | **2** | **1** | **0** | **3** |
+| **EK: SkillDatabase null-forgiving演算子** | **0** | **0** | **1** | **1** | **0** | **2** |
+| **合計** | **160** | **283** | **272** | **68** | **1** | **785** |
 
 ---
 
@@ -1795,10 +1891,10 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（147件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（260件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（235件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（47件）: 軽微なテーマ不一致 → 余裕があれば修正
+1. **致命的**（160件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（283件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（272件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（68件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（1件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
@@ -1952,3 +2048,15 @@
 - **DY: アイテム等級・ドロップ・素材品質未機能** — DropTableSystem.GenerateLoot()がMinGrade無視で全Standard固定。Material.Quality未設定で品質50固定。装備RequiredStatsのLuck/CHA/PER未チェック。Food.HydrationValueとThirst未連携。Scroll.Use()署名でゲーム状態変更不可
 - **DZ: GameController計算結果破棄・戻り値無視** — TrySmithRepair()のrepairAmount計算後にdurability加算なし（表示のみ）。ApplySpellDetect()感知結果が反映されない。TrySmuggle()戻り値完全無視で失敗時もターン消費。MaxSpellWords=7固定で深度拡張なし。ドア配置判定が通路交差点を含む
 - **EA: AIビヘイビア・Spirit疑似テレポート** — SpiritBehaviorのテレポート判定後にMoveRandom()（1マス移動）で代替。Spirit属性詠唱語の一部未定義
+
+### 新規追加カテゴリの概要（第17回調査分）
+- **EB: AddGold(-負値)サイレント失敗** — Player.AddGold()はamount>0ガードで負値無視。SpendGold()メソッドが存在するのにGameControllerの6箇所でAddGold(-xxx)呼び出し。投資・雇用・ギャンブル・ペナルティ・クラフト・購入の全ゴールド消費がサイレント失敗。実質無限ゴールド
+- **EC: 死亡プレイヤーアクション制御不備** — ProcessInput()にPlayer.IsAlive検証なし。状態異常チェック内でのみIsAlive検証。死亡後も移動・攻撃・スキル・アイテム使用が可能。UseItem()/TryUseFirstReadySkill()/TryRangedAttack()もIsAlive未検証
+- **ED: スポーン位置ハードコードフォールバック** — ダンジョン/ロケーション/フィールド/建物マップ全4種のフォールバック位置がPosition(5,5)等のハードコード値。タイルタイプ検証なしで壁内配置リスク。GetRandomWalkablePosition()等の安全な代替手段を未使用
+- **EE: StatusEffects.First()例外リスク** — ProcessInput()内のHasStatusEffect()チェックとFirst()呼び出しが分離。イベントによる状態異常解除でFirst()がInvalidOperationExceptionをスロー
+- **EF: AudioManager Dispose不完全** — _bgmPlayerと_sePlayers(最大8個)のDispose()/Close()未呼び出し。MediaPlayerリソースリーク。長時間プレイでオーディオデバイスリソース枯渇
+- **EG: SaveManager例外ハンドリング欠落** — Load()でJsonSerializer.Deserialize()にtry-catchなし。破損JSONでクラッシュ。File.ReadAllText()のIOExceptionも未ハンドル。バックアップセーブ機構不在
+- **EH: Damage抵抗値負値ダメージ増幅** — CalculateFinal()でresistanceが[-1f, 0.9f]にクランプ。resistance=-1.0fで2倍ダメージ増幅。デバフによる負値設定でバランス破壊の可能性
+- **EI: ObjectPool非アトミックサイズチェック** — Return()の_pool.Count < _maxSize判定とAdd()が非アトミック。複数スレッドが同時チェック通過でmaxSize超過の可能性
+- **EJ: クエスト状態遷移検証不備** — State = Completed遷移前にActive検証なし。既にCompleted/TurnedInから再度Completed遷移の可能性。セーブ経由の不正状態にもバリデーションなし
+- **EK: SkillDatabase null-forgiving演算子** — GetById()のnull返却に対し?.演算子/if null/!演算子の3パターン混在。コーディング規約の不統一
