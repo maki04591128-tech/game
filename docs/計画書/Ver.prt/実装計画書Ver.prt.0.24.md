@@ -1099,7 +1099,88 @@
 | CE-15 | ContextHelpSystem未初期化状態でもエラー表示なし。ヘルプが故障しているのか未実装なのか判別不可 | 中 | `全UIウィンドウ` | |
 | CE-16 | PauseWindow/SettingsWindowの子ウィンドウがフォーカス喪失時にオーファンになる可能性。エラーハンドリングなし | 低 | `MainWindow.xaml.cs:1022` | |
 
-| カテゴリ | 致命的 | 高 | 中 | 低 | 設計課題 | 合計 |
+---
+
+## カテゴリCF: 天候・視界・環境効果詳細（6件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CF-1 | WeatherSystemが天候別戦闘修飾子（SightModifier/FireDamageModifier/RangedHitModifier/MovementCostModifier）を定義しているが、DamageCalculator/CombatSystemで一切使用されない。天候が純粋に装飾的 | 高 | `WeatherSystem.cs:24-80`, `DamageCalculator.cs:28-93` | |
+| CF-2 | GameState.csの移動コスト計算がWeatherSystem.MovementCostModifier（吹雪1.5倍等）を参照しない。全天候で同一移動コスト | 高 | `GameState.cs:36-51`, `WeatherSystem.cs:65` | |
+| CF-3 | ComputeFov()がIsVisibleフラグを設定するが、敵AIのHasLineOfSight()はFOV結果を使用せず独立計算。FOV外の敵が攻撃可能 | 中 | `DungeonMap.cs:247-267`, `BasicBehaviors.cs:212,318,370` | |
+| CF-4 | 室内/室外の天候区別なし。ダンジョン内でも吹雪/雷雨の天候効果が適用される設計上の矛盾 | 中 | `WeatherSystem.cs`, `GameController.cs:7021` | |
+| CF-5 | LightingSystemの光源（松明/ランタン）がFOV半径に影響しない。光源アイテムを持っても暗闇の視界範囲が同一 | 中 | `LightingSystem.cs`, `DungeonMap.cs:247-267` | |
+| CF-6 | WeatherSystem.CurrentWeatherが更新されるがUI通知のみ。天候変化がゲームプレイに実質的影響ゼロ | 中 | `GameController.cs:7021`, `WeatherSystem.cs` | |
+
+---
+
+## カテゴリCG: 採集・釣り・採掘ノード詳細（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CG-1 | GatheringSystemが5種ノード（Herb/Mining/Logging/Fishing/Foraging）を定義しているが、TileクラスにGatheringNodeフィールドが存在しない | 致命的 | `GatheringSystem.cs:6-90`, `Tile.cs:245-325` | |
+| CG-2 | DungeonGeneratorにPlaceTraps()/PlaceChests()メソッドはあるがPlaceGatheringNodes()メソッドが存在しない。採集ノードがマップ上に配置されない | 高 | `DungeonGenerator.cs:560-576` | |
+| CG-3 | GatheringSystemのスキルレベルによる成功率計算ロジックが存在するが、PlayerにGatheringProficiencyフィールドなし | 高 | `GatheringSystem.cs:40-60`, `Player.cs` | |
+| CG-4 | MiningSystem/FishingSystemの道具要件（ツルハシ/釣り竿）がアイテム定義に存在しない。道具なしで採集を試行しても同じ結果 | 中 | `GatheringSystem.cs`, `ItemFactory.cs` | |
+| CG-5 | 採集システムの希少度計算（Rarity）が定義されているがドロップテーブルとの連携なし。採集品の品質がランダムのみ | 中 | `GatheringSystem.cs:70-90`, `DropTableSystem.cs` | |
+
+---
+
+## カテゴリCH: 傷・疾病・ステルスシステム詳細（7件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CH-1 | _playerDiseaseと_diseaseRemainingTurnsがGameControllerで追跡されるがSaveDataに含まれない。ロード時に疾病が消失 | 致命的 | `GameController.cs:90-93`, `SaveData.cs:8-78` | |
+| CH-2 | BodyConditionSystemが5種傷定義（Cut/Bruise/Puncture/Fracture/Burn）をステータス修飾子付きで持つが、Player/Characterに傷トラッキングフィールドなし | 高 | `BodyConditionSystem.cs:9-24`, `Player.cs`, `Character.cs` | |
+| CH-3 | 戦闘ダメージ時にBodyConditionSystem.CreateWound()が呼び出されない。TakeDamage()は傷を生成しない | 高 | `Character.cs:83-103`, `BodyConditionSystem.cs` | |
+| CH-4 | CombatState.Stealth=4がEnum定義されProficiencyCategory.Stealthが存在するが、StealthSystem.csファイルが存在しない。ステルスが完全未実装 | 高 | `Enums.cs:63,661` | |
+| CH-5 | 敵AIの検出メカニクス（距離/騒音/光量ベース）が存在しない。全敵がIsVisible判定のみで即座にプレイヤーを検知 | 中 | `BasicBehaviors.cs:212,318,370` | |
+| CH-6 | DiseaseSystem.cs疾病進行メカニクスがGameController.cs:2256-2294で実装されているが、疾病の具体的な感染源（汚染水/腐敗食品/敵攻撃）との紐付けなし | 中 | `GameController.cs:2256-2294` | |
+| CH-7 | 傷のステータス修飾子（STR-0.05f～-0.15f）と治癒時間（15～60ターン）が定義済みだがDamageCalculatorに参照なし | 中 | `BodyConditionSystem.cs:17-24`, `DamageCalculator.cs` | |
+
+---
+
+## カテゴリCI: ポーション・巻物・アクセサリ効果詳細（9件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CI-1 | PotionType.StrengthBoost/AgilityBoost/IntelligenceBoost/Invisibility/FireResistance/ColdResistanceの6種がItemFactoryで生成可能だがPotion.Use()のswitch文に対応caseなし。使用時「効果がなかった」 | 中 | `Consumables.cs:47-100`, `ItemFactory.cs:516-566` | |
+| CI-2 | ScrollType.Sanctuary/Freezeの2種がEnum定義・ファクトリメソッド存在するがScroll.Use()のswitch文に対応caseなし。使用時「何も起こらなかった」 | 中 | `Consumables.cs:274-319`, `ItemFactory.cs:801,750` | |
+| CI-3 | AccessoryクラスのPassiveAbility/ActivatedSkill/SkillCooldownプロパティがCombatSystemから一切参照されない。アクセサリ効果が完全非機能 | 高 | `Equipment.cs:296-308`, `CombatSystem.cs` | |
+| CI-4 | Equipment.Effectsリスト（ItemEffect）がOnEquip()で参照されるが実際の効果適用コードなし。LifeSteal/ManaRegen/ElementalDamage等が機能しない | 高 | `Equipment.cs:76,108-113`, `CombatSystem.cs` | |
+| CI-5 | 識別の巻物（ScrollType.Identify）使用時に「アイテムを識別した！」メッセージが表示されるが実際のIsIdentifiedフラグ変更なし。ItemIdentificationSystem.Identify()が呼び出されない | 中 | `Consumables.cs:283-286`, `ItemIdentificationSystem.cs:36` | |
+| CI-6 | 未識別アイテムがCanUse()でuser.IsAliveのみチェック。IsIdentified=falseでも使用可能で識別システムの意義が消失 | 低 | `Consumables.cs:9-26` | |
+| CI-7 | ItemEffectType列挙の11種（HealHp/RestoreMp/RestoreSp/Damage/ApplyStatus/RemoveStatus/StatBuff/Teleport/RevealMap/Identify/LearnRuneWord）が戦闘計算で一切適用されない | 中 | `Item.cs:155-182`, `CombatSystem.cs` | |
+| CI-8 | CookingSystem.CalculateQuality()がPlayer.Level*2をハードコードで使用。料理熟練度（CookingProficiency）フィールドがPlayerに存在しない | 中 | `GameController.cs:7215`, `CookingSystem.cs:19-26` | |
+| CI-9 | ゴールドが重量を持たない。Inventory.TotalWeight計算がゴールドを除外。大量のゴールド所持によるペナルティなし | 低 | `Player.cs:115-142`, `Inventory.cs:20` | |
+
+---
+
+## カテゴリCJ: 行動コスト・自動探索・メッセージ詳細（8件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CJ-1 | GameAction.UseInn処理でactionCost変数が設定されない。宿屋利用がターンを消費せずに無限回復可能 | 高 | `GameController.cs:1117-1122` | |
+| CJ-2 | GameAction.VisitChurch処理でactionCost変数が設定されない。教会訪問がターンを消費しない | 高 | `GameController.cs:1117-1122` | |
+| CJ-3 | ShouldStopAutoExplore()がHP≤50%のみチェック。空腹/渇き閾値チェックなし。自動探索中に餓死/渇死の可能性 | 高 | `GameController.cs:6466-6486` | |
+| CJ-4 | TryUseInn()のHP/MP/SP完全回復がメッセージに表示されない。疲労/衛生/渇きの回復メッセージのみ表示 | 中 | `GameController.cs:5324-5340` | |
+| CJ-5 | メッセージ履歴が1000件上限でFIFO削除。重要度による優先保持なし。ボス警告等の重要メッセージが消失可能 | 中 | `GameController.cs:6679-6687` | |
+| CJ-6 | GetBossRoom()がnull時にGetRandomFloorPosition()へフォールバック。ボスが廊下/階段横等の不適切な位置に配置される可能性 | 低 | `GameController.cs:765-785` | |
+| CJ-7 | Resurrect呪文がPlayer専用でコンパニオンに適用不可。CompanionSystem.RemoveDeadCompanions()との連携なし | 低 | `GameController.cs:4310-4312,4682-4702` | |
+| CJ-8 | EnterTerrainFieldMap()がOnSymbolMapEnterTown?.Invoke()を発火。フィールド戦闘マップで町BGM/UIが再生される | 中 | `GameController.cs:5062-5092` | |
+
+---
+
+## カテゴリCK: 百科事典・実績・識別・投資詳細（6件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CK-1 | _encyclopediaSystemがGameController初期化時にnew()で生成されるがSaveDataに含まれない。モンスター図鑑/発見レベルがセーブ/ロードで消失 | 中 | `GameController.cs:44`, `SaveData.cs` | |
+| CK-2 | _achievementSystemの達成状態がSaveDataに含まれない。実績進捗とNextPlayBonusがセッション間で消失。メタ進行システムが機能しない | 中 | `GameController.cs:68`, `AchievementSystem.cs:81-98`, `SaveData.cs` | |
+| CK-3 | SpellParser.cs:38-42がルーンワード組み合わせのバリデーションなし。同一効果ワード重複/矛盾ターゲット（sjalfr+fjandi）を許容 | 中 | `SpellParser.cs:38-42,104-134` | |
+| CK-4 | ルーンワード習熟度が難易度と逆相関。gain=Max(1,10-Difficulty)で高難度ワードの習熟が遅い。学習インセンティブが逆転 | 低 | `SpellCastingSystem.cs:292-294`, `RuneWordDatabase.cs` | |
+| CK-5 | InvestmentSystem.ExpectedReturnが計算可能だが実際のゴールド支払いメカニズムなし。IsCompletedフラグが設定されるコードなし。投資が一方通行 | 中 | `InvestmentSystem.cs:6-65` | |
+| CK-6 | レシピ発見システムなし。CookingSystemの5レシピが全て初期状態でアクセス可能。料理の発見/学習ループが存在しない | 中 | `CookingSystem.cs:19-26` | |
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -1184,7 +1265,13 @@
 | **CC: ペット・コンパニオン・召喚詳細** | **2** | **7** | **5** | **0** | **0** | **15** |
 | **CD: 難易度・バランス・設定不整合** | **2** | **4** | **2** | **0** | **0** | **9** |
 | **CE: チュートリアル・ヘルプ・UIフロー** | **2** | **1** | **6** | **6** | **0** | **16** |
-| **合計** | **112** | **174** | **149** | **31** | **2** | **485** |
+| **CF: 天候・視界・環境効果詳細** | **0** | **2** | **4** | **0** | **0** | **6** |
+| **CG: 採集・釣り・採掘ノード詳細** | **1** | **2** | **2** | **0** | **0** | **5** |
+| **CH: 傷・疾病・ステルスシステム詳細** | **1** | **3** | **3** | **0** | **0** | **7** |
+| **CI: ポーション・巻物・アクセサリ効果詳細** | **0** | **2** | **5** | **2** | **0** | **9** |
+| **CJ: 行動コスト・自動探索・メッセージ詳細** | **0** | **3** | **3** | **2** | **0** | **8** |
+| **CK: 百科事典・実績・識別・投資詳細** | **0** | **0** | **5** | **1** | **0** | **6** |
+| **合計** | **117** | **194** | **180** | **36** | **1** | **528** |
 
 ---
 
@@ -1194,11 +1281,11 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（112件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（174件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（149件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（31件）: 軽微なテーマ不一致 → 余裕があれば修正
-5. **設計課題**（2件）: アーキテクチャ改善 → 長期検討
+1. **致命的**（117件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（194件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（180件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（36件）: 軽微なテーマ不一致 → 余裕があれば修正
+5. **設計課題**（1件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
 - **J: 経験値カーブ** — 1.5倍指数関数により実質Lv20が上限。推奨レベルが到達不能
@@ -1293,3 +1380,11 @@
 - **CC: ペット・コンパニオン・召喚詳細** — ペット戦闘アクション全未実装。死亡/餓死/経験値/装備/レベルアップ全なし。コンパニオン復活不可・スキル未使用・SupportMode空実装。召喚永続。TickHunger/CheckDesertion未呼出。ペット上限なし
 - **CD: 難易度・バランス・設定不整合** — DifficultyConfigの6種乗数(Exp/Hunger/Damage×2/ItemDrop/EnemyStat)が実際の計算に未適用。AudioManager設定未接続。Ironman UI説明と実値の不一致。レベルキャップ報酬なし
 - **CE: チュートリアル・ヘルプ・UIフロー** — T キー競合(ThrowItem/EnterTown)。ContextHelp未初期化。ヘルプキーバインドなし。チュートリアル再表示不可。ゲームオーバーにリスタートなし。設定変更のライブ反映なし。名前バリデーション不足。メッセージログ切り捨て無通知
+
+### 新規追加カテゴリの概要（第12回調査分）
+- **CF: 天候・視界・環境効果詳細** — WeatherSystem天候修飾子が戦闘/移動計算に未適用。FOVと戦闘LOSが独立計算。室内/室外天候区別なし。光源がFOV半径に影響なし
+- **CG: 採集・釣り・採掘ノード詳細** — TileにGatheringNodeフィールドなし。DungeonGeneratorにPlaceGatheringNodes()なし。採集熟練度フィールドなし。道具要件未実装。ドロップテーブル非連携
+- **CH: 傷・疾病・ステルスシステム詳細** — 疾病がSaveDataに非保存。BodyConditionSystem傷定義がPlayerに未追跡。StealthSystem.cs未存在。敵AI検出メカニクスなし。疾病感染源未紐付
+- **CI: ポーション・巻物・アクセサリ効果詳細** — 6種ポーション/2種巻物のUse()ケース欠落。アクセサリPassiveAbility/ActivatedSkill非参照。Equipment.Effects未適用。識別巻物が実際に識別しない。料理熟練度なし
+- **CJ: 行動コスト・自動探索・メッセージ詳細** — UseInn/VisitChurchのactionCost未設定。自動探索に空腹/渇きチェックなし。メッセージ優先度なし。フィールドマップで町イベント発火。ボス配置フォールバック
+- **CK: 百科事典・実績・識別・投資詳細** — Encyclopedia/AchievementSystemがSaveData非保存。SpellParserルーン組合せ未検証。ルーン習熟度逆相関。Investment支払い未実装。レシピ発見システムなし
