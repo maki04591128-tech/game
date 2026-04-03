@@ -1739,6 +1739,110 @@
 | EK-1 | TryUseFirstReadySkill()内のWhere句でs != nullチェック後、s!.Idでnull-forgiving演算子使用。Whereのnullチェックで安全だが、コンパイラ警告抑制の設計パターンとして不統一 | 低 | `GameController.cs:3698-3700` | |
 | EK-2 | SkillDatabase.GetById()のnull返却に対し、呼び出し側でのnullチェックが箇所により?.演算子/if null/!演算子と3パターン混在 | 中 | `GameController.cs:3698,584-587` | |
 
+### EL: CraftingSystem素材消費アトミシティ違反
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EL-1 | Craft()メソッドがforeachで素材を消費（L125-128）してからItemDefinitions.Create()（L137）を呼び出す。Create()がnull返却時に素材・ゴールドが既に消費済みでロールバック不可。アトミシティ原則違反 | 致命的 | `CraftingSystem.cs:116-142` | |
+| EL-2 | RemoveItem()の戻り値（成功/失敗）を一切チェックしていない。在庫不足で部分消費が発生しても検知不可 | 致命的 | `CraftingSystem.cs:125-128` | |
+| EL-3 | SpendGold()が素材消費後に実行される。素材消費成功→ゴールド不足の場合、素材のみ消失 | 致命的 | `CraftingSystem.cs:131-134` | |
+| EL-4 | CanCraft()事前チェックとCraft()実行の間に状態変化（マルチスレッド/イベント）が起きた場合、CanCraft=trueでもCraft中にリソース不足になる可能性がある | 中 | `CraftingSystem.cs:121-133` | |
+| EL-5 | CraftingResult失敗時のメッセージが日本語「結果アイテムの生成に失敗した」のみでアイテムID等のデバッグ情報なし | 低 | `CraftingSystem.cs:139` | |
+
+### EM: PetSystem null-forgiving・死亡ペット騎乗
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EM-1 | Feed()/Train()/ToggleRide()/TickHunger()でTryGetValue失敗時に`return pet!`でnull-forgiving演算子使用。petがnull状態でnullを返却し、呼び出し側でNullReferenceException | 致命的 | `PetSystem.cs:67,80,89,114` | |
+| EM-2 | ToggleRide()にCurrentHp > 0の生存チェックなし。死亡ペット（HP=0）に対して騎乗切替が可能 | 高 | `PetSystem.cs:87-95` | |
+| EM-3 | ToggleRide()にLoyaltyの閾値チェックなし。忠誠度0のペットでも騎乗可能 | 中 | `PetSystem.cs:87-95` | |
+| EM-4 | Horse(BaseSpeed=15,倍率2.0x)とDragon(BaseSpeed=10,倍率2.5x)でBaseSpeedとMultiplierが逆転。Dragonが全ステータスで優位になりHorse選択肢が死に駒 | 中 | `PetSystem.cs:43-48,102-109` | |
+| EM-5 | GetObedienceRate()が存在しないペットIDで0を返却。忠誠度0の既存ペットと区別不能 | 中 | `PetSystem.cs:133-137` | |
+| EM-6 | TickHunger()にターン当たり1回の頻度制限なし。複数回呼び出しで空腹度即時枯渇・忠誠度急降下が可能 | 中 | `PetSystem.cs:112-120` | |
+| EM-7 | 空腹度ペナルティがHunger==0の厳密一致のみ。Hunger=1→0変化時にのみ忠誠度-2。継続的な飢餓状態での追加ペナルティなし | 低 | `PetSystem.cs:116-117` | |
+
+### EN: FishingSystem宝箱・確率超過
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EN-1 | fish_treasure（宝箱）とfish_junk（ガラクタ）のRarity=0。GetAvailableFish()がf.Rarity>0でフィルタするため両アイテムが釣果リストから完全除外。CalculateTreasureRate()は存在するが適用先なし | 高 | `FishingSystem.cs:38-41,48-59` | |
+| EN-2 | CalculateCatchRate()/CalculateJunkRate()/CalculateTreasureRate()の3確率関数が独立計算。高レベル・高Luck時に合計>1.0（100%超過）となり確率空間が破綻 | 高 | `FishingSystem.cs:62-78` | |
+| EN-3 | Luck修正値が1ポイント=+0.1f。Luck3.0で+0.3fのボーナスはfishingLevel10相当（0.03f×10）に匹敵。Luck偏重でfishing skill意味消失 | 中 | `FishingSystem.cs:64` | |
+| EN-4 | GetAvailableFish()がMinFishingLevelでフィルタするが、CalculateCatchRate()はレベル差を考慮しない。条件を満たせば低レベルでも高レア魚を同確率で釣れる | 中 | `FishingSystem.cs:48-59,62-66` | |
+| EN-5 | fish_treasure/fish_junkのActiveSeasons・ActiveTimesがArray.Empty()。仮にRarityフィルタを修正してもSeason/Timeフィルタで除外される | 低 | `FishingSystem.cs:38-41` | |
+
+### EO: StatusEffect MaxStack未強制・永続呪い
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EO-1 | Curse（呪い）がduration=int.MaxValueで生成。AllStatsMultiplier=0.80f（全ステ-20%）が実質永続。解除メカニズムがStatusEffectSystem内に不在 | 高 | `StatusEffectSystem.cs:174-181` | |
+| EO-2 | Petrification（石化）がduration=int.MaxValueでTurnCostModifier=float.MaxValue。完全行動不能が永続で詰み状態 | 高 | `StatusEffectSystem.cs:220-228` | |
+| EO-3 | InstantDeath（即死）がDamagePerTick=int.MaxValueで実装。「即死」名称だがtick処理で適用されるため1ターン遅延。int.MaxValueの演算でオーバーフローリスク | 高 | `StatusEffectSystem.cs:233-241` | |
+| EO-4 | MaxStackプロパティが定義（Poison=3, Bleeding=5等）されているが、Apply/AddEffect側でMaxStackチェックなし。Stack()メソッド内のみでキャップ。重複適用時に無限スタック | 中 | `StatusEffectSystem.cs:12,46` | |
+| EO-5 | TurnCostModifier=float.MaxValueの麻痺/石化がint型ターンコストに変換される際、float→int変換で未定義動作の可能性 | 中 | `StatusEffectSystem.cs:85,110,167` | |
+| EO-6 | CheckResistance()の合計耐性が0.95fでハードコードキャップ。装備・バフ・種族特性の組合せでも95%超不可。ボスクリーチャー向けの免疫（100%）実装不可 | 中 | `StatusEffectSystem.cs:328` | |
+| EO-7 | Poison DamagePerTick計算がMath.Max(1, (int)(maxHp*0.02))。int切り捨てでmaxHp=51時に1.02→1ダメージ（1.96%、設計値2%未満） | 低 | `StatusEffectSystem.cs:24-26` | |
+
+### EP: EnchantmentSystem ExpBoost/DropBoostデッドコード
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EP-1 | ExpBoostエンチャント（EffectValue=1.15f）がCalculateEnchantedDamageBonus()のswitch式で_ => 0のデフォルトケースに該当。効果値が一切適用されないデッドコード | 高 | `EnchantmentSystem.cs:59-60,186-206` | |
+| EP-2 | DropBoostエンチャント（EffectValue=1.2f）も同様にデフォルトケースで0返却。アイテムドロップ率上昇効果が完全に未機能 | 高 | `EnchantmentSystem.cs:61-62,204` | |
+| EP-3 | Enchant()メソッドにアイテムのnullチェック・装備種別チェック・エンチャント上限チェックなし。null/消耗品/既エンチャント装備への重複適用が可能 | 中 | `EnchantmentSystem.cs:139-154` | |
+| EP-4 | RequiredQualityチェックがenum値の>=比較に依存（gem >= definition.RequiredQuality）。SoulGemQualityのenum定義順が変更された場合に比較結果が逆転するリスク | 中 | `EnchantmentSystem.cs:128-134` | |
+
+### EQ: ReputationSystem閾値非対称・IsWelcome緩さ
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EQ-1 | Indifferent（無関心）の範囲が[-19, 19]=39ポイント幅。他ランクは20-30ポイント幅。中立帯が広すぎて評判変動の実感が薄い | 中 | `ReputationSystem.cs:96-105` | |
+| EQ-2 | IsWelcome()がReputationRank.Hatedのみブロック。Hostile（敵意: [-79,-50]）でも入境許可。敵対領域に自由にアクセス可能 | 中 | `ReputationSystem.cs:79-80` | |
+| EQ-3 | 評判値上限100到達後のModifyReputation(+5)がClamp後に同値でイベント未発火。呼び出し側が加算成否を判定不可 | 低 | `ReputationSystem.cs:31-41` | |
+| EQ-4 | Enum.GetValues\<TerritoryId\>()をコンストラクタで毎インスタンス実行。リフレクション使用でパフォーマンス非効率 | 低 | `ReputationSystem.cs:24-27` | |
+
+### ER: SkillSystem パッシブ重複・クールダウン永続
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| ER-1 | hp_boostがFighter/Knight/Cleric/Monk、critical_eyeがFighter/Ranger/Monkの複数クラスツリーに登録。転職でlearnedSkillsのHashSetに重複は防がれるが、同一パッシブIDで別クラス分岐からの学習済みチェック不備 | 中 | `SkillSystem.cs:156-160,171-225` | |
+| ER-2 | SkillSystemにReset()メソッドが不在。PetSystem/ReputationSystem等にはReset()実装あり。ゲームオーバー/新規プレイ時にクールダウン状態がリセットされない | 中 | `SkillSystem.cs` | |
+| ER-3 | RestoreCooldownState()がcooldown値の正値検証・最大値検証なし。破損セーブデータで負値/超大値クールダウンが復元可能 | 中 | `SkillSystem.cs:353-362` | |
+| ER-4 | GetLearnableSkills()が!learnedSkills.Contains()でフィルタ。別クラスで既習得の共通パッシブが再表示されない（HashSet重複防止は機能）が、UI上で「既に別クラスで習得済み」の説明なし | 低 | `SkillSystem.cs:336-338` | |
+
+### ES: WeatherSystem RangedHitModifier適用方式不統一
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| ES-1 | Clear天候のRangedHitModifier=0.05f。他の修正値（Fire/Ice/Lightning等）が1.0fベースの乗算値なのに対し、RangedHitModifierは加算値として使用。+5%ボーナスのはずがベース×0.05で95%減少になる可能性 | 高 | `WeatherSystem.cs:32` | |
+| ES-2 | Rain/Fog/Snow/StormのRangedHitModifierが-0.1f/-0.2f/-0.1f/-0.3fの減算値。Clear=+0.05fとの非対称（加算最大+5% vs 減算最大-30%）でペナルティ偏重 | 中 | `WeatherSystem.cs:43,54,65,76` | |
+| ES-3 | WeatherEffectのSightModifier=1.0f/MovementCostModifier=1.0fは乗算値（1.0=100%）だがRangedHitModifierのみ加減算値。同一record内でセマンティクス不統一 | 中 | `WeatherSystem.cs:26-80` | |
+| ES-4 | RangedHitModifierの適用先（GameController内）で加算/乗算のどちらで使用されているかにより影響が大きく異なるが、WeatherEffect定義側にコメントなし | 低 | `WeatherSystem.cs:26-80` | |
+
+### ET: GameController料理品質・失敗チェック未実装
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| ET-1 | TryCook()でCookingSystem.CalculateQuality()にPlayer.Level*2を渡している。本来の料理熟練度（ProficiencyCategory.Cooking）ではなくプレイヤーレベルベースで品質決定。料理スキル育成が無意味 | 高 | `GameController.cs:7215` | |
+| ET-2 | CookingSystem.CheckCookingFailure()メソッドが存在するがGameController.TryCook()から一切呼び出されていない。料理が常に成功し、失敗確率（熟練度0で30%）が機能しない | 高 | `GameController.cs:7181-7229` | |
+| ET-3 | CalculateQuality()が0.3f+Min(prof,100)*0.01fで品質0.3～1.3倍。Player.Level*2でLevel50=prof100相当、Level25でprof50相当。レベル依存で料理品質がリニアスケール | 中 | `CookingSystem.cs:49-53` | |
+
+### EU: TerritoryInfluenceSystem正規化前クランプ
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EU-1 | ModifyInfluence()が個別faction値をMath.Clamp(0,1)で制限した後にNormalizeInfluence()を呼び出す。クランプ→正規化の順序で、正規化後に合計1.0の不変条件が保証されない場合がある | 中 | `TerritoryInfluenceSystem.cs:20-29` | |
+| EU-2 | 複数factionに連続で大きなdelta（+0.5等）を適用した場合、個別クランプで各0.6→合計1.8後に正規化で0.33ずつに。意図した勢力バランスからの大幅乖離 | 中 | `TerritoryInfluenceSystem.cs:20-29,61-69` | |
+| EU-3 | NormalizeInfluence()のゼロ除算チェック：全faction影響度が0の場合のフォールバック動作が不明確 | 中 | `TerritoryInfluenceSystem.cs:61-69` | |
+
+### EV: CompanionSystem最小1ダメージ貫通
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EV-1 | DamageCompanion()の式Math.Max(1, damage-companion.Defense)で防御超過時も必ず1ダメージ貫通。Defense > damageでも回避不可。高Defense仲間でも確定ダメージ | 高 | `CompanionSystem.cs:161` | |
+| EV-2 | CalculateCompanionDamage()がMath.Max(1, attack+level/2)で最低1保証。レベル0・攻撃0でも1ダメージ。攻撃不能状態の仲間が存在不可 | 中 | `CompanionSystem.cs:149-152` | |
+| EV-3 | DamageCompanion()で仲間が死亡（HP=0）した場合にIsAlive=falseを設定するが、復活メカニズム（ReviveCompanion等）がCompanionSystem内に不在 | 中 | `CompanionSystem.cs:155-165` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -1881,7 +1985,18 @@
 | **EI: ObjectPool非アトミックサイズチェック** | **0** | **0** | **1** | **1** | **0** | **2** |
 | **EJ: クエスト状態遷移検証不備** | **0** | **0** | **2** | **1** | **0** | **3** |
 | **EK: SkillDatabase null-forgiving演算子** | **0** | **0** | **1** | **1** | **0** | **2** |
-| **合計** | **160** | **283** | **272** | **68** | **1** | **785** |
+| **EL: CraftingSystem素材消費アトミシティ違反** | **3** | **0** | **1** | **1** | **0** | **5** |
+| **EM: PetSystem null-forgiving・死亡ペット騎乗** | **1** | **1** | **4** | **1** | **0** | **7** |
+| **EN: FishingSystem宝箱・確率超過** | **0** | **2** | **2** | **1** | **0** | **5** |
+| **EO: StatusEffect MaxStack未強制・永続呪い** | **0** | **3** | **3** | **1** | **0** | **7** |
+| **EP: EnchantmentSystem ExpBoost/DropBoostデッドコード** | **0** | **2** | **2** | **0** | **0** | **4** |
+| **EQ: ReputationSystem閾値非対称・IsWelcome緩さ** | **0** | **0** | **2** | **2** | **0** | **4** |
+| **ER: SkillSystem パッシブ重複・クールダウン永続** | **0** | **0** | **3** | **1** | **0** | **4** |
+| **ES: WeatherSystem RangedHitModifier適用方式不統一** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **ET: GameController料理品質・失敗チェック未実装** | **0** | **2** | **1** | **0** | **0** | **3** |
+| **EU: TerritoryInfluenceSystem正規化前クランプ** | **0** | **0** | **3** | **0** | **0** | **3** |
+| **EV: CompanionSystem最小1ダメージ貫通** | **0** | **1** | **2** | **0** | **0** | **3** |
+| **合計** | **161** | **290** | **293** | **76** | **2** | **833** |
 
 ---
 
@@ -1891,11 +2006,11 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（160件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（283件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（272件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（68件）: 軽微なテーマ不一致 → 余裕があれば修正
-5. **設計課題**（1件）: アーキテクチャ改善 → 長期検討
+1. **致命的**（161件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（290件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（293件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（76件）: 軽微なテーマ不一致 → 余裕があれば修正
+5. **設計課題**（2件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
 - **J: 経験値カーブ** — 1.5倍指数関数により実質Lv20が上限。推奨レベルが到達不能
@@ -2060,3 +2175,16 @@
 - **EI: ObjectPool非アトミックサイズチェック** — Return()の_pool.Count < _maxSize判定とAdd()が非アトミック。複数スレッドが同時チェック通過でmaxSize超過の可能性
 - **EJ: クエスト状態遷移検証不備** — State = Completed遷移前にActive検証なし。既にCompleted/TurnedInから再度Completed遷移の可能性。セーブ経由の不正状態にもバリデーションなし
 - **EK: SkillDatabase null-forgiving演算子** — GetById()のnull返却に対し?.演算子/if null/!演算子の3パターン混在。コーディング規約の不統一
+
+### 新規追加カテゴリの概要（第18回調査分）
+- **EL: CraftingSystem素材消費アトミシティ違反** — Craft()が素材消費→ゴールド消費→結果アイテム生成の順で処理。ItemDefinitions.Create()失敗時に素材・ゴールドが消失しロールバック不可。RemoveItem()戻り値未チェック。SpendGold()の素材消費後実行で部分消失リスク
+- **EM: PetSystem null-forgiving・死亡ペット騎乗** — Feed/Train/ToggleRide/TickHungerの4メソッドでTryGetValue失敗時にpet!でnull返却。ToggleRide()にHP>0生存チェック・忠誠度閾値チェックなし。Horse vs Dragonのステータス逆転。TickHunger()頻度制限なし
+- **EN: FishingSystem宝箱・確率超過** — fish_treasure/fish_junkのRarity=0でGetAvailableFish()のRarity>0フィルタにより完全除外。3確率関数が独立計算で合計100%超過。Luck修正値が釣りレベル10相当の重みで偏重
+- **EO: StatusEffect MaxStack未強制・永続呪い** — Curse/Petrificationがint.MaxValue永続。InstantDeathがDamagePerTick実装で1ターン遅延。MaxStackプロパティ定義済みだがApply側でチェックなし。float.MaxValueのint変換で未定義動作。耐性95%ハードコードキャップ
+- **EP: EnchantmentSystem ExpBoost/DropBoostデッドコード** — CalculateEnchantedDamageBonus()のswitch式でExpBoost/DropBoostがデフォルト=0。効果値1.15f/1.2fが一切適用されない。Enchant()にnull/消耗品/上限チェックなし。enum順序依存のRequiredQuality比較
+- **EQ: ReputationSystem閾値非対称・IsWelcome緩さ** — Indifferent範囲39ポイント（他は20-30）で中立帯広すぎ。IsWelcome()がHatedのみブロックでHostileでも入境可。上限到達時のイベント未発火。Enumリフレクション毎回実行
+- **ER: SkillSystem パッシブ重複・クールダウン永続** — hp_boost/critical_eye等が複数クラスツリーに登録。Reset()メソッド不在でゲームオーバー時クールダウン永続。RestoreCooldownState()に正値/最大値検証なし
+- **ES: WeatherSystem RangedHitModifier適用方式不統一** — Clear天候のRangedHitModifier=0.05fが他修正値（1.0fベース乗算）と異なる加算値。ペナルティ偏重（+5% vs -30%）。同一record内でセマンティクス不統一
+- **ET: GameController料理品質・失敗チェック未実装** — CalculateQuality()にPlayer.Level*2を渡し料理熟練度を無視。CheckCookingFailure()が存在するがTryCook()から未呼出で料理常時成功。レベル依存品質でスキル育成無意味
+- **EU: TerritoryInfluenceSystem正規化前クランプ** — ModifyInfluence()が個別Clamp(0,1)後にNormalize。連続大delta適用でクランプ→正規化の精度劣化。全faction=0時のゼロ除算リスク
+- **EV: CompanionSystem最小1ダメージ貫通** — DamageCompanion()のMath.Max(1, damage-defense)で防御超過時も1ダメージ確定。高Defense仲間の防御が無意味。死亡仲間の復活メカニズム不在
