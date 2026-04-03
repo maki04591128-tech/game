@@ -2490,6 +2490,250 @@
 | HV-2 | TrapHiddenの表示文字が'.'でFloorと同一。ゲームメカニクスとしては正しいが、デバッグモードでの罠可視化手段が未提供 | 低 | `Tile.cs:497` | |
 | HV-3 | SymbolMountainのBlocksMovement=falseだがMovementCost=2.0f。移動は可能だが遅延のみでプロパティ名が誤解を招く | 低 | `Tile.cs:435` | |
 
+### HW: ItemFactory ItemType3種限定・デッドコード
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| HW-1 | GenerateRandomItem()の`(ItemType)_random.Next(3)`でEquipment/Consumable/Foodの3種のみ生成。Material/Key/Quest/Miscellaneousが完全除外されドロップテーブルの多様性が不足 | 致命的 | `ItemFactory.cs:837-846` | |
+| HW-2 | switch文のデフォルトケース`_ => CreateBread()`はNext(3)が0-2のみ返却するため到達不能デッドコード。コンパイラ警告も出ないため開発者が気付きにくい | 中 | `ItemFactory.cs:844` | |
+| HW-3 | ItemType enumの定義数(7種以上)とNext(3)のマジックナンバーが非連動。enum拡張時にNext引数の手動更新が必要で保守性が低い | 中 | `ItemFactory.cs:839` | |
+| HW-4 | GenerateRandomFood()が深度パラメータを受け取らず、全階層で同一の食料プールから生成。深層での高品質食料入手がランダム生成では不可能 | 高 | `ItemFactory.cs:842` | |
+| HW-5 | GenerateRandomConsumable()がrarityのみ参照し深度非依存。深層でも浅層と同じ消耗品が生成され、進行に応じた消耗品の質向上がない | 高 | `ItemFactory.cs:841` | |
+| HW-6 | マジックナンバー(3,4,4,3)がコード内に散在しenum定義と非連動。定数化・GameConstants管理されておらずバランス調整が困難 | 低 | `ItemFactory.cs` | |
+
+### HX: ItemFactory GenerateLoot未使用パラメータ
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| HX-1 | GenerateLoot()のenemyLevelパラメータが関数内で一切参照されない。敵のレベルに応じたドロップ品質調整が機能せずAPI設計と実装が乖離 | 高 | `ItemFactory.cs:950` | |
+| HX-2 | GenerateLoot()のbaseRarityパラメータが関数内で一切参照されない。呼び出し側が期待するレアリティベース調整が無視される | 高 | `ItemFactory.cs:950` | |
+| HX-3 | ドロップ判定`_random.NextDouble() > dropRate`で、dropRate=1.0の場合に常にドロップしない（>で==を含まない）。dropRate=0.0で常にドロップする逆転ロジック | 中 | `ItemFactory.cs:955` | |
+| HX-4 | dropRateの範囲検証なし。負値で常時ドロップ、1.0超過で絶対不ドロップとなり呼び出し側の意図と逆転する可能性 | 中 | `ItemFactory.cs:955` | |
+| HX-5 | GenerateLoot()内のforループでGenerateRandomItem()の返却値を検証せずリストに追加。null返却やアイテム生成失敗時に不正アイテムがドロップリストに含まれる | 低 | `ItemFactory.cs:963-968` | |
+
+### HY: ItemFactory深度スケーリング・確率飽和
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| HY-1 | DetermineRarity()のuncommonChance=`Math.Min(25+depth,50)`で深度25以降は50%に飽和。深度100+でCommon確率が0%になりレアリティ分布が固定化 | 高 | `ItemFactory.cs:848-860` | |
+| HY-2 | 深度条件がif文累積で各レアリティの確率が単調増加。深度10以降と深度3以降の条件が重複し同一アイテムが二重加重される構造 | 中 | `ItemFactory.cs:848-860` | |
+| HY-3 | Legendary確率上限5%/Epic上限15%/Rare上限30%/Uncommon上限50%の合計が100%に達し、高深度でCommonが完全消滅。意図的設計かバグか不明 | 中 | `ItemFactory.cs:848-860` | |
+| HY-4 | 各確率上限値がハードコードでGameConstants等での管理なし。バランス調整時に関数内部を直接修正する必要がある | 低 | `ItemFactory.cs:848-860` | |
+| HY-5 | `depth/10`等の整数除算で深度0-9が全てlegendaryChance=1。浅層でのレアリティスケーリングが粗く段階的変化が不足 | 中 | `ItemFactory.cs:851` | |
+| HY-6 | 深度50以上で全確率がキャップに達し累積98%（Legendary5+Epic15+Rare30+Uncommon50-2=98）。Common=2%で実質消滅 | 高 | `ItemFactory.cs:848-860` | |
+
+### HZ: ItemFactoryドロップ池空アクセス・リフレクション
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| HZ-1 | 空のドロッププールに対して`_random.Next(0)`が呼ばれるとArgumentOutOfRangeException。プール空チェックが未実装で深度条件外のアイテム生成時にクラッシュ | 致命的 | `ItemFactory.cs` | |
+| HZ-2 | SetItemId()がリフレクションで`init`-onlyプロパティを書き換え。正規のファクトリパターンではなくリフレクション依存で.NET Runtime変更時に動作保証なし | 中 | `ItemFactory.cs:1321-1326` | |
+| HZ-3 | `prop?.SetValue(item, itemId)`でプロパティ名変更時にサイレント失敗（prop=nullでnull条件演算子により無視）。ItemIdが設定されないまま返却される | 高 | `ItemFactory.cs:1325` | |
+| HZ-4 | EquipmentItem型チェック失敗時に未強化アイテムがそのまま返却。装備品以外のアイテムに対する強化処理パスが不完全 | 中 | `ItemFactory.cs` | |
+| HZ-5 | `(ItemType)_random.Next(3)`のenum値キャストがItemType定義順序に依存。enum定義の並び替えで全く異なるアイテムタイプが選択される脆弱な構造 | 致命的 | `ItemFactory.cs:839` | |
+
+### IA: EnemyFactory深度スケーリング欠如
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IA-1 | GetEnemiesForDepth()が静的定義を深度別に返却するのみでステータス調整なし。Orcが深度3～20で同一ステータスのため深層での脅威感が欠如 | 高 | `EnemyFactory.cs:867-878` | |
+| IA-2 | DropTableSystem.GetScaledStats()が存在するがGetEnemiesForDepth()から呼び出されない。スケーリングシステムが接続されていない | 高 | `EnemyFactory.cs:867-878` | |
+| IA-3 | floorBonusパラメータがnull渡しの便利メソッド経由で形骸化。深度ボーナスの設計意図はあるが実効なし | 中 | `EnemyFactory.cs` | |
+| IA-4 | ダンジョン別・領地別の敵ステータス調整も深度非連動で、全ダンジョンタイプで同一のEnemyDefinitionが使用される | 中 | `EnemyFactory.cs` | |
+| IA-5 | 深度20以降のデフォルトケースでDarkElf/Troll/Draugrの3種のみ。深度30+でも新敵が追加されず敵バリエーション停滞 | 中 | `EnemyFactory.cs:876` | |
+| IA-6 | 深度帯の敵遷移が不均等（Ratは深度3まで、Slimeは深度10まで存続）。浅層→中層の敵入れ替えが段階的でない | 低 | `EnemyFactory.cs:867-878` | |
+
+### IB: EnemyFactoryステータス範囲未検証・負値伝播
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IB-1 | Stats.Apply()が無制限加算で負値ステータス生成可能。Strength-50の修正でPhysicalAttack=-147となり戦闘計算が破綻 | 致命的 | `Stats.cs:37-47` | |
+| IB-2 | MaxHpのみMath.Max(1)で保護されるが、他ステータス（Strength/Vitality/Agility等）は負値保護なし | 高 | `Stats.cs:37-47` | |
+| IB-3 | EnemyDefinitionレコードにコンストラクタバリデーションなし。負値BaseStats/ゼロHP定義で不正な敵が生成可能 | 高 | `EnemyFactory.cs:230-244` | |
+| IB-4 | StatModifierの加算が累積的で、複数デバフ適用時に負値が急激に増大。キャップ処理がないため数値暴走リスク | 中 | `Stats.cs:37-47` | |
+| IB-5 | Rat定義のDropTableId="drop_slime"が自身の種族用テーブルと不一致。ネズミ撃破でスライムのドロップが出現 | 高 | `EnemyFactory.cs:260` | |
+| IB-6 | MaxHp計算`50+(Vitality*10)+(Strength*2)`で負のVitality/Strengthが入力されると50以下のMaxHpが生成。Math.Max(1)で最低保証されるがHP=1の敵が意図せず出現 | 高 | `Stats.cs:19` | |
+
+### IC: EnemyFactoryボス進行不整合・経験値逆転
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IC-1 | FloorBoss手動定義がBalanceConfig.GetDepthStatMultiplier()と非連携。ボスステータスがバランス設定と独立で調整時の不一致リスク | 高 | `EnemyFactory.cs:724-814` | |
+| IC-2 | FloorBoss5=150XPがElite敵(55-100XP)と比較して報酬不足。ボス5撃破の報酬がElite敵2体分以下で撃破インセンティブが低い | 中 | `EnemyFactory.cs:724-730` | |
+| IC-3 | ボス25→30間の推奨レベルが据え置き(45)だがXPのみ2倍(1000→2000)の不連続。レベル曲線とXP報酬の非連動 | 中 | `EnemyFactory.cs:800-814` | |
+| IC-4 | ボス定義のExperienceReward値がconst/GameConstants管理でなくリテラル値。バランス調整時にFactoryファイル内を直接編集する必要がある | 低 | `EnemyFactory.cs:724-814` | |
+| IC-5 | FloorBoss30のRankがHiddenBossで他のFloorBoss(5-25)のBossと不一致。ランク分類の一貫性が欠如 | 低 | `EnemyFactory.cs:808` | |
+| IC-6 | ボス25→30のXP倍率(2x)に対しステータス増加が不均等（Strength+33%、Vitality+10%）。難易度とXP報酬の比例関係が不成立 | 中 | `EnemyFactory.cs:800-814` | |
+
+### ID: Player経験値負値・信仰値上限未検証
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| ID-1 | GainExperience()に負値検証なし。負のamountで経験値が減少しレベルダウンはしないが経験値バーが不正表示 | 高 | `Player.cs:352-364` | |
+| ID-2 | ApplyTransferData()でFaithPoints=data.FaithPointsがFaithCapを超過可能。転送データに上限検証がなく信仰値がキャップを無視 | 中 | `Player.cs:522` | |
+| ID-3 | RaceDefinition.Get()のKeyNotFoundException未処理で種族未登録時にクラッシュ。セーブデータの種族IDが変更された場合のフォールバックなし | 致命的 | `Player.cs:354` | |
+| ID-4 | ExpMultiplierが0以下の場合のガード処理なし。乗数0で経験値獲得が完全停止、負値で経験値が減少 | 中 | `Player.cs:355` | |
+| ID-5 | `(int)(amount * raceDef.ExpMultiplier)`の整数キャストで小数部切り捨て。amount=10/multiplier=0.95で9.5→9となり小規模経験値でXPロスが蓄積 | 中 | `Player.cs:355` | |
+
+### IE: PlayerレベルアップMaxHp計算順序
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IE-1 | LevelUp()でLevel++後にoldMaxHpを取得。MaxHpがLevel依存の場合、増分計算(MaxHp-oldMaxHp)が実際の成長量と不一致 | 高 | `Player.cs:366-387` | |
+| IE-2 | EffectiveStatsにステータス効果が含まれる場合、バフ/デバフ込みのMaxHpと素のMaxHpの差分がHP回復量に影響 | 中 | `Player.cs:372-376` | |
+| IE-3 | hpGain<=0の場合にHeal()が呼ばれない。レベルアップでMaxHpが減少するケース（デバフ解除等）でHP調整が行われない | 低 | `Player.cs:380-381` | |
+
+### IF: Player PickUp/Drop非Item型サイレント失敗
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IF-1 | PickUp()がItems.Item型チェックで非該当時にサイレント無視。アイテムがワールドから消滅するがインベントリに入らない消失バグ | 致命的 | `Player.cs:192-195` | |
+| IF-2 | Drop()も同様のサイレント失敗パス。非Item型のIItemをドロップしようとしても何も起こらず、プレイヤーはアイテムを手放せない | 高 | `Player.cs:197-200` | |
+| IF-3 | CanPickUp()が非Item型に対してtrue返却するがPickUp()で実際には追加されない。判定と実行の不一致 | 高 | `Player.cs:175-190` | |
+| IF-4 | Drop()のInventory.Remove()がアイテム未所持時にサイレント失敗。インベントリに存在しないアイテムの除去試行で例外もfalse返却もなし | 中 | `Player.cs:197-201` | |
+
+### IG: Player SetGoldイベント未発火・TransferData未検証
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IG-1 | SetGold()がOnGoldChangedイベントを発火せずUI非更新。AddGold/SpendGoldはイベント発火しておりメソッド間で不整合 | 高 | `Player.cs:140-143` | |
+| IG-2 | ApplyTransferData()にnull引数チェックなし。nullデータ適用でNullReferenceException | 中 | `Player.cs:522` | |
+| IG-3 | SetGold()のMath.Max(0, amount)で負値は防止されるが、上限チェックがなくint.MaxValueまでのゴールド設定が可能 | 低 | `Player.cs:140-143` | |
+| IG-4 | CreateTransferData()でTotalDeaths=0がハードコード。「外部で管理」コメントがあるが転送時に死亡回数が常にリセットされ統計が失われる | 高 | `Player.cs:494` | |
+
+### IH: DropTableSystemゴールド計算・種族ゼロ化
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IH-1 | ゴールド範囲計算でMath.Max()の使用がカスタム値を無効化。テーブル定義のgoldMinがbalance計算より小さい場合に上書きされる | 高 | `DropTableSystem.cs:64-70` | |
+| IH-2 | 非Humanoid敵（Beast/Undead/Dragon等）のゴールドが一律0。ドラゴン撃破でもゴールドドロップなしで収入源が限定的 | 高 | `DropTableSystem.cs:188` | |
+| IH-3 | ItemDefinitions.Create()がnull返却時にサイレント無視でドロップ欠損。アイテムID不一致でドロップが消失 | 中 | `DropTableSystem.cs` | |
+| IH-4 | ゴールドMin/Max計算の整数演算で深度別粒度不足。浅層でgoldMin=goldMaxとなりゴールド量が固定 | 低 | `DropTableSystem.cs:64-70` | |
+
+### II: Character回復負値受入・リソースクランプ欠如
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| II-1 | Heal()が負のamountを受け入れダメージとして機能。回復APIを通じた間接的ダメージが可能で意図しない使用パターン | 高 | `Character.cs:107-114` | |
+| II-2 | RestoreMp/RestoreSpにMath.Clamp欠如。プロパティsetterのみ依存だがamount自体の検証がなく負値で減少 | 中 | `Character.cs:116-117` | |
+| II-3 | Position未初期化で(0,0)スポーン。キャラクター生成時にPosition設定を忘れるとマップ原点に配置される | 低 | `Character.cs` | |
+| II-4 | ConsumeMp/ConsumeSp内でのリソース不足チェックが呼び出し側依存。API単体でのアトミックな消費判定+消費が不可能 | 中 | `Character.cs` | |
+
+### IJ: StatusEffectスタック無検証・永続持続
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IJ-1 | Stack()がother.StackCount<=0を未検証。StackCount=0やStackCount=-1のスタック追加で不正状態 | 高 | `StatusEffect.cs:42-48` | |
+| IJ-2 | Duration=Math.Max()で繰り返しスタックにより実質無限持続。毒を繰り返し適用するだけで永続毒が成立 | 高 | `StatusEffect.cs:46` | |
+| IJ-3 | DamagePerTick*StackCountが無制限乗算で異常ダメージ。スタック上限(MaxStack)があるがDamagePerTickとの掛け合わせでバランス崩壊 | 中 | `StatusEffect.cs` | |
+| IJ-4 | Stack()でType不一致時にサイレントリターン。呼び出し側にスタック失敗が伝わらず意図しない動作 | 低 | `StatusEffect.cs:44` | |
+| IJ-5 | ダメージ系状態異常でDuration=Math.Max()による延長はリフレッシュとして機能するが、バフ系でも同じロジックが適用され設計意図と異なる動作 | 中 | `StatusEffect.cs:46` | |
+
+### IK: Damage抵抗値回復・最小ダメージ固定
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IK-1 | resistance=-1.0fで2倍ダメージ増幅（`1f-(-1f)=2f`）。負の抵抗値が回復ではなく増幅として機能する非直感的仕様 | 高 | `Damage.cs:61-73` | |
+| IK-2 | WithMultiplier()のMath.Max(1)で0.3倍率時もダメージ1固定。ダメージ軽減効果が1未満にならず設計上の最小値問題 | 中 | `Damage.cs:43-44` | |
+| IK-3 | Amount負値・ゼロの未検証。Damage構造体に負のAmountを設定可能で回復として使用されるリスク | 中 | `Damage.cs` | |
+| IK-4 | DamageType.Healingがresistanceをバイパスし未クランプ。回復量に上限がなくバランス崩壊の可能性 | 低 | `Damage.cs:65-66` | |
+
+### IL: ObjectPoolスレッド非安全・リセット例外未処理
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IL-1 | _pool.Countのロックなし読取とInterlocked.Decrementの非同期。読取→判定→書込のTOCTOU競合で二重返却やプールオーバーフロー | 高 | `ObjectPool.cs:70-84` | |
+| IL-2 | _resetAction例外時にプール内破損オブジェクト残留。例外がキャッチされずReturn()が中断しプール整合性が崩壊 | 高 | `ObjectPool.cs:75` | |
+| IL-3 | null item受入でプール汚染。Return(null)のチェックはあるが他の不正状態（disposed等）のチェックなし | 中 | `ObjectPool.cs:72` | |
+| IL-4 | _maxSize超過時にInterlocked.Decrementのみでオブジェクト破棄なし。IDisposable実装オブジェクトのリーク | 低 | `ObjectPool.cs:80-83` | |
+
+### IM: IAIBehavior nullチェック欠如・MoveTowardsループ
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IM-1 | state.CurrentMap nullチェックなしでNullReferenceException。マップ未初期化状態でAI処理が呼ばれるとクラッシュ | 高 | `IAIBehavior.cs:83-104` | |
+| IM-2 | MoveTowards()が包囲状態でWait返却し敵が永久停滞。障害物に囲まれた敵が一切行動できなくなる | 中 | `IAIBehavior.cs:100-104` | |
+| IM-3 | GetDirectionTo()のパラメータ名(enemy.Position→target)が意味逆転の可能性。direction計算の始点・終点が直感に反する | 低 | `IAIBehavior.cs:85` | |
+| IM-4 | 迂回経路探索がGetNeighbors(8方向)の単純比較のみ。A*等の経路探索アルゴリズムがなくL字型障害物を回避不能 | 中 | `IAIBehavior.cs:90-99` | |
+
+### IN: Position方向デフォルト・座標オーバーフロー
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IN-1 | GetDirectionTo()が同一位置でDirection.North返却（恣意的デフォルト）。自分自身への方向が「北」である根拠なし | 中 | `Position.cs:66-82` | |
+| IN-2 | int.MaxValue近傍の座標でDistance計算(target.X-X)がオーバーフロー。大規模マップでの座標計算が破綻するリスク | 低 | `Position.cs:66-82` | |
+| IN-3 | Move()が負座標・マップ外座標を生成。境界チェックがPosition側になく呼び出し側依存 | 中 | `Position.cs` | |
+| IN-4 | ChebyshevDistance/ManhattanDistanceの使い分けがシステム間で不統一。FOVはChebyshev、移動コストはManhattanで距離概念が混在 | 低 | `Position.cs` | |
+
+### IO: TurnAction null Target・精度損失
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IO-1 | TurnAction.Attack(null)が許容されnullターゲット攻撃が実行パスに到達。攻撃処理でNullReferenceException | 高 | `TurnAction.cs:69-74` | |
+| IO-2 | Float modifier連鎖でBaseTurnCost小値時にMath.Ceiling(1)となりコスト差分消失。速度差が反映されない精度問題 | 中 | `TurnAction.cs:21-42` | |
+| IO-3 | BaseTurnCost=0が許容されターンコスト0の行動（無限行動）が可能。最小コスト検証なし | 高 | `TurnAction.cs:8-14` | |
+| IO-4 | SkillId/ItemIdがnullableだがSkill/Item使用時のnullチェックが呼び出し側依存。API契約が不明確 | 低 | `TurnAction.cs:12-14` | |
+
+### IP: GameConstants MaxRescueCount死コード・閾値未検証
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IP-1 | MaxRescueCount=3が全ソースで未参照の完全死コード。救助システムの設計残骸 | 低 | `GameConstants.cs:96` | |
+| IP-2 | TurnLimitWarning閾値がTurnLimitYear変更時に自動追従せず。年数変更で警告タイミングがずれる | 中 | `GameConstants.cs:82-84` | |
+| IP-3 | ゴールド範囲の整数演算で深度別粒度不足。浅層でMin=Maxとなるケースがあり変動幅ゼロ | 低 | `GameConstants.cs` | |
+
+### IQ: ItemFactoryドロップ池重複バイアス・深度累積
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IQ-1 | MonsterRace別ドロップ池で同一アイテムが2回追加（例: Beast: beast_hide×2）。暗黙の重み付けだがコメント・ドキュメントなし | 中 | `ItemFactory.cs` | |
+| IQ-2 | 深度条件の累積if文でプール肥大化。深度30で全条件のアイテムが加算され特定アイテムの出現確率が極端に低下 | 中 | `ItemFactory.cs` | |
+| IQ-3 | 重複追加が意図的な重み付けか実装ミスか判別不能。設計ドキュメントで明示されていない | 低 | `ItemFactory.cs` | |
+| IQ-4 | プール構築がメソッド呼び出し毎に行われキャッシュなし。パフォーマンス上の無駄 | 低 | `ItemFactory.cs` | |
+
+### IR: EnemyFactory FleeThreshold範囲未検証・知覚矛盾
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IR-1 | FleeThreshold値が0.0f～0.4fの範囲で使用されるが[0,1]範囲の強制なし。1.0超過や負値で逃走判定が不定 | 中 | `EnemyFactory.cs:242-243` | |
+| IR-2 | Sandworm SightRange:3/HearingRange:15の知覚バランスが不自然。視覚範囲極小で聴覚範囲極大の根拠が不明 | 低 | `EnemyFactory.cs` | |
+| IR-3 | GiveUpDistance値のばらつき(8-30)に設計根拠なし。敵種別の追跡距離がアドホックに設定 | 低 | `EnemyFactory.cs` | |
+| IR-4 | FleeThresholdのセマンティクス（HP割合?  脅威度?）がXMLドキュメント未記載。開発者間で解釈が分かれるリスク | 中 | `EnemyFactory.cs:242` | |
+| IR-5 | 知覚パラメータ(SightRange/HearingRange/GiveUpDistance)がGameConstants管理でなくリテラル値で定義 | 低 | `EnemyFactory.cs:230-244` | |
+
+### IS: EnemyFactory EnemyDefinition無バリデーション
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IS-1 | recordコンストラクタにバリデーションなし。負値Stats/空Name/null TypeIdで不正定義が生成可能 | 高 | `EnemyFactory.cs:230-244` | |
+| IS-2 | ExperienceRewardに負値設定可能。負のXP報酬でプレイヤー経験値が減少するバグ源 | 中 | `EnemyFactory.cs:237` | |
+| IS-3 | FloorBoss定義がBalanceConfigと手動同期で乖離リスク。バランス変更時に両方の修正が必要 | 中 | `EnemyFactory.cs:724-814` | |
+| IS-4 | SightRange/HearingRangeのデフォルト値(8/5)が全敵に適用。特殊敵（盲目・聴覚特化等）のデフォルト値が一般的すぎる | 低 | `EnemyFactory.cs:240-241` | |
+
+### IT: Player JoinReligion初期値0・FaithCap連携欠如
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IT-1 | JoinReligion()がFaithPoints=0設定だがGameConstants.InitialFaithOnJoin=20と不一致。入信直後にスキル使用不可の空白期間が発生 | 高 | `Player.cs:307-315` | |
+| IT-2 | FaithCapの更新がJoinReligion()内のみで、AddFaithPoints()がFaithCapを超過してもクランプされない可能性 | 中 | `Player.cs:307-327` | |
+| IT-3 | 再入信時のFaithCap減少(MaxFaithPoints-MaxFaithCapReductionOnRejoin)がMath.Max(0)でキャップ最小値0。0キャップで信仰スキル完全使用不可 | 中 | `Player.cs:319-322` | |
+
+### IU: Player CanPickUp重量検証バイパス
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IU-1 | CanPickUp()がItems.Item型以外の場合に重量チェックをスキップしtrue返却。非標準アイテムが重量制限を無視 | 中 | `Player.cs:175-190` | |
+| IU-2 | IItem interfaceにWeightプロパティが定義されておらず、型チェック以外に重量取得手段がない設計上の欠陥 | 中 | `Player.cs:175-190` | |
+| IU-3 | IStackableの型チェックによるスタック重量計算がItem型チェック内にネスト。非Item型のスタック重量が常に0 | 低 | `Player.cs:183-184` | |
+
+### IV: Interfaces IRandomProvider範囲曖昧・IMap境界未定義
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| IV-1 | Next(min,max)の包含/排他範囲がXMLドキュメント未記載。System.Random互換を前提とするがインターフェース上に明示なし | 中 | `Interfaces.cs:145-150` | |
+| IV-2 | GetTile()の境界外座標に対する戻り値（null/例外）未規定。実装依存で呼び出し側のエラーハンドリングが不安定 | 中 | `Interfaces.cs:117-130` | |
+| IV-3 | イベントのnull安全性（イベント未購読時の動作）が文書化されていない。実装クラスでのnull条件演算子使用が暗黙の規約 | 低 | `Interfaces.cs` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -2724,30 +2968,30 @@
 | **HW: ItemFactory ItemType3種限定・デッドコード** | **1** | **2** | **2** | **1** | **0** | **6** |
 | **HX: ItemFactory GenerateLoot未使用パラメータ** | **0** | **2** | **2** | **1** | **0** | **5** |
 | **HY: ItemFactory深度スケーリング・確率飽和** | **0** | **2** | **3** | **1** | **0** | **6** |
-| **HZ: ItemFactoryドロップ池空アクセス・リフレクション** | **1** | **2** | **1** | **1** | **0** | **5** |
-| **IA: EnemyFactory深度スケーリング欠如** | **2** | **3** | **1** | **0** | **0** | **6** |
-| **IB: EnemyFactoryステータス範囲未検証・負値伝播** | **1** | **2** | **2** | **1** | **0** | **6** |
-| **IC: EnemyFactoryボス進行不整合・経験値逆転** | **0** | **2** | **3** | **1** | **0** | **6** |
-| **ID: Player経験値負値・信仰値上限未検証** | **1** | **2** | **2** | **0** | **0** | **5** |
-| **IE: PlayerレベルアップMaxHp計算順序** | **1** | **1** | **1** | **0** | **0** | **3** |
+| **HZ: ItemFactoryドロップ池空アクセス・リフレクション** | **2** | **1** | **2** | **0** | **0** | **5** |
+| **IA: EnemyFactory深度スケーリング欠如** | **0** | **2** | **3** | **1** | **0** | **6** |
+| **IB: EnemyFactoryステータス範囲未検証・負値伝播** | **1** | **4** | **1** | **0** | **0** | **6** |
+| **IC: EnemyFactoryボス進行不整合・経験値逆転** | **0** | **1** | **3** | **2** | **0** | **6** |
+| **ID: Player経験値負値・信仰値上限未検証** | **1** | **1** | **3** | **0** | **0** | **5** |
+| **IE: PlayerレベルアップMaxHp計算順序** | **0** | **1** | **1** | **1** | **0** | **3** |
 | **IF: Player PickUp/Drop非Item型サイレント失敗** | **1** | **2** | **1** | **0** | **0** | **4** |
 | **IG: Player SetGoldイベント未発火・TransferData未検証** | **0** | **2** | **1** | **1** | **0** | **4** |
-| **IH: DropTableSystemゴールド計算・種族ゼロ化** | **0** | **1** | **2** | **1** | **0** | **4** |
-| **II: Character回復負値受入・リソースクランプ欠如** | **0** | **2** | **2** | **0** | **0** | **4** |
+| **IH: DropTableSystemゴールド計算・種族ゼロ化** | **0** | **2** | **1** | **1** | **0** | **4** |
+| **II: Character回復負値受入・リソースクランプ欠如** | **0** | **1** | **2** | **1** | **0** | **4** |
 | **IJ: StatusEffectスタック無検証・永続持続** | **0** | **2** | **2** | **1** | **0** | **5** |
 | **IK: Damage抵抗値回復・最小ダメージ固定** | **0** | **1** | **2** | **1** | **0** | **4** |
-| **IL: ObjectPoolスレッド非安全・リセット例外未処理** | **1** | **1** | **1** | **1** | **0** | **4** |
+| **IL: ObjectPoolスレッド非安全・リセット例外未処理** | **0** | **2** | **1** | **1** | **0** | **4** |
 | **IM: IAIBehavior nullチェック欠如・MoveTowardsループ** | **0** | **1** | **2** | **1** | **0** | **4** |
 | **IN: Position方向デフォルト・座標オーバーフロー** | **0** | **0** | **2** | **2** | **0** | **4** |
-| **IO: TurnAction null Target・精度損失** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **IO: TurnAction null Target・精度損失** | **0** | **2** | **1** | **1** | **0** | **4** |
 | **IP: GameConstants MaxRescueCount死コード・閾値未検証** | **0** | **0** | **1** | **2** | **0** | **3** |
 | **IQ: ItemFactoryドロップ池重複バイアス・深度累積** | **0** | **0** | **2** | **2** | **0** | **4** |
-| **IR: EnemyFactory FleeThreshold範囲未検証・知覚矛盾** | **0** | **1** | **2** | **2** | **0** | **5** |
+| **IR: EnemyFactory FleeThreshold範囲未検証・知覚矛盾** | **0** | **0** | **2** | **3** | **0** | **5** |
 | **IS: EnemyFactory EnemyDefinition無バリデーション** | **0** | **1** | **2** | **1** | **0** | **4** |
 | **IT: Player JoinReligion初期値0・FaithCap連携欠如** | **0** | **1** | **2** | **0** | **0** | **3** |
-| **IU: Player CanPickUp重量検証バイパス** | **0** | **2** | **1** | **0** | **0** | **3** |
-| **IV: Interfaces IRandomProvider範囲曖昧・IMap境界未定義** | **0** | **0** | **1** | **2** | **0** | **3** |
-| **合計** | **186** | **403** | **465** | **150** | **1** | **1205** |
+| **IU: Player CanPickUp重量検証バイパス** | **0** | **0** | **2** | **1** | **0** | **3** |
+| **IV: Interfaces IRandomProvider範囲曖昧・IMap境界未定義** | **0** | **0** | **2** | **1** | **0** | **3** |
+| **合計** | **183** | **400** | **468** | **153** | **1** | **1205** |
 
 ---
 
