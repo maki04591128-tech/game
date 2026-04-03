@@ -1534,6 +1534,88 @@
 | DO-4 | NewGamePlusSystem: GetCarryOverItems()のPlus2で「装備品」、Plus3で「ゴールド」のキャリーオーバーが記載されるが、実際の引き継ぎ処理(TransferToNewGame)がGameControllerに未実装 | 高 | `NewGamePlusSystem.cs`, `GameController.cs` | |
 | DO-5 | MultiEndingSystem: TrueエンディングとNormalエンディングが両方hasClearedFinalBoss==trueを条件としており、文の順序のみで分岐。コードリファクタリング時にelse if構造が崩れるとNormalがTrueを上書きするリスク | 中 | `MultiEndingSystem.cs:44-70` | |
 
+### DP: 処刑システム・武器アニメーション欠落
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| DP-1 | ExecutionSystem.GetExecutionAnimationName()が全15武器種のうちSword/Dagger/Axe/Hammer/Spear/Bowの6種のみ対応。Greatsword/Greataxe/Staff/Crossbow/Thrown/Whip/Fist/Unarmedの8種がデフォルト「止めの一撃」で武器固有の処刑演出がない | 致命的 | `ExecutionSystem.cs:41-50` | |
+| DP-2 | ExecutionSystem.GetExecutionKarmaPenalty()が10種族中Beast/Humanoid/Undead/Demon/Dragonの5種のみ対応。Plant/Insect/Spirit/Constructの処刑時にカルマペナルティが0で倫理的影響なし | 中 | `ExecutionSystem.cs:30-38` | |
+| DP-3 | GameOverSystem.GetDeathCauseDetail()がSuicide/SanityDeath/Fall/Unknown死因に未対応。デフォルト「不明な原因」が表示されプレイヤーに死因が伝わらない | 低 | `GameOverSystem.cs:77-87` | |
+| DP-4 | GameClearSystem.IsFinalBossDefeated()で`currentFloor >= 30`判定。フロア31以上でも最終ボス撃破条件が成立し、フロア30以外でのクリアフラグが不正に立つ | 高 | `GameClearSystem.cs:85-88` | |
+| DP-5 | GameClearSystem.CalculateScore()のターンボーナス計算`10000 - totalTurns/5`で整数除算。小数部分が切り捨てられスコア精度が低下 | 中 | `GameClearSystem.cs:70` | |
+
+### DQ: ミミック・モンスター種族・属性矛盾
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| DQ-1 | MimicSystem.GetMimicRewardMultiplier()が固定値1.5倍を返却。階層深度に関係なく報酬倍率が一定で深層ミミック撃破のインセンティブ不足 | 中 | `MimicSystem.cs` | |
+| DQ-2 | MimicSystem.GetDisguiseTypes()が「宝箱」「木箱」「収納箱」の3種のみ。偽装バリエーション不足でプレイヤーが容易にミミックを予測可能 | 低 | `MimicSystem.cs:38-42` | |
+| DQ-3 | MonsterRaceSystem: Spirit/Amorphous両方ともPhysicalDamageMultiplier=0.5f。種族特性に実効的差がなく、ゲーム上のモンスター種族区別が不明確 | 中 | `MonsterRaceSystem.cs:40-42,83-85` | |
+| DQ-4 | MonsterRaceSystem: AttackType.Ranged/Magicの物理耐性がどの種族にも定義されていない。遠距離/魔法攻撃への種族別耐性システムが機能しない | 高 | `MonsterRaceSystem.cs` | |
+| DQ-5 | ElementalAffinitySystem: SpiritがElement.LightとElement.Darkの両方にWeakness（弱点）設定。通常Light↔Darkは対立属性だが同時弱点は設計矛盾 | 高 | `ElementalAffinitySystem.cs` | |
+| DQ-6 | ElementalAffinitySystem: DarkAffinityトレイト（Enums.cs定義済み）が属性親和システムで一切参照されない | 低 | `Enums.cs:356`, `ElementalAffinitySystem.cs` | |
+
+### DR: マルチクラス・鍛冶結果型不整合
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| DR-1 | MultiClassSystem: ClassTier.Masterが定義済みだがRequirementsリストにMasterティアへの転職条件が一切存在しない。Master職への昇進が不可能 | 致命的 | `MultiClassSystem.cs:17-24,50-51` | |
+| DR-2 | MultiClassSystem: 全転職要件がRequiredLevel:20で統一。Base→Advanced間の段階的な難易度差がなくゲーム進行が平坦 | 中 | `MultiClassSystem.cs:19-23` | |
+| DR-3 | MultiClassSystem.GetSubclassExpRate()が常に0.5f固定返却。クラス組み合わせによるサブクラス経験値の戦略性がない | 中 | `MultiClassSystem.cs:56` | |
+| DR-4 | SmithingSystem.Synthesize()がSmithingResult.NewEnhanceLevel=0をデフォルト返却。合成結果の強化レベル情報が欠落し呼出側で誤参照リスク | 中 | `SmithingSystem.cs:38-45,76-80` | |
+| DR-5 | SmithingSystem.Repair()のSmithingResult戻り値にNewEnhanceLevel/ResultItemIdが未設定（デフォルト値のまま） | 低 | `SmithingSystem.cs:25-35` | |
+
+### DS: 罠二重定義・ギャンブル中毒ロジック
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| DS-1 | PlayerTrapType(5種)とTrapType(8種)が別enum定義。PitfallTrap/PitFall・SleepTrap/Sleep・AlarmTrap/Alarmの表記不一致でプレイヤー罠とダンジョン罠が別系統計算 | 中 | `TrapCraftingSystem.cs:9-25`, `Enums.cs:8-33,1230-1242` | |
+| DS-2 | TrapCraftingSystemのPitfallTrap.Damage=15とTrapDefinitionのPitFall.BaseDamage=10が矛盾。同じ落とし穴罠でプレイヤー製が50%高ダメージ | 中 | `TrapCraftingSystem.cs:20-21`, `TrapDefinition.cs:117-120` | |
+| DS-3 | PlayerTrapType.ExplosiveTrapに対応するTrapType値が存在しない。TrapType.Poisonに対応するPlayerTrapType値も存在しない。双方向の対応関係が不完全 | 低 | `TrapCraftingSystem.cs`, `Enums.cs:8-33` | |
+| DS-4 | GamblingSystem.CheckAddiction(): 正気度の影響係数が0.001f（0.1%/ポイント）と極小。sanity=100でもrisk低減はわずか0.1で中毒判定に実質影響なし。正気度システムとの連動が形骸化 | 高 | `GamblingSystem.cs:64-69` | |
+| DS-5 | GamblingSystem: 期待値コメント「Card期待値0.87」に対し実計算は約0.874。コメントと実装の精度乖離で設計意図が不明確 | 低 | `GamblingSystem.cs:32-38` | |
+
+### DT: 能力値フラグ・方向補正・熟練度曲線
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| DT-1 | StatFlagSystem: CHA/LUKのフラグ発動閾値が20、他の8能力値（STR/INT/PER/AGI/VIT/DEX/MND/WIS）は閾値25。CHA/LUKが5ポイント低い閾値で発動しバランス不一致 | 中 | `StatFlagSystem.cs` | |
+| DT-2 | DirectionSystem.CalculateElevationBonus(): 高所→低所がDamage+0.15f/Hit+0.10fだが低所→高所がDamage-0.10f/Hit-0.15f。ダメージと命中の減算値が非対称で高度差ペナルティが不均等 | 高 | `DirectionSystem.cs` | |
+| DT-3 | WeaponProficiencySystem: UnarmedのPrimaryAttackTypeがAttackType.Blunt設定。ElementalAffinitySystemではAttackType.Unarmedとして個別処理。素手の攻撃タイプが2システム間で矛盾 | 高 | `WeaponProficiencySystem.cs`, `ElementalAffinitySystem.cs` | |
+| DT-4 | ProficiencySystem.GetRequiredExp()が`100*Math.Pow(1.15, Level)`の指数関数。Level99で約38,890exp必要。後期のレベリングが極端に重く到達困難 | 中 | `ProficiencySystem.cs:27` | |
+| DT-5 | ProficiencySystem: MaxLevel(100)/DamageBonusPerLevel(0.005)/経験値係数(1.15)がファイル内ハードコード。GameConstants等での一元管理がされていない | 低 | `ProficiencySystem.cs:27,48-49` | |
+
+### DU: ダンジョン生成パラメータ・環境戦闘・秘密部屋
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| DU-1 | DungeonFeatureGenerator: CorridorTwistChance/SpecialRoomChance/WaterTileChance/LavaTileChanceの4パラメータが登録されるが実際のダンジョン生成で一切使用されない。テーマ別多様性が反映されない | 高 | `DungeonFeatureGenerator.cs:27-30` | |
+| DU-2 | DungeonFeatureGenerator: DungeonFeatureDefinition.TrapDensityとDungeonFeatureParams.TrapChanceが同一概念（罠出現確率）を重複定義。正式な値源が不明確 | 中 | `DungeonFeatureGenerator.cs` | |
+| DU-3 | EnvironmentalCombatSystem: SurfaceInteraction.DamageMultiplier（水+雷=2.0倍、油+火=1.5倍等）が定義されるが使用コードが存在しない。属性相互作用のダメージ倍率が完全に機能しない | 高 | `EnvironmentalCombatSystem.cs:21,26-34` | |
+| DU-4 | EnvironmentalPuzzleSystem: CanAttempt()はintelligence+knowledgeLevelで判定するがCalculateSuccessRate()はintelligenceのみで計算。知識レベルが成功率に反映されない | 中 | `EnvironmentalPuzzleSystem.cs:45,51` | |
+| DU-5 | SecretRoomSystem: CalculateSecretRoomCount()がRuins/Temple/Cryptのみ明示、ShouldGenerateSecretPassage()がRuins/Temple/Caveのみ明示。Crypt/Sewer/Mine/Volcanic等のダンジョンタイプで秘密部屋生成が不均等に扱われる | 中 | `SecretRoomSystem.cs` | |
+
+### DV: 自動探索・碑文リセット・状態異常命名
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| DV-1 | AutoExploreSystem: HP停止閾値0.3f（30%）に対し満腹度停止閾値0.15f（15%）。満腹度の方が許容度が低い非対称設計でHP危機より先に餓死リスク | 低 | `AutoExploreSystem.cs` | |
+| DV-2 | InscriptionSystem: 死に戻り時に碑文解読状態がリセットされるが、StatFlagSystem能力値フラグ等は保持される。システム間のリセットポリシーが非対称 | 中 | `InscriptionSystem.cs` | |
+| DV-3 | ExtendedStatusEffectSystem: StatModifierキーが"HitRate"/"AttackMultiplier"（英語複合語）と"STR"/"AGI"（略称）で命名不統一。GetStatModifier()呼出時の文字列ミスリスク | 低 | `ExtendedStatusEffectSystem.cs` | |
+| DV-4 | ExtendedStatusEffectSystem: "berserk"がIsBuff=false（デバフ分類）だが攻撃力+50%の効果あり。バフ/デバフ分類と実効果が直感的に矛盾 | 低 | `ExtendedStatusEffectSystem.cs` | |
+| DV-5 | ContextHelpSystem: RegisterDefaultTopics()でKeyBind="hjklyubn"（複数キー連結）を登録するがGetHelpForKey()は単一キー完全一致検索。"h"キー押下でヘルプトピックがヒットしない | 中 | `ContextHelpSystem.cs:72-75,124-133` | |
+
+### DW: GrowthSystem二重管理・DungeonFaction境界値
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| DW-1 | GrowthSystem: CalculateMaxHp/CalculateMaxMpがraceGrowth/classGrowthテーブルとRaceDefinition/ClassDefinition両方からHP/MPボーナスを合算。同一情報の二重管理でバランス調整時の不一致リスク | 中 | `GrowthSystem.cs:172-197`, `CharacterCreation.cs:17-82` | |
+| DW-2 | DungeonFactionSystem.AreHostile()が`>0.5f`判定（`>=`でない）。Dragon+Demon=0.5fが丁度境界値のため敵対判定されない（0.5>0.5はfalse） | 致命的 | `DungeonFactionSystem.cs:20,27,46,52` | |
+| DW-3 | DungeonFactionSystem.AreAllied()が`<0.3f`判定（`<=`でない）。Undead+Spirit=0.3fが丁度境界値のため同盟判定されない（0.3<0.3はfalse） | 致命的 | `DungeonFactionSystem.cs:20,27,46,52` | |
+| DW-4 | FactionWarSystem: Faction1/Faction2の参加報酬が同一（20ポイント）。攻撃側/防衛側に戦略差がなくプレイヤーの派閥選択に意味がない | 中 | `FactionWarSystem.cs` | |
+| DW-5 | FactionWarSystem: War.Duration値が計算されるがゲーム上の終了条件/効果に使用されない。戦争期間が装飾的 | 低 | `FactionWarSystem.cs` | |
+| DW-6 | TerritoryInfluenceSystem: Reset()後にInitialize()の呼出フローが明示されず、死に戻り時の勢力状態が不定 | 中 | `TerritoryInfluenceSystem.cs:15-18,55-58` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -1654,7 +1736,15 @@
 | **DM: 難易度パラメータ矛盾・Ironman設計不備** | **0** | **1** | **4** | **0** | **0** | **5** |
 | **DN: 開始マップ解決・テンプレートマップ** | **0** | **0** | **2** | **2** | **0** | **4** |
 | **DO: 無限ダンジョンスコア・セーブスロットソート** | **0** | **2** | **2** | **1** | **0** | **5** |
-| **合計** | **147** | **260** | **235** | **47** | **1** | **690** |
+| **DP: 処刑システム・武器アニメーション欠落** | **1** | **1** | **2** | **1** | **0** | **5** |
+| **DQ: ミミック・モンスター種族・属性矛盾** | **0** | **2** | **2** | **2** | **0** | **6** |
+| **DR: マルチクラス・鍛冶結果型不整合** | **1** | **0** | **3** | **1** | **0** | **5** |
+| **DS: 罠二重定義・ギャンブル中毒ロジック** | **0** | **1** | **2** | **2** | **0** | **5** |
+| **DT: 能力値フラグ・方向補正・熟練度曲線** | **0** | **2** | **2** | **1** | **0** | **5** |
+| **DU: ダンジョン生成パラメータ・環境戦闘・秘密部屋** | **0** | **2** | **3** | **0** | **0** | **5** |
+| **DV: 自動探索・碑文リセット・状態異常命名** | **0** | **0** | **2** | **3** | **0** | **5** |
+| **DW: GrowthSystem二重管理・DungeonFaction境界値** | **2** | **0** | **3** | **1** | **0** | **6** |
+| **合計** | **151** | **268** | **254** | **58** | **1** | **732** |
 
 ---
 
@@ -1807,3 +1897,13 @@
 - **DM: 難易度パラメータ矛盾・Ironman設計不備** — Ironman被ダメ1.2<Nightmare被ダメ1.6で難易度逆転。Nightmare expMultiplier=0.6で実質クリア不可。default=>Normalサイレントフォールバック。GetFlagValue()の0と未設定が区別不能。新条件フラグのサイレント失敗
 - **DN: 開始マップ解決・テンプレートマップ** — 新Background/Race enum追加時のサイレントフォールバック。LocaionType.Fieldデッドコード。NG+ Plus5難易度スパイク(1.0ジャンプ)
 - **DO: 無限ダンジョンスコア・セーブスロットソート** — floor=0と未挑戦が同一D評価。SaveTimeソート非決定的。TurnBonus 50000ターン以上で差がなくなる。NG+キャリーオーバー転送処理未実装。True/Normalエンディング順序依存
+
+### 新規追加カテゴリの概要（第16回調査分）
+- **DP: 処刑システム・武器アニメーション欠落** — GetExecutionAnimationName()が15武器種中6種のみ対応（8種未実装）。GetExecutionKarmaPenalty()が10種族中5種のみ対応。GameOverSystem死因4種未対応。IsFinalBossDefeated()のfloor>=30判定。CalculateScore()整数除算精度低下
+- **DQ: ミミック・モンスター種族・属性矛盾** — ミミック報酬倍率が固定1.5倍で階層深度無関係。偽装タイプ3種のみ。Spirit/Amorphous物理耐性が同一0.5f。Ranged/Magic耐性が全種族未定義。SpiritがLight/Dark同時弱点。DarkAffinityトレイト未使用
+- **DR: マルチクラス・鍛冶結果型不整合** — ClassTier.Masterの転職条件が完全欠落（到達不可能）。全転職がLevel20固定。サブクラス経験値率が固定0.5f。SmithingSystem.Synthesize()のNewEnhanceLevel=0デフォルト返却。Repair()のSmithingResult未設定
+- **DS: 罠二重定義・ギャンブル中毒ロジック** — PlayerTrapType(5種)とTrapType(8種)が別enum・表記不一致。PitfallTrap Damage=15 vs PitFall BaseDamage=10の矛盾。ExplosiveTrap/Poisonの対応なし。CheckAddiction()の正気度影響0.1%/ptで形骸化。期待値コメント精度乖離
+- **DT: 能力値フラグ・方向補正・熟練度曲線** — CHA/LUK閾値20 vs 他8能力値閾値25の不均衡。ElevationBonus低所→高所のDamage/Hit減算値が非対称。Unarmed攻撃タイプがWeaponProficiency=BluntとElementalAffinity=Unarmedで矛盾。熟練度経験値が指数関数増加。ハードコード値未一元管理
+- **DU: ダンジョン生成パラメータ・環境戦闘・秘密部屋** — DungeonFeatureGeneratorの4パラメータ(Corridor/Special/Water/Lava)が未使用。TrapDensity/TrapChance重複定義。SurfaceInteraction.DamageMultiplier未使用で属性相互作用無効。EnvironmentalPuzzleの知識レベルが成功率に非反映。秘密部屋生成のダンジョンタイプ不均等
+- **DV: 自動探索・碑文リセット・状態異常命名** — HP停止閾値30%/満腹度15%の非対称。碑文リセットと能力値フラグ保持のポリシー非対称。StatModifierキー命名不統一(英語複合/略称混在)。berserkのIsBuff=falseと攻撃+50%の矛盾。ContextHelpの複数キー登録vs単一キー検索不整合
+- **DW: GrowthSystem二重管理・DungeonFaction境界値** — HP/MPボーナスがGrowthTable+Definition二重管理。DungeonFaction.AreHostile()の>0.5f判定でDragon+Demon=0.5fが敵対されない。AreAllied()の<0.3f判定でUndead+Spirit=0.3fが同盟されない。FactionWar両陣営報酬同一。Duration未使用。TerritoryInfluence Reset後の初期化フロー不明
