@@ -1616,6 +1616,43 @@
 | DW-5 | FactionWarSystem: War.Duration値が計算されるがゲーム上の終了条件/効果に使用されない。戦争期間が装飾的 | 低 | `FactionWarSystem.cs` | |
 | DW-6 | TerritoryInfluenceSystem: Reset()後にInitialize()の呼出フローが明示されず、死に戻り時の勢力状態が不定 | 中 | `TerritoryInfluenceSystem.cs:15-18,55-58` | |
 
+### DX: 戦闘計算・魔法防御係数・クリティカル不整合
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| DX-1 | DamageCalculator: 物理防御係数0.5に対し魔法防御係数0.3。同攻撃力・防御力で魔法ダメージが物理の約1.4倍となりINT投資が圧倒的有利。ゲームバランス崩壊レベル | 高 | `DamageCalculator.cs:35,82` | |
+| DX-2 | 魔法ダメージ計算でクリティカルヒットが不可能（IsCritical=falseハードコード）。物理ビルドのクリティカル期待値ボーナスに対し魔法ビルドが不利 | 高 | `DamageCalculator.cs:91` | |
+| DX-3 | クリティカル率計算でDEX×0.3%だが回避計算でAGI×0.5%。DEXとAGIの寄与係数が非対称でステータス投資の選択が歪む | 中 | `DamageCalculator.cs:144,168-176` | |
+| DX-4 | CheckCritical()が2つのオーバーロード（パラメータ付きとdouble直接渡し）で存在。インターフェース混在で保守性低下 | 低 | `DamageCalculator.cs:168-176,179-181` | |
+| DX-5 | SpellCastingSystem: 暴発ダメージがMpCost×0.5のハードコード。低MP呪文でHP30のキャラに大打撃、高MP呪文でHP300のキャラに軽微。スケーリングが逆転 | 中 | `SpellCastingSystem.cs:178-185` | |
+
+### DY: アイテム等級・ドロップ・素材品質未機能
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| DY-1 | DropTableSystem.GenerateLoot()がDropTableEntry.MinGradeパラメータを完全に無視。全アイテムがItemGrade.Standard固定で等級システムが機能しない | 高 | `DropTableSystem.cs:10,55-94` | |
+| DY-2 | Material.Qualityプロパティ（品質1-100）が定義されるがItemFactory/DropTableSystemで品質値が未設定。全素材が品質50固定 | 低 | `Consumables.cs:377-390`, `ItemFactory.cs` | |
+| DY-3 | Equipment.RequiredStats: Luck/Charisma/Perceptionがプロパティ定義されているがCanEquip()の条件文に含まれない。これらステータスの装備制限が機能しない | 低 | `Equipment.cs:69-105` | |
+| DY-4 | Food.HydrationValueプロパティが定義されているがFood.Use()でThirstSystemとの連携コードなし。Water/CleanWaterの渇き回復効果が機能しない | 中 | `Consumables.cs:152-218` | |
+| DY-5 | Scroll.Use(Character user)の署名でゲームマップ/プレイヤー位置へのアクセスが不可能。テレポート/マップ表示/帰還巻物がゲーム状態を変更できない | 中 | `Consumables.cs:274-318` | |
+
+### DZ: GameController計算結果破棄・戻り値無視
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| DZ-1 | TrySmithRepair(): repairAmount計算後にメッセージ表示のみで装備の耐久値加算処理なし。「追加修理: +N」と表示されるがdurabilityが実際には増加しない | 致命的 | `GameController.cs:7564-7569` | |
+| DZ-2 | ApplySpellDetect(): 敵感知数をカウントしメッセージ表示するが、敵の検出状態/追跡対象への反映なし。感知呪文が装飾的 | 中 | `GameController.cs:4487-4508` | |
+| DZ-3 | ProcessDialogueAction() "smuggle"ケース: TrySmuggle("")の戻り値（bool成功/失敗）が完全に無視。密輸失敗時も成功時もTurnCount+=10が実行される | 中 | `GameController.cs:6069` | |
+| DZ-4 | SpellCastingSystem: MaxSpellWords=7固定。語彙習得が進んでも使える組み合わせ数が同じ7語制限。深度に応じた段階的拡張メカニズムなし | 中 | `SpellCastingSystem.cs:89`, `GameConstants.cs` | |
+| DZ-5 | RoomCorridorGenerator.IsDoorCandidate(): ドア配置判定が「南北壁+東西開通」条件で実際には通路交差点を指す可能性。部屋境界ドアではなく通路内にドアが設置されるエッジケース | 中 | `RoomCorridorGenerator.cs:419-461` | |
+
+### EA: AIビヘイビア・Spirit疑似テレポート
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EA-1 | RacialBehaviors.SpiritBehavior: テレポート判定後にMoveRandom()（隣接マスランダム移動）で代替実装。「瞬間移動」という設計意図と1マス移動の実装が乖離 | 低 | `RacialBehaviors.cs:214-216` | |
+| EA-2 | SpellEffectResolver.DetermineElement(): Element.Curse/Lightningに対応する効果語定義が不完全。一部属性が詠唱結果に反映されない可能性 | 低 | `SpellCastingSystem.cs:388-419` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -1744,7 +1781,11 @@
 | **DU: ダンジョン生成パラメータ・環境戦闘・秘密部屋** | **0** | **2** | **3** | **0** | **0** | **5** |
 | **DV: 自動探索・碑文リセット・状態異常命名** | **0** | **0** | **2** | **3** | **0** | **5** |
 | **DW: GrowthSystem二重管理・DungeonFaction境界値** | **2** | **0** | **3** | **1** | **0** | **6** |
-| **合計** | **151** | **268** | **254** | **58** | **1** | **732** |
+| **DX: 戦闘計算・魔法防御係数・クリティカル不整合** | **0** | **2** | **2** | **1** | **0** | **5** |
+| **DY: アイテム等級・ドロップ・素材品質未機能** | **0** | **1** | **2** | **2** | **0** | **5** |
+| **DZ: GameController計算結果破棄・戻り値無視** | **1** | **0** | **4** | **0** | **0** | **5** |
+| **EA: AIビヘイビア・Spirit疑似テレポート** | **0** | **0** | **0** | **2** | **0** | **2** |
+| **合計** | **152** | **271** | **262** | **63** | **1** | **749** |
 
 ---
 
@@ -1907,3 +1948,7 @@
 - **DU: ダンジョン生成パラメータ・環境戦闘・秘密部屋** — DungeonFeatureGeneratorの4パラメータ(Corridor/Special/Water/Lava)が未使用。TrapDensity/TrapChance重複定義。SurfaceInteraction.DamageMultiplier未使用で属性相互作用無効。EnvironmentalPuzzleの知識レベルが成功率に非反映。秘密部屋生成のダンジョンタイプ不均等
 - **DV: 自動探索・碑文リセット・状態異常命名** — HP停止閾値30%/満腹度15%の非対称。碑文リセットと能力値フラグ保持のポリシー非対称。StatModifierキー命名不統一(英語複合/略称混在)。berserkのIsBuff=falseと攻撃+50%の矛盾。ContextHelpの複数キー登録vs単一キー検索不整合
 - **DW: GrowthSystem二重管理・DungeonFaction境界値** — HP/MPボーナスがGrowthTable+Definition二重管理。DungeonFaction.AreHostile()の>0.5f判定でDragon+Demon=0.5fが敵対されない。AreAllied()の<0.3f判定でUndead+Spirit=0.3fが同盟されない。FactionWar両陣営報酬同一。Duration未使用。TerritoryInfluence Reset後の初期化フロー不明
+- **DX: 戦闘計算・魔法防御係数・クリティカル不整合** — 物理防御係数0.5 vs 魔法防御係数0.3でINT投資が圧倒的有利。魔法クリティカル不可（IsCritical=false固定）。DEX/AGI寄与係数の非対称。CheckCritical()オーバーロード混在。暴発ダメージがMP×0.5固定でスケーリング逆転
+- **DY: アイテム等級・ドロップ・素材品質未機能** — DropTableSystem.GenerateLoot()がMinGrade無視で全Standard固定。Material.Quality未設定で品質50固定。装備RequiredStatsのLuck/CHA/PER未チェック。Food.HydrationValueとThirst未連携。Scroll.Use()署名でゲーム状態変更不可
+- **DZ: GameController計算結果破棄・戻り値無視** — TrySmithRepair()のrepairAmount計算後にdurability加算なし（表示のみ）。ApplySpellDetect()感知結果が反映されない。TrySmuggle()戻り値完全無視で失敗時もターン消費。MaxSpellWords=7固定で深度拡張なし。ドア配置判定が通路交差点を含む
+- **EA: AIビヘイビア・Spirit疑似テレポート** — SpiritBehaviorのテレポート判定後にMoveRandom()（1マス移動）で代替。Spirit属性詠唱語の一部未定義
