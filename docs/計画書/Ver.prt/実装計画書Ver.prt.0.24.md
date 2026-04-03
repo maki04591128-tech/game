@@ -1843,6 +1843,120 @@
 | EV-2 | CalculateCompanionDamage()がMath.Max(1, attack+level/2)で最低1保証。レベル0・攻撃0でも1ダメージ。攻撃不能状態の仲間が存在不可 | 中 | `CompanionSystem.cs:149-152` | |
 | EV-3 | DamageCompanion()で仲間が死亡（HP=0）した場合にIsAlive=falseを設定するが、復活メカニズム（ReviveCompanion等）がCompanionSystem内に不在 | 中 | `CompanionSystem.cs:155-165` | |
 
+### EW: Inventory重量制限未強制・スタック整理不備
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EW-1 | Inventory.Add()がMaxWeight超過チェックなし。Player.CanPickUp()でのみ重量検証するがAdd()自体では未検証。スタック加算時もTotalWeight再チェックなしで重量制限バイパス可能 | 高 | `Inventory.cs:35-56` | |
+| EW-2 | Inventory.Organize()でMaxStack=0の場合にtransferAmount計算が不正。MaxStack>0のバリデーションなし。不正データでスタック整理が無限ループまたはデータ破損のリスク | 中 | `Inventory.cs:167-206` | |
+| EW-3 | Player.IsOverweightプロパティが存在するがInventory.Add()内で参照されない。重量超過状態でも新規アイテム追加が可能で、ゲーム設計のオーバーウェイトペナルティが形骸化 | 高 | `Player.cs:172, Inventory.cs:35-56` | |
+| EW-4 | Inventory.Remove()でStackCount -= countの結果が負値にならないチェックがif文で実施されるが、外部からStackableオブジェクトに直接アクセスされた場合の保護なし | 中 | `Inventory.cs:69-83` | |
+| EW-5 | Inventory.UseItem()でConsumable.Use(user, random)のuserパラメータnullチェック不在。null渡しでNullReferenceExceptionクラッシュ | 高 | `Inventory.cs:146-162` | |
+
+### EX: Player生存ステータス初期化不整合・Sanity境界問題
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EX-1 | Player.Create(name, baseStats)簡易ファクトリで_thirstと_fatigueが未初期化（0のまま）。ThirstStageがCriticalDehydration、FatigueStageがCollapseで即座に致命的状態。完全ファクトリCreate(name,race,class,bg)では全5項目初期化済みで矛盾 | 高 | `Player.cs:597-611 vs 625-674` | |
+| EX-2 | Sanity=0でSanityStage.Brokenになるが、CanBeRescued()がSanity>0を要求。Sanity=0のプレイヤーは救助不可能でゲーム進行不能（復帰手段なし）のパラドックス | 高 | `Player.cs:400-408, 148` | |
+| EX-3 | CreateTransferData()でTotalDeaths=0にハードコード設定。コメント「外部で管理」だが外部管理の実装なし。転生繰り返しで死亡回数が失われ永続進行追跡が機能しない | 中 | `Player.cs:484-496` | |
+| EX-4 | TransferData.Sanityプロパティが定義されているがCreateTransferData()で設定されない。ApplyTransferData()ではInitialSanityにフォールバック。転生時のSanity状態引き継ぎが未実装のデッドプロパティ | 低 | `Player.cs:859, 486, 505` | |
+| EX-5 | RestoreFromSave()でlevelとexperienceの整合性バリデーションなし。破損セーブでlevel=99/experience=5等の不正状態がロード可能 | 中 | `Player.cs:698-724` | |
+
+### EY: Character基底クラスリソース管理・負値消費バイパス
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EY-1 | ConsumeMp()/ConsumeSp()にamount>=0バリデーションなし。負値渡し（ConsumeMp(-100)）でMP回復が可能。AddGold()はamount>0チェック有りで非対称 | 中 | `Character.cs:119-120, Player.cs:118-137` | |
+| EY-2 | RestoreMp()/RestoreSp()が+=直接代入でプロパティsetterのClamp処理をバイパスする可能性。バッキングフィールド_currentMp/_currentSpへの直接操作で上限超過リスク | 中 | `Character.cs:116-120` | |
+| EY-3 | LevelUp()でEffectiveStats（装備ボーナス含む）に基づくHP/MP差分計算。レベルアップ処理中の装備変更でMaxHp変動時にHP増加量が不正計算 | 中 | `Player.cs:366-387` | |
+| EY-4 | Player.AddGold()のamount>0ガードが既にEB-1で報告済みだが、Character基底クラスレベルでもTakeDamage()の負値ダメージ（回復として機能）に対するバリデーションなし | 中 | `Character.cs:95-110` | |
+
+### EZ: ItemFactory乱数生成・レアリティ適用不備
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| EZ-1 | GenerateRandomItem()のitemType=(ItemType)_random.Next(3)でItemType列挙型7種中Equipment/Consumable/Foodの3種のみ生成。Material/Key/Quest/Etcタイプが絶対に生成されずドロップテーブルに大きな偏り | 高 | `ItemFactory.cs:837` | |
+| EZ-2 | GenerateRandomEquipment()がrarity引数で強化値を計算するが、生成アイテム本体のRarityプロパティを変更していない。全ランダム装備がCommon/Uncommonのまま残り、レアリティシステムが機能しない | 高 | `ItemFactory.cs:863-906` | |
+| EZ-3 | GenerateRandomConsumable()でレアリティに応じて異なるポーション種を選択するが、効果値の調整なし。上位レアリティでもHealingPotionは常に75回復固定で階層進行に応じた報酬スケーリングが不在 | 中 | `ItemFactory.cs:908-928` | |
+| EZ-4 | StackableItem.CanStackWith()がItemId/IsIdentified/IsCursed/IsBlessedのみ比較しEnhancementLevelを比較しない。+1ポーションと通常ポーションがスタックされ強化値が消失 | 高 | `Item.cs:321-329` | |
+
+### FA: Equipment呪い解除・防具スロット判定不整合
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FA-1 | Equipment.OnUnequip()でIsCursed&&HasStatusEffect(Curse)判定後の処理ブロックが空実装。呪い装備の外す制限が実装されておらず、呪いシステムが完全に無機能 | 高 | `Equipment.cs:116-123` | |
+| FA-2 | IsArmorSlot()がOffHandを含むが、盾とサブ武器でGetEffectiveStatModifier()のVitality加算が適用される。両手武器時のOffHandスロットでVitality強化が不正に付与 | 中 | `Equipment.cs:139-140` | |
+| FA-3 | 両手武器装備時のオフハンド解除処理でインベントリへの戻し処理がコメントのみで未実装。オフハンド装備品がデータ上消失するリスク | 高 | `Equipment.cs:354付近` | |
+| FA-4 | GetDisplayName()で未識別アイテムはUnidentifiedName表示だが、EnhancementLevel!=0チェックが先行するため強化値情報が未識別状態でも推測可能な設計漏れ | 中 | `Item.cs:279-296` | |
+
+### FB: Consumable腐敗食料・ポーション効果値ゼロ問題
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FB-1 | Potion.Use()でEffectValue=0かつEffectPercentage=0のとき回復量が0。ポーション使用しても何も起きないが成功として扱われアイテム消費。プレイヤーへのフィードバックなし | 中 | `Consumables.cs:54-78` | |
+| FB-2 | IsRotten食料のStatusEffect(Poison, 10)付与がItemEffectレコードのDurationフィールドに反映されず0のまま。効果表示と実際の毒持続ターンが不整合 | 中 | `Consumables.cs:189-199` | |
+| FB-3 | Food.HydrationValue定義済みだがThirstSystemとの連携なし（DY-4と関連）。食事による水分補給が機能せず、Thirst管理が食料タイプと独立した別系統のみ | 中 | `Consumables.cs, ThirstSystem.cs` | |
+| FB-4 | Scroll.Use()のメソッドシグネチャがゲーム状態を変更できない設計。巻物効果（テレポート、識別等）が実際のゲーム状態に反映されないデッドコード | 高 | `Consumables.cs（Scrollクラス）` | |
+
+### FC: Damage抵抗計算・Stats CriticalRate偏重
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FC-1 | Damage.CalculateFinal()のresistanceクランプ範囲[-1f,0.9f]で最大軽減90%制限。100%耐性（完全無効化）が設計上不可能だがゲーム内アイテム/スキルで「○○無効」の記述と矛盾 | 中 | `Damage.cs:61-73` | |
+| FC-2 | Stats.CriticalRateでLuck*0.01+Dexterity*0.005の係数設定。LuckがDexterityの2倍のクリティカル寄与を持ち、器用さベースの戦闘クラスが不利。ゲームバランス設計に要検討 | 低 | `Stats.cs:30` | |
+| FC-3 | TurnAction.WaitForInput（BaseTurnCost=0）とTurnAction.Wait（BaseTurnCost=TurnCosts.Wait）が同じTurnActionType.Waitを使用。ターンコスト処理で区別不可能 | 中 | `TurnAction.cs:110, 146-150` | |
+| FC-4 | Position.GetDirectionTo()で同一位置の場合に常にDirection.North返却。AI自己参照攻撃等のエッジケースで不正な方向が返される | 低 | `Position.cs:66-82` | |
+
+### FD: SymbolMap通行可能設定・タイル表示重複
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FD-1 | TileType.SymbolMountainがBlocksMovement=falseで山岳地形を通行可能。ワールドマップの移動制限が機能せずゲームマップの地形概念が崩壊 | 致命的 | `Tile.cs:432-437` | |
+| FD-2 | TileType.SymbolWaterがBlocksMovement=falseで水域を通行可能。船/橋なしでの水上移動が可能になりマップ探索の障壁設計が無効化 | 致命的 | `Tile.cs:438-442` | |
+| FD-3 | StairsDown('>')とBuildingExit('<')で異なる機能のタイルが視覚的に似た表示文字を使用。プレイヤーが上り階段と建物出口を混同する視覚的UX問題 | 中 | `Tile.cs:486, 522` | |
+| FD-4 | NpcTrainer/NpcLibrarianのGetDisplayChar()ケース欠落（DE-1と関連だが直接的なタイル定義レベルの問題）。タイル生成時のデフォルト表示文字が'?'でマップ上の未知NPCとの区別不可 | 高 | `Tile.cs:516-522` | |
+
+### FE: AIビヘイビア・CompositeBehavior常時適用
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FE-1 | SpiritBehaviorのテレポート実装がMoveRandom()（隣接1マス移動）で代替。設計上のテレポート（マップ内ランダム位置への瞬間移動）とは根本的に異なりSpirit種族の特殊能力が形骸化 | 高 | `AI/Behaviors/RacialBehaviors.cs:211-216` | |
+| FE-2 | CompositeBehavior.IsApplicable()が常にtrue返却。内部ビヘイビアの適用可能性チェックをバイパスし、優先度ベースのAIビヘイビア選択ロジックが正しく機能しない可能性 | 中 | `AI/IAIBehavior.cs:66` | |
+| FE-3 | PackHuntingBehaviorが群れ狩り（Pack Hunting）の名称だが、実装は通常の単体追跡・攻撃と同一。仲間敵との連携（挟み込み、集団包囲等）のロジックが完全に不在 | 中 | `AI/Behaviors/RacialBehaviors.cs:9-36` | |
+| FE-4 | DungeonMap.GetEnvironmentModifier(position, actionType)がactionType引数を完全無視し常にMovementCostを返却。攻撃/魔法/回復等のアクション種別による環境修正が機能しない | 中 | `DungeonMap.cs:203-209` | |
+
+### FF: セーブ復元・レベルアップ装備依存問題
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FF-1 | Player.RestoreFromSave()でExperienceを復元するがLevel値との整合性バリデーションなし。Level=99/Experience=5等の不正なセーブデータがそのままロードされゲーム状態が矛盾 | 中 | `Player.cs:698-724` | |
+| FF-2 | LevelUp()でEffectiveStats（装備ボーナス含む）に基づくHP/MP差分計算。レベルアップ時に一時的に装備を外すとHP増加量が変動するエクスプロイト可能性 | 中 | `Player.cs:366-387` | |
+| FF-3 | CreateTransferData()のCarriedGold計算がPlayer.Goldの直接参照だが、転生後のApplyTransferData()でのゴールド適用がAddGold()経由。AddGold()のamount>0ガードでCarriedGold=0時にサイレント無視 | 中 | `Player.cs:484-496, 500-520` | |
+
+### FG: GameConstants一元管理・マジックナンバー散在
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FG-1 | GameConstants.csに定義された定数（InitialHunger/InitialThirst等）が各Systemファイルで直接数値リテラルとして重複使用。定数変更時に一元反映されず不整合発生リスク | 中 | `GameConstants.cs, 各Systemファイル` | |
+| FG-2 | MaxSpellWords=7、ドロップ確率閾値、HP停止閾値30%等のゲームバランスパラメータがGameControllerやSystemファイル内にハードコード。GameConstants.csへの集約が不完全 | 低 | `GameController.cs, 各Systemファイル` | |
+| FG-3 | Position(5,5)等のスポーンフォールバック位置がGameConstants.csに定義なく各マップ種別で個別ハードコード（ED-1と関連するが定数管理観点の問題） | 低 | `GameController.cs` | |
+
+### FH: Interfaces設計・IMap未使用パラメータ
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FH-1 | IMap.GetEnvironmentModifier()インターフェースがTurnActionType引数を定義するが全実装で無視。インターフェース契約違反で将来の実装者に誤解を与える | 低 | `Interfaces/IMap.cs, DungeonMap.cs:203-209` | |
+| FH-2 | IMap.cs内のインターフェース定義とInterfaces.cs内の定義が分離。同一名前空間内で2ファイルにインターフェースが散在し発見性が低下 | 低 | `Interfaces/IMap.cs, Interfaces/Interfaces.cs` | |
+
+### FI: EnemyFactory生成・Enum定義粒度不整合
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FI-1 | EnemyFactory.CreateEnemyForFloor()のフロア深度に対する敵種選択で一部MonsterRace（Construct/Plant）のフロア出現条件が定義されずnullフォールバック発生リスク | 中 | `EnemyFactory.cs` | |
+| FI-2 | Enums.csに定義されたGameCommand列挙型（25値）が完全未使用（CL-1と関連するがEnum定義粒度の設計問題）。25個のコマンド定義がデッドコードとしてメモリとリフレクションに影響 | 低 | `Enums/Enums.cs` | |
+| FI-3 | MonsterRace/ItemType/CharacterClass等の列挙型がEnums.csと各エンティティファイルで重複定義の可能性。DefinitionsとEnumsの境界が曖昧で保守性低下 | 低 | `Enums/Enums.cs, Entities/Enemy.cs` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -1996,7 +2110,20 @@
 | **ET: GameController料理品質・失敗チェック未実装** | **0** | **2** | **1** | **0** | **0** | **3** |
 | **EU: TerritoryInfluenceSystem正規化前クランプ** | **0** | **0** | **3** | **0** | **0** | **3** |
 | **EV: CompanionSystem最小1ダメージ貫通** | **0** | **1** | **2** | **0** | **0** | **3** |
-| **合計** | **161** | **290** | **293** | **76** | **2** | **833** |
+| **EW: Inventory重量制限未強制・スタック整理不備** | **0** | **3** | **2** | **0** | **0** | **5** |
+| **EX: Player生存ステータス初期化不整合・Sanity境界** | **0** | **2** | **2** | **1** | **0** | **5** |
+| **EY: Character基底リソース管理・負値消費バイパス** | **0** | **0** | **4** | **0** | **0** | **4** |
+| **EZ: ItemFactory乱数生成・レアリティ適用不備** | **0** | **3** | **1** | **0** | **0** | **4** |
+| **FA: Equipment呪い解除・防具スロット判定不整合** | **0** | **2** | **2** | **0** | **0** | **4** |
+| **FB: Consumable腐敗食料・ポーション効果値ゼロ** | **0** | **1** | **3** | **0** | **0** | **4** |
+| **FC: Damage抵抗計算・Stats CriticalRate偏重** | **0** | **0** | **2** | **2** | **0** | **4** |
+| **FD: SymbolMap通行可能設定・タイル表示重複** | **2** | **1** | **1** | **0** | **0** | **4** |
+| **FE: AIビヘイビア・CompositeBehavior常時適用** | **0** | **1** | **3** | **0** | **0** | **4** |
+| **FF: セーブ復元・レベルアップ装備依存問題** | **0** | **0** | **3** | **0** | **0** | **3** |
+| **FG: GameConstants一元管理・マジックナンバー散在** | **0** | **0** | **1** | **2** | **0** | **3** |
+| **FH: Interfaces設計・IMap未使用パラメータ** | **0** | **0** | **0** | **2** | **0** | **2** |
+| **FI: EnemyFactory生成・Enum定義粒度不整合** | **0** | **0** | **1** | **2** | **0** | **3** |
+| **合計** | **163** | **303** | **318** | **85** | **2** | **882** |
 
 ---
 
@@ -2006,10 +2133,10 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（161件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（290件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（293件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（76件）: 軽微なテーマ不一致 → 余裕があれば修正
+1. **致命的**（163件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（303件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（318件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（85件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（2件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
@@ -2188,3 +2315,18 @@
 - **ET: GameController料理品質・失敗チェック未実装** — CalculateQuality()にPlayer.Level*2を渡し料理熟練度を無視。CheckCookingFailure()が存在するがTryCook()から未呼出で料理常時成功。レベル依存品質でスキル育成無意味
 - **EU: TerritoryInfluenceSystem正規化前クランプ** — ModifyInfluence()が個別Clamp(0,1)後にNormalize。連続大delta適用でクランプ→正規化の精度劣化。全faction=0時のゼロ除算リスク
 - **EV: CompanionSystem最小1ダメージ貫通** — DamageCompanion()のMath.Max(1, damage-defense)で防御超過時も1ダメージ確定。高Defense仲間の防御が無意味。死亡仲間の復活メカニズム不在
+
+### 新規追加カテゴリの概要（第19回調査分）
+- **EW: Inventory重量制限未強制・スタック整理不備** — Inventory.Add()がMaxWeight超過チェックなし。Player.IsOverweightプロパティが存在するがAdd()内で未参照で重量制限バイパス可能。スタック加算時のTotalWeight再検証なし。Organize()でMaxStack=0のバリデーション不在。UseItem()のuserパラメータnullチェック不在
+- **EX: Player生存ステータス初期化不整合・Sanity境界** — 簡易Create()で_thirst/_fatigueが未初期化（即座にCriticalDehydration/Collapse）。Sanity=0でBrokenだがCanBeRescued()がSanity>0要求でパラドックス。TransferData.Sanity未設定のデッドプロパティ。CreateTransferData()のTotalDeaths=0ハードコード。RestoreFromSave()のlevel/experience整合性バリデーションなし
+- **EY: Character基底リソース管理・負値消費バイパス** — ConsumeMp()/ConsumeSp()に負値バリデーションなし（負値渡しでMP回復）。RestoreMp()/RestoreSp()の直接代入でClamp処理バイパス可能性。LevelUp()のEffectiveStats依存HP計算で装備変更エクスプロイト。TakeDamage()の負値ダメージバリデーションなし
+- **EZ: ItemFactory乱数生成・レアリティ適用不備** — GenerateRandomItem()がItemType7種中3種のみ生成（Material/Key等が絶対未生成）。GenerateRandomEquipment()がrarity引数を受けるが生成アイテムのRarityプロパティ未変更。ポーション効果値のレアリティスケーリングなし。CanStackWith()がEnhancementLevel未比較でスタック時に強化値消失
+- **FA: Equipment呪い解除・防具スロット判定不整合** — OnUnequip()の呪い制限が空実装で呪いシステム無機能。IsArmorSlot()がOffHand含むが盾/サブ武器のVitality加算が不正。両手武器装備時のオフハンド戻し処理未実装でアイテム消失リスク。未識別アイテムの強化値露出
+- **FB: Consumable腐敗食料・ポーション効果値ゼロ** — EffectValue=0/EffectPercentage=0のポーションが回復0で消費されるのみ。IsRotten食料の毒Duration=0でItemEffectレコード不整合。Food.HydrationValueとThirstSystem非連携。Scroll.Use()がゲーム状態変更不可のデッドコード
+- **FC: Damage抵抗計算・Stats CriticalRate偏重** — resistance最大90%制限で「○○無効」記述と矛盾。CriticalRateのLuck偏重（DEXの2倍寄与）。WaitForInput/Wait同一TypeでTurnCost区別不能。Position.GetDirectionTo()同一位置でNorth固定
+- **FD: SymbolMap通行可能設定・タイル表示重複** — SymbolMountain/SymbolWaterのBlocksMovement=falseで山岳・水域が通行可能（致命的）。StairsDown/BuildingExitの表示文字類似。NpcTrainer/NpcLibrarianの表示文字ケース欠落
+- **FE: AIビヘイビア・CompositeBehavior常時適用** — SpiritBehaviorテレポートがMoveRandom()（1マス移動）で代替。CompositeBehavior.IsApplicable()が常時true。PackHuntingBehaviorに群れ連携ロジック不在。GetEnvironmentModifier()がactionType引数を完全無視
+- **FF: セーブ復元・レベルアップ装備依存問題** — RestoreFromSave()のlevel/experience整合性バリデーションなし。LevelUp()のEffectiveStats依存で装備変更によるHP増加量変動。TransferData.CarriedGold=0時のAddGold()サイレント無視
+- **FG: GameConstants一元管理・マジックナンバー散在** — GameConstants定数が各Systemで数値リテラル重複使用。ゲームバランスパラメータのハードコード散在。スポーンフォールバック位置の未定数化
+- **FH: Interfaces設計・IMap未使用パラメータ** — IMap.GetEnvironmentModifier()のTurnActionType引数が全実装で無視。IMap.csとInterfaces.csの2ファイル分離で発見性低下
+- **FI: EnemyFactory生成・Enum定義粒度不整合** — CreateEnemyForFloor()の一部MonsterRaceフロア出現条件未定義。GameCommand列挙型25値が完全デッドコード。列挙型のEnums.csとエンティティファイル間の重複定義リスク
