@@ -1957,6 +1957,123 @@
 | FI-2 | Enums.csに定義されたGameCommand列挙型（25値）が完全未使用（CL-1と関連するがEnum定義粒度の設計問題）。25個のコマンド定義がデッドコードとしてメモリとリフレクションに影響 | 低 | `Enums/Enums.cs` | |
 | FI-3 | MonsterRace/ItemType/CharacterClass等の列挙型がEnums.csと各エンティティファイルで重複定義の可能性。DefinitionsとEnumsの境界が曖昧で保守性低下 | 低 | `Enums/Enums.cs, Entities/Enemy.cs` | |
 
+### FJ: SkillTreeSystemクラス制限バイパス・Respecポイント漏洩
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FJ-1 | UnlockNode()/CanUnlock()がCharacterClass?/Race?/Background?要件を検証しない。GetNodesForClass()はフィルタするがUnlock時に再チェックなし。任意クラスが他クラス専用ノードをアンロック可能 | 致命的 | `Systems/SkillTreeSystem.cs` | |
+| FJ-2 | Respec()が_availablePointsにrefunded加算時にアトミックトランザクションチェックなし。ターン処理中の呼び出しでポイント二重カウントの可能性 | 高 | `Systems/SkillTreeSystem.cs` | |
+| FJ-3 | Reset()が_unlockedNodesと_availablePointsをクリアするが_equippedSkillSlotsを未クリア。Sanity=0のリセット後も装備スキルスロットがアクティブのまま残存 | 高 | `Systems/SkillTreeSystem.cs` | |
+| FJ-4 | RegisterReligionSkills()がSanityレベルチェックなしで宗教スキルを自動アンロック。Sanity=0時のReset()呼び出しとの競合で宗教スキルが不正に残存 | 高 | `Systems/SkillTreeSystem.cs` | |
+| FJ-5 | GetTotalStatBonuses()が全アンロックノードボーナスを上限なしで合算。最適化されたノードスタッキングでSTR+50等の無制限ステータスブーストが可能 | 中 | `Systems/SkillTreeSystem.cs` | |
+
+### FK: ElementalAffinitySystem属性吸収・Spirit二重弱点
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FK-1 | ElementalResistanceLevel.Absorbの乗数が-1.0fで負のダメージ（回復）が発生。CalculateFinal()で負のint値が生成され、被ダメージが回復に反転。吸収装備が完全に壊れたバランス | 致命的 | `Systems/ElementalAffinitySystem.cs` | |
+| FK-2 | Spirit種族がLight弱点とDark弱点の両方を持つ。全Spirit敵がLight/Darkどちらの攻撃にも弱く、戦略的選択が不要 | 高 | `Systems/ElementalAffinitySystem.cs` | |
+| FK-3 | Earth/Wind/Water属性の相性テーブルが未定義。Fire以外の属性相性が機能しない | 中 | `Systems/ElementalAffinitySystem.cs` | |
+
+### FL: GrowthSystem HP/MPスケーリング・成長率不整合
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FL-1 | HP/MP成長率が(raceRate+classRate)*0.5で50%スケーリングされるが、ステータス成長率はRollGrowth(raceRate+classRate)で100%適用。HP/MPが相対的に低く、戦士のHPが期待値の半分 | 高 | `Systems/GrowthSystem.cs` | |
+| FL-2 | RollGrowth()が固定0.5閾値を使用し、RollGrowthWithRandom()がRNG使用。キャラクター作成とセーブ/ロードで成長結果が異なる | 中 | `Systems/GrowthSystem.cs` | |
+| FL-3 | GetLevelBonus(level=1)=0でレベル1の成長ボーナスなし。HP/MPボーナスもlevel-1で0。全種族・全クラスのレベル1ステータスが基本値のみ | 中 | `Systems/GrowthSystem.cs` | |
+
+### FM: DiseaseSystem感染免疫・自然回復制限
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FM-1 | CheckInfection()のchanceがVIT40以上で常に0.01（1%）に固定。高VITキャラクターが感染リスクをほぼ完全に無効化し、傷管理が不要に | 高 | `Systems/DiseaseSystem.cs` | |
+| FM-2 | 5種の疾病中ColdとFoodPoisoningのみ自然回復可能。Infection/Miasma/CursePlagueは自然回復不可で高額治療が必須。治療手段が限定的すぎる | 中 | `Systems/DiseaseSystem.cs` | |
+| FM-3 | VIT200以上で感染確率が負値になるがMath.Max(0.01, ...)でクランプ。ただし設計上VITに200到達可能かの検証がない | 中 | `Systems/DiseaseSystem.cs` | |
+
+### FN: ThirstSystem列挙型不整合・CriticalDehydrationクラッシュ
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FN-1 | 新ThirstStageにCriticalDehydrationが存在するが旧ThirstLevel列挙型に対応値なし。旧列挙型のコードパスでCriticalDehydration到達時に未処理例外リスク | 高 | `Systems/ThirstSystem.cs` | |
+| FN-2 | GetThirstDamage(ThirstStage)でSevere=2だがGetThirstDamage(ThirstLevel)でSevereDehydration=3。同じ脱水段階で列挙型によりダメージが異なる | 中 | `Systems/ThirstSystem.cs` | |
+| FN-3 | 旧ThirstLevel列挙型と新ThirstStage列挙型が併存し、GetThirstModifiers()の2つのオーバーロードが異なる値を返す可能性。呼び出し元による動作差異 | 中 | `Systems/ThirstSystem.cs` | |
+
+### FO: EnvironmentalCombatSystem水面永続化・Fire→Oil相互作用欠落
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FO-1 | SurfaceType.Waterの持続ターン数が999（実質永続）でダメージ0。1回のWater呪文でフロア全体のハザードシステムを無効化可能 | 高 | `Systems/EnvironmentalCombatSystem.cs` | |
+| FO-2 | Oil表面にFireを適用した際の変換処理（Oil→Fire）が欠落。Fire→Oilは定義されているが逆方向なし。環境戦略が一方向のみ | 中 | `Systems/EnvironmentalCombatSystem.cs` | |
+| FO-3 | SurfaceInteraction.DamageMultiplierフィールドが定義されているが属性相互作用の実ダメージ計算で未使用 | 中 | `Systems/EnvironmentalCombatSystem.cs` | |
+
+### FP: ProficiencySystemダメージボーナス二重計算
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FP-1 | GetBonusDamage()が`baseDamage * level * 0.005`で計算。Level100で+50%ボーナス。別箇所で+0.5%/levelのボーナスが既に適用されており、熟練度ダメージが二重計算 | 高 | `Systems/ProficiencySystem.cs` | |
+| FP-2 | 未使用熟練度の経験値減衰が毎ターン-1。武器切替時に進捗が永続的に失われ、戦術的武器切替を阻害 | 低 | `Systems/ProficiencySystem.cs` | |
+
+### FQ: RestSystem・キャンプ深度制限・Sanity回復効率
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FQ-1 | CanCamp()がfloorDepth<=3の室内のみキャンプ可能。フロア4-5のキャンプが完全不可で中層ダンジョンに休息ポイントなし | 高 | `Systems/RestSystem.cs` | |
+| FQ-2 | DeepSleepのSanity回復が0.2（20%）、NormalSleepが0.1（10%）。50ターン相当のSanity減衰回復に大量のDeepSleep必要。通常プレイでのSanity管理が非現実的 | 中 | `Systems/RestSystem.cs` | |
+| FQ-3 | CalculateAmbushChance()がキャンプ深度を考慮せず、フロア1とフロア3で同一のアンブッシュ確率。深層キャンプのリスクが浅層と同一 | 中 | `Systems/RestSystem.cs` | |
+
+### FR: GatheringSystem成功率・レベル要件チェック欠落
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FR-1 | CalculateSuccessRate()がproficiencyLevel < node.RequiredLevelのチェックなし。レベル1プレイヤーがレベル3採掘ノードに30%で成功 | 中 | `Systems/GatheringSystem.cs` | |
+| FR-2 | Duration計算のinteger除算（proficiencyLevel/3）でレベル0-2の間で0改善。レベル3で初めて1ターン短縮。段階的改善ではなくバイナリ改善 | 低 | `Systems/GatheringSystem.cs` | |
+
+### FS: TimeOfDaySystem夜行性活動矛盾・薄暮二重ボーナス
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FS-1 | 夜行性クリーチャーのDawn活性化係数が1.0x（通常）だがMorningが0.6x。Dawn（4-6時）がMorning（7-11時）より高活性で不自然 | 中 | `Systems/TimeOfDaySystem.cs` | |
+| FS-2 | Crepuscular（薄暮性）パターンがDawn(4-6時)とDusk(17-19時)の両方で1.3xボーナス。合計4時間以上の「二重薄暮ボーナス」窓。薄暮帯に滞在する戦略の悪用可能性 | 中 | `Systems/TimeOfDaySystem.cs` | |
+| FS-3 | SightRangeModifier（Midnight: 0.4x等）が定義されているが戦闘システム・ダンジョン生成で未参照。デッドプロパティ | 低 | `Systems/TimeOfDaySystem.cs` | |
+
+### FT: ExtendedStatusEffect酩酊バフ悪用・Berserkターゲット制限未実装
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FT-1 | Intoxication（酩酊）がHitRate-15%のペナルティに対しSTR+2/EvasionRate+5%のボーナス。ネットで有利なトレードとなり意図的酩酊が最適戦略 | 中 | `Systems/ExtendedStatusEffectSystem.cs` | |
+| FT-2 | Berserk状態の説明が「ターゲット選択不可」だが実装にターゲット選択制限コードなし。Attack+50%/DamageTaken+30%のみ適用でデメリットが説明と不一致 | 中 | `Systems/ExtendedStatusEffectSystem.cs` | |
+
+### FU: KarmaSystemダークマーケット閾値・犯罪者ランク不整合
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FU-1 | ダークマーケットアクセスがKarmaValue<=-20だがCriminalランク開始が-49。プレイヤーがCriminalになる前にダークマーケットにアクセス可能でゲーム進行が逆転 | 中 | `Systems/KarmaSystem.cs` | |
+| FU-2 | HolyGroundアクセス制限がKarmaValue>-50の反転ロジック。-50以下でのみ制限されるが、-20～-49の「犯罪的だが聖地アクセス可能」な矛盾帯が存在 | 中 | `Systems/KarmaSystem.cs` | |
+
+### FV: EnchantmentSystem DefenseBoostデッドコード・CraftingSystem強化金消費
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FV-1 | CalculateEnchantedDamageBonus()のswitch式にDefenseBoostケースなし。DefenseBoost効果値5.0fが定義されているが0ボーナスで返却。防御エンチャントが完全に無機能 | 高 | `Systems/EnchantmentSystem.cs` | |
+| FV-2 | CraftingSystem.EnchantWeapon()でゴールドがsuccessチェック前に消費。70%成功率の失敗時にも200ゴールドが消失。失敗ペナルティの設計意図が不明確 | 中 | `Systems/CraftingSystem.cs` | |
+| FV-3 | Enhancement成功率がLv6以降急落し+7以上で失敗時30%でレベル低下。+0～+6は失敗ペナルティなし。リスク/リワードの非対称で+6が実質上限 | 中 | `Systems/CraftingSystem.cs` | |
+
+### FW: BodyConditionSystem疲労列挙型二重定義・衛生感染倍率
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FW-1 | GetFatigueModifier()がFatigueStageとFatigueLevelの2つのオーバーロードで同一返却値。enum移行が不完全で呼び出し元による動作差異リスク | 中 | `Systems/BodyConditionSystem.cs` | |
+| FW-2 | Foul衛生段階の感染倍率が4.0x。疾病スタッキングに上限なく、4.0x感染率で複数疾病同時感染からHP回復-100%が理論上可能 | 中 | `Systems/BodyConditionSystem.cs` | |
+
+### FX: GameController疾病DeathCause消失・ボス二重配置
+
+| ID | 不整合の詳細 | 重要度 | ソースコード箇所 | 修正状況 |
+|----|-------------|--------|-----------------|----------|
+| FX-1 | 疾病ダメージ（120ターンごと）発生時に_lastDamageCauseがDeathCause.Unknownに設定。疾病死の死因が「不明」と記録され死亡統計が不正確 | 高 | `GameController.cs` | |
+| FX-2 | MaxDungeonFloorがBossFloorIntervalの倍数の場合（例: Floor25でInterval=5）、フロアボスとダンジョン固有ボスが同時配置される可能性。ボス配置条件の優先度が不明確 | 中 | `GameController.cs` | |
+| FX-3 | HP自然回復条件のHungerStage<=Normal判定。HungerStage列挙値の大小関係でFullよりNormalが小さい場合、満腹時に回復しない可能性。列挙値順序の暗黙依存 | 中 | `GameController.cs` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -2123,7 +2240,22 @@
 | **FG: GameConstants一元管理・マジックナンバー散在** | **0** | **0** | **1** | **2** | **0** | **3** |
 | **FH: Interfaces設計・IMap未使用パラメータ** | **0** | **0** | **0** | **2** | **0** | **2** |
 | **FI: EnemyFactory生成・Enum定義粒度不整合** | **0** | **0** | **1** | **2** | **0** | **3** |
-| **合計** | **163** | **303** | **318** | **85** | **2** | **882** |
+| **FJ: SkillTreeSystemクラス制限バイパス** | **1** | **3** | **1** | **0** | **0** | **5** |
+| **FK: ElementalAffinity属性吸収・Spirit二重弱点** | **1** | **1** | **1** | **0** | **0** | **3** |
+| **FL: GrowthSystem HP/MPスケーリング不整合** | **0** | **1** | **2** | **0** | **0** | **3** |
+| **FM: DiseaseSystem感染免疫・自然回復制限** | **0** | **1** | **2** | **0** | **0** | **3** |
+| **FN: ThirstSystem列挙型不整合・CriticalDehydration** | **0** | **1** | **2** | **0** | **0** | **3** |
+| **FO: EnvironmentalCombat水面永続化・相互作用欠落** | **0** | **1** | **2** | **0** | **0** | **3** |
+| **FP: ProficiencySystemダメージボーナス二重計算** | **0** | **1** | **0** | **1** | **0** | **2** |
+| **FQ: RestSystemキャンプ深度制限・Sanity回復** | **0** | **1** | **2** | **0** | **0** | **3** |
+| **FR: GatheringSystem成功率・レベル要件欠落** | **0** | **0** | **1** | **1** | **0** | **2** |
+| **FS: TimeOfDaySystem夜行性・薄暮ボーナス矛盾** | **0** | **0** | **2** | **1** | **0** | **3** |
+| **FT: ExtendedStatusEffect酩酊バフ・Berserk制限** | **0** | **0** | **2** | **0** | **0** | **2** |
+| **FU: KarmaSystemダークマーケット閾値不整合** | **0** | **0** | **2** | **0** | **0** | **2** |
+| **FV: EnchantmentSystem DefenseBoost・強化金消費** | **0** | **1** | **2** | **0** | **0** | **3** |
+| **FW: BodyConditionSystem疲労二重定義・衛生感染** | **0** | **0** | **2** | **0** | **0** | **2** |
+| **FX: GameController疾病DeathCause・ボス二重配置** | **0** | **1** | **2** | **0** | **0** | **3** |
+| **合計** | **165** | **315** | **343** | **88** | **2** | **924** |
 
 ---
 
@@ -2133,10 +2265,10 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（163件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（303件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（318件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（85件）: 軽微なテーマ不一致 → 余裕があれば修正
+1. **致命的**（165件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（315件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（343件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（88件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（2件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
@@ -2330,3 +2462,20 @@
 - **FG: GameConstants一元管理・マジックナンバー散在** — GameConstants定数が各Systemで数値リテラル重複使用。ゲームバランスパラメータのハードコード散在。スポーンフォールバック位置の未定数化
 - **FH: Interfaces設計・IMap未使用パラメータ** — IMap.GetEnvironmentModifier()のTurnActionType引数が全実装で無視。IMap.csとInterfaces.csの2ファイル分離で発見性低下
 - **FI: EnemyFactory生成・Enum定義粒度不整合** — CreateEnemyForFloor()の一部MonsterRaceフロア出現条件未定義。GameCommand列挙型25値が完全デッドコード。列挙型のEnums.csとエンティティファイル間の重複定義リスク
+
+### 新規追加カテゴリの概要（第20回調査分）
+- **FJ: SkillTreeSystemクラス制限バイパス** — UnlockNode()がCharacterClass/Race/Background要件を未検証で任意クラスが他クラス専用ノードをアンロック可能。Respec()のポイント加算がアトミックでない。Reset()が_equippedSkillSlotsを未クリア
+- **FK: ElementalAffinity属性吸収・Spirit二重弱点** — Absorb乗数-1.0fで被ダメージが回復に反転。Spirit種族がLight/Dark同時弱点で戦略的選択不要。Earth/Wind/Water属性相性テーブル未定義
+- **FL: GrowthSystem HP/MPスケーリング不整合** — HP/MP成長率が50%スケーリングだがステータスは100%。RollGrowth()とRollGrowthWithRandom()で結果不一致。レベル1成長ボーナスなし
+- **FM: DiseaseSystem感染免疫・自然回復制限** — VIT40以上で感染確率が常に1%固定。5疾病中2種のみ自然回復可能。高VIT時の感染完全無効化
+- **FN: ThirstSystem列挙型不整合・CriticalDehydration** — 新ThirstStageのCriticalDehydrationが旧ThirstLevelに対応値なし。列挙型による脱水ダメージ差異。2つの列挙型オーバーロードで異なる値返却
+- **FO: EnvironmentalCombat水面永続化・相互作用欠落** — Water表面が999ターン永続でダメージ0。Oil→Fire逆方向の変換処理欠落。DamageMultiplierフィールドが未使用
+- **FP: ProficiencySystemダメージボーナス二重計算** — GetBonusDamage()がbaseDamage*level*0.005で別箇所の+0.5%/levelと二重適用。未使用熟練度の経験値毎ターン-1減衰
+- **FQ: RestSystemキャンプ深度制限・Sanity回復** — floorDepth>3の室内キャンプ不可。DeepSleepのSanity回復20%で非効率。深度別アンブッシュ確率が同一
+- **FR: GatheringSystem成功率・レベル要件欠落** — proficiencyLevel<RequiredLevelのチェックなし。Duration計算のinteger除算でレベル0-2間改善なし
+- **FS: TimeOfDaySystem夜行性・薄暮ボーナス矛盾** — 夜行性DawnがMorningより高活性。Crepuscular二重薄暮ボーナス4時間窓。SightRangeModifierが未参照デッドプロパティ
+- **FT: ExtendedStatusEffect酩酊バフ・Berserk制限** — Intoxicationがネットバフで意図的酩酊が最適戦略。Berserkのターゲット選択制限が未実装
+- **FU: KarmaSystemダークマーケット閾値不整合** — ダークマーケットアクセス-20 vs Criminal開始-49で犯罪者前にアクセス可能。HolyGround制限の反転ロジック
+- **FV: EnchantmentSystem DefenseBoost・強化金消費** — DefenseBoostがswitch式でケースなし0ボーナス返却。エンチャント失敗時も200ゴールド消費。強化+6が実質上限
+- **FW: BodyConditionSystem疲労二重定義・衛生感染** — FatigueStage/FatigueLevel二重オーバーロード。Foul衛生の4.0x感染倍率で複数疾病スタッキング可能
+- **FX: GameController疾病DeathCause・ボス二重配置** — 疾病死の死因がUnknown記録。MaxDungeonFloor=BossFloorInterval倍数時の二重ボス配置。HP回復条件のenum値順序依存
