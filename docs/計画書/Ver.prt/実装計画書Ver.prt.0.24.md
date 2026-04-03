@@ -2324,6 +2324,172 @@
 | HB-3 | AllTraps配列が8種固定。新罠タイプ追加時にTrapType enum更新、TrapDefinition.Get()のswitch追加、AllTraps配列更新の3箇所修正が必要。拡張時の修正漏れリスク | 中 | `TrapDefinition.cs:120-126` | |
 | HB-4 | defaultケースがArrowTrapにフォールバック。未定義TrapTypeがサイレントに矢の罠として処理され、デバッグ困難 | 低 | `TrapDefinition.cs:64` | |
 
+### HC: SaveData永続化欠落・Thirst/Fatigue/Hygiene未保存
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HC-1 | PlayerSaveDataにThirst/Fatigue/Hygieneプロパティが未定義。GameConstants.InitialThirst=100, MaxThirst=100等の定数が存在するがセーブ/ロードで値が喪失。ロード後に全値がデフォルトにリセットされる | 致命的 | `SaveData.cs, GameConstants.cs:104-113` | |
+| HC-2 | Sanity/Hungerのみ保存対象で、BodyConditionSystemが管理する5状態（Sanity/Hunger/Thirst/Fatigue/Hygiene）のうち3状態が永続化されない設計欠陥 | 致命的 | `SaveData.cs:259-261` | |
+| HC-3 | ゲームロード時にThirst/Fatigue/Hygieneが初期値100にリセットされるため、プレイヤーが意図的にセーブ/ロードで状態異常を回避可能な悪用パス | 高 | `SaveData.cs` | |
+
+### HD: ItemType二重定義・ExtendedItemCategory死コード
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HD-1 | Enums.csにItemType（Weapon/Armor/Accessory/Consumable/Material/KeyItem/Scroll/Book）が定義されているが、実際に使用されるのはItem.csのItemType（Equipment/Consumable/Food/Material/Key/Quest/Miscellaneous）。Enums.cs版は完全な死コード | 高 | `Enums.cs:192-202, Item.cs:9-25` | |
+| HD-2 | ExtendedItemCategory enum（Material/SoulGem/TrapKit/RepairTool/CookedFood/Book/Key/Instrument）がコードベース全体で使用箇所ゼロ。Ver.prt.0.5追加の死コード | 低 | `Enums.cs:1477-1496` | |
+| HD-3 | 2つのItemType定義が同じ名前空間に存在し、開発者が誤って未使用版をimportするリスク。コンパイルは通るがランタイムで不整合 | 中 | `Enums.cs:192, Item.cs:9` | |
+
+### HE: StatusEffectType未実装ハンドラ5種
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HE-1 | StatusEffectType.Invisibilityが定義済みだがCreateStatusEffect()にハンドラなし。適用時にnull返却でサイレント無効化 | 致命的 | `Enums.cs:214, CombatSystem.cs:343-370` | |
+| HE-2 | StatusEffectType.Slow/Vulnerabilityが定義済みだがハンドラ未実装。敵AIがこれらの効果を使用しようとした場合にサイレント失敗 | 致命的 | `Enums.cs:217,219` | |
+| HE-3 | StatusEffectType.Apostasy/Blessingが定義済みだがハンドラ未実装。宗教システムの背教・祝福メカニクスが実質未機能 | 高 | `Enums.cs:239,241` | |
+| HE-4 | ハンドラ未実装のStatusEffectTypeがdefaultケースでnull返却される設計。例外やログ出力がないため不具合検知が極めて困難 | 中 | `CombatSystem.cs:370` | |
+
+### HF: TurnCost MoveDash矛盾・攻撃速度不均衡
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HF-1 | MoveDash=1がMoveNormal=1と同値。SPを消費するがターンコストに利点なし。ダッシュが通常移動より厳密に劣る行動 | 高 | `GameConstants.cs:17` | |
+| HF-2 | AttackUnarmed=2がAttackNormal=3より33%高速。武器装備より素手の方がターン効率が良く、武器進行の価値を毀損 | 高 | `GameConstants.cs:27-29` | |
+| HF-3 | MoveCombat=10とMoveStealth=10が同値。ステルス移動に追加ターンコストの利点/欠点がなく、ステルスの戦略的差別化が不成立 | 中 | `GameConstants.cs:13-14` | |
+| HF-4 | UseScroll=3がUsePotion=2より遅い。1回使い切りの巻物が反復使用可能なポーションより遅いのは直感に反する | 中 | `GameConstants.cs:34-35` | |
+| HF-5 | AttackTwoHanded=5がAttackNormal=3の167%。二刀流のダメージ増加に対してペナルティが過大で使用価値が低い | 中 | `GameConstants.cs:29` | |
+
+### HG: Equipment二刀流アイテム消失・強化ボーナス偏在
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HG-1 | 両手武器装備時にオフハンドアイテムがインベントリに戻されずアイテムが完全消失。プレイヤーの装備資産が不可逆に喪失 | 致命的 | `Equipment.cs:349-356` | |
+| HG-2 | 強化ボーナスがMainHandのStrengthまたはArmorのVitalityにのみ適用。他スロット（Accessory/OffHand/Helmet等）の強化がステータスに反映されない | 高 | `Equipment.cs:134-135` | |
+| HG-3 | OnUnequip()がHasStatusEffect()チェック後にRemoveStatusEffect()を呼ばない。装備解除後もステータス効果が永続 | 高 | `Equipment.cs:119` | |
+| HG-4 | ShieldクラスのBlockChanceプロパティがリセットされるが読み取り箇所なし。盾のブロック確率が未使用のデッドプロパティ | 低 | `Equipment.cs:406` | |
+
+### HH: Enemy ExecuteAction未対応・SummonerBehavior未実装
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HH-1 | Enemy.ExecuteAction()がMove/Attack/Searchの3アクションのみ対応。UseSkill/CastSpell/UseItem/Wait/Rest/Interactがサイレント無視 | 致命的 | `Enemy.cs:378` | |
+| HH-2 | SummonerBehaviorがUseSkill("Summon", null, 2)でアクション生成するが実際の召喚処理が未実装。プレースホルダコード | 高 | `BasicBehaviors.cs:475` | |
+| HH-3 | SummonerBehaviorの_currentCooldownフィールドが永続化されない。行動インスタンス再生成で常時クールダウン0（召喚し放題） | 高 | `BasicBehaviors.cs:460` | |
+| HH-4 | AmbusherのIdleBehavior(0.0f)でwander確率0%。待機時に一切動かない設計が意図的か不明 | 低 | `EnemyFactory.cs:103` | |
+| HH-5 | Boss敵にBerserkerBehavior(0.3f)とAggressiveBehavior(20)が同時付与。HP30%以下で二重攻撃性向上 | 中 | `EnemyFactory.cs:115` | |
+
+### HI: Inventory Organize整理ロジック・スタック超過
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HI-1 | Organize()のtransferAmount計算がイテレーション中の既追加分を考慮せずMaxStackを超過する可能性 | 高 | `Inventory.cs:182` | |
+| HI-2 | スタッカブルアイテム追加時にStackCount更新が元のアイテム参照を変更。後続のRemove操作で内部状態不整合 | 高 | `Inventory.cs:46` | |
+| HI-3 | ソート順がitemId→typeで同一type/idの順序が非決定的。セーブ間でインベントリ表示順が変動 | 低 | `Inventory.cs:201-204` | |
+
+### HJ: FeaturePlacer二重Elite・マジックナンバー群
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HJ-1 | TreasureルームのIsElite判定（50%確率）とボスルームのElite保証が重複。既にEliteの敵に再度Eliteフラグを付与する二重判定 | 中 | `FeaturePlacer.cs:51` | |
+| HJ-2 | 最小敵数Math.Max(3,...)と最小アイテム数Math.Max(5,...)が異なるハードコード値。設定一元管理されていない | 低 | `FeaturePlacer.cs:22,70` | |
+| HJ-3 | 入口からの距離5がハードコード。マップサイズに応じた動的調整なし | 低 | `FeaturePlacer.cs:34` | |
+
+### HK: RoomGenerator柱密度過剰・通路境界値
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HK-1 | 柱数=(width*height)/20で大部屋(20x20)に20本配置。移動可能タイルの5%を柱が占有し迷路化 | 中 | `RoomGenerator.cs:161` | |
+| HK-2 | WouldBlockPassage()が呼ばれるが結果がAddPillars()で使用されない。通路遮断チェックがデッドコード | 高 | `RoomGenerator.cs:238` | |
+| HK-3 | CorridorGeneratorのHasWalkableBeyondWall()がi=0開始で壁自体を含む。i=1開始が正しく、オフバイワンで通路非配置が発生 | 高 | `CorridorGenerator.cs:476` | |
+
+### HL: Stats計算式非対称・CriticalRate投資無駄
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HL-1 | MaxHp=50+(VIT*10)+(STR*2)でVITとSTRがHP影響。PhysicalDefense=VIT*2+STRで計算式構造が非対称。HP/防御の相関が不明瞭 | 中 | `Stats.cs:19,23` | |
+| HL-2 | CriticalRateがMath.Min(1.0, LUK*0.05)でLUK=20以上が投資無駄。上限到達のフィードバックなし | 中 | `Stats.cs:30` | |
+| HL-3 | PhysicalAttack=STR*3+DEXだがMagicAttack=INT*3+WIS。物理はDEX寄与1倍だが魔法はWIS寄与1倍で対称だが、防御式は非対称 | 低 | `Stats.cs:23` | |
+| HL-4 | StatusEffect.AllStatsMultiplierが乗算適用で装備修正と累積。キャップなしでステータスインフレ | 高 | `StatusEffect.cs:23` | |
+
+### HM: InvestmentSystem全投資マイナス期待値
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HM-1 | Shop投資: 成功率0.6×倍率1.3=期待値0.78（-22%）。長期的に必ず資金減少 | 高 | `InvestmentSystem.cs:32-35` | |
+| HM-2 | AdventurerParty投資: 成功率0.3×倍率2.0=期待値0.6（-40%）。最もリスクが高く最も損失が大きい | 高 | `InvestmentSystem.cs:38-41` | |
+| HM-3 | Business投資: 成功率0.45×倍率1.6=期待値0.72（-28%）。全3種が負の期待値で投資メカニクスが罠 | 高 | `InvestmentSystem.cs:42-47` | |
+| HM-4 | 投資の期待値がゲーム内で表示されず、プレイヤーが最適判断不可能。情報非対称による不公平な罠設計 | 中 | `InvestmentSystem.cs` | |
+
+### HN: CombatStanceSystem攻撃スタンス過剰優遇
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HN-1 | Aggressiveスタンス: 攻撃+25%(1.25x)、防御-20%(0.8x)。実効倍率1.25/0.8=1.56xで攻撃的プレイが常時最適 | 高 | `CombatStanceSystem.cs:9-15,18-24` | |
+| HN-2 | Defensiveスタンス: 攻撃-20%(0.8x)、防御+30%(1.3x)。実効倍率0.8/1.3=0.62xで防御スタンスが構造的に劣位 | 中 | `CombatStanceSystem.cs:9-33` | |
+| HN-3 | Aggressive回避-10%(0.9x)ペナルティが攻撃+25%に比して軽微。リスク/リターンバランスが攻撃偏重 | 中 | `CombatStanceSystem.cs:27-33` | |
+
+### HO: CraftingSystem強化成功率後半極端
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HO-1 | 強化+7成功率25%、+9成功率10%、+10以降5%。+10到達に平均200回試行で経済的に非現実的 | 高 | `CraftingSystem.cs:152-166` | |
+| HO-2 | +7以上で強化失敗時にダウングレードリスク。低成功率+ダウングレードで期待値が大幅マイナス | 高 | `CraftingSystem.cs:194-200` | |
+| HO-3 | 強化+0→+1が100%成功で初期は簡単だが+5以降の急激な難化でプレイヤー体験のギャップが過大 | 中 | `CraftingSystem.cs:152` | |
+
+### HP: SymbolMapGenerator道路非決定性・配置比率命名
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HP-1 | 道路接続がDictionary<Position,LocationDefinition>のpositions[i]インデックスアクセスで非順序保証。道路パターンが実行ごとに変動 | 高 | `SymbolMapGenerator.cs:133` | |
+| HP-2 | 配置比率60%primary/25%secondary/15%obstacleだが、secondaryが「副地形」でobstacleと区別が曖昧。命名が内容と不一致 | 低 | `SymbolMapGenerator.cs:78-83` | |
+
+### HQ: IGameState/ITurnManager CombatState二重管理
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HQ-1 | CombatStateプロパティがIGameState（line 96）とITurnManager（line 188）の両方に定義。状態同期の保証なし | 高 | `Interfaces.cs:96,188` | |
+| HQ-2 | 2つのインターフェースから異なるCombatState値を取得可能。戦闘/非戦闘判定の不整合でAI行動やターンコストに影響 | 中 | `Interfaces.cs` | |
+
+### HR: FaithPoints初期値低設定・復帰ペナルティ
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HR-1 | InitialFaithOnJoin=20でMaxFaithPoints=100の20%。入信直後は宗教スキルの大半が使用不可レベル | 中 | `GameConstants.cs:147-150` | |
+| HR-2 | InitialFaithOnConvert=10で改宗時はさらに低い10%開始。宗教変更のペナルティが過大で固定化を誘導 | 中 | `GameConstants.cs:149` | |
+| HR-3 | MaxFaithCapReductionOnRejoin=20で復帰時上限80。FaithRetentionRate=0.80と合わせ、離脱→復帰で最大信仰の64%しか保持できない複合ペナルティ | 中 | `GameConstants.cs:152-158` | |
+
+### HS: FloorBoss未定義フロア・難易度スパイク
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HS-1 | GetFloorBossHpMultiplier()でフロア1-4がdefault分岐で3.0倍。BossFloorInterval=5でフロア5初ボスだが、1-4にボス出現時も3.0倍が適用される | 中 | `GameConstants.cs:219-240` | |
+| HS-2 | GetRecommendedLevel()で深度5→6でレベル5→7（2レベルジャンプ）、10→11で13→15。線形→二次関数の不連続な難易度カーブ | 高 | `GameConstants.cs:208-216` | |
+| HS-3 | ボスHP倍率3.0(F5)→3.5(F10)→6.0(F30)で序盤ボスと終盤ボスの差が2倍。レベルスケーリングと合わせると終盤ボスが相対的に弱い可能性 | 中 | `GameConstants.cs:219-240` | |
+
+### HT: Consumables CureAll不完全・Random非決定性
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HT-1 | CureAllが9種のStatusEffectを除去するがBlind/Silence等が対象外。StatusEffectType enumの全値をカバーしていない | 高 | `Consumables.cs:96` | |
+| HT-2 | random==null時にnew Random()でフォールバックし毎回新規シード生成。テスト再現性なし、セーブ/ロード間で異なる結果 | 中 | `Consumables.cs:192` | |
+| HT-3 | HealValueが正の時にRestoreHunger効果を返すがhealAmountではなくnutrition値を使用。回復量の不一致 | 高 | `Consumables.cs:210` | |
+
+### HU: DungeonMap FOV距離メトリクス混在・環境修正子欠落
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HU-1 | ComputeFov()がChebyshevDistanceとLOS判定を併用。チェビシェフ距離は正方形視界だがLOSは放射状で、L字型の視界ギャップが発生 | 高 | `DungeonMap.cs:261` | |
+| HU-2 | GetEnvironmentModifier()がTurnActionType.Moveのみ対応。Attack/CastSpell等の行動に環境修正子が適用されない | 中 | `DungeonMap.cs:209` | |
+| HU-3 | タイルインデクサgetterが範囲外でTile.FromType(TileType.Wall)を返すがsetterは何もしない。読み書き非対称でデバッグ困難 | 低 | `DungeonMap.cs:46` | |
+
+### HV: Tile NPC表示文字欠落・罠不可視
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HV-1 | NpcTrainer/NpcLibrarianのTileTypeがswitch文に未登録で表示が'?'。マップ上でNPCの種類を識別不可能 | 中 | `Tile.cs:522` | |
+| HV-2 | TrapHiddenの表示文字が'.'でFloorと同一。ゲームメカニクスとしては正しいが、デバッグモードでの罠可視化手段が未提供 | 低 | `Tile.cs:497` | |
+| HV-3 | SymbolMountainのBlocksMovement=falseだがMovementCost=2.0f。移動は可能だが遅延のみでプロパティ名が誤解を招く | 低 | `Tile.cs:435` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -2535,7 +2701,27 @@
 | **GZ: StartingMapResolver開始マップ** | **0** | **0** | **1** | **2** | **0** | **3** |
 | **HA: DungeonFeatureGenerator領地カバレッジ** | **0** | **0** | **1** | **2** | **0** | **3** |
 | **HB: TrapDefinition発見・解除バランス** | **0** | **1** | **2** | **1** | **0** | **4** |
-| **合計** | **167** | **336** | **392** | **117** | **2** | **1025** |
+| **HC: SaveData永続化欠落** | **2** | **1** | **0** | **0** | **0** | **3** |
+| **HD: ItemType二重定義・死コード** | **0** | **1** | **1** | **1** | **0** | **3** |
+| **HE: StatusEffectType未実装ハンドラ** | **2** | **1** | **1** | **0** | **0** | **4** |
+| **HF: TurnCost MoveDash矛盾・速度不均衡** | **0** | **2** | **3** | **0** | **0** | **5** |
+| **HG: Equipment二刀流消失・強化偏在** | **1** | **2** | **0** | **1** | **0** | **4** |
+| **HH: Enemy ExecuteAction未対応・Summoner未実装** | **1** | **2** | **1** | **1** | **0** | **5** |
+| **HI: Inventory整理ロジック・スタック超過** | **0** | **2** | **0** | **1** | **0** | **3** |
+| **HJ: FeaturePlacer二重Elite** | **0** | **0** | **1** | **2** | **0** | **3** |
+| **HK: RoomGenerator柱密度・通路境界値** | **0** | **2** | **1** | **0** | **0** | **3** |
+| **HL: Stats計算式非対称・CriticalRate** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **HM: InvestmentSystem全投資マイナス期待値** | **0** | **3** | **1** | **0** | **0** | **4** |
+| **HN: CombatStanceSystem攻撃過剰優遇** | **0** | **1** | **2** | **0** | **0** | **3** |
+| **HO: CraftingSystem強化成功率後半極端** | **0** | **2** | **1** | **0** | **0** | **3** |
+| **HP: SymbolMapGenerator道路非決定性** | **0** | **1** | **0** | **1** | **0** | **2** |
+| **HQ: IGameState CombatState二重管理** | **0** | **1** | **1** | **0** | **0** | **2** |
+| **HR: FaithPoints初期値・復帰ペナルティ** | **0** | **0** | **3** | **0** | **0** | **3** |
+| **HS: FloorBoss未定義・難易度スパイク** | **0** | **1** | **2** | **0** | **0** | **3** |
+| **HT: Consumables CureAll不完全** | **0** | **2** | **1** | **0** | **0** | **3** |
+| **HU: DungeonMap FOV距離混在** | **0** | **1** | **1** | **1** | **0** | **3** |
+| **HV: Tile NPC表示欠落・罠不可視** | **0** | **0** | **1** | **2** | **0** | **3** |
+| **合計** | **177** | **367** | **420** | **126** | **1** | **1091** |
 
 ---
 
@@ -2793,3 +2979,25 @@
 - **GZ: StartingMapResolver開始マップ・テリトリ対応欠落** — 15+マップ中3マップのみTerritory分岐。Orc/Dwarfが同一マップ。Background優先で種族固有マップが無視される
 - **HA: DungeonFeatureGenerator静的初期化・領地カバレッジ** — Coast領地に対応ダンジョン特徴なし。静的Dictionary初期化でモック差し替え不可。配列の防御的コピーなし
 - **HB: TrapDefinition発見・解除バランス・拡張性** — PER/DEX=1でも高難度罠を確率的に発見/解除可能。TrapCraftingSystemと罠タイプ体系が非連携。新罠追加で3箇所修正必要
+
+### 新規追加カテゴリの概要（第23回調査分）
+- **HC: SaveData永続化欠落・Thirst/Fatigue/Hygiene未保存** — PlayerSaveDataにThirst/Fatigue/Hygieneプロパティ未定義。BodyConditionSystemの5状態中3状態がセーブ/ロードで喪失。ロード時リセットで状態異常回避の悪用パス
+- **HD: ItemType二重定義・ExtendedItemCategory死コード** — Enums.csとItem.csに異なるItemType enumが並存。Enums.cs版は使用箇所ゼロの完全死コード。ExtendedItemCategoryも全未使用
+- **HE: StatusEffectType未実装ハンドラ5種** — Invisibility/Slow/Vulnerability/Apostasy/Blessingが定義済みだがCreateStatusEffect()にハンドラなし。適用時にnull返却でサイレント無効化
+- **HF: TurnCost MoveDash矛盾・攻撃速度不均衡** — MoveDash=1がMoveNormal=1と同値でSP消費のみの劣化行動。AttackUnarmed=2がAttackNormal=3より高速で武器進行の価値毀損
+- **HG: Equipment二刀流アイテム消失・強化ボーナス偏在** — 両手武器装備でオフハンドアイテムがインベントリ未返却で消失。強化ボーナスがMainHand/Armorのみで他スロット無効
+- **HH: Enemy ExecuteAction未対応・SummonerBehavior未実装** — ExecuteAction()が3アクションのみ対応で6種がサイレント無視。SummonerBehaviorの召喚処理がプレースホルダ
+- **HI: Inventory Organize整理ロジック・スタック超過** — Organize()のtransferAmount計算がMaxStack超過の可能性。スタッカブルアイテム追加の参照変更で内部状態不整合
+- **HJ: FeaturePlacer二重Elite・マジックナンバー群** — TreasureルームのElite判定とボスルームElite保証の二重判定。敵数/アイテム数の最小値が異なるハードコード
+- **HK: RoomGenerator柱密度過剰・通路境界値** — 大部屋(20x20)に20本柱配置で迷路化。WouldBlockPassage()の結果が未使用。CorridorGeneratorにオフバイワン
+- **HL: Stats計算式非対称・CriticalRate投資無駄** — HP/防御計算式の構造が非対称。LUK20以上でCriticalRate上限到達しフィードバックなし。AllStatsMultiplierキャップなし
+- **HM: InvestmentSystem全投資マイナス期待値** — Shop/AdventurerParty/Business全3種が負の期待値（0.6～0.78）。長期的に必ず資金減少する罠メカニクス
+- **HN: CombatStanceSystem攻撃スタンス過剰優遇** — Aggressive攻撃+25%/防御-20%で実効倍率1.56x。Defensive攻撃-20%/防御+30%で実効0.62x。攻撃偏重設計
+- **HO: CraftingSystem強化成功率後半極端** — +10到達に平均200回試行。+7以上で失敗時ダウングレードリスクと低成功率の複合で期待値大幅マイナス
+- **HP: SymbolMapGenerator道路非決定性・配置比率命名** — Dictionary順序依存の道路接続で実行ごとにパターン変動。配置比率の命名が内容と不一致
+- **HQ: IGameState/ITurnManager CombatState二重管理** — CombatStateプロパティが2インターフェースに重複定義。状態同期保証なしで戦闘判定に不整合
+- **HR: FaithPoints初期値低設定・復帰ペナルティ** — 入信時20/100(20%)、改宗時10/100(10%)開始。復帰時上限80+保持率80%で複合ペナルティ64%
+- **HS: FloorBoss未定義フロア・難易度スパイク** — フロア1-4のボスHP倍率がdefault 3.0。推奨レベルが深度5→6で2レベルジャンプの不連続カーブ
+- **HT: Consumables CureAll不完全・Random非決定性** — CureAllが一部StatusEffectType未対象。random==null時に毎回新規Random()で再現性なし。回復量値不一致
+- **HU: DungeonMap FOV距離メトリクス混在・環境修正子欠落** — ChebyshevDistanceとLOS併用でL字型視界ギャップ。環境修正子がMoveのみ対応で攻撃等に未適用
+- **HV: Tile NPC表示文字欠落・罠不可視** — NpcTrainer/NpcLibrarianが表示switch未登録で'?'表示。TrapHiddenがFloorと同一表示でデバッグ手段未提供
