@@ -179,7 +179,11 @@ public enum ItemEffectType
     /// <summary>識別</summary>
     Identify,
     /// <summary>ルーン語習得</summary>
-    LearnRuneWord
+    LearnRuneWord,
+    /// <summary>聖域展開</summary>
+    Sanctuary,
+    /// <summary>ダンジョン入口への帰還</summary>
+    ReturnToEntrance
 }
 
 /// <summary>

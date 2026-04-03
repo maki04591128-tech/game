@@ -95,6 +95,31 @@ public class Potion : ConsumableItem
                 user.RemoveStatusEffect(StatusEffectType.Silence);
                 return UseResult.Ok("全ての状態異常が解消された！");
 
+            case PotionType.StrengthBoost:
+                user.ApplyStatusEffect(new StatusEffect(StatusEffectType.Strength, Duration));
+                return UseResult.Ok("攻撃力が上がった！",
+                    new ItemEffect(ItemEffectType.ApplyStatus, Duration, StatusEffect: StatusEffectType.Strength));
+
+            case PotionType.AgilityBoost:
+                user.ApplyStatusEffect(new StatusEffect(StatusEffectType.Haste, Duration));
+                return UseResult.Ok("素早さが上がった！",
+                    new ItemEffect(ItemEffectType.ApplyStatus, Duration, StatusEffect: StatusEffectType.Haste));
+
+            case PotionType.Invisibility:
+                user.ApplyStatusEffect(new StatusEffect(StatusEffectType.Invisibility, Duration));
+                return UseResult.Ok("透明になった！",
+                    new ItemEffect(ItemEffectType.ApplyStatus, Duration, StatusEffect: StatusEffectType.Invisibility));
+
+            case PotionType.FireResistance:
+                user.ApplyStatusEffect(new StatusEffect(StatusEffectType.FireResistance, Duration));
+                return UseResult.Ok("火耐性が上がった！",
+                    new ItemEffect(ItemEffectType.ApplyStatus, Duration, StatusEffect: StatusEffectType.FireResistance));
+
+            case PotionType.ColdResistance:
+                user.ApplyStatusEffect(new StatusEffect(StatusEffectType.ColdResistance, Duration));
+                return UseResult.Ok("冷気耐性が上がった！",
+                    new ItemEffect(ItemEffectType.ApplyStatus, Duration, StatusEffect: StatusEffectType.ColdResistance));
+
             default:
                 return UseResult.Fail("効果がなかった");
         }
@@ -312,6 +337,18 @@ public class Scroll : ConsumableItem
             case ScrollType.AncientBook:
                 return UseResult.Ok("古代の書を読み解いた…",
                     new ItemEffect(ItemEffectType.LearnRuneWord, EffectValue));
+
+            case ScrollType.Freeze:
+                return UseResult.Ok("冷気が周囲を包んだ！",
+                    new ItemEffect(ItemEffectType.Damage, EffectValue, Element.Ice));
+
+            case ScrollType.Sanctuary:
+                return UseResult.Ok("聖域が展開された！",
+                    new ItemEffect(ItemEffectType.Sanctuary, 0));
+
+            case ScrollType.Return:
+                return UseResult.Ok("ダンジョンの入口に戻った！",
+                    new ItemEffect(ItemEffectType.ReturnToEntrance, 0));
 
             default:
                 return UseResult.Fail("何も起こらなかった");

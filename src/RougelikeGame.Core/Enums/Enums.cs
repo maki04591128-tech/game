@@ -212,6 +212,8 @@ public enum StatusEffectType
     Protection,
     Regeneration,
     Invisibility,
+    FireResistance,     // 火耐性
+    ColdResistance,     // 冷気耐性
 
     // デバフ
     Slow,
