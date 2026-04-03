@@ -2197,6 +2197,133 @@
 | GN-1 | TransformColor()にnull/空文字チェックなし。null入力時にサイレント失敗またはNullReferenceException | 中 | `AccessibilitySystem.cs:99-108` | |
 | GN-2 | CalculateEffectiveTurnDelay()のMath.Max(0.1f)がSetGameSpeedMultiplier()のClamp(0.25f,2.0f)と重複。0.1f下限が到達不能なデッドコード | 低 | `AccessibilitySystem.cs:119` | |
 
+### GO: DungeonShortcutSystem双方向不整合・dungeonId未検証
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GO-1 | UnlockShortcut()がFromFloor→ToFloorの片方向のみ登録。IsUnlocked(d, 5, 1)がfalseで帰路ショートカット不可。逆方向も開通する仕様であれば双方向登録が必要 | 高 | `DungeonShortcutSystem.cs:35-41` | |
+| GO-2 | GetDeepestAccessibleFloor()がToFloorのみ参照。FromFloor=10, ToFloor=1のショートカットがある場合、最深階=1と誤判定。Max(FromFloor, ToFloor)の取得が必要 | 高 | `DungeonShortcutSystem.cs:62-66` | |
+| GO-3 | dungeonId引数にnull/空文字バリデーションなし。null入力でHashSetに(null,1,5)エントリが追加され、後続のWhere比較でNullReferenceException | 中 | `DungeonShortcutSystem.cs:22,35` | |
+| GO-4 | ショートカット開通条件が「両階の訪問済み」のみ。特定アイテム所持や条件達成といったゲーム進行制限が皆無で、序盤から深層スキップが可能 | 中 | `DungeonShortcutSystem.cs:35-41` | |
+| GO-5 | GetDeepestAccessibleFloor()がショートカット未開通時にデフォルト1を返却。実際のプレイヤー到達最深階と乖離する可能性 | 低 | `DungeonShortcutSystem.cs:65` | |
+
+### GP: DurabilitySystem酸属性誤マッピング・修理経済
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GP-1 | CalculateArmorWear()でElement.Poison（毒属性）を「酸属性」として追加ダメージ+3付与。Element.Acidが存在しないため毒=酸の暗黙マッピングだが、Poison武器で防具耐久値が異常減少する副作用 | 高 | `DurabilitySystem.cs:53-60` | |
+| GP-2 | GetPerformanceMultiplier()のBroken=0fで武器ダメージがゼロ。ただしDurabilityStage判定は装備時に自動適用されず、Broken武器を装備し続けるとダメージ0の攻撃を永続的に実行する可能性 | 高 | `DurabilitySystem.cs:32-40` | |
+| GP-3 | CalculateRepairCost()の0.5倍率でitemBasePrice=1のアイテムは常にrepairCost=0（intキャスト切り捨て）。低価格アイテムの無料修理が発生 | 中 | `DurabilitySystem.cs:68-73` | |
+| GP-4 | CalculateArmorWear()のdamageReceived閾値（25, 50）がハードコード。ゲーム進行に伴うダメージインフレに対応できず、後半は常にwear+2固定 | 中 | `DurabilitySystem.cs:53-58` | |
+| GP-5 | CanSelfRepair()のsmithingLevel>=5要件とCalculateSelfRepairAmount()の回復上限40の間に、smithingLevel=15で到達。それ以降のスキルレベル上昇が自己修理に寄与しない | 低 | `DurabilitySystem.cs:84-92` | |
+| GP-6 | max<=0でPerfect返却は「耐久値無限」の意図だが、current=0かつmax=0の場合もPerfectとなり、壊れたアイテムが完全状態と判定されうる | 中 | `DurabilitySystem.cs:16` | |
+
+### GQ: GridInventorySystem回転未実装・空間計算
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GQ-1 | GridItemレコードにIsRotatedフィールドが定義されているが、CanPlace()/PlaceItem()/Overlaps()で回転状態が一切考慮されない。回転アイテム配置が常にIsRotated=falseの通常配置として処理される | 高 | `GridInventorySystem.cs:10,56-61` | |
+| GQ-2 | PlaceItem()が同一itemIdの二重配置を許可。同じアイテムを複数回配置でき、RemoveItem()がFirstOrDefaultで最初の1つのみ削除 | 中 | `GridInventorySystem.cs:56-61` | |
+| GQ-3 | GetFreeSpaceRatio()のtotal==0チェックで0fを返却。width=0またはheight=0のグリッドが作成可能で、全操作がサイレントに失敗する | 中 | `GridInventorySystem.cs:69-76` | |
+| GQ-4 | GetDimensions()のdefaultケースが(1,1)で、未定義のGridItemSizeが暗黙的に最小サイズとして処理される。新サイズ追加時に配置計算が不正になるサイレント障害 | 低 | `GridInventorySystem.cs:42-50` | |
+
+### GR: HarvestSystem種族カバレッジ・ドロップ率上限
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GR-1 | MonsterRace全11値中10種のみ_harvestTableに登録。Dragonoidが欠落しCanHarvest()=falseで剥ぎ取り不可。新種族追加時にサイレントスキップ | 中 | `HarvestSystem.cs:20-62` | |
+| GR-2 | GetRankDropMultiplier()がHiddenBossで2.5倍。baseRate=0.50のBeast素材がeffectiveRate=1.25→Math.Min(1.0)でキャップ。HiddenBossの倍率ボーナスが高baseRate素材で無意味化 | 中 | `HarvestSystem.cs:98-100` | |
+| GR-3 | Humanoid種族がmaterial_equipment_fragmentの1素材のみ。他種族の2素材と比較して素材バリエーション不足で人型敵撃破のインセンティブが低い | 低 | `HarvestSystem.cs:59-61` | |
+| GR-4 | GetItemName()のdefaultケースがitemIdをそのまま返却。「material_equipment_fragment」のような内部IDがプレイヤーに表示される | 低 | `HarvestSystem.cs:138-157` | |
+
+### GS: ItemGradeSystemドロップ率正規化・鍛冶レベル無上限
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GS-1 | GetGradeDropRates()のsmithingLevel補正で、高smithingLevelではCrude/Cheapが0.01f下限に到達後も上位品の確率のみ増加し続ける。smithingLevel=50でMasterwork確率が過剰に高くなりゲーム経済崩壊 | 高 | `ItemGradeSystem.cs:72-93` | |
+| GS-2 | DetermineGrade()のOrderBy((int)r.Key)でItemGrade enumの定義順序に依存。enum値の追加・並び替えでドロップ確率が変動 | 中 | `ItemGradeSystem.cs:101-113` | |
+| GS-3 | 6等級のDropRate合計が0.20+0.25+0.30+0.15+0.08+0.02=1.00だが、浮動小数点誤差で厳密に1.0にならない可能性。DetermineGrade()のcumulative比較で最後のMasterworkが選ばれない | 中 | `ItemGradeSystem.cs:26-33,101-113` | |
+| GS-4 | smithingLevel=0でもGetGradeDropRates()が新Dictionaryインスタンスを毎回生成。頻繁呼び出しでGC圧力増大 | 低 | `ItemGradeSystem.cs:72-93` | |
+
+### GT: NpcRoutineSystemルーティン欠落・場所名ハードコード
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GT-1 | 4種のNPCタイプ（Merchant/Guard/Priest/Adventurer）のみ定義。鍛冶屋・図書館員・トレーナー等のゲーム内NPC種別がルーティン未定義で、GetRoutine()がnull返却 | 高 | `NpcRoutineSystem.cs:24-69` | |
+| GT-2 | IsNpcAvailable()がWorking状態のみtrue返却。司祭のDawn/Duskの「祈祷中」はサービス提供可能だが利用不可と判定。Shopping状態の冒険者にも取引不可 | 中 | `NpcRoutineSystem.cs:82-86` | |
+| GT-3 | 場所名（"ショップ"、"酒場"等）がハードコード文字列。SymbolMapSystemのタイル名/場所名と一致保証なし。GetNpcsAtLocation()の文字列比較でtypoがサイレント不一致 | 中 | `NpcRoutineSystem.cs:24-69` | |
+| GT-4 | GetRoutine()がFirstOrDefault()で同一NpcType×TimePeriodに複数エントリがある場合の動作が非決定的。ルーティン定義の一意性制約なし | 低 | `NpcRoutineSystem.cs:72-75` | |
+
+### GU: ReligionSkillSystem補正値累積・背教ペナルティ軽微
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GU-1 | GetSkillDamageMultiplier()がbaseBonus+religionBonusで累積。ChaosCult+Saintで1.0+0.40+0.12=1.52倍。ReligionSystem側のGetAlignedSkillBonus()1.50倍と合算で2.28倍の多重補正 | 高 | `ReligionSkillSystem.cs:21-43` | |
+| GU-2 | GetAlignedSkillBonus()でChaosCultがIsSkillAlignedWithReligion()常時trueにより全属性で+50%ボーナス（Saint時）。他宗教は特定属性のみで、混沌崇拝が圧倒的に有利 | 高 | `ReligionSkillSystem.cs:89-90,99-113` | |
+| GU-3 | GetApostasyPenalty()が0.7f固定でFaithRank非考慮。Saint→背教でもBeliever→背教でも同一30%ペナルティ。高位信者の背教リスクが軽微 | 中 | `ReligionSkillSystem.cs:118-121` | |
+| GU-4 | DamageMultiplier計算が(int)rank*係数で、FaithRankのenum値順序（None=0, Believer=1, ..., Saint=6）に依存。enum値変更で全ダメージ計算が破綻 | 中 | `ReligionSkillSystem.cs:135-145` | |
+| GU-5 | GetSkillCostReduction()の最大値がSaint=0.25f（25%軽減）。GetSkillDamageMultiplier()の最大1.52倍と比較してコスト軽減が控えめで、高位信者はコスト度外視で高火力攻撃を選択する最適戦略 | 低 | `ReligionSkillSystem.cs:50-63` | |
+
+### GV: SeasonSystem天候確率合計不一致・月範囲外
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GV-1 | GetWeatherProbabilities()のSpring確率合計=0.4+0.35+0.15+0.0+0.1=1.0、Summer=1.0、Autumn=1.0、Winter=1.0。合計は正確だが、Snow=0.0の季節でSnowが天候候補として辞書に存在し、ランダム選択ロジック次第でSnow=0%でも選択されうる | 低 | `SeasonSystem.cs:95-120` | |
+| GV-2 | GetSeason()のmonth引数に0以下や13以上が渡された場合、defaultケース（Winter）にフォールバック。month=0がWinterとなりバグが隠蔽される | 中 | `SeasonSystem.cs:67-73` | |
+| GV-3 | 季節ごとの敵種族増減（IncreasedRaces/DecreasedRaces）の具体的な出現率補正値が未定義。IsRaceActive()/IsRaceInactive()がbool返却のみで、「どの程度」活発かの量的データなし | 中 | `SeasonSystem.cs:79-90` | |
+| GV-4 | Autumnの敵種族増減が両方Empty。秋が完全にバランスニュートラルで季節変化の戦略的意味がない | 低 | `SeasonSystem.cs:41-49` | |
+
+### GW: SkillFusionSystemレシピ5件限定・熟練度タイプ不明
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GW-1 | 合成レシピが5件のみ。SkillTreeSystemの各クラスに10+スキルが定義されている中、合成パターンが極端に少なくシステムの活用度が低い | 中 | `SkillFusionSystem.cs:18-24` | |
+| GW-2 | CanFuse()のproficiency引数が「何の」熟練度かが不明。ProficiencySystem/WeaponProficiencySystemとの接続情報なし | 中 | `SkillFusionSystem.cs:35-39` | |
+| GW-3 | FindRecipe()のスキル名が日本語文字列比較。SkillTreeSystemでのスキルID体系（英語snake_case）と不一致。レシピ検索が常にnull返却の可能性 | 致命的 | `SkillFusionSystem.cs:27-30` | |
+| GW-4 | ExecuteFusion()が合成結果スキル名のみ返却し、スキルの実際の効果・ステータスは未定義。合成スキルがSkillTreeSystemに未登録で使用不可の可能性 | 高 | `SkillFusionSystem.cs:42-46` | |
+
+### GX: SmugglingSystem検知回避・利益固定
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GX-1 | CheckEvasion()のeffectiveChance計算がdexterity*0.01f。DEX=100で-0.7fとなりMath.Max(0.05)で5%固定。高DEXで検知回避がほぼ確実に成功 | 高 | `SmugglingSystem.cs:26-30` | |
+| GX-2 | CalculateProfit()がContrabandType固定利益のみ返却。需要・供給・領地・評判による利益変動なし。密輸ルート最適化の戦略性が皆無 | 中 | `SmugglingSystem.cs:33-37` | |
+| GX-3 | GetPenalty()がカルマ減少のみ。逮捕・投獄・アイテム没収等の実質ペナルティなし。カルマ減少がKarmaSystemの-20ダークマーケット閾値以内に収まり、ペナルティが軽微 | 中 | `SmugglingSystem.cs:46-53` | |
+| GX-4 | 禁制品が4種のみで領地別の違法リスト差別化なし。全領地で同一アイテムが禁制品で地域特性が未反映 | 低 | `SmugglingSystem.cs:14-19` | |
+
+### GY: TemplateMapSystemレベル制限・サイズ固定
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GY-1 | テンプレートが5件のみ。DungeonFeatureGeneratorの10特徴タイプとの対応関係なし。TemplateMapTypeとDungeonFeatureTypeの二重管理で整合性不明 | 中 | `TemplateMapSystem.cs:19-25` | |
+| GY-2 | MeetsLevelRequirement()がMinLevel下限のみ。MaxLevelやクエスト条件等の上限制限なし。レベル40以上のプレイヤーがBossFloor以外の全テンプレートにアクセス可能 | 低 | `TemplateMapSystem.cs:33-37` | |
+| GY-3 | Width/Heightがテンプレート定義で固定値。実際のマップ生成でこのサイズが使用される保証なし。DungeonFeatureGenerator._paramsのRoomMinSize/RoomMaxSizeとの関係が不明 | 中 | `TemplateMapSystem.cs:19-25` | |
+
+### GZ: StartingMapResolver開始マップ・テリトリ対応欠落
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GZ-1 | GetStartingTerritory()で3マップのみTerritory分岐（forest_village→Forest, mountain_hold→Mountain, coast_port→Coast）。他の12+マップが全てCapitalにフォールバック。dark_sanctuary等のマップがCapital領地開始 | 中 | `StartingMapResolver.cs:54-60` | |
+| GZ-2 | GetRaceMap()でOrcとDwarfが同一"mountain_hold"。種族の開始体験が重複で差別化不足 | 低 | `StartingMapResolver.cs:70-82` | |
+| GZ-3 | Resolve()がBackground優先でRace判定。Wanderer+Elfの場合"wanderer_camp"が選択され、種族固有の"forest_village"は無視される。プレイヤーの期待と乖離の可能性 | 低 | `StartingMapResolver.cs:19-25` | |
+
+### HA: DungeonFeatureGenerator静的初期化・領地カバレッジ
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HA-1 | SelectFeatureForTerritory()でTerritoryId.Forestに対応するのがCaveとForestのみ。Coast領地に対応するDungeonFeatureTypeが皆無でStandardにフォールバック。海岸特有のダンジョン体験なし | 中 | `DungeonFeatureGenerator.cs:51-95` | |
+| HA-2 | _definitionsと_paramsが静的Dictionaryだが、static初期化子で登録。スレッドセーフティの保証なし。テスト時のモック差し替え不可 | 低 | `DungeonFeatureGenerator.cs:37-39` | |
+| HA-3 | DungeonFeatureDefinition.CommonRacesがnew[]で毎回生成ではなく初期化時1回のみだが、MonsterRace配列が外部から変更可能（配列は参照型）。防御的コピーなし | 低 | `DungeonFeatureGenerator.cs:47-95` | |
+
+### HB: TrapDefinition発見・解除バランス・拡張性
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| HB-1 | CanDetect()/CanDisarm()のランダム範囲がNext(10)（0-9）固定。PER/DEX=1でも確率的に高難度罠（DetectionDifficulty=14）を発見/解除可能。ステータス投資の戦略的価値が低い | 中 | `TrapDefinition.cs:70-80` | |
+| HB-2 | TrapCraftingSystemとTrapDefinitionの罠タイプ体系が異なる。TrapCraftingSystemがTrapTypeを直接参照せず、独自のEfficiency計算で罠効果を決定。2システム間の不整合 | 高 | `TrapDefinition.cs, TrapCraftingSystem.cs` | |
+| HB-3 | AllTraps配列が8種固定。新罠タイプ追加時にTrapType enum更新、TrapDefinition.Get()のswitch追加、AllTraps配列更新の3箇所修正が必要。拡張時の修正漏れリスク | 中 | `TrapDefinition.cs:120-126` | |
+| HB-4 | defaultケースがArrowTrapにフォールバック。未定義TrapTypeがサイレントに矢の罠として処理され、デバッグ困難 | 低 | `TrapDefinition.cs:64` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -2394,7 +2521,21 @@
 | **GL: DirectionSystem方向判定・高低差ボーナス** | **0** | **0** | **2** | **0** | **0** | **2** |
 | **GM: ContextHelpSystemチュートリアル完了重複** | **0** | **0** | **1** | **1** | **0** | **2** |
 | **GN: AccessibilitySystem色変換・ゲーム速度** | **0** | **0** | **1** | **1** | **0** | **2** |
-| **合計** | **166** | **324** | **365** | **100** | **2** | **968** |
+| **GO: DungeonShortcutSystem双方向不整合** | **0** | **2** | **2** | **1** | **0** | **5** |
+| **GP: DurabilitySystem酸属性誤マッピング** | **0** | **2** | **3** | **1** | **0** | **6** |
+| **GQ: GridInventorySystem回転未実装** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **GR: HarvestSystem種族カバレッジ** | **0** | **0** | **2** | **2** | **0** | **4** |
+| **GS: ItemGradeSystemドロップ率正規化** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **GT: NpcRoutineSystemルーティン欠落** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **GU: ReligionSkillSystem補正値累積** | **0** | **2** | **2** | **1** | **0** | **5** |
+| **GV: SeasonSystem天候確率・月範囲外** | **0** | **0** | **2** | **2** | **0** | **4** |
+| **GW: SkillFusionSystemレシピ限定・名前不一致** | **1** | **1** | **2** | **0** | **0** | **4** |
+| **GX: SmugglingSystem検知回避・利益固定** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **GY: TemplateMapSystemレベル制限** | **0** | **0** | **2** | **1** | **0** | **3** |
+| **GZ: StartingMapResolver開始マップ** | **0** | **0** | **1** | **2** | **0** | **3** |
+| **HA: DungeonFeatureGenerator領地カバレッジ** | **0** | **0** | **1** | **2** | **0** | **3** |
+| **HB: TrapDefinition発見・解除バランス** | **0** | **1** | **2** | **1** | **0** | **4** |
+| **合計** | **167** | **336** | **392** | **117** | **2** | **1025** |
 
 ---
 
@@ -2404,10 +2545,10 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（166件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（324件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（365件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（88件）: 軽微なテーマ不一致 → 余裕があれば修正
+1. **致命的**（167件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（336件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（392件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（117件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（2件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
@@ -2636,3 +2777,19 @@
 - **GL: DirectionSystem方向判定・高低差ボーナス** — 8方向を3結果に集約で背面判定精度低下。高低差ペナルティの非対称設計
 - **GM: ContextHelpSystemチュートリアル完了重複** — 同一ステップの二重完了マーク可能。無効化後の進捗状態未保持
 - **GN: AccessibilitySystem色変換・ゲーム速度** — TransformColor()のnullチェック欠如。ゲーム速度下限のデッドコード
+
+### 新規追加カテゴリの概要（第22回調査分）
+- **GO: DungeonShortcutSystem双方向不整合・dungeonId未検証** — ショートカット片方向のみ登録で帰路不可。GetDeepestAccessibleFloor()がToFloorのみ参照で誤判定。dungeonIdのnullバリデーションなし
+- **GP: DurabilitySystem酸属性誤マッピング・修理経済** — Element.Poisonを酸属性として防具耐久値+3付与。Broken武器のダメージ0が装備解除なしで永続。低価格アイテムの無料修理。current=0&max=0でPerfect判定
+- **GQ: GridInventorySystem回転未実装・空間計算** — IsRotatedフィールド定義済みだが全メソッドで未参照。同一itemIdの二重配置許可。width=0グリッド作成可能
+- **GR: HarvestSystem種族カバレッジ・ドロップ率上限** — Dragonoid種族が剥ぎ取りテーブル未登録。HiddenBoss倍率が高baseRate素材でキャップ到達し無意味化。Humanoid素材が1種のみ
+- **GS: ItemGradeSystemドロップ率正規化・鍛冶レベル無上限** — 高smithingLevelでMasterwork確率が過剰増加しゲーム経済崩壊。enum定義順序依存のドロップ確率。浮動小数点合計の非1.0リスク
+- **GT: NpcRoutineSystemルーティン欠落・場所名ハードコード** — 4種のNPCのみルーティン定義で鍛冶屋等が未定義。IsNpcAvailable()がWorking以外をfalse判定。場所名がSymbolMapSystemと非連携
+- **GU: ReligionSkillSystem補正値累積・背教ペナルティ軽微** — baseBonus+religionBonusの多重補正でChaosCult+Saint=1.52倍。ChaosCultが全属性ボーナスで圧倒的有利。背教ペナルティがFaithRank非考慮で一律30%
+- **GV: SeasonSystem天候確率合計不一致・月範囲外** — month=0等の範囲外値がWinterにサイレントフォールバック。敵種族増減の量的補正値未定義。Autumnが戦略的に無意味
+- **GW: SkillFusionSystemレシピ限定・名前不一致** — 合成レシピ5件のみ。スキル名が日本語文字列でSkillTreeSystemの英語IDと不一致。合成結果スキルの効果未定義
+- **GX: SmugglingSystem検知回避・利益固定** — 高DEXで検知回避5%固定。利益が需給非連動の固定値。逮捕等の実質ペナルティなし。領地別違法リスト差別化なし
+- **GY: TemplateMapSystemレベル制限・サイズ固定** — テンプレート5件のみでDungeonFeatureType非対応。MinLevel下限のみで上限なし。Width/Heightと実際のマップ生成の関係不明
+- **GZ: StartingMapResolver開始マップ・テリトリ対応欠落** — 15+マップ中3マップのみTerritory分岐。Orc/Dwarfが同一マップ。Background優先で種族固有マップが無視される
+- **HA: DungeonFeatureGenerator静的初期化・領地カバレッジ** — Coast領地に対応ダンジョン特徴なし。静的Dictionary初期化でモック差し替え不可。配列の防御的コピーなし
+- **HB: TrapDefinition発見・解除バランス・拡張性** — PER/DEX=1でも高難度罠を確率的に発見/解除可能。TrapCraftingSystemと罠タイプ体系が非連携。新罠追加で3箇所修正必要
