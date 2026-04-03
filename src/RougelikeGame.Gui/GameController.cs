@@ -6747,6 +6747,9 @@ public class GameController
                 ApostasyCurseRemainingDays = Player.ApostasyCurseRemainingDays,
                 DaysSinceLastPrayer = Player.DaysSinceLastPrayer,
                 FaithCap = Player.FaithCap,
+                Thirst = Player.Thirst,
+                Fatigue = Player.Fatigue,
+                Hygiene = Player.Hygiene,
                 Gold = Player.Gold,
                 Race = Player.Race,
                 CharacterClass = Player.CharacterClass,
@@ -6817,6 +6820,56 @@ public class GameController
         // 会話フラグ保存
         save.DialogueFlags = _dialogueSystem.GetAllFlags().ToList();
 
+        // 状態異常保存
+        foreach (var effect in Player.StatusEffects)
+        {
+            save.Player.StatusEffects.Add(new StatusEffectSaveData
+            {
+                Type = effect.Type.ToString(),
+                RemainingTurns = effect.Duration,
+                Potency = effect.DamagePerTick
+            });
+        }
+
+        // ペットデータ保存
+        var pets = _petSystem.Pets;
+        if (pets.Count > 0)
+        {
+            var firstPet = pets.Values.First();
+            save.PetData = new PetSaveData
+            {
+                PetId = firstPet.PetId,
+                Name = firstPet.Name,
+                PetType = firstPet.Type.ToString(),
+                Level = firstPet.Level,
+                Experience = firstPet.Experience,
+                Hunger = firstPet.Hunger,
+                Loyalty = firstPet.Loyalty,
+                CurrentHp = firstPet.CurrentHp,
+                IsRiding = firstPet.IsRiding
+            };
+        }
+
+        // カルマ保存
+        save.KarmaValue = _karmaSystem.KarmaValue;
+        save.KarmaHistory = _karmaSystem.KarmaHistory
+            .Select(e => $"{e.OldValue}->{e.NewValue}:{e.Reason}")
+            .ToList();
+
+        // 習熟度保存
+        foreach (var (category, data) in _proficiencySystem.GetAllProficiencies())
+        {
+            save.ProficiencyLevels[category.ToString()] = data.Level;
+            save.ProficiencyExp[category.ToString()] = data.CurrentExp;
+        }
+
+        // 病気保存
+        if (_playerDisease.HasValue)
+        {
+            save.CurrentDisease = _playerDisease.Value.ToString();
+            save.DiseaseRemainingTurns = _diseaseRemainingTurns;
+        }
+
         return save;
     }
 
@@ -6838,7 +6891,10 @@ public class GameController
             save.Player.RescueCountRemaining,
             save.Player.Race,
             save.Player.CharacterClass,
-            save.Player.Background
+            save.Player.Background,
+            save.Player.Thirst,
+            save.Player.Fatigue,
+            save.Player.Hygiene
         );
         Player.Position = save.Player.Position.ToPosition();
 
@@ -6991,6 +7047,58 @@ public class GameController
         if (save.DialogueFlags.Count > 0)
         {
             _dialogueSystem.RestoreFlags(save.DialogueFlags);
+        }
+
+        // 状態異常復元
+        foreach (var effectData in save.Player.StatusEffects)
+        {
+            if (Enum.TryParse<StatusEffectType>(effectData.Type, out var effectType))
+            {
+                var effect = new StatusEffect(effectType, effectData.RemainingTurns);
+                Player.ApplyStatusEffect(effect);
+            }
+        }
+
+        // ペットデータ復元
+        if (save.PetData != null && Enum.TryParse<PetType>(save.PetData.PetType, out var petType))
+        {
+            _petSystem.Reset();
+            _petSystem.AddPet(save.PetData.PetId, save.PetData.Name, petType);
+        }
+
+        // カルマ復元
+        if (save.KarmaValue != 0)
+        {
+            _karmaSystem.Reset();
+            _karmaSystem.ModifyKarma(save.KarmaValue, "セーブデータ復元");
+        }
+
+        // 習熟度復元
+        if (save.ProficiencyLevels.Count > 0)
+        {
+            foreach (var (categoryStr, level) in save.ProficiencyLevels)
+            {
+                if (Enum.TryParse<ProficiencyCategory>(categoryStr, out var category))
+                {
+                    var allProf = _proficiencySystem.GetAllProficiencies();
+                    if (allProf.TryGetValue(category, out var data))
+                    {
+                        data.Level = level;
+                        if (save.ProficiencyExp.TryGetValue(categoryStr, out var exp))
+                        {
+                            data.CurrentExp = exp;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 病気復元
+        if (!string.IsNullOrEmpty(save.CurrentDisease)
+            && Enum.TryParse<DiseaseType>(save.CurrentDisease, out var diseaseType))
+        {
+            _playerDisease = diseaseType;
+            _diseaseRemainingTurns = save.DiseaseRemainingTurns;
         }
 
         AddMessage("セーブデータをロードした");
