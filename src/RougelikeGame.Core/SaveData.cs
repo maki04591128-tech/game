@@ -75,6 +75,39 @@ public class SaveData
 
     /// <summary>会話フラグ</summary>
     public List<string> DialogueFlags { get; set; } = new();
+
+    /// <summary>ペットデータ</summary>
+    public PetSaveData? PetData { get; set; }
+
+    /// <summary>コンパニオンID</summary>
+    public List<string> CompanionIds { get; set; } = new();
+
+    /// <summary>カルマ値</summary>
+    public int KarmaValue { get; set; }
+
+    /// <summary>カルマ履歴</summary>
+    public List<string> KarmaHistory { get; set; } = new();
+
+    /// <summary>習熟レベル</summary>
+    public Dictionary<string, int> ProficiencyLevels { get; set; } = new();
+
+    /// <summary>習熟経験値</summary>
+    public Dictionary<string, int> ProficiencyExp { get; set; } = new();
+
+    /// <summary>現在の病気</summary>
+    public string? CurrentDisease { get; set; }
+
+    /// <summary>病気残りターン</summary>
+    public int DiseaseRemainingTurns { get; set; }
+
+    /// <summary>アンロック済み実績</summary>
+    public List<string> Achievements { get; set; } = new();
+
+    /// <summary>現在の天候</summary>
+    public string? WeatherState { get; set; }
+
+    /// <summary>現在の季節</summary>
+    public string? SeasonState { get; set; }
 }
 
 /// <summary>
@@ -100,6 +133,15 @@ public class PlayerSaveData
     public int Sanity { get; set; }
     /// <summary>満腹度</summary>
     public int Hunger { get; set; }
+    /// <summary>渇き</summary>
+    public int Thirst { get; set; } = 100;
+    /// <summary>疲労</summary>
+    public int Fatigue { get; set; } = 100;
+    /// <summary>衛生</summary>
+    public int Hygiene { get; set; } = 100;
+
+    /// <summary>アクティブ状態異常</summary>
+    public List<StatusEffectSaveData> StatusEffects { get; set; } = new();
 
     /// <summary>残り救出回数</summary>
     public int RescueCountRemaining { get; set; }
@@ -257,4 +299,52 @@ public class TransferDataSaveData
     public int TotalDeaths { get; set; }
     public int RescueCountRemaining { get; set; } = GameConstants.MaxRescueCount;
     public int Sanity { get; set; } = GameConstants.InitialSanity;
+}
+
+/// <summary>
+/// 状態異常のセーブデータ
+/// </summary>
+public class StatusEffectSaveData
+{
+    /// <summary>状態異常タイプ</summary>
+    public string Type { get; set; } = string.Empty;
+
+    /// <summary>残りターン数</summary>
+    public int RemainingTurns { get; set; }
+
+    /// <summary>効力</summary>
+    public int Potency { get; set; }
+}
+
+/// <summary>
+/// ペットのセーブデータ
+/// </summary>
+public class PetSaveData
+{
+    /// <summary>ペットID</summary>
+    public string PetId { get; set; } = string.Empty;
+
+    /// <summary>名前</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>ペット種別</summary>
+    public string PetType { get; set; } = string.Empty;
+
+    /// <summary>レベル</summary>
+    public int Level { get; set; }
+
+    /// <summary>経験値</summary>
+    public int Experience { get; set; }
+
+    /// <summary>空腹度</summary>
+    public int Hunger { get; set; } = 100;
+
+    /// <summary>忠誠度</summary>
+    public int Loyalty { get; set; } = 50;
+
+    /// <summary>現在HP</summary>
+    public int CurrentHp { get; set; }
+
+    /// <summary>騎乗中か</summary>
+    public bool IsRiding { get; set; }
 }
