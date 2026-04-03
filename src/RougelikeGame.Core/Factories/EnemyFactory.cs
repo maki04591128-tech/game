@@ -249,6 +249,37 @@ public record EnemyDefinition(
 /// </summary>
 public static class EnemyDefinitions
 {
+    public static readonly EnemyDefinition Rat = new(
+        TypeId: "enemy_rat",
+        Name: "ドブネズミ",
+        Description: "地下に巣食う大型のネズミ。群れで襲いかかる。",
+        BaseStats: new Stats(2, 3, 8, 6, 1, 1, 4, 1, 5),
+        EnemyType: EnemyType.Pack,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 3,
+        DropTableId: "drop_slime",
+        SightRange: 6,
+        HearingRange: 8,
+        FleeThreshold: 0.4f,
+        Race: MonsterRace.Beast
+    );
+
+    public static readonly EnemyDefinition Bandit = new(
+        TypeId: "enemy_bandit",
+        Name: "山賊",
+        Description: "山道で旅人を襲う無法者。武器の扱いに長ける。",
+        BaseStats: new Stats(9, 8, 7, 8, 3, 5, 6, 2, 4),
+        EnemyType: EnemyType.Aggressive,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 25,
+        DropTableId: "drop_goblin",
+        SightRange: 9,
+        HearingRange: 7,
+        FleeThreshold: 0.25f,
+        Race: MonsterRace.Humanoid,
+        WeaponType: Items.WeaponType.Sword
+    );
+
     public static readonly EnemyDefinition Slime = new(
         TypeId: "slime",
         Name: "スライム",
@@ -837,7 +868,7 @@ public static class EnemyDefinitions
     {
         return depth switch
         {
-            <= 3 => new[] { Slime, Goblin },
+            <= 3 => new[] { Rat, Slime, Goblin },
             <= 6 => new[] { Slime, Goblin, Skeleton, GiantSpider },
             <= 10 => new[] { Goblin, Skeleton, Orc, GiantSpider },
             <= 15 => new[] { Skeleton, Orc, GiantSpider, DarkElf },
@@ -853,9 +884,9 @@ public static class EnemyDefinitions
     {
         return territory switch
         {
-            TerritoryId.Capital => new[] { Slime, Goblin, Skeleton },
+            TerritoryId.Capital => new[] { Rat, Slime, Goblin, Skeleton },
             TerritoryId.Forest => new[] { ForestWolf, ForestSprite, GiantSpider, Treant },
-            TerritoryId.Mountain => new[] { Harpy, Orc, MountainGolem, Wyvern },
+            TerritoryId.Mountain => new[] { Harpy, Orc, MountainGolem, Wyvern, Bandit },
             TerritoryId.Coast => new[] { Crab, SeaSerpent, Siren, Skeleton },
             TerritoryId.Southern => new[] { DesertScorpion, Mummy, Sandworm, DarkElf },
             TerritoryId.Frontier => new[] { Werewolf, Troll, Chimera, DeathKnight, Draugr },
@@ -963,6 +994,7 @@ public static class EnemyDefinitions
     {
         return new[]
         {
+            Rat, Bandit,
             Slime, Goblin, Skeleton, Orc, GiantSpider, DarkElf, Troll, Draugr,
             ForestWolf, Treant, ForestSprite,
             MountainGolem, Harpy, Wyvern,

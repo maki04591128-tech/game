@@ -119,7 +119,7 @@ public static class GameConstants
     // レベル
     public const int MaxLevel = 50;
     public const int BaseExpRequired = 100;
-    public const double ExpGrowthRate = 1.5;
+    public const double ExpGrowthRate = 1.15;
 
     // マップ
     public const int DefaultMapWidth = 80;

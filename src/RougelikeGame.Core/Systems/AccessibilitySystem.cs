@@ -116,7 +116,8 @@ public class AccessibilitySystem
     /// <summary>実効ターン遅延を計算（ミリ秒）</summary>
     public int CalculateEffectiveTurnDelay(int baseDelay)
     {
-        return (int)(baseDelay / _config.GameSpeedMultiplier);
+        float speed = Math.Max(0.1f, _config.GameSpeedMultiplier);
+        return (int)(baseDelay / speed);
     }
 
     /// <summary>色覚モード名を取得</summary>

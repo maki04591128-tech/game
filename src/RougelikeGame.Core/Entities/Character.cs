@@ -196,7 +196,7 @@ public abstract class Character : IEntity, ITurnActor, IDamageable
         {
             modifier *= effect.TurnCostModifier;
         }
-        return modifier;
+        return Math.Max(0.1f, modifier);
     }
     #endregion
 

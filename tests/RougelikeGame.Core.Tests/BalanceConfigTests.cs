@@ -258,7 +258,7 @@ public class BalanceConfigTests
     {
         Assert.Equal(50, GameConstants.MaxLevel);
         Assert.Equal(100, GameConstants.BaseExpRequired);
-        Assert.Equal(1.5, GameConstants.ExpGrowthRate);
+        Assert.Equal(1.15, GameConstants.ExpGrowthRate);
     }
 
     [Fact]

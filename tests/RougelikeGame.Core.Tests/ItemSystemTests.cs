@@ -508,4 +508,26 @@ public class ItemSystemTests
     }
 
     #endregion
+
+    #region Weapon - Guard tests
+
+    [Fact]
+    public void Weapon_GetAttackTurnCost_ZeroSpeed_ReturnsOne()
+    {
+        // AttackSpeed=0でもゼロ除算せずに1を返す
+        var weapon = new Weapon { AttackSpeed = 0f };
+        Assert.Equal(1, weapon.GetAttackTurnCost());
+    }
+
+    [Fact]
+    public void Weapon_CalculateDamage_InvertedRange_DoesNotThrow()
+    {
+        // Min > Max でもArgumentOutOfRangeExceptionにならない
+        var weapon = new Weapon { DamageRange = (10, 5) };
+        var random = new Random(42);
+        int damage = weapon.CalculateDamage(random);
+        Assert.True(damage >= 5); // min=5, max=10として扱われる
+    }
+
+    #endregion
 }

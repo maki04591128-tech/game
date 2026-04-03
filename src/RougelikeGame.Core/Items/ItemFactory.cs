@@ -1038,6 +1038,26 @@ public class ItemFactory
     public static Item CreateDungeonMushroom() => CreateMaterialItem("material_mushroom", "ダンジョンキノコ", "暗所に自生する光るキノコ", MaterialCategory.Herb, 12);
     public static Item CreateCrystalShard() => CreateMaterialItem("material_crystal", "結晶片", "ダンジョンの壁面に露出した鉱物結晶", MaterialCategory.Gem, 40, ItemRarity.Uncommon, 45);
 
+    // クラフト・調理用素材
+    public static Item CreateCoal() => CreateMaterialItem("material_coal", "石炭", "鍛冶に使う燃料。高温を生み出す", MaterialCategory.Metal, 10);
+    public static Item CreateLeather() => CreateMaterialItem("material_leather", "革", "なめした革。防具の素材になる", MaterialCategory.Leather, 20);
+    public static Item CreateRawMeat() => CreateMaterialItem("material_raw_meat", "生肉", "新鮮な生肉。調理して食べられる", MaterialCategory.Monster, 8);
+    public static Item CreateFishMaterial() => CreateMaterialItem("material_fish", "魚", "新鮮な魚。調理の素材になる", MaterialCategory.Monster, 12);
+    public static Item CreateSalt() => CreateMaterialItem("material_salt", "塩", "保存や調理に使う塩", MaterialCategory.Herb, 5);
+    public static Item CreateMagicalEssence() => CreateMaterialItem("material_magical_essence", "魔法のエッセンス", "魔力が凝縮されたエッセンス。調合に使う", MaterialCategory.Magical, 100, ItemRarity.Rare, 65);
+
+    // 釣り用アイテム
+    public static Item CreateFishCommon1() => CreateMaterialItem("fish_common_1", "小魚", "どこでも釣れる一般的な小魚", MaterialCategory.Monster, 10);
+    public static Item CreateFishCommon2() => CreateMaterialItem("fish_common_2", "川魚", "川に棲む一般的な魚", MaterialCategory.Monster, 15);
+    public static Item CreateFishMedium1() => CreateMaterialItem("fish_medium_1", "鯛", "美味な中型の魚", MaterialCategory.Monster, 30, ItemRarity.Uncommon);
+
+    // 採掘用鉱石・宝石
+    public static Item CreateOreIron() => CreateMaterialItem("ore_iron", "鉄鉱石", "鉄を含む鉱石。鍛冶の基本素材", MaterialCategory.Metal, 20);
+    public static Item CreateOreSilver() => CreateMaterialItem("ore_silver", "銀鉱石", "銀を含む鉱石。装飾品や武器の素材", MaterialCategory.Metal, 50, ItemRarity.Uncommon, 55);
+    public static Item CreateOreGold() => CreateMaterialItem("ore_gold", "金鉱石", "金を含む貴重な鉱石", MaterialCategory.Metal, 100, ItemRarity.Rare, 65);
+    public static Item CreateOreMithril() => CreateMaterialItem("ore_mithril", "ミスリル鉱石", "伝説の金属ミスリルを含む希少鉱石", MaterialCategory.Metal, 200, ItemRarity.Epic, 80);
+    public static Item CreateGemRough() => CreateMaterialItem("gem_rough", "未加工宝石", "磨けば輝く未加工の宝石", MaterialCategory.Gem, 60, ItemRarity.Uncommon, 50);
+
     #endregion
 
     #region Dungeon Floor & Enemy Drop Generation
@@ -1256,7 +1276,27 @@ public static class ItemDefinitions
         ["material_stone"] = ItemFactory.CreateStone,
         ["material_moss"] = ItemFactory.CreateMoss,
         ["material_mushroom"] = ItemFactory.CreateDungeonMushroom,
-        ["material_crystal"] = ItemFactory.CreateCrystalShard
+        ["material_crystal"] = ItemFactory.CreateCrystalShard,
+
+        // 素材 - クラフト・調理用
+        ["material_coal"] = ItemFactory.CreateCoal,
+        ["material_leather"] = ItemFactory.CreateLeather,
+        ["material_raw_meat"] = ItemFactory.CreateRawMeat,
+        ["material_fish"] = ItemFactory.CreateFishMaterial,
+        ["material_salt"] = ItemFactory.CreateSalt,
+        ["material_magical_essence"] = ItemFactory.CreateMagicalEssence,
+
+        // 釣りアイテム
+        ["fish_common_1"] = ItemFactory.CreateFishCommon1,
+        ["fish_common_2"] = ItemFactory.CreateFishCommon2,
+        ["fish_medium_1"] = ItemFactory.CreateFishMedium1,
+
+        // 採掘用鉱石・宝石
+        ["ore_iron"] = ItemFactory.CreateOreIron,
+        ["ore_silver"] = ItemFactory.CreateOreSilver,
+        ["ore_gold"] = ItemFactory.CreateOreGold,
+        ["ore_mithril"] = ItemFactory.CreateOreMithril,
+        ["gem_rough"] = ItemFactory.CreateGemRough
     };
 
     /// <summary>

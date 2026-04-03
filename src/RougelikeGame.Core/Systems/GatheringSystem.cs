@@ -61,9 +61,10 @@ public static class GatheringSystem
         var node = GetNode(type);
         if (node == null) return 0;
 
-        float baseRate = 0.5f + proficiencyLevel * 0.05f;
+        float baseRate = 0.3f + proficiencyLevel * 0.05f;
         if (node.BestSeasons.Contains(currentSeason)) baseRate += 0.15f;
-        return Math.Clamp(baseRate, 0.1f, 0.95f);
+        // 熟練度不足の場合は0%まで下がる（最低保証なし）
+        return Math.Clamp(baseRate, 0f, 0.95f);
     }
 
     /// <summary>レア素材の取得確率を計算</summary>

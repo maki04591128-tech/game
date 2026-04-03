@@ -323,4 +323,14 @@ public class EnemyDefinitionTests
         // Assert
         Assert.Equal(12, EnemyDefinitions.DarkElf.BaseStats.Intelligence);
     }
+
+    [Fact]
+    public void ShouldFlee_ReturnsFalseWhenMaxHpIsZero()
+    {
+        // MaxHpが0の場合ゼロ除算せずfalseを返す
+        var enemy = Enemy.Create("Zero", "zero", new Stats { Vitality = 0, Strength = 1, Intelligence = 1, Mind = 1, Agility = 1, Dexterity = 1, Luck = 1 }, 10);
+        // MaxHpは最低1に保護されるため、HP=0（死亡）でfalseを返すことを確認
+        enemy.TakeDamage(Damage.Pure(enemy.MaxHp));
+        Assert.False(enemy.ShouldFlee());
+    }
 }

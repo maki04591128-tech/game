@@ -66,6 +66,7 @@ public static class PriceFluctuationSystem
     {
         float total = basePrice * supplyDemandModifier * territoryModifier * karmaModifier * reputationModifier;
         int result = (int)Math.Round(total);
-        return isBuying ? Math.Max(1, result) : Math.Max(1, result);
+        // 売却時は購入価格の70%（店のマージン30%）
+        return isBuying ? Math.Max(1, result) : Math.Max(1, (int)(result * 0.7f));
     }
 }

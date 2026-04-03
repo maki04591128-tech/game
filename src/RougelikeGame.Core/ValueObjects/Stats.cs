@@ -16,18 +16,18 @@ public readonly record struct Stats(
 )
 {
     // 計算プロパティ
-    public int MaxHp => 50 + (Vitality * 10) + (Strength * 2);
-    public int MaxMp => 20 + (Mind * 5) + (Intelligence * 3);
-    public int MaxSp => 100 + (Vitality * 2);
+    public int MaxHp => Math.Max(1, 50 + (Vitality * 10) + (Strength * 2));
+    public int MaxMp => Math.Max(0, 20 + (Mind * 5) + (Intelligence * 3));
+    public int MaxSp => Math.Max(0, 100 + (Vitality * 2));
 
     public int PhysicalAttack => Strength * 3 + Dexterity;
     public int PhysicalDefense => Vitality * 2 + Strength;
     public int MagicalAttack => Intelligence * 3 + Mind;
     public int MagicalDefense => Mind * 2 + Intelligence;
 
-    public double HitRate => 0.7 + (Dexterity * 0.02);
-    public double EvasionRate => Math.Min(GameConstants.MaxEvasionRate, Agility * 0.02);
-    public double CriticalRate => GameConstants.BaseCriticalRate + (Luck * 0.01) + (Dexterity * 0.005);
+    public double HitRate => Math.Max(0.05, 0.7 + (Dexterity * 0.02));
+    public double EvasionRate => Math.Max(0.0, Math.Min(GameConstants.MaxEvasionRate, Agility * 0.02));
+    public double CriticalRate => Math.Max(0.0, Math.Min(1.0, GameConstants.BaseCriticalRate + (Luck * 0.01) + (Dexterity * 0.005)));
 
     public int ActionSpeed => Agility * 2 + Dexterity;
 

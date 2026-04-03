@@ -27,7 +27,7 @@ public class SmithingSystem
         if (durabilityLost <= 0)
             return new SmithingResult(false, "修理の必要がない");
 
-        int cost = durabilityLost * 5;
+        int cost = (int)Math.Min((long)durabilityLost * 5, int.MaxValue);
         if (!player.SpendGold(cost))
             return new SmithingResult(false, $"ゴールドが足りない（必要: {cost}G）");
 
@@ -67,7 +67,7 @@ public class SmithingSystem
 
     /// <summary>強化コストを計算</summary>
     public static int CalculateEnhanceCost(int currentEnhance) =>
-        100 * (currentEnhance + 1) * (currentEnhance + 1);
+        (int)Math.Min((long)100 * (currentEnhance + 1) * (currentEnhance + 1), int.MaxValue);
 }
 
 /// <summary>

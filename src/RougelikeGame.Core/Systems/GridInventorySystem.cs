@@ -79,7 +79,7 @@ public class GridInventorySystem
             var (w, h) = GetDimensions(i.Size);
             return w * h;
         });
-        return (float)(total - used) / total;
+        return total == 0 ? 0f : (float)(total - used) / total;
     }
 
     private static bool Overlaps(GridItem item, int x, int y, int w, int h)

@@ -45,10 +45,19 @@ public static class CookingSystem
         _ => "不明"
     };
 
-    /// <summary>料理の品質倍率を計算（熟練度による）</summary>
+    /// <summary>料理の品質倍率を計算（熟練度による）。0未満の場合は料理失敗を意味する</summary>
     public static float CalculateQuality(int cookingProficiency)
     {
-        return 0.5f + Math.Min(cookingProficiency, 100) * 0.01f;
+        // 熟練度0: 0.3倍（低品質）、熟練度100: 1.3倍（高品質）
+        return 0.3f + Math.Min(cookingProficiency, 100) * 0.01f;
+    }
+
+    /// <summary>料理が失敗するかどうか判定（低熟練度ほど失敗しやすい）</summary>
+    public static bool CheckCookingFailure(int cookingProficiency, Random random)
+    {
+        // 熟練度0: 30%失敗、熟練度10: 20%失敗、熟練度30以上: 0%失敗
+        float failRate = Math.Max(0f, 0.3f - cookingProficiency * 0.01f);
+        return random.NextDouble() < failRate;
     }
 
     /// <summary>調理に必要なターン数を取得</summary>

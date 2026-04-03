@@ -55,14 +55,16 @@ public static class DiseaseSystem
         return randomValue < Math.Max(0.01, chance);
     }
 
+    private static readonly Random SharedRandom = new();
+
     /// <summary>自然回復判定（ターン経過）</summary>
     public static bool CheckNaturalRecovery(DiseaseType type, int remainingDuration, int vitality)
     {
         var disease = GetDisease(type);
         if (disease == null || !disease.SelfHealing) return false;
         float recoveryChance = 0.02f + vitality * 0.003f;
-        if (remainingDuration < disease.DefaultDuration / 2) recoveryChance += 0.05f;
-        return new Random().NextDouble() < recoveryChance;
+        if (remainingDuration < disease.DefaultDuration / 2.0f) recoveryChance += 0.05f;
+        return SharedRandom.NextDouble() < recoveryChance;
     }
 
     /// <summary>治療コストを計算</summary>

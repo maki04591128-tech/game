@@ -27,7 +27,7 @@ public class EnemyItemExpansionTests
     public void EnemyDefinitions_GetAllEnemies_Returns29Enemies()
     {
         var all = EnemyDefinitions.GetAllEnemies();
-        Assert.Equal(29, all.Count);
+        Assert.Equal(31, all.Count);
     }
 
     [Fact]
@@ -39,9 +39,9 @@ public class EnemyItemExpansionTests
     }
 
     [Theory]
-    [InlineData(TerritoryId.Capital, 3)]
+    [InlineData(TerritoryId.Capital, 4)]
     [InlineData(TerritoryId.Forest, 4)]
-    [InlineData(TerritoryId.Mountain, 4)]
+    [InlineData(TerritoryId.Mountain, 5)]
     [InlineData(TerritoryId.Coast, 4)]
     [InlineData(TerritoryId.Southern, 4)]
     [InlineData(TerritoryId.Frontier, 5)]
@@ -91,7 +91,7 @@ public class EnemyItemExpansionTests
     }
 
     [Theory]
-    [InlineData(1, 2)]
+    [InlineData(1, 3)]
     [InlineData(5, 4)]
     [InlineData(10, 4)]
     [InlineData(15, 4)]
@@ -380,8 +380,8 @@ public class EnemyItemExpansionTests
     public void ItemDefinitions_TotalItemCount()
     {
         var ids = ItemDefinitions.GetAllItemIds().ToList();
-        // 武器12 + 防具9 + アクセサリ3 + ポーション12 + 食料8 + 巻物11 + 素材27 = 82
-        Assert.Equal(82, ids.Count);
+        // 武器12 + 防具9 + アクセサリ3 + ポーション12 + 食料8 + 巻物11 + 素材27 + 追加素材14 = 96
+        Assert.Equal(96, ids.Count);
     }
 
     [Fact]

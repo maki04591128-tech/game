@@ -169,17 +169,25 @@ public class Phase7Expansion_BlackMarketSystemTests
 
 public class Phase7Expansion_DungeonShortcutSystemTests
 {
+    private static DungeonShortcutSystem CreateWithVisited(params (string dungeon, int floor)[] floors)
+    {
+        var sys = new DungeonShortcutSystem();
+        foreach (var (dungeon, floor) in floors)
+            sys.MarkFloorVisited(dungeon, floor);
+        return sys;
+    }
+
     [Fact]
     public void UnlockShortcut_FirstTime_ReturnsTrue()
     {
-        var sys = new DungeonShortcutSystem();
+        var sys = CreateWithVisited(("dungeon_a", 1), ("dungeon_a", 5));
         Assert.True(sys.UnlockShortcut("dungeon_a", 1, 5));
     }
 
     [Fact]
     public void UnlockShortcut_Duplicate_ReturnsFalse()
     {
-        var sys = new DungeonShortcutSystem();
+        var sys = CreateWithVisited(("dungeon_a", 1), ("dungeon_a", 5));
         sys.UnlockShortcut("dungeon_a", 1, 5);
         Assert.False(sys.UnlockShortcut("dungeon_a", 1, 5));
     }
@@ -194,7 +202,7 @@ public class Phase7Expansion_DungeonShortcutSystemTests
     [Fact]
     public void IsUnlocked_AfterUnlock_ReturnsTrue()
     {
-        var sys = new DungeonShortcutSystem();
+        var sys = CreateWithVisited(("dungeon_a", 1), ("dungeon_a", 5));
         sys.UnlockShortcut("dungeon_a", 1, 5);
         Assert.True(sys.IsUnlocked("dungeon_a", 1, 5));
     }
@@ -209,7 +217,9 @@ public class Phase7Expansion_DungeonShortcutSystemTests
     [Fact]
     public void GetShortcuts_ReturnsDungeonSpecific()
     {
-        var sys = new DungeonShortcutSystem();
+        var sys = CreateWithVisited(
+            ("dungeon_a", 1), ("dungeon_a", 5), ("dungeon_a", 10),
+            ("dungeon_b", 1), ("dungeon_b", 3));
         sys.UnlockShortcut("dungeon_a", 1, 5);
         sys.UnlockShortcut("dungeon_a", 5, 10);
         sys.UnlockShortcut("dungeon_b", 1, 3);
@@ -220,7 +230,9 @@ public class Phase7Expansion_DungeonShortcutSystemTests
     [Fact]
     public void TotalUnlocked_CountsAll()
     {
-        var sys = new DungeonShortcutSystem();
+        var sys = CreateWithVisited(
+            ("a", 1), ("a", 5), ("a", 10),
+            ("b", 1), ("b", 3));
         Assert.Equal(0, sys.TotalUnlocked);
         sys.UnlockShortcut("a", 1, 5);
         sys.UnlockShortcut("a", 5, 10);
@@ -238,7 +250,8 @@ public class Phase7Expansion_DungeonShortcutSystemTests
     [Fact]
     public void GetDeepestAccessibleFloor_MultipleShortcuts_ReturnsMax()
     {
-        var sys = new DungeonShortcutSystem();
+        var sys = CreateWithVisited(
+            ("dungeon_a", 1), ("dungeon_a", 5), ("dungeon_a", 10), ("dungeon_a", 15));
         sys.UnlockShortcut("dungeon_a", 1, 5);
         sys.UnlockShortcut("dungeon_a", 5, 10);
         sys.UnlockShortcut("dungeon_a", 10, 15);
@@ -248,7 +261,9 @@ public class Phase7Expansion_DungeonShortcutSystemTests
     [Fact]
     public void GetDeepestAccessibleFloor_DifferentDungeons_Independent()
     {
-        var sys = new DungeonShortcutSystem();
+        var sys = CreateWithVisited(
+            ("dungeon_a", 1), ("dungeon_a", 20),
+            ("dungeon_b", 1), ("dungeon_b", 5));
         sys.UnlockShortcut("dungeon_a", 1, 20);
         sys.UnlockShortcut("dungeon_b", 1, 5);
         Assert.Equal(20, sys.GetDeepestAccessibleFloor("dungeon_a"));
@@ -258,7 +273,9 @@ public class Phase7Expansion_DungeonShortcutSystemTests
     [Fact]
     public void UnlockShortcut_DifferentDungeonSameFloors_BothUnlocked()
     {
-        var sys = new DungeonShortcutSystem();
+        var sys = CreateWithVisited(
+            ("dungeon_a", 1), ("dungeon_a", 5),
+            ("dungeon_b", 1), ("dungeon_b", 5));
         Assert.True(sys.UnlockShortcut("dungeon_a", 1, 5));
         Assert.True(sys.UnlockShortcut("dungeon_b", 1, 5));
         Assert.Equal(2, sys.TotalUnlocked);
@@ -267,12 +284,19 @@ public class Phase7Expansion_DungeonShortcutSystemTests
     [Fact]
     public void GetShortcuts_ContainsCorrectFloorPairs()
     {
-        var sys = new DungeonShortcutSystem();
+        var sys = CreateWithVisited(("d", 1), ("d", 5), ("d", 10));
         sys.UnlockShortcut("d", 1, 5);
         sys.UnlockShortcut("d", 5, 10);
         var shortcuts = sys.GetShortcuts("d");
         Assert.Contains((1, 5), shortcuts);
         Assert.Contains((5, 10), shortcuts);
+    }
+
+    [Fact]
+    public void UnlockShortcut_WithoutVisiting_ReturnsFalse()
+    {
+        var sys = new DungeonShortcutSystem();
+        Assert.False(sys.UnlockShortcut("dungeon_a", 1, 5));
     }
 }
 
@@ -1050,6 +1074,15 @@ public class Phase7Expansion_PriceFluctuationSystemTests
     {
         int price = PriceFluctuationSystem.CalculateFinalPrice(1, 0.5f, 0.5f, 0.5f, 0.5f, false);
         Assert.True(price >= 1);
+    }
+
+    [Fact]
+    public void CalculateFinalPrice_SellingLessThanBuying()
+    {
+        int buyPrice = PriceFluctuationSystem.CalculateFinalPrice(100, 1.0f, 1.0f, 1.0f, 1.0f, true);
+        int sellPrice = PriceFluctuationSystem.CalculateFinalPrice(100, 1.0f, 1.0f, 1.0f, 1.0f, false);
+        Assert.True(sellPrice < buyPrice, $"Sell {sellPrice} should be less than buy {buyPrice}");
+        Assert.Equal(70, sellPrice); // 70% of buy price
     }
 }
 

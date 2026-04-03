@@ -789,7 +789,7 @@ public static class QuestDatabase
 
         new("quest_herb_collect", "薬草の採集", "森で薬草を集めてきてほしい",
             QuestType.Collect, "npc_forest_herbalist", RequiredLevel: 1, RequiredGuildRank: GuildRank.Copper,
-            Objectives: new[] { new QuestObjective("薬草を3つ集める", "item_herb", 3) },
+            Objectives: new[] { new QuestObjective("薬草を3つ集める", "material_herb", 3) },
             Reward: new QuestReward(Gold: 80, Experience: 30, GuildPoints: 8)),
 
         new("quest_forest_patrol", "森林巡回", "森林の安全を確認するため巡回してほしい",

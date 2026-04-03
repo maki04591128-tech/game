@@ -398,11 +398,13 @@ public class VersionPrt019SystemTests
     [Fact]
     public void BuildingInterior_WithVisitedBuildings_HasInterBuildingStairs()
     {
+        // 建物内から他の建物への直接移動は物理的に不自然なため廃止
+        // 訪問済み建物リストを渡しても階段は生成されないことを確認
         var generator = new LocationMapGenerator();
         var visited = new List<string> { "inn", "shop", "smithy", "guild" };
         var interior = generator.GenerateBuildingInterior("inn", visited);
 
-        // inn以外の3つの建物への階段が配置されるはず
+        // 他建物への階段が存在しないことを確認
         var entrances = new Dictionary<string, Position>();
         for (int x = 0; x < interior.Width; x++)
         {
@@ -416,19 +418,7 @@ public class VersionPrt019SystemTests
             }
         }
 
-        Assert.Equal(3, entrances.Count);
-        Assert.True(entrances.ContainsKey("shop"), "商店への階段がない");
-        Assert.True(entrances.ContainsKey("smithy"), "鍛冶屋への階段がない");
-        Assert.True(entrances.ContainsKey("guild"), "ギルドへの階段がない");
-        Assert.False(entrances.ContainsKey("inn"), "自分自身(inn)への階段があってはいけない");
-
-        // 階段は左壁(x=0)または右壁(x=width-1)に配置される
-        foreach (var kvp in entrances)
-        {
-            var pos = kvp.Value;
-            Assert.True(pos.X == 0 || pos.X == interior.Width - 1,
-                $"{kvp.Key}への階段が壁上にない: ({pos.X},{pos.Y})");
-        }
+        Assert.Empty(entrances);
     }
 
     [Fact]

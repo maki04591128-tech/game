@@ -48,6 +48,9 @@ public class Inventory : IInventory
             }
         }
 
+        if (MaxWeight > 0 && TotalWeight + item.Weight > MaxWeight)
+            return false;
+
         if (UsedSlots >= MaxSlots)
             return false;
 

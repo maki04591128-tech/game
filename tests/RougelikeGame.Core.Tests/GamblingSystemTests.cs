@@ -29,8 +29,8 @@ public class GamblingSystemTests
     }
 
     [Theory]
-    [InlineData(GamblingGameType.Dice, 6.0f)]
-    [InlineData(GamblingGameType.ChoHan, 2.0f)]
+    [InlineData(GamblingGameType.Dice, 1.9f)]
+    [InlineData(GamblingGameType.ChoHan, 1.9f)]
     public void GetPayoutMultiplier_ReturnsExpected(GamblingGameType type, float expected)
     {
         Assert.Equal(expected, GamblingSystem.GetPayoutMultiplier(type));

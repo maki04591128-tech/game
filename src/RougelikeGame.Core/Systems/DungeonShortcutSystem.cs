@@ -14,10 +14,27 @@ public class DungeonShortcutSystem
     );
 
     private readonly HashSet<(string DungeonId, int FromFloor, int ToFloor)> _unlockedShortcuts = new();
+    private readonly HashSet<(string DungeonId, int Floor)> _visitedFloors = new();
 
-    /// <summary>ショートカットを開通</summary>
+    /// <summary>階の訪問を記録</summary>
+    public void MarkFloorVisited(string dungeonId, int floor)
+    {
+        _visitedFloors.Add((dungeonId, floor));
+    }
+
+    /// <summary>階が訪問済みか確認</summary>
+    public bool IsFloorVisited(string dungeonId, int floor)
+    {
+        return _visitedFloors.Contains((dungeonId, floor));
+    }
+
+    /// <summary>ショートカットを開通（出発階と到着階の両方が訪問済みの場合のみ）</summary>
     public bool UnlockShortcut(string dungeonId, int fromFloor, int toFloor)
     {
+        // 訪問済みチェック: 両方の階を訪問済みでないとショートカット開通不可
+        if (!IsFloorVisited(dungeonId, fromFloor) || !IsFloorVisited(dungeonId, toFloor))
+            return false;
+
         return _unlockedShortcuts.Add((dungeonId, fromFloor, toFloor));
     }
 
