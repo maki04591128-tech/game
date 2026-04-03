@@ -1287,6 +1287,131 @@
 | CU-2 | GenerateDungeonFloorItem()/GenerateEnemyDropItem()がアイテム生成失敗時にCreateStone()にフォールバック。レアドロップ枠で石が出る不具合 | 中 | `ItemFactory.cs:1053,1103` | |
 | CU-3 | NpcMemorySystemがReset()で全記憶消去。転生（Rebirth）後にNPC関係性が完全リセットされるが、これが設計通りか不明確 | 低 | `NpcMemorySystem.cs:64-68` | |
 
+---
+
+## カテゴリCV: 呪文ダメージタイプ・回復計算不整合（6件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CV-1 | SpellCastingSystemのダメージタイプ決定で三項演算子が`element == Element.None ? DamageType.Magical : DamageType.Magical`。両分岐が同じ値でエレメント属性がダメージ計算に全く反映されない | 致命的 | `SpellCastingSystem.cs:369` | |
+| CV-2 | 回復呪文（graeda/blessa）がダメージ呪文と同じ`basePower = effectWord.BaseMpCost * 3`計算を使用。SpellEffectType.Healの分岐がなく回復量が不適切 | 致命的 | `SpellCastingSystem.cs:361-363` | |
+| CV-3 | 呪文のSpellEffectType（Damage/Heal/Buff/Debuff/Summon/Teleport）のうち、Summon/Teleportの実効果が空。キャストしてもログ出力のみ | 高 | `SpellCastingSystem.cs` | |
+| CV-4 | 呪文詠唱成功率(CastResult.PowerMultiplier)が0.0～2.0の範囲だが、0.0の場合でもキャスト成功として処理。威力ゼロの呪文が「成功」として発動 | 中 | `SpellCastingSystem.cs` | |
+| CV-5 | SpellCastingSystemにMP消費チェックが不十分。CastSpell()内でMP不足判定後もキャスト処理が続行する経路がある | 高 | `SpellCastingSystem.cs` | |
+| CV-6 | Element属性（Fire/Ice/Lightning/Earth/Wind/Water/Light/Dark）のうちEarth/Wind/Waterの属性相性テーブルがSpellCastingSystemに未定義 | 中 | `SpellCastingSystem.cs` | |
+
+---
+
+## カテゴリCW: コンパニオンSupportMode・ペット被ダメージ不在（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CW-1 | CompanionSystem.ProcessFollowMode()がテキスト返却のみの空実装。Supportモードのコンパニオンが戦闘補助（回復/バフ/援護攻撃）を一切行わない | 高 | `CompanionSystem.cs:143-146` | |
+| CW-2 | PetSystemにダメージ適用メソッドが完全不在。ペットがHP減少/死亡/戦闘離脱する手段がなく不死身状態 | 致命的 | `PetSystem.cs:1-138` | |
+| CW-3 | CompanionData.Hpが減少してもHP<=0時の死亡処理がない。コンパニオンもペット同様に不死身 | 致命的 | `CompanionSystem.cs` | |
+| CW-4 | コンパニオンのスキル使用メソッドが定義されているがProcessAttackMode()内でのみ使用。SupportModeではスキルが一切発動しない | 高 | `CompanionSystem.cs` | |
+| CW-5 | ペットの忠誠度(Loyalty)が0になってもデシリアライズ(CheckDesertion)が未呼出のため離反が発生しない | 中 | `PetSystem.cs` | |
+
+---
+
+## カテゴリCX: ギルドランク報酬・派閥評判追跡不在（6件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CX-1 | MerchantGuildSystem.CheckRankUp()がランク上昇を検出するが報酬（装備/ゴールド/パッシブボーナス）の配布がない | 高 | `MerchantGuildSystem.cs:86-90` | |
+| CX-2 | DungeonFactionSystemが完全な静的読み取り専用。プレイヤーの派閥評判値を追跡するフィールド/メソッドがない | 高 | `DungeonFactionSystem.cs:1-65` | |
+| CX-3 | GuildSystem.GetAvailableQuests()がギルドランクに応じたクエストフィルタリングを行わない。全ランクで同じクエストが表示 | 中 | `GuildSystem.cs` | |
+| CX-4 | MerchantGuild.TotalProfitが集計されるが特典解放条件として使用されない。利益目標達成によるボーナスなし | 中 | `MerchantGuildSystem.cs` | |
+| CX-5 | 派閥間の関係値(FactionRelation)が敵対/中立/友好の3段階だが、プレイヤーの行動で変化するメカニズムなし | 高 | `DungeonFactionSystem.cs` | |
+| CX-6 | GuildPoints取得がExecuteTrade()のみ。クエスト完了/ダンジョン探索でのGuildPoints付与なし | 中 | `MerchantGuildSystem.cs` | |
+
+---
+
+## カテゴリCY: クラフト素材消費・強化曲線不整合（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CY-1 | CraftingSystem.Craft()内のinventory.RemoveItem()戻り値（bool）を無視。素材除去に失敗してもクラフトが成功する | 致命的 | `CraftingSystem.cs:125-128` | |
+| CY-2 | 装備強化(EnhanceEquipment)の成功率がLv5:55%→Lv6:40%→Lv7:25%→Lv8:15%→Lv9:10%→Lv10:5%と極端に低下。+6以降が実質強化不能 | 中 | `CraftingSystem.cs:151-167` | |
+| CY-3 | 強化失敗時のペナルティが定義されていない。失敗しても素材のみ消費で装備レベル維持。強化失敗のリスクが低すぎる | 低 | `CraftingSystem.cs:174-190` | |
+| CY-4 | CanCraft()チェック通過後にCraft()実行するが、並行アクションでインベントリが変化した場合の再検証がない | 高 | `CraftingSystem.cs:100-130` | |
+| CY-5 | EnhancementLevelの上限チェック(>=10)がEnhanceEquipment()内のみ。ItemFactory経由で生成される装備にEnhancementLevel初期値の保証なし | 中 | `CraftingSystem.cs:174-175` | |
+
+---
+
+## カテゴリCZ: ショップ在庫・建設効果・領地価格不整合（6件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| CZ-1 | ClearShopInventory()がテリトリー変更時に呼ばれるが、直後にInitializeShop()が呼ばれない。新テリトリーのショップが空のまま | 高 | `WorldMapSystem.cs:476-479`, `GameController.cs:4969` | |
+| CZ-2 | GetTerritoryPriceMultiplier()の領地別価格倍率（山岳1.2x/南部1.3x/辺境1.5x）がBuy()/Sell()の価格計算に未適用 | 高 | `WorldMapSystem.cs:516-525` | |
+| CZ-3 | BaseConstructionSystem.GetDailyFoodProduction()が値を返すがGameControllerから一度も呼ばれない。建設した農場/畑の食料生産が無効 | 高 | `BaseConstructionSystem.cs:120` | |
+| CZ-4 | GetRestHpRecoveryMultiplier()の建物ボーナスがTownSystem.RestAtInn()に未適用。宿屋は常にplayer.Heal(player.MaxHp)固定 | 高 | `BaseConstructionSystem.cs:102`, `TownSystem.cs:379` | |
+| CZ-5 | ReputationSystemのGetShopDiscount()がBuy()メソッド内の価格計算に未接続。評判による値引きが機能しない | 中 | `ReputationSystem.cs:53-63` | |
+| CZ-6 | ショップ在庫にランダム性がない。同じテリトリーで常に同じアイテムリストが表示される | 中 | `WorldMapSystem.cs` | |
+
+---
+
+## カテゴリDA: ターン処理・時間経過スキップ（6件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DA-1 | ProcessTurnEffects()（空腹/渇き/疲労/HP回復/状態異常ティック等）がスキル使用/宿屋利用/教会訪問等の多数のアクションで呼ばれない。ターン経過系効果がスキップされる | 致命的 | `GameController.cs:2050-2300` | |
+| DA-2 | StatusEffectsのTickが ProcessTurnEffects()内のみで実行。ProcessTurnEffects()がスキップされるとバフ/デバフの残りターン数が減少せず永続化する | 致命的 | `GameController.cs:2184` | |
+| DA-3 | KarmaSystem.SetCurrentTurn()の呼び出しがGameController内に不在。カルマのターン連動機能（時間減衰等）が動作しない | 高 | `KarmaSystem.cs`, `GameController.cs` | |
+| DA-4 | ReputationSystemにターン経過による評判減衰メソッドが存在しない。一度上げた評判が永久に維持される | 高 | `ReputationSystem.cs:31-41` | |
+| DA-5 | ペットの空腹ティック(PetSystem.TickHunger)がProcessTurnEffects()内に含まれていない。ペットの空腹が進行しない | 高 | `PetSystem.cs`, `GameController.cs` | |
+| DA-6 | 日変更検出(DayChanged)がGameTimeシステムに未実装。デイリーリセット（ショップ在庫/宗教祈り/イベント制限）が発動しない | 致命的 | `GameController.cs` | |
+
+---
+
+## カテゴリDB: カルマ閾値・評判効果デッドコード（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DB-1 | KarmaSystem.GetShopPriceModifier()がカルマランクに応じた価格修飾子を返すが、ShopSystem/TownSystemのBuy()/Sell()から呼ばれない | 高 | `KarmaSystem.cs:60-70` | |
+| DB-2 | KarmaSystem.GetNpcDispositionModifier()がNPC態度修飾子を返すが、NpcSystem/DialogueSystemから参照されない | 高 | `KarmaSystem.cs:72-83` | |
+| DB-3 | カルマ閾値（Saint≥80/Criminal≤-49等）を跨いだ際のイベント通知がない。プレイヤーがカルマ変動に気づけない | 中 | `KarmaSystem.cs:37-46` | |
+| DB-4 | ModifyKarma()のトリガーがGameController内にわずか3箇所（処刑-5/密輸-5/闇市場-2）のみ。NPC殺害/窃盗/善行/寄付等の主要アクションにカルマ変動がない | 高 | `GameController.cs:1522,7646,7709` | |
+| DB-5 | ReputationSystem.IsWelcome()がテリトリー入場可否を返すが、WorldMapSystem.TravelTo()で未チェック。評判最低でもどの領地にも入れる | 中 | `ReputationSystem.cs`, `WorldMapSystem.cs` | |
+
+---
+
+## カテゴリDC: 死亡ログ未記録・ゲームオーバーフロー不備（6件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DC-1 | DeathLogSystem.AddLog()がHandlePlayerDeath()フロー内で一度も呼ばれない。死亡ログが永久に空のまま | 致命的 | `GameController.cs:3011-3076`, `DeathLogSystem.cs` | |
+| DC-2 | GameOverSystem.GameOverChoiceにRebirthオプションが定義されているが、ゲームオーバーUIにリスタート/転生選択肢が表示されない | 高 | `GameOverSystem.cs:9-16`, `MainWindow.xaml.cs:631-643` | |
+| DC-3 | パーマデス（Ironmanモード）でのゲームオーバー時にDeleteSaveAsync()が呼ばれない。セーブファイルが残存し復帰可能 | 致命的 | `GameController.cs:3063-3076`, `Interfaces.cs:159` | |
+| DC-4 | HandlePlayerDeath()のdeath cause判定で、状態異常死（毒/出血/飢餓）の死因テキストが汎用「力尽きた」のみ。詳細な死因記録がない | 中 | `GameController.cs:3028-3038` | |
+| DC-5 | ExecuteRebirth()がSanity>0の場合のみ実行可能だが、Sanity<=0時の処理分岐（完全ゲームオーバー）にセーブ削除やスコア記録がない | 高 | `GameController.cs:3085-3160` | |
+| DC-6 | 死亡統計（死亡回数/最頻死因/最長生存ターン）の集計・表示機能が不在。DeathLogSystemがデータを持つが閲覧UIなし | 中 | `DeathLogSystem.cs` | |
+
+---
+
+## カテゴリDD: 自動探索・パス計算不完全（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DD-1 | AutoExploreSystemがCheckStopConditions()で停止条件を検出できるが、FindPath()/GetNextStep()等の経路計算メソッドが存在しない | 致命的 | `AutoExploreSystem.cs:31-49` | |
+| DD-2 | 自動探索停止条件にHunger/Thirst/Fatigueの危険閾値チェックがない。体力危険状態でも探索を続行する | 高 | `AutoExploreSystem.cs` | |
+| DD-3 | DungeonGenerator内のBFS経路探索(Lines 412-456)にイテレーション上限がない。理論上は有界だが、大マップでのパフォーマンス保証がない | 中 | `DungeonGenerator.cs:412-456` | |
+| DD-4 | _autoExploring/_autoExploreTargetStairsUpの状態がSaveDataに未保存。セーブ→ロード時に自動探索が中断される | 中 | `GameController.cs:102-105` | |
+| DD-5 | 自動探索中にボスフロアに到達した場合の強制停止条件がない。ボス戦に意図せず突入するリスク | 高 | `AutoExploreSystem.cs`, `GameController.cs` | |
+
+---
+
+## カテゴリDE: タイル表示文字・ボス部屋生成エッジケース（5件）
+
+| # | 問題 | 重要度 | 場所 | 修正判断 |
+|---|------|--------|------|---------|
+| DE-1 | Tile.GetDisplayChar()のswitchにTileType.NpcTrainerが欠落。トレーナーNPCのマップ表示が'?'になる | 高 | `Tile.cs:476-525` | |
+| DE-2 | Tile.GetDisplayChar()のswitchにTileType.NpcLibrarianが欠落。図書館NPCのマップ表示が'?'になる | 高 | `Tile.cs:476-525` | |
+| DE-3 | DungeonGenerator.GenerateDungeon()でrooms.Count==1の場合、ボス部屋タイプが未設定。ボスフロアで単一部屋生成時にボス未配置 | 致命的 | `DungeonGenerator.cs:127-135` | |
+| DE-4 | ボス部屋配置が最遠部屋選択のみ。部屋サイズ（小部屋にボス）や接続数（袋小路）の検証がなく不適切な部屋がボス部屋になる | 中 | `DungeonGenerator.cs` | |
+| DE-5 | マップ内のWater/Lavaタイルが定義(TileType enum)されているがDungeonGeneratorの通常フロア生成で配置されない。テーマダンジョン以外で環境タイルが不在 | 中 | `DungeonGenerator.cs`, `Tile.cs` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -1387,7 +1512,17 @@
 | **CS: 誓約・タブー・実効果未実装** | **0** | **2** | **2** | **0** | **0** | **4** |
 | **CT: 空腹ダメージ・攻撃タイプバランス** | **0** | **2** | **2** | **0** | **0** | **4** |
 | **CU: アイテム生成・Create()null返却** | **0** | **1** | **1** | **1** | **0** | **3** |
-| **合計** | **132** | **220** | **191** | **39** | **1** | **583** |
+| **CV: 呪文ダメージタイプ・回復計算不整合** | **2** | **2** | **2** | **0** | **0** | **6** |
+| **CW: コンパニオンSupportMode・ペット被ダメージ不在** | **2** | **2** | **1** | **0** | **0** | **5** |
+| **CX: ギルドランク報酬・派閥評判追跡不在** | **0** | **3** | **3** | **0** | **0** | **6** |
+| **CY: クラフト素材消費・強化曲線不整合** | **1** | **1** | **2** | **1** | **0** | **5** |
+| **CZ: ショップ在庫・建設効果・領地価格不整合** | **0** | **4** | **2** | **0** | **0** | **6** |
+| **DA: ターン処理・時間経過スキップ** | **3** | **3** | **0** | **0** | **0** | **6** |
+| **DB: カルマ閾値・評判効果デッドコード** | **0** | **3** | **2** | **0** | **0** | **5** |
+| **DC: 死亡ログ未記録・ゲームオーバーフロー不備** | **2** | **2** | **2** | **0** | **0** | **6** |
+| **DD: 自動探索・パス計算不完全** | **1** | **2** | **2** | **0** | **0** | **5** |
+| **DE: タイル表示文字・ボス部屋生成エッジケース** | **1** | **2** | **2** | **0** | **0** | **5** |
+| **合計** | **144** | **244** | **209** | **40** | **1** | **638** |
 
 ---
 
@@ -1397,10 +1532,10 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（132件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（220件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（191件）: 違和感・バランス問題 → 選択的に修正
-4. **低**（39件）: 軽微なテーマ不一致 → 余裕があれば修正
+1. **致命的**（144件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（244件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（209件）: 違和感・バランス問題 → 選択的に修正
+4. **低**（40件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（1件）: アーキテクチャ改善 → 長期検討
 
 ### 新規追加カテゴリの概要（第2回調査分）
@@ -1516,3 +1651,15 @@
 - **CS: 誓約・タブー・実効果未実装** — OathSystem違反検出が自動化されていない。誓約完了条件(CompleteOath)なし。SP上限未強制。職業別SP消費なし
 - **CT: 空腹ダメージ・攻撃タイプバランス** — Starving DamagePerTurn=0(飢餓ダメージなし)。Starvation DamagePerTurn=999(即死)。XPオーバーフロー未チェック。レベルアップ時のステータス即時反映なし
 - **CU: アイテム生成・Create()null返却** — ItemFactory.Create()がnull返却可能でNullRefリスク。生成失敗時にStoneフォールバック。NpcMemory転生リセットの設計意図不明確
+
+### 新規追加カテゴリの概要（第14回調査分）
+- **CV: 呪文ダメージタイプ・回復計算不整合** — DamageType三項演算子が両分岐Magical固定でエレメント属性無効。回復呪文がダメージ計算式を共用。Summon/Teleportが空実装。威力0呪文が成功扱い。MP消費チェック不十分。Earth/Wind/Water属性相性テーブル未定義
+- **CW: コンパニオンSupportMode・ペット被ダメージ不在** — ProcessFollowMode()がテキスト返却のみの空実装。PetSystemにダメージ適用メソッド不在でペット不死身。コンパニオンHP<=0時の死亡処理なし。SupportModeスキル不発動。ペット忠誠度0でもCheckDesertion未呼出
+- **CX: ギルドランク報酬・派閥評判追跡不在** — MerchantGuildランクアップ報酬配布なし。DungeonFactionSystemがプレイヤー評判値を追跡しない静的読み取り専用。ギルドランクによるクエストフィルタなし。TotalProfit特典なし。派閥関係値がプレイヤー行動で変化しない。GuildPoints取得がTrade限定
+- **CY: クラフト素材消費・強化曲線不整合** — RemoveItem()戻り値無視で素材消費バイパス可能。強化成功率がLv6以降急落し+6が実質上限。強化失敗ペナルティ未定義。CanCraft→Craft間のインベントリ再検証なし。EnhancementLevel初期値保証なし
+- **CZ: ショップ在庫・建設効果・領地価格不整合** — テリトリー変更後にショップ再初期化なし。領地別価格倍率がBuy/Sell未適用。食料生産メソッド未呼出。宿屋HP回復に建設ボーナス未適用。評判値引きBuy()未接続。ショップ在庫にランダム性なし
+- **DA: ターン処理・時間経過スキップ** — ProcessTurnEffects()が多数アクションで未呼出。StatusEffectsティックスキップでバフ永続化。KarmaSystem.SetCurrentTurn()未呼出。評判減衰メカニズム不在。ペット空腹ティック未呼出。日変更検出未実装
+- **DB: カルマ閾値・評判効果デッドコード** — GetShopPriceModifier/GetNpcDispositionModifierが完全デッドコード。カルマ閾値変動通知なし。ModifyKarma()トリガーが3箇所のみ。IsWelcome()がTravelTo()で未チェック
+- **DC: 死亡ログ未記録・ゲームオーバーフロー不備** — DeathLogSystem.AddLog()がHandlePlayerDeath()で未呼出。ゲームオーバーUIにリスタート/転生選択肢なし。Ironmanモードでセーブ未削除。状態異常死の死因テキストが汎用のみ。Sanity<=0時のセーブ削除/スコア記録なし。死亡統計閲覧UI不在
+- **DD: 自動探索・パス計算不完全** — AutoExploreSystemにFindPath()/GetNextStep()不在。空腹/渇き/疲労の危険閾値停止条件なし。BFS経路探索にイテレーション上限なし。自動探索状態がSaveData未保存。ボスフロア到達時の強制停止条件なし
+- **DE: タイル表示文字・ボス部屋生成エッジケース** — NpcTrainer/NpcLibrarianのGetDisplayChar()ケース欠落で'?'表示。単一部屋ダンジョンでボス部屋未設定。ボス部屋選択で部屋サイズ/接続数未検証。Water/Lavaタイルが通常フロアに未配置
