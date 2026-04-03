@@ -2074,6 +2074,129 @@
 | FX-2 | MaxDungeonFloorがBossFloorIntervalの倍数の場合（例: Floor25でInterval=5）、フロアボスとダンジョン固有ボスが同時配置される可能性。ボス配置条件の優先度が不明確 | 中 | `GameController.cs` | |
 | FX-3 | HP自然回復条件のHungerStage<=Normal判定。HungerStage列挙値の大小関係でFullよりNormalが小さい場合、満腹時に回復しない可能性。列挙値順序の暗黙依存 | 中 | `GameController.cs` | |
 
+### カテゴリFY: BaseConstructionSystem素材未消費・HPベースライン不整合
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| FY-1 | Build()がfacility種別を_builtセットに追加するが、素材・ゴールドの消費処理が一切ない。無限に全施設を即座に建設可能 | 致命的 | `BaseConstructionSystem.cs:Build()` | |
+| FY-2 | GetTotalBonus()のhpRecovery初期値が1.0f。施設未建設でもHP回復倍率1.0xが返却され、施設建設の有無が基本回復に影響しない設計矛盾 | 高 | `BaseConstructionSystem.cs:GetTotalBonus()` | |
+| FY-3 | CalculateDefenseRating()のBarracks防御値10とGetTotalBonus()のBarracks hpRecovery+0.5fが分離管理。施設効果が2メソッドに分散し一覧性が欠如 | 中 | `BaseConstructionSystem.cs:73,89` | |
+
+### カテゴリFZ: BackgroundClearSystemフラグ復元・ハードコード条件
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| FZ-1 | RestoreFromSave()がdataパラメータのnullチェックなし。破損セーブデータでNullReferenceException発生 | 高 | `BackgroundClearSystem.cs:RestoreFromSave()` | |
+| FZ-2 | IsClearConditionMet()がハードコードされたstring値（"merchant_deal","arena_win"等）でswitch分岐。新Background追加時にサイレント失敗（false返却） | 高 | `BackgroundClearSystem.cs:IsClearConditionMet()` | |
+| FZ-3 | SetFlag()/IncrementFlag()にフラグ名の空文字・null・重複チェックなし。不正エントリ登録可能 | 低 | `BackgroundClearSystem.cs:20-32` | |
+
+### カテゴリGA: CharacterCreation種族特性未実装・バランス不整合
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GA-1 | Slime種族の特性「装備制限」がトレイト文字列として定義されているが、EquipmentSystemで装備制限チェックが一切実装されていない。文字列定義のみのデッドデータ | 高 | `CharacterCreation.cs:Slime` | |
+| GA-2 | Demon ExpMultiplier=0.85でUndead=0.9より低い。Demonの高ステータス（Str3/Vit3/Mind2）に対する経験値ペナルティの根拠文書なし | 中 | `CharacterCreation.cs:65` | |
+| GA-3 | FallenAngel HpBonus=0/MpBonus=25でHP補正なし。高Agility(2)/Mind(3)でガラスキャノン設計だがHP0補正の意図が設計書に未記載 | 中 | `CharacterCreation.cs:68-69` | |
+| GA-4 | GrowthSystemで種族/クラス未定義時にHuman/Fighterへサイレントフォールバック。新種族追加時にバランス破壊がログ出力なしで発生 | 高 | `GrowthSystem.cs:85-90` | |
+
+### カテゴリGB: DifficultySettings難易度逆転・飢餓倍率
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GB-1 | Ironman EnemyStatMultiplier=1.3/DamageDealt=1.0 vs Nightmare EnemyStatMultiplier=1.6/DamageDealt=0.8。パーマデス有りのIronmanがNightmareより数値的に簡単 | 高 | `DifficultySettings.cs:159-172` | |
+| GB-2 | Easy HungerDecayMultiplier=0.5 vs Nightmare=1.5。3倍の飢餓速度増加が被ダメ1.6xより体感的に過酷。難易度パラメータ間の影響度バランスが未検証 | 中 | `DifficultySettings.cs:98,149` | |
+| GB-3 | Nightmare ExpMultiplier=0.6で経験値40%減。他の難易度増加（敵強化・飢餓加速・探索制限）との複合で実質クリア不可能な難易度カーブ | 高 | `DifficultySettings.cs:149` | |
+
+### カテゴリGC: AutoExploreSystem優先度計算・停止条件順序
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GC-1 | CheckStopConditions()がtrapNearby→hpRatio<0.3の順でチェック。HP危険時でも罠検知が優先され、低HPプレイヤーが罠回避に誘導される（生存優先度の逆転） | 中 | `AutoExploreSystem.cs:41-47` | |
+| GC-2 | CalculateExplorationPriority()が nearbyUndiscoveredCount*2.0f - distanceToTile で計算。未発見タイルなし・距離10+の場合に負の優先度が発生し、優先度ソートが不正確 | 中 | `AutoExploreSystem.cs:69` | |
+| GC-3 | CheckStopConditions()の全パラメータfalse/0時にnull（探索続行）を返却。完全探索済みマップで停止判定されない可能性 | 中 | `AutoExploreSystem.cs:47` | |
+
+### カテゴリGD: GamblingSystem中毒判定・Sanity影響係数
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GD-1 | CheckAddiction()のrisk計算: consecutiveGambles*0.05f - sanity*0.001f。Sanity係数0.001fがGamble係数0.05fの1/50で影響が微弱。Sanity100でも0.1fの減算のみで中毒抑制に殆ど寄与しない | 高 | `GamblingSystem.cs:67` | |
+| GD-2 | Luck寄与がluck*0.005fでキャップ0.05f（最大+5%配当）。高Luck投資の見返りが僅少でギャンブルにおけるLuckの意義が形骸化 | 中 | `GamblingSystem.cs:43` | |
+| GD-3 | 中毒閾値0.3fがハードコード。難易度・キャラ特性・ゲーム進行による動的調整なし | 低 | `GamblingSystem.cs:68` | |
+
+### カテゴリGE: BlackMarketSystemカルマ閾値・検知リスク
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GE-1 | CanAccess()のkarma<=-20条件とアイテムのRequiredKarma（-50等）で二重閾値チェック。アクセス可能だがアイテム購入不可の中間状態が意図不明 | 中 | `BlackMarketSystem.cs:27,33` | |
+| GE-2 | CalculateDetectionRisk()の(dexterity+luck)*0.005fリスク減算が無制限。DEX100+LUK100で1.0f減算でリスクがゼロ以下に到達可能 | 中 | `BlackMarketSystem.cs:40-43` | |
+| GE-3 | GetAllItems()が内部Itemsリストを直接返却。呼び出し元でのリスト変更がシステム状態を破壊する防御的コピー欠如 | 低 | `BlackMarketSystem.cs:37` | |
+
+### カテゴリGF: RelationshipSystemディスカウント範囲不連続
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GF-1 | GetShopDiscount()の関係値-49～-20の範囲にケースなし。この範囲がデフォルト0%にフォールスルーし、Hostile状態でも割引ペナルティなし | 中 | `RelationshipSystem.cs:54-58` | |
+| GF-2 | 関係値<=-50で一律-10%（値上げ）。-100の極端な敵対状態でも同一ペナルティでスケーリングなし | 低 | `RelationshipSystem.cs:57` | |
+| GF-3 | NormalizeKey()による双方向キー生成でSetRelation(Type,"A","B",50)とSetRelation(Type,"B","A",30)が異なるキーを生成し値が矛盾する可能性 | 中 | `RelationshipSystem.cs:73-76` | |
+
+### カテゴリGG: CookingSystem品質計算・失敗チェック未呼出（補足）
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GG-1 | CalculateQuality()のドキュメントが「0未満で料理失敗」と記載しているが、実装は0.3f+αで常に正値を返却。ドキュメントと実装の乖離 | 中 | `CookingSystem.cs:48,52` | |
+| GG-2 | cookingProficiency>=30で失敗率0%。熟練度30が実質的な料理マスターだが、ゲーム進行でのプロフィシェンシーレベル30到達が容易すぎる可能性 | 低 | `CookingSystem.cs:59` | |
+
+### カテゴリGH: AchievementSystem実績ボーナス無制限スタック
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GH-1 | CalculateNextPlayBonus()で同一BonusEffectタイプの実績が加算的にスタック。上限なしで10+実績×5ポイント=50+の無制限ステータスボーナス取得可能 | 高 | `AchievementSystem.cs:84-95` | |
+| GH-2 | BonusEffect文字列のswitch式でデフォルトが0返却。タイプミスのBonusEffectがサイレント無視でボーナスが適用されない | 中 | `AchievementSystem.cs:86` | |
+| GH-3 | Unlock()のcurrentTurnデフォルト値0で初期実績のUnlockTurnが全て0に設定される可能性 | 低 | `AchievementSystem.cs:57` | |
+
+### カテゴリGI: DungeonEcosystem捕食関係・危険度推定
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GI-1 | ProcessInteraction()で捕食関係未定義の異種族間インタラクションがnull返却でサイレント無視。ログ出力なしで生態系シミュレーションが不完全 | 中 | `DungeonEcosystemSystem.cs:62-84` | |
+| GI-2 | RegisterRelation()のPredationChanceをClamp(0,100)するがProcessInteraction()でPredationChanceを使用していない。登録データがデッドフィールド | 中 | `DungeonEcosystemSystem.cs:52,65` | |
+| GI-3 | EstimateDangerLevel()がAverage()のint変換で切り捨て。5.4→5と5.6→5で実質的に同一危険度と判定 | 低 | `DungeonEcosystemSystem.cs:103` | |
+
+### カテゴリGJ: DungeonFaction敵対閾値・関係定義カバレッジ
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GJ-1 | 7+種族に対し11関係のみ定義。未定義ペアのデフォルト敵対度0.4fで大半の種族間関係が同一の「やや警戒」に。生態系の多様性が欠如 | 中 | `DungeonFactionSystem.cs:13,34-40` | |
+| GJ-2 | AreHostile()/AreAllied()の閾値>0.5f/<0.3fで、丁度0.5f/0.3fの関係値が敵対にも同盟にもならず未分類状態 | 低 | `DungeonFactionSystem.cs:44-52` | |
+
+### カテゴリGK: TrapCraftingSystem効率上限なし・スキル検証欠如
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GK-1 | 効率ボーナス計算(smithingLevel-RequiredSmithing)*0.02fに上限なし。smithingLevel=1000でefficiency=20.96f。罠効果が約21倍に増幅 | 中 | `TrapCraftingSystem.cs:48-49` | |
+| GK-2 | smithingLevel<RequiredSmithingの事前チェックなし。Math.Max(0,bonus)で負値防止しているが、低スキルでの罠作成を許可する設計意図が不明 | 低 | `TrapCraftingSystem.cs:48` | |
+
+### カテゴリGL: DirectionSystem方向判定・高低差ボーナス
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GL-1 | DetermineAttackDirection()が8方向を3結果(Front/Back/Side)に集約。NE→N攻撃とE→N攻撃が同一Sideカテゴリで背面判定の精度が低い | 中 | `DirectionSystem.cs:32-44` | |
+| GL-2 | GetElevationBonus()の低所→高所でダメージ-0.10f/命中-0.15f。高所有利は直感的だが、防御側の高所ボーナスが攻撃側にのみペナルティとして適用される非対称設計 | 中 | `DirectionSystem.cs:50-58` | |
+
+### カテゴリGM: ContextHelpSystemチュートリアル完了重複
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GM-1 | CompleteTutorialStep()で完了済みステップの二重完了チェックなし。同一ステップを複数回完了マーク可能 | 中 | `ContextHelpSystem.cs:86-93` | |
+| GM-2 | _tutorialEnabled=false時にGetCurrentTutorial()がnull返却。チュートリアル無効化後の進捗状態が保持されず、再有効化時に全ステップ再実行 | 低 | `ContextHelpSystem.cs:78-83` | |
+
+### カテゴリGN: AccessibilitySystem色変換・ゲーム速度
+
+| ID | 不整合内容 | 重大度 | 関連コード | 修正判断 |
+|----|-----------|--------|-----------|---------|
+| GN-1 | TransformColor()にnull/空文字チェックなし。null入力時にサイレント失敗またはNullReferenceException | 中 | `AccessibilitySystem.cs:99-108` | |
+| GN-2 | CalculateEffectiveTurnDelay()のMath.Max(0.1f)がSetGameSpeedMultiplier()のClamp(0.25f,2.0f)と重複。0.1f下限が到達不能なデッドコード | 低 | `AccessibilitySystem.cs:119` | |
+
 |---------|--------|---|---|---|---------|------|
 | A: 商人・ショップ | 0 | 4 | 4 | 0 | 1 | 9 |
 | B: アイテム・消耗品 | 6 | 6 | 1 | 0 | 0 | 13 |
@@ -2255,7 +2378,23 @@
 | **FV: EnchantmentSystem DefenseBoost・強化金消費** | **0** | **1** | **2** | **0** | **0** | **3** |
 | **FW: BodyConditionSystem疲労二重定義・衛生感染** | **0** | **0** | **2** | **0** | **0** | **2** |
 | **FX: GameController疾病DeathCause・ボス二重配置** | **0** | **1** | **2** | **0** | **0** | **3** |
-| **合計** | **165** | **315** | **343** | **88** | **2** | **924** |
+| **FY: BaseConstructionSystem素材未消費・HPベースライン不整合** | **1** | **1** | **1** | **0** | **0** | **3** |
+| **FZ: BackgroundClearSystemフラグ復元・ハードコード条件** | **0** | **2** | **0** | **1** | **0** | **3** |
+| **GA: CharacterCreation種族特性未実装・バランス不整合** | **0** | **2** | **2** | **0** | **0** | **4** |
+| **GB: DifficultySettings難易度逆転・飢餓倍率** | **0** | **2** | **1** | **0** | **0** | **3** |
+| **GC: AutoExploreSystem優先度計算・停止条件順序** | **0** | **0** | **3** | **0** | **0** | **3** |
+| **GD: GamblingSystem中毒判定・Sanity影響係数** | **0** | **1** | **1** | **1** | **0** | **3** |
+| **GE: BlackMarketSystemカルマ閾値・検知リスク** | **0** | **0** | **2** | **1** | **0** | **3** |
+| **GF: RelationshipSystemディスカウント範囲不連続** | **0** | **0** | **2** | **1** | **0** | **3** |
+| **GG: CookingSystem品質計算・失敗チェック未呼出（補足）** | **0** | **0** | **1** | **1** | **0** | **2** |
+| **GH: AchievementSystem実績ボーナス無制限スタック** | **0** | **1** | **1** | **1** | **0** | **3** |
+| **GI: DungeonEcosystem捕食関係・危険度推定** | **0** | **0** | **2** | **1** | **0** | **3** |
+| **GJ: DungeonFaction敵対閾値・関係定義カバレッジ** | **0** | **0** | **1** | **1** | **0** | **2** |
+| **GK: TrapCraftingSystem効率上限なし・スキル検証欠如** | **0** | **0** | **1** | **1** | **0** | **2** |
+| **GL: DirectionSystem方向判定・高低差ボーナス** | **0** | **0** | **2** | **0** | **0** | **2** |
+| **GM: ContextHelpSystemチュートリアル完了重複** | **0** | **0** | **1** | **1** | **0** | **2** |
+| **GN: AccessibilitySystem色変換・ゲーム速度** | **0** | **0** | **1** | **1** | **0** | **2** |
+| **合計** | **166** | **324** | **365** | **100** | **2** | **968** |
 
 ---
 
@@ -2265,9 +2404,9 @@
 確定した修正対象をまとめて実装する。
 
 ### 修正優先度の目安
-1. **致命的**（165件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
-2. **高**（315件）: 設計と実装の明確な乖離 → 修正推奨
-3. **中**（343件）: 違和感・バランス問題 → 選択的に修正
+1. **致命的**（166件）: 使用するとクラッシュ/データ消失/機能しない → 最優先で修正推奨
+2. **高**（324件）: 設計と実装の明確な乖離 → 修正推奨
+3. **中**（365件）: 違和感・バランス問題 → 選択的に修正
 4. **低**（88件）: 軽微なテーマ不一致 → 余裕があれば修正
 5. **設計課題**（2件）: アーキテクチャ改善 → 長期検討
 
@@ -2479,3 +2618,21 @@
 - **FV: EnchantmentSystem DefenseBoost・強化金消費** — DefenseBoostがswitch式でケースなし0ボーナス返却。エンチャント失敗時も200ゴールド消費。強化+6が実質上限
 - **FW: BodyConditionSystem疲労二重定義・衛生感染** — FatigueStage/FatigueLevel二重オーバーロード。Foul衛生の4.0x感染倍率で複数疾病スタッキング可能
 - **FX: GameController疾病DeathCause・ボス二重配置** — 疾病死の死因がUnknown記録。MaxDungeonFloor=BossFloorInterval倍数時の二重ボス配置。HP回復条件のenum値順序依存
+
+### 新規追加カテゴリの概要（第21回調査分）
+- **FY: BaseConstructionSystem素材未消費・HPベースライン不整合** — Build()が素材・ゴールド消費なしで全施設建設可能。GetTotalBonus()のhpRecovery初期値1.0fで施設有無が基本回復に影響しない。防御値と回復値の分離管理
+- **FZ: BackgroundClearSystemフラグ復元・ハードコード条件** — RestoreFromSave()のnullチェック欠如。IsClearConditionMet()のハードコードstring分岐で新Background追加時にサイレント失敗。フラグ名バリデーションなし
+- **GA: CharacterCreation種族特性未実装・バランス不整合** — Slime「装備制限」トレイトが文字列のみで未実装。Demon ExpMultiplier低設定の根拠文書なし。GrowthSystemの種族/クラス未定義時のサイレントフォールバック
+- **GB: DifficultySettings難易度逆転・飢餓倍率** — IronmanがNightmareより数値的に簡単（敵強化1.3x vs 1.6x）。飢餓速度3倍がダメージ増加より過酷。Nightmare ExpMultiplier=0.6で実質クリア不能
+- **GC: AutoExploreSystem優先度計算・停止条件順序** — 罠検知がHP危険より優先（生存優先度逆転）。負の優先度スコア発生。完全探索済みで停止しない可能性
+- **GD: GamblingSystem中毒判定・Sanity影響係数** — Sanity係数がGamble係数の1/50で中毒抑制に殆ど寄与しない。Luck寄与が最大+5%で形骸化。中毒閾値ハードコード
+- **GE: BlackMarketSystemカルマ閾値・検知リスク** — アクセス可能だがアイテム購入不可の中間状態。検知リスク減算が無制限。内部リストの防御的コピー欠如
+- **GF: RelationshipSystemディスカウント範囲不連続** — 関係値-49～-20でディスカウントケースなし。極端な敵対でもスケーリングなし。双方向キー生成での値矛盾
+- **GG: CookingSystem品質計算・失敗チェック未呼出（補足）** — ドキュメントの「0未満で失敗」と実装の常時正値返却の乖離。熟練度30で失敗率0%の到達容易性
+- **GH: AchievementSystem実績ボーナス無制限スタック** — 同一BonusEffectタイプの実績が無制限スタック。タイプミスのサイレント無視。UnlockTurnデフォルト0問題
+- **GI: DungeonEcosystem捕食関係・危険度推定** — 未定義種族間インタラクションのサイレント無視。PredationChanceがデッドフィールド。危険度のint切り捨て
+- **GJ: DungeonFaction敵対閾値・関係定義カバレッジ** — 7+種族に11関係のみで大半がデフォルト0.4f。閾値境界値の未分類状態
+- **GK: TrapCraftingSystem効率上限なし・スキル検証欠如** — 高スキルで罠効果21倍に増幅。低スキル罠作成の許可/禁止ポリシー不明
+- **GL: DirectionSystem方向判定・高低差ボーナス** — 8方向を3結果に集約で背面判定精度低下。高低差ペナルティの非対称設計
+- **GM: ContextHelpSystemチュートリアル完了重複** — 同一ステップの二重完了マーク可能。無効化後の進捗状態未保持
+- **GN: AccessibilitySystem色変換・ゲーム速度** — TransformColor()のnullチェック欠如。ゲーム速度下限のデッドコード
