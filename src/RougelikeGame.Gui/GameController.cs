@@ -1469,6 +1469,9 @@ public class GameController
 
     private void Attack(Enemy enemy)
     {
+        // AR-8: 誓約違反チェック
+        CheckOathViolation("attack_enemy");
+
         var result = _combatSystem.ExecuteAttack(Player, enemy, AttackType.Slash);
 
         // === GUI統合: 戦闘システム修飾 ===
@@ -7578,6 +7581,21 @@ public class GameController
 
     /// <summary>誓約システム</summary>
     public OathSystem GetOathSystem() => _oathSystem;
+
+    /// <summary>AR-8: 誓約違反チェック</summary>
+    private void CheckOathViolation(string action)
+    {
+        foreach (var oath in _oathSystem.ActiveOaths.ToList())
+        {
+            if (_oathSystem.IsViolation(oath, action))
+            {
+                AddMessage($"⚠ 誓約「{OathSystem.GetDefinition(oath)?.Name ?? oath.ToString()}」に違反した！誓約が解除された。");
+                _oathSystem.BreakOath(oath);
+                // 違反ペナルティ: 信仰度低下
+                Player.AddFaithPoints(-10);
+            }
+        }
+    }
 
     /// <summary>投資システム</summary>
     public InvestmentSystem GetInvestmentSystem() => _investmentSystem;
