@@ -1436,23 +1436,23 @@ public class Phase6Expansion_SkillFusionSystemTests
     [Fact]
     public void FindRecipe_CorrectOrder()
     {
-        var recipe = SkillFusionSystem.FindRecipe("パワースラッシュ", "ファイアボルト");
+        var recipe = SkillFusionSystem.FindRecipe("strong_strike", "fireball");
         Assert.NotNull(recipe);
-        Assert.Equal("炎斬り", recipe.ResultSkill);
+        Assert.Equal("flame_slash", recipe.ResultSkill);
     }
 
     [Fact]
     public void FindRecipe_ReverseOrder()
     {
-        var recipe = SkillFusionSystem.FindRecipe("ファイアボルト", "パワースラッシュ");
+        var recipe = SkillFusionSystem.FindRecipe("fireball", "strong_strike");
         Assert.NotNull(recipe);
-        Assert.Equal("炎斬り", recipe.ResultSkill);
+        Assert.Equal("flame_slash", recipe.ResultSkill);
     }
 
     [Fact]
     public void FindRecipe_UnknownReturnsNull()
     {
-        Assert.Null(SkillFusionSystem.FindRecipe("不明A", "不明B"));
+        Assert.Null(SkillFusionSystem.FindRecipe("unknown_a", "unknown_b"));
     }
 
     [Fact]
@@ -1462,14 +1462,14 @@ public class Phase6Expansion_SkillFusionSystemTests
     }
 
     [Theory]
-    [InlineData("パワースラッシュ", "ファイアボルト", 30, true)]
-    [InlineData("パワースラッシュ", "ファイアボルト", 29, false)]
-    [InlineData("ヒール", "ポイズン", 40, true)]
-    [InlineData("ヒール", "ポイズン", 39, false)]
-    [InlineData("シールドバッシュ", "サンダー", 50, true)]
-    [InlineData("スニーク", "アサシネート", 60, true)]
-    [InlineData("メディテーション", "マナバースト", 70, true)]
-    [InlineData("メディテーション", "マナバースト", 69, false)]
+    [InlineData("strong_strike", "fireball", 30, true)]
+    [InlineData("strong_strike", "fireball", 29, false)]
+    [InlineData("heal", "poison_mist", 40, true)]
+    [InlineData("heal", "poison_mist", 39, false)]
+    [InlineData("shield_bash", "lightning_bolt", 50, true)]
+    [InlineData("sneak", "backstab", 60, true)]
+    [InlineData("meditation", "ki_strike", 70, true)]
+    [InlineData("meditation", "ki_strike", 69, false)]
     public void CanFuse_ChecksProficiency(string a, string b, int prof, bool expected)
     {
         Assert.Equal(expected, SkillFusionSystem.CanFuse(a, b, prof));
@@ -1478,34 +1478,34 @@ public class Phase6Expansion_SkillFusionSystemTests
     [Fact]
     public void CanFuse_UnknownRecipe_ReturnsFalse()
     {
-        Assert.False(SkillFusionSystem.CanFuse("不明A", "不明B", 999));
+        Assert.False(SkillFusionSystem.CanFuse("unknown_a", "unknown_b", 999));
     }
 
     [Fact]
     public void ExecuteFusion_Success()
     {
-        var result = SkillFusionSystem.ExecuteFusion("パワースラッシュ", "ファイアボルト", 30);
-        Assert.Equal("炎斬り", result);
+        var result = SkillFusionSystem.ExecuteFusion("strong_strike", "fireball", 30);
+        Assert.Equal("flame_slash", result);
     }
 
     [Fact]
     public void ExecuteFusion_InsufficientProficiency_ReturnsNull()
     {
-        Assert.Null(SkillFusionSystem.ExecuteFusion("パワースラッシュ", "ファイアボルト", 20));
+        Assert.Null(SkillFusionSystem.ExecuteFusion("strong_strike", "fireball", 20));
     }
 
     [Fact]
     public void ExecuteFusion_UnknownRecipe_ReturnsNull()
     {
-        Assert.Null(SkillFusionSystem.ExecuteFusion("不明", "不明", 99));
+        Assert.Null(SkillFusionSystem.ExecuteFusion("unknown_a", "unknown_b", 99));
     }
 
     [Theory]
-    [InlineData("パワースラッシュ", "ファイアボルト", 30)]
-    [InlineData("ヒール", "ポイズン", 40)]
-    [InlineData("シールドバッシュ", "サンダー", 50)]
-    [InlineData("スニーク", "アサシネート", 60)]
-    [InlineData("メディテーション", "マナバースト", 70)]
+    [InlineData("strong_strike", "fireball", 30)]
+    [InlineData("heal", "poison_mist", 40)]
+    [InlineData("shield_bash", "lightning_bolt", 50)]
+    [InlineData("sneak", "backstab", 60)]
+    [InlineData("meditation", "ki_strike", 70)]
     public void GetRequiredProficiency_CorrectValues(string a, string b, int expected)
     {
         Assert.Equal(expected, SkillFusionSystem.GetRequiredProficiency(a, b));
@@ -1514,7 +1514,7 @@ public class Phase6Expansion_SkillFusionSystemTests
     [Fact]
     public void GetRequiredProficiency_Unknown_ReturnsMinus1()
     {
-        Assert.Equal(-1, SkillFusionSystem.GetRequiredProficiency("不明A", "不明B"));
+        Assert.Equal(-1, SkillFusionSystem.GetRequiredProficiency("unknown_a", "unknown_b"));
     }
 }
 
