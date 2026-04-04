@@ -93,22 +93,38 @@ public class CombatSystem : ICombatSystem
         int targetAgility = 10;
         int targetLuck = 10;
         ArmorClass armorClass = ArmorClass.Light;
+        float attackerHitBonus = 0f;
+        float targetEvasionBonus = 0f;
 
         if (target is Core.Entities.Character targetChar)
         {
             targetAgility = targetChar.EffectiveStats.Agility;
             targetLuck = targetChar.EffectiveStats.Luck;
+            // CB-10: 状態異常による回避率修正
+            foreach (var eff in targetChar.StatusEffects)
+            {
+                targetEvasionBonus += eff.EvasionRateModifier;
+            }
+        }
+
+        // CB-10: 攻撃者の状態異常による命中率修正
+        if (attacker is Core.Entities.Character attackerChar2)
+        {
+            foreach (var eff in attackerChar2.StatusEffects)
+            {
+                attackerHitBonus += eff.HitRateModifier;
+            }
         }
 
         return new HitCheckParams
         {
             AttackType = attackType,
             Dexterity = dexterity,
-            HitRateBonus = 0,
+            HitRateBonus = attackerHitBonus,
             TargetArmorClass = armorClass,
             TargetAgility = targetAgility,
             TargetLuck = targetLuck,
-            TargetEvasionBonus = 0
+            TargetEvasionBonus = targetEvasionBonus
         };
     }
 
