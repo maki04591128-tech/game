@@ -1319,6 +1319,19 @@ public class GameController
         {
             if (tile.IsLocked)
             {
+                // 鍵アイテムを持っている場合は即座に解錠
+                var keyItem = Player.Inventory.Items.OfType<KeyItem>()
+                    .FirstOrDefault(k => k.IsMasterKey || k.TargetId == null);
+                if (keyItem != null)
+                {
+                    tile.IsLocked = false;
+                    tile.LockDifficulty = 0;
+                    Map.SetTile(newPos.X, newPos.Y, TileType.DoorOpen);
+                    AddMessage($"🔑 {keyItem.Name}でドアを開けた！");
+                    _lastMoveActionCost = TurnCosts.Unlock;
+                    return true;
+                }
+
                 // 施錠されている場合、DEX判定でピッキング
                 int dex = Player.EffectiveStats.Dexterity;
                 int difficulty = tile.LockDifficulty;
@@ -3372,6 +3385,9 @@ public class GameController
             DeathCause.Poison => "毒に蝕まれ力尽きた",
             DeathCause.TimeLimit => "時間切れで力尽きた",
             DeathCause.Curse => "呪いにより命を落とした",
+            DeathCause.Suicide => "自らの意志で命を絶った",
+            DeathCause.SanityDeath => "正気を完全に失い倒れた",
+            DeathCause.Fall => "落下により命を落とした",
             _ => "力尽きた"
         };
 
