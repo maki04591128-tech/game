@@ -553,7 +553,7 @@ public class GameController
         GroundItems.Add((ItemFactory.CreateIronRing(), new Position(14, 16)));
 
         // 視界計算
-        Map.ComputeFov(Player.Position, 8);
+        Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
     }
     private void SubscribePlayerEvents()
     {
@@ -692,7 +692,7 @@ public class GameController
             GroundItems.Clear();
             GroundItems.AddRange(cached.GroundItems);
 
-            Map.ComputeFov(Player.Position, 8);
+            Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
             return;
         }
 
@@ -748,7 +748,7 @@ public class GameController
         _floorCache[floorKey] = new FloorCache(Map, GameTime.TotalTurns, new List<(Item, Position)>(GroundItems));
 
         // 視界計算
-        Map.ComputeFov(Player.Position, 8);
+        Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
 
         // ダンジョンショートカット用: 訪問済み階を記録
         if (!string.IsNullOrEmpty(_currentMapName))
@@ -1249,6 +1249,13 @@ public class GameController
             if (turnModifier > 1.0f && turnModifier < float.MaxValue)
             {
                 actionCost = (int)Math.Ceiling(actionCost * turnModifier);
+            }
+
+            // AL-2: 天候による移動コスト修正（吹雪: +50%、雨: +10%等）
+            float weatherMoveMod = WeatherSystem.GetMovementCostModifier(CurrentWeather);
+            if (weatherMoveMod > 1.0f && actionCost <= TurnCosts.AttackNormal)
+            {
+                actionCost = (int)Math.Ceiling(actionCost * weatherMoveMod);
             }
 
             // 行動コスト分のターンを消費（最低1）
@@ -2540,6 +2547,14 @@ public class GameController
         if (TurnCount > 0 && TurnCount % 600 == 0)
         {
             _religionSystem.ProcessDailyTick(Player);
+
+            // R-1: 畑の食料自動生産（1日ごと）
+            int foodProduction = _baseConstructionSystem.GetDailyFoodProduction();
+            if (foodProduction > 0)
+            {
+                Player.ModifyHunger(foodProduction);
+                AddMessage($"🌾 畑から食料が収穫された（満腹度+{foodProduction}）");
+            }
         }
 
         // 渇き進行（ThirstSystem: 満腹度の1.2倍速で減少）
@@ -3105,14 +3120,14 @@ public class GameController
             if (downStairsPos.HasValue)
             {
                 Player.Position = downStairsPos.Value;
-                Map.ComputeFov(Player.Position, 8);
+                Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
             }
             else
             {
                 // CO-3: 下り階段が見つからない場合のフォールバック
                 var fallback = Map.StairsUpPosition ?? Map.GetRandomWalkablePosition(_random) ?? Player.Position;
                 Player.Position = fallback;
-                Map.ComputeFov(Player.Position, 8);
+                Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
             }
             AddMessage($"第{CurrentFloor}層に上がった");
             return true;
@@ -4224,7 +4239,7 @@ public class GameController
         ProcessEnemyTurns();
         ProcessTurnEffects();
         CheckTurnLimitWarnings();
-        Map.ComputeFov(Player.Position, 8);
+        Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
 
         if (!Player.IsAlive)
         {
@@ -5506,7 +5521,7 @@ public class GameController
         if (location.Type == LocationType.Field)
         {
             SpawnEnemies();
-            Map.ComputeFov(Player.Position, 8);
+            Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
         }
         else
         {
@@ -5545,7 +5560,7 @@ public class GameController
         // フィールドマップには敵を配置
         SpawnEnemies();
 
-        Map.ComputeFov(Player.Position, 8);
+        Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
 
         AddMessage($"【{terrainName}】に足を踏み入れた（Tキーで脱出）");
         OnSymbolMapEnterTown?.Invoke();
@@ -7481,7 +7496,7 @@ public class GameController
         // マップ再生成（セーブには含まない）
         GenerateFloor();
         Player.Position = save.Player.Position.ToPosition();
-        Map.ComputeFov(Player.Position, 8);
+        Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
 
         // メッセージ履歴復元
         _messageHistory.Clear();

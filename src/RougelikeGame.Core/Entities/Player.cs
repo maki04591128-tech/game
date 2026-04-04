@@ -261,6 +261,23 @@ public class Player : Character, IPlayer, IInventoryHolder
     public override int MaxHp => base.MaxHp + BonusMaxHp + GetSkillTreeResourceBonus("MaxHp");
     public override int MaxMp => base.MaxMp + BonusMaxMp + GetSkillTreeResourceBonus("MaxMp");
 
+    /// <summary>AH-4: 属性耐性（StatusEffectベース: FireResistance/ColdResistance等）</summary>
+    protected override float GetResistanceAgainst(Element element)
+    {
+        float resistance = 0f;
+        foreach (var eff in StatusEffects)
+        {
+            if (element == Element.Fire && eff.Type == StatusEffectType.FireResistance)
+                resistance += 0.5f;
+            if (element == Element.Ice && eff.Type == StatusEffectType.ColdResistance)
+                resistance += 0.5f;
+        }
+        // 種族特性: 毒耐性（半減）
+        if (element == Element.Poison && RacialTraitSystem.GetTraitValue(Race, RacialTraitType.PoisonResistance) > 0)
+            resistance += 0.5f;
+        return Math.Min(0.9f, resistance);
+    }
+
     /// <summary>スキルツリーのパッシブボーナスを提供するコールバック（GameControllerから設定）</summary>
     public Func<Dictionary<string, int>>? SkillTreeBonusProvider { get; set; }
 
