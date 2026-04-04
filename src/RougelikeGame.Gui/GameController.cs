@@ -2495,7 +2495,7 @@ public class GameController
         // AT-1: 投資回収チェック（500ターンごと）
         if (TurnCount > 0 && TurnCount % 500 == 0 && _investmentSystem.GetActiveInvestments() > 0)
         {
-            var results = _investmentSystem.TryCollectReturns(TurnCount, Random.Shared);
+            var results = _investmentSystem.TryCollectReturns(TurnCount, new Random(_random.Next(1, int.MaxValue)));
             foreach (var (targetName, success, returnAmount) in results)
             {
                 if (success)
@@ -8248,9 +8248,11 @@ public class GameController
             if (node != null && node.PossibleItems.Length > 0)
             {
                 // レアの場合は後ろの方のアイテム、通常は前の方
-                int itemIndex = isRare
-                    ? Math.Min(node.PossibleItems.Length - 1, _random.Next(node.PossibleItems.Length / 2, node.PossibleItems.Length))
-                    : _random.Next(Math.Min(3, node.PossibleItems.Length));
+                int itemIndex;
+                if (isRare && node.PossibleItems.Length > 1)
+                    itemIndex = _random.Next(node.PossibleItems.Length / 2, node.PossibleItems.Length);
+                else
+                    itemIndex = _random.Next(Math.Min(3, node.PossibleItems.Length));
                 string itemId = node.PossibleItems[itemIndex];
                 var item = ItemDefinitions.Create(itemId);
                 if (item != null)
