@@ -191,11 +191,12 @@ public class Player : Character, IPlayer, IInventoryHolder
 
         return true;
     }
-    public void PickUp(Interfaces.IItem item)
+    public bool PickUp(Interfaces.IItem item)
     {
         if (item is Items.Item concreteItem)
-            ((Inventory)Inventory).Add(concreteItem);
-        // IF-1: 非Items.Item型の場合もログを残す（呼び出し側でワールドからは除去されないようにする）
+            return ((Inventory)Inventory).Add(concreteItem);
+        // IF-1: 非Items.Item型は拾えない（呼び出し側でワールドから除去しないようにfalse返却）
+        return false;
     }
     public void Drop(Interfaces.IItem item)
     {

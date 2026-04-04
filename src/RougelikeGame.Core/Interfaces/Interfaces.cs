@@ -54,7 +54,7 @@ public interface IInventoryHolder
 {
     IInventory Inventory { get; }
     bool CanPickUp(IItem item);
-    void PickUp(IItem item);
+    bool PickUp(IItem item);
     void Drop(IItem item);
 }
 

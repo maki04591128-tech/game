@@ -66,7 +66,7 @@ public class TurnManagerTests
         public void TakeDamage(Damage damage) { }
         public void Heal(int amount) { }
         public bool CanPickUp(IItem item) => true;
-        public void PickUp(IItem item) { }
+        public bool PickUp(IItem item) { return true; }
         public void Drop(IItem item) { }
 
 #pragma warning disable CS0067
