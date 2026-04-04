@@ -8257,6 +8257,11 @@ public class GameController
         }
 
         AddMessage($"🔄 {Player.CharacterClass} → {targetClass} に転職した！");
+        // O-2: 転職実行 — クラス更新＋ステータス再計算
+        Player.ChangeClass(targetClass);
+        var classDef = ClassDefinition.Get(targetClass);
+        Player.BonusMaxHp = RaceDefinition.Get(Player.Race).HpBonus + classDef.HpBonus;
+        Player.BonusMaxMp = RaceDefinition.Get(Player.Race).MpBonus + classDef.MpBonus;
         AddMessage($"サブクラス経験値倍率: {MultiClassSystem.GetSubclassExpRate():P0}");
         OnStateChanged?.Invoke();
         return true;

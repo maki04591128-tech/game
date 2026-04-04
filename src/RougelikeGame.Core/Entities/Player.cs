@@ -207,6 +207,12 @@ public class Player : Character, IPlayer, IInventoryHolder
     #region Magic Language
     public Dictionary<string, int> LearnedWords { get; } = new();  // ルーン語ID -> 理解度
 
+    /// <summary>O-2: 転職実行（外部プロジェクトからCharacterClass変更用）</summary>
+    public void ChangeClass(CharacterClass newClass)
+    {
+        CharacterClass = newClass;
+    }
+
     public void LearnWord(string wordId)
     {
         if (!LearnedWords.ContainsKey(wordId))
