@@ -499,7 +499,7 @@ public class ReligionSystem
         }
 
         player.JoinReligion(religionId.ToString());
-        player.AddFaithPoints(GameConstants.InitialFaithOnJoin);
+        // IT-1: Player.JoinReligion()で既にInitialFaithOnJoinが設定されるため追加不要
 
         // 宗教スキルを付与
         foreach (var skillId in religion.GrantedSkills)
@@ -537,7 +537,8 @@ public class ReligionSystem
 
         // 新しい宗教に入信
         player.JoinReligion(newReligionId.ToString());
-        player.AddFaithPoints(GameConstants.InitialFaithOnConvert);
+        // IT-1: JoinReligionで初期値20が設定されるため、改宗値10に調整
+        player.AddFaithPoints(GameConstants.InitialFaithOnConvert - GameConstants.InitialFaithOnJoin);
 
         foreach (var skillId in newReligion.GrantedSkills)
         {

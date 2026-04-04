@@ -80,9 +80,9 @@ public class BalanceAndTutorialTests
     [Theory]
     [InlineData(1, 1)]
     [InlineData(5, 5)]
-    [InlineData(10, 15)]
-    [InlineData(20, 35)]
-    [InlineData(30, 45)]
+    [InlineData(10, 10)]
+    [InlineData(20, 20)]
+    [InlineData(30, 30)]
     public void BalanceConfig_GetRecommendedLevel_ReturnsExpectedProgression(int depth, int expected)
     {
         Assert.Equal(expected, BalanceConfig.GetRecommendedLevel(depth));

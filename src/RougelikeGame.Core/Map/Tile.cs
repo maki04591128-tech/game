@@ -327,6 +327,11 @@ public class Tile
     public bool InscriptionRead { get; set; }
 
     /// <summary>
+    /// CG-1: 採取ポイントの種類（null=採取不可）
+    /// </summary>
+    public GatheringType? GatheringNodeType { get; set; }
+
+    /// <summary>
     /// 表示文字
     /// </summary>
     public char DisplayChar => GetDisplayChar();

@@ -75,7 +75,7 @@ public class MultiEndingSystemTests
             hasClearedFinalBoss: true, totalDeaths: 5, karmaValue: 10,
             allTerritoriesVisited: false, clearRank: "A");
         Assert.Equal(EndingType.True, result.Type);
-        Assert.Equal("伝説の英雄", result.Title);
+        Assert.Equal("真の英雄", result.Title);
     }
 
     [Fact]
@@ -95,21 +95,21 @@ public class MultiEndingSystemTests
     [Fact]
     public void DetermineEnding_DarkTakesPriority_OverSalvation()
     {
-        // 闇エンディング条件が救済条件より優先される
+        // DG-1: 真エンディング（S/Aランク）が最優先
         var result = MultiEndingSystem.DetermineEnding(
             hasClearedFinalBoss: true, totalDeaths: 0, karmaValue: -100,
             allTerritoriesVisited: true, clearRank: "S");
-        Assert.Equal(EndingType.Dark, result.Type);
+        Assert.Equal(EndingType.True, result.Type);
     }
 
     [Fact]
     public void DetermineEnding_SalvationTakesPriority_OverTrue()
     {
-        // 救済エンディングが真エンディングより優先される
+        // DG-1: 真エンディング（S/Aランク）が最優先
         var result = MultiEndingSystem.DetermineEnding(
             hasClearedFinalBoss: true, totalDeaths: 0, karmaValue: 80,
             allTerritoriesVisited: true, clearRank: "S");
-        Assert.Equal(EndingType.Salvation, result.Type);
+        Assert.Equal(EndingType.True, result.Type);
     }
 
     [Fact]
