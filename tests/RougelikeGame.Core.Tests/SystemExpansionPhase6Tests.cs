@@ -1219,7 +1219,7 @@ public class Phase6Expansion_ExecutionSystemTests
     [InlineData(WeaponType.Hammer, "粉砕")]
     [InlineData(WeaponType.Spear, "貫通")]
     [InlineData(WeaponType.Bow, "射殺")]
-    [InlineData(WeaponType.Staff, "止めの一撃")]
+    [InlineData(WeaponType.Staff, "魔力爆砕")]  // DP-1: 追加
     public void GetExecutionAnimationName_CorrectByWeapon(WeaponType weapon, string expected)
     {
         Assert.Equal(expected, ExecutionSystem.GetExecutionAnimationName(weapon));
@@ -1975,7 +1975,7 @@ public class Phase6Expansion_ThirstSystemTests
     [InlineData(ThirstLevel.Hydrated, 0)]
     [InlineData(ThirstLevel.Thirsty, 0)]
     [InlineData(ThirstLevel.Dehydrated, 1)]
-    [InlineData(ThirstLevel.SevereDehydration, 3)]
+    [InlineData(ThirstLevel.SevereDehydration, 2)]  // S-1: ThirstStageと統一（3→2）
     public void GetThirstDamage_CorrectValues(ThirstLevel level, int expected)
     {
         Assert.Equal(expected, ThirstSystem.GetThirstDamage(level));
@@ -2015,9 +2015,9 @@ public class Phase6Expansion_GamblingSystemTests
     [InlineData(true, 5, 3, false)]
     [InlineData(false, 5, 3, true)]
     [InlineData(false, 5, 7, false)]
-    [InlineData(true, 5, 5, false)]
-    [InlineData(false, 5, 5, false)]
-    public void JudgeHighLow_CorrectResult(bool high, int current, int next, bool expected)
+    [InlineData(true, 5, 5, null)]   // AG-2: 引き分けはnull（draw）
+    [InlineData(false, 5, 5, null)]  // AG-2: 引き分けはnull（draw）
+    public void JudgeHighLow_CorrectResult(bool high, int current, int next, bool? expected)
     {
         Assert.Equal(expected, GamblingSystem.JudgeHighLow(high, current, next));
     }

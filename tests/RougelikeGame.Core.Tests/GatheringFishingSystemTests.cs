@@ -177,7 +177,7 @@ public class GatheringFishingSystemTests
         var treasure = FishingSystem.GetFishById("fish_treasure");
         Assert.NotNull(junk);
         Assert.NotNull(treasure);
-        Assert.Equal(0, junk.Rarity);
-        Assert.Equal(0, treasure.Rarity);
+        Assert.Equal(1, junk.Rarity);  // EN-1: Rarity0→1
+        Assert.Equal(1, treasure.Rarity);  // EN-1: Rarity0→1
     }
 }

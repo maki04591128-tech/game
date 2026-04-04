@@ -150,7 +150,8 @@ public class ItemSystemTests
 
         // Assert
         Assert.Equal(PotionType.HealingMinor, potion.PotionType);
-        Assert.Equal(30, potion.EffectValue);
+        Assert.Equal(0, potion.EffectValue);  // L-2: EffectPercentageベースに変更
+        Assert.Equal(0.25f, potion.EffectPercentage);  // MaxHP25%回復
         Assert.True(potion.ConsumeOnUse);
     }
 

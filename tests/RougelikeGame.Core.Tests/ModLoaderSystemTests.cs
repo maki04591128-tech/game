@@ -74,20 +74,18 @@ public class ModLoaderSystemTests
     public void Validate_EmptyModId_ReturnsError()
     {
         var system = new ModLoaderSystem();
-        var manifest = system.ParseManifest("", "テストMOD", "作者", "1.0.0", "説明文")!;
-        var result = system.Validate(manifest);
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.Contains("MOD ID"));
+        // DI-3/DI-4: ParseManifestが空modId/nameでnullを返す仕様に変更
+        var manifest = system.ParseManifest("", "テストMOD", "作者", "1.0.0", "説明文");
+        Assert.Null(manifest);
     }
 
     [Fact]
     public void Validate_EmptyName_ReturnsError()
     {
         var system = new ModLoaderSystem();
-        var manifest = system.ParseManifest("mod_1", "", "作者", "1.0.0", "説明文")!;
-        var result = system.Validate(manifest);
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.Contains("MOD名"));
+        // DI-3/DI-4: ParseManifestが空nameでnullを返す仕様に変更
+        var manifest = system.ParseManifest("mod_1", "", "作者", "1.0.0", "説明文");
+        Assert.Null(manifest);
     }
 
     [Fact]
@@ -160,10 +158,9 @@ public class ModLoaderSystemTests
     public void LoadMod_InvalidManifest_Fails()
     {
         var system = new ModLoaderSystem();
-        var manifest = system.ParseManifest("", "テストMOD", "作者", "1.0.0", "説明文")!;
-        var result = system.LoadMod(manifest);
-        Assert.False(result.Success);
-        Assert.Equal(0, system.LoadedCount);
+        // DI-3/DI-4: ParseManifestは空modIdでnullを返す
+        var manifest = system.ParseManifest("", "テストMOD", "作者", "1.0.0", "説明文");
+        Assert.Null(manifest);
     }
 
     // --- UnloadMod ---
