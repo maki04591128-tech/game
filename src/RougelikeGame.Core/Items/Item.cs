@@ -183,7 +183,9 @@ public enum ItemEffectType
     /// <summary>聖域展開</summary>
     Sanctuary,
     /// <summary>ダンジョン入口への帰還</summary>
-    ReturnToEntrance
+    ReturnToEntrance,
+    /// <summary>召喚</summary>
+    Summon
 }
 
 /// <summary>

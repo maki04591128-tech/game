@@ -93,6 +93,11 @@ public class Potion : ConsumableItem
                 user.RemoveStatusEffect(StatusEffectType.Confusion);
                 user.RemoveStatusEffect(StatusEffectType.Blind);
                 user.RemoveStatusEffect(StatusEffectType.Silence);
+                user.RemoveStatusEffect(StatusEffectType.Charm);
+                user.RemoveStatusEffect(StatusEffectType.Madness);
+                user.RemoveStatusEffect(StatusEffectType.Petrification);
+                user.RemoveStatusEffect(StatusEffectType.Fear);
+                user.RemoveStatusEffect(StatusEffectType.Sleep);
                 return UseResult.Ok("全ての状態異常が解消された！");
 
             case PotionType.StrengthBoost:
@@ -119,6 +124,21 @@ public class Potion : ConsumableItem
                 user.ApplyStatusEffect(new StatusEffect(StatusEffectType.ColdResistance, Duration));
                 return UseResult.Ok("冷気耐性が上がった！",
                     new ItemEffect(ItemEffectType.ApplyStatus, Duration, StatusEffect: StatusEffectType.ColdResistance));
+
+            case PotionType.IntelligenceBoost:
+                user.ApplyStatusEffect(new StatusEffect(StatusEffectType.Protection, Duration > 0 ? Duration : 20));
+                return UseResult.Ok("知力が上がった！",
+                    new ItemEffect(ItemEffectType.ApplyStatus, Duration > 0 ? Duration : 20, StatusEffect: StatusEffectType.Protection));
+
+            case PotionType.Poison:
+                user.ApplyStatusEffect(new StatusEffect(StatusEffectType.Poison, Duration > 0 ? Duration : 10));
+                return UseResult.Ok("毒を受けた！",
+                    new ItemEffect(ItemEffectType.ApplyStatus, Duration > 0 ? Duration : 10, StatusEffect: StatusEffectType.Poison));
+
+            case PotionType.Confusion:
+                user.ApplyStatusEffect(new StatusEffect(StatusEffectType.Confusion, Duration > 0 ? Duration : 5));
+                return UseResult.Ok("混乱した！",
+                    new ItemEffect(ItemEffectType.ApplyStatus, Duration > 0 ? Duration : 5, StatusEffect: StatusEffectType.Confusion));
 
             default:
                 return UseResult.Fail("効果がなかった");
@@ -349,6 +369,10 @@ public class Scroll : ConsumableItem
             case ScrollType.Return:
                 return UseResult.Ok("ダンジョンの入口に戻った！",
                     new ItemEffect(ItemEffectType.ReturnToEntrance, 0));
+
+            case ScrollType.Summon:
+                return UseResult.Ok("味方モンスターを召喚した！",
+                    new ItemEffect(ItemEffectType.Summon, EffectValue));
 
             default:
                 return UseResult.Fail("何も起こらなかった");

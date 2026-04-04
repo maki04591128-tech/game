@@ -1419,6 +1419,16 @@ public class GameController
         {
             TryReadRuneInscription(tile);
         }
+        // 祭壇インタラクション (AE-2)
+        else if (tile.Type == TileType.Altar)
+        {
+            AddMessage("⛪ 祭壇がある [Gキー]で祈りを捧げる");
+        }
+        // 泉インタラクション (AE-3)
+        else if (tile.Type == TileType.Fountain)
+        {
+            AddMessage("⛲ 泉がある [Gキー]で水を飲む");
+        }
 
         // デバッグ専用タイルの処理
         if (_isDebugMode)
@@ -2383,6 +2393,18 @@ public class GameController
             return TryOpenChest(currentTile);
         }
 
+        // 祭壇インタラクション (AE-2)
+        if (currentTile.Type == TileType.Altar)
+        {
+            return TryInteractAltar();
+        }
+
+        // 泉インタラクション (AE-3)
+        if (currentTile.Type == TileType.Fountain)
+        {
+            return TryInteractFountain();
+        }
+
         var itemOnGround = GroundItems.FirstOrDefault(i => i.Position == Player.Position);
         if (itemOnGround.Item != null)
         {
@@ -2551,6 +2573,77 @@ public class GameController
         return true;
     }
 
+    /// <summary>祭壇で祈りを捧げる (AE-2)</summary>
+    private bool TryInteractAltar()
+    {
+        AddMessage("⛪ 祭壇に祈りを捧げた…");
+        double roll = _random.NextDouble();
+
+        if (roll < 0.4)
+        {
+            Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Blessing, 50));
+            AddMessage("✨ 神聖な力を感じる。祝福を受けた！");
+        }
+        else if (roll < 0.6)
+        {
+            Player.Heal(Player.MaxHp);
+            AddMessage("✨ 温かな光に包まれ、傷が癒えた！");
+        }
+        else if (roll < 0.75)
+        {
+            Player.RestoreMp(Player.MaxMp);
+            AddMessage("✨ 魔力が満ちていく…MPが回復した！");
+        }
+        else if (roll < 0.9)
+        {
+            AddMessage("…しかし、何も起こらなかった。");
+        }
+        else
+        {
+            Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Curse, 30));
+            AddMessage("💀 不吉な気配が…呪いを受けてしまった！");
+        }
+        return true;
+    }
+
+    /// <summary>泉で水を飲む (AE-3)</summary>
+    private bool TryInteractFountain()
+    {
+        AddMessage("⛲ 泉の水を飲んだ…");
+        double roll = _random.NextDouble();
+
+        if (roll < 0.35)
+        {
+            int healAmount = Math.Max(10, Player.MaxHp / 4);
+            Player.Heal(healAmount);
+            AddMessage($"✨ 体に活力がみなぎる！HPが{healAmount}回復した！");
+        }
+        else if (roll < 0.55)
+        {
+            int mpAmount = Math.Max(5, Player.MaxMp / 4);
+            Player.RestoreMp(mpAmount);
+            AddMessage($"✨ 魔力が湧き上がる！MPが{mpAmount}回復した！");
+        }
+        else if (roll < 0.7)
+        {
+            Player.RemoveStatusEffect(StatusEffectType.Poison);
+            Player.RemoveStatusEffect(StatusEffectType.Confusion);
+            Player.RemoveStatusEffect(StatusEffectType.Blind);
+            Player.RemoveStatusEffect(StatusEffectType.Silence);
+            AddMessage("✨ 清らかな水が体を浄化した！状態異常が解消された！");
+        }
+        else if (roll < 0.85)
+        {
+            AddMessage("普通の水だった。喉が潤った。");
+        }
+        else
+        {
+            Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Poison, 8));
+            AddMessage("💀 水が汚染されていた！毒を受けた！");
+        }
+        return true;
+    }
+
     /// <summary>グリッドインベントリに新しいアイテムが収まるかシミュレート</summary>
     private static bool CanFitInGrid(Inventory inventory, Item newItem, Player player)
     {
@@ -2634,6 +2727,17 @@ public class GameController
 
         if (tile.Type == TileType.StairsDown)
         {
+            // ボスフロアチェック (AO-1): ボスが生存中は先に進めない
+            if (CurrentFloor > 0 && CurrentFloor % GameConstants.BossFloorInterval == 0)
+            {
+                bool bossAlive = Enemies.Any(e => e.IsAlive && (e.Rank == EnemyRank.Boss || e.Rank == EnemyRank.HiddenBoss));
+                if (bossAlive)
+                {
+                    AddMessage("⚠ ボスを倒さないと先に進めない！");
+                    return false;
+                }
+            }
+
             if (CurrentFloor >= GameConstants.MaxDungeonFloor)
             {
                 // 最深部到達 → ダンジョンクリアフラグ
@@ -7936,7 +8040,7 @@ public class GameController
     {
         return MultiEndingSystem.DetermineEnding(
             _hasCleared, TotalDeaths, _karmaSystem.KarmaValue,
-            false, _clearRank);
+            _worldMapSystem.VisitedTerritories.Count >= Enum.GetValues<TerritoryId>().Length, _clearRank);
     }
 
     /// <summary>エンディングタイプ名取得</summary>

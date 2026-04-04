@@ -136,7 +136,7 @@ public class PlayerSaveData
     /// <summary>渇き</summary>
     public int Thirst { get; set; } = 100;
     /// <summary>疲労</summary>
-    public int Fatigue { get; set; } = 100;
+    public int Fatigue { get; set; }
     /// <summary>衛生</summary>
     public int Hygiene { get; set; } = 100;
 

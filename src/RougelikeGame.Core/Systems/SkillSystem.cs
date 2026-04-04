@@ -138,7 +138,7 @@ public static class SkillDatabase
     private static void InitializeSupportSkills()
     {
         // 吟遊詩人系
-        Add(new("inspire_song", "鼓舞の歌", "一時的に攻撃力上昇", SkillCategory.Support, SkillTarget.Self, 8, 0, 6, 1, CharacterClass.Bard, null, 0.0));
+        Add(new("inspire_song", "鼓舞の歌", "味方全体の攻撃力を一時的に上昇", SkillCategory.Support, SkillTarget.AllAllies, 8, 0, 6, 1, CharacterClass.Bard, null, 0.0));
         Add(new("knowledge_collect", "知識収集", "アイテムを自動鑑定する", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 1, CharacterClass.Bard, null, 0.0));
         Add(new("lullaby", "子守唄", "周囲の敵を眠らせる", SkillCategory.Support, SkillTarget.AllEnemies, 12, 0, 8, 5, CharacterClass.Bard, "inspire_song", 0.0));
         Add(new("charm", "魅了の旋律", "敵1体を一時的に味方にする", SkillCategory.Support, SkillTarget.SingleEnemy, 18, 0, 10, 8, CharacterClass.Bard, "lullaby", 0.0));

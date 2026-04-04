@@ -383,7 +383,9 @@ public enum EquipmentCategory
     MediumArmor,
     LightArmor,
     Robe,
-    Fist
+    Fist,
+    Spear,
+    Whip
 }
 
 /// <summary>

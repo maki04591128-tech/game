@@ -38,7 +38,7 @@ public record NpcDefinition(
         new("npc_forest_elder", "長老エルウェン", "エルフの集落の長老。森の知恵を持つ",
             NpcType.Sage, TerritoryId.Forest, new[] { "dlg_elwen_intro" }, 40),
         new("npc_forest_herbalist", "薬草師リーナ", "森の薬草に詳しい若い女性",
-            NpcType.Shopkeeper, TerritoryId.Forest, new[] { "dlg_leena_intro" }, 60),
+            NpcType.Alchemist, TerritoryId.Forest, new[] { "dlg_leena_intro" }, 60),
         new("npc_forest_ranger", "巡回士ガルド", "森林を守る巡回士。獣や魔物の情報に詳しい",
             NpcType.QuestGiver, TerritoryId.Forest, new[] { "dlg_gard_intro" }, 50),
         // 山岳領

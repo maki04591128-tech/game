@@ -414,6 +414,7 @@ public static class SpellEffectResolver
             "graeda" => Element.Light,
             "blessa" => Element.Holy,
             "eyda" => Element.Curse,
+            "granda" => Element.Poison,
             _ => Element.None
         };
     }
@@ -428,7 +429,7 @@ public static class SpellEffectResolver
         "hrada" => SpellEffectType.Speed,
         "hylja" => SpellEffectType.Stealth,
         "blessa" => SpellEffectType.Blessing,
-        "binda" or "sofa" or "villa" or "hraeda" or "styra" => SpellEffectType.Control,
+        "binda" or "sofa" or "villa" or "hraeda" or "styra" or "loka" => SpellEffectType.Control,
         "kalla" => SpellEffectType.Summon,
         "senda" => SpellEffectType.Teleport,
         "sja" or "vita" => SpellEffectType.Detect,

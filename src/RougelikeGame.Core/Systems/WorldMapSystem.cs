@@ -545,12 +545,10 @@ public class ShopSystem
         var items = new List<ShopItem>
         {
             new("potion_healing", "回復ポーション", scale(50), 10, FacilityType.GeneralShop, GridItemSize.Size1x1),
-            new("potion_mana", "マナポーション", scale(80), 5, FacilityType.GeneralShop, GridItemSize.Size1x1),
             new("food_bread", "パン", scale(20), 15, FacilityType.GeneralShop, GridItemSize.Size1x1),
             new("food_water", "水", scale(8), 20, FacilityType.GeneralShop, GridItemSize.Size1x1),
             new("material_wood", "松明", scale(10), 20, FacilityType.GeneralShop, GridItemSize.Size1x2),
-            new("potion_antidote", "解毒薬", scale(40), 5, FacilityType.GeneralShop, GridItemSize.Size1x1),
-            new("scroll_identify", "識別の巻物", scale(100), 3, FacilityType.GeneralShop, GridItemSize.Size1x1)
+            new("potion_antidote", "解毒薬", scale(40), 5, FacilityType.GeneralShop, GridItemSize.Size1x1)
         };
 
         if (playerLevel >= 10)
@@ -586,7 +584,7 @@ public class ShopSystem
 
         if (territory == TerritoryId.Mountain)
         {
-            items.Add(new("weapon_greatsword", "ミスリルダガー", scale(800), 1, FacilityType.WeaponShop, GridItemSize.Size1x1));
+            items.Add(new("weapon_mithril_dagger", "ミスリルダガー", scale(800), 1, FacilityType.WeaponShop, GridItemSize.Size1x1));
         }
 
         return items;

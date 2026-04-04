@@ -170,8 +170,8 @@ public class Weapon : EquipmentItem
         WeaponType.Bow or WeaponType.Crossbow or WeaponType.Thrown => EquipmentCategory.Bow,
         WeaponType.Staff => EquipmentCategory.Staff,
         WeaponType.Fist => EquipmentCategory.Fist,
-        WeaponType.Spear => EquipmentCategory.Sword,
-        WeaponType.Whip => EquipmentCategory.Sword,
+        WeaponType.Spear => EquipmentCategory.Spear,
+        WeaponType.Whip => EquipmentCategory.Whip,
         _ => EquipmentCategory.Sword
     };
 

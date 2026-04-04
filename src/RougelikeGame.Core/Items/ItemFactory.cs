@@ -84,6 +84,22 @@ public class ItemFactory
         StatModifier = new StatModifier(Agility: 2)
     };
 
+    public static Weapon CreateMithrilDagger() => new()
+    {
+        ItemId = "weapon_mithril_dagger",
+        Name = "ミスリルダガー",
+        Description = "ミスリル鍛造の短剣。軽量ながら鋭い切れ味を持つ。",
+        WeaponType = WeaponType.Dagger,
+        BaseDamage = 14,
+        DamageRange = (11, 17),
+        AttackSpeed = 1.6f,
+        Range = 1,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 800,
+        Weight = 0.8f,
+        StatModifier = new StatModifier(Agility: 4, Dexterity: 2)
+    };
+
     public static Weapon CreateBattleAxe() => new()
     {
         ItemId = "weapon_battle_axe",
@@ -1050,6 +1066,16 @@ public class ItemFactory
     public static Item CreateFishCommon1() => CreateMaterialItem("fish_common_1", "小魚", "どこでも釣れる一般的な小魚", MaterialCategory.Monster, 10);
     public static Item CreateFishCommon2() => CreateMaterialItem("fish_common_2", "川魚", "川に棲む一般的な魚", MaterialCategory.Monster, 15);
     public static Item CreateFishMedium1() => CreateMaterialItem("fish_medium_1", "鯛", "美味な中型の魚", MaterialCategory.Monster, 30, ItemRarity.Uncommon);
+    public static Item CreateFishMedium2() => CreateMaterialItem("fish_medium_2", "ウナギ", "夏に旬を迎える滋養のある魚", MaterialCategory.Monster, 35, ItemRarity.Uncommon);
+    public static Item CreateFishRare1() => CreateMaterialItem("fish_rare_1", "ニジマス", "美しい虹色の鱗を持つ希少魚", MaterialCategory.Monster, 80, ItemRarity.Rare);
+    public static Item CreateFishRare2() => CreateMaterialItem("fish_rare_2", "古代魚", "太古から生き続ける神秘的な魚", MaterialCategory.Monster, 150, ItemRarity.Rare, 70);
+    public static Item CreateFishLegendary() => CreateMaterialItem("fish_legendary", "幻の大魚", "伝説に語られる巨大な魚", MaterialCategory.Monster, 500, ItemRarity.Legendary, 90);
+    public static Item CreateFishTreasure() => new KeyItem
+    {
+        ItemId = "fish_treasure", Name = "水底の宝箱", Description = "水底に沈んでいた宝箱",
+        BasePrice = 200, Rarity = ItemRarity.Rare, Weight = 2.0f
+    };
+    public static Item CreateFishJunk() => CreateMaterialItem("fish_junk", "ガラクタ", "水中から引き揚げたガラクタ", MaterialCategory.Monster, 1);
 
     // 採掘用鉱石・宝石
     public static Item CreateOreIron() => CreateMaterialItem("ore_iron", "鉄鉱石", "鉄を含む鉱石。鍛冶の基本素材", MaterialCategory.Metal, 20);
@@ -1183,6 +1209,7 @@ public static class ItemDefinitions
         ["weapon_iron_sword"] = ItemFactory.CreateIronSword,
         ["weapon_steel_sword"] = ItemFactory.CreateSteelSword,
         ["weapon_dagger"] = ItemFactory.CreateDagger,
+        ["weapon_mithril_dagger"] = ItemFactory.CreateMithrilDagger,
         ["weapon_battle_axe"] = ItemFactory.CreateBattleAxe,
         ["weapon_wooden_staff"] = ItemFactory.CreateWoodenStaff,
         ["weapon_short_bow"] = ItemFactory.CreateShortBow,
@@ -1290,6 +1317,12 @@ public static class ItemDefinitions
         ["fish_common_1"] = ItemFactory.CreateFishCommon1,
         ["fish_common_2"] = ItemFactory.CreateFishCommon2,
         ["fish_medium_1"] = ItemFactory.CreateFishMedium1,
+        ["fish_medium_2"] = ItemFactory.CreateFishMedium2,
+        ["fish_rare_1"] = ItemFactory.CreateFishRare1,
+        ["fish_rare_2"] = ItemFactory.CreateFishRare2,
+        ["fish_legendary"] = ItemFactory.CreateFishLegendary,
+        ["fish_treasure"] = ItemFactory.CreateFishTreasure,
+        ["fish_junk"] = ItemFactory.CreateFishJunk,
 
         // 採掘用鉱石・宝石
         ["ore_iron"] = ItemFactory.CreateOreIron,

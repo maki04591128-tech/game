@@ -437,7 +437,7 @@ public static class EnemyDefinitions
         TypeId: "forest_sprite",
         Name: "森の精霊",
         Description: "森に宿る精霊。魔法で攻撃してくる。",
-        BaseStats: new Stats(4, 4, 14, 12, 15, 10, 14, 3, 8),
+        BaseStats: new Stats(4, 4, 14, 12, 9, 10, 14, 3, 8),
         EnemyType: EnemyType.Coward,
         Rank: EnemyRank.Common,
         ExperienceReward: 25,
@@ -526,7 +526,7 @@ public static class EnemyDefinitions
         TypeId: "crab",
         Name: "巨大蟹",
         Description: "巨大な甲殻を持つ蟹。挟む力は凄まじい。",
-        BaseStats: new Stats(10, 16, 4, 6, 1, 18, 3, 1, 3),
+        BaseStats: new Stats(10, 16, 4, 6, 1, 10, 3, 1, 3),
         EnemyType: EnemyType.Defensive,
         Rank: EnemyRank.Common,
         ExperienceReward: 25,
@@ -844,15 +844,15 @@ public static class EnemyDefinitions
     {
         return dungeonId switch
         {
-            "capital_catacombs" => FloorBoss5,     // 王都地下墓地 - ゴブリンキング
-            "capital_rift" => FloorBoss15,         // 始まりの裂け目 - スケルトンロード
+            "capital_catacombs" => FloorBoss15,    // 王都地下墓地 - スケルトンロード（アンデッドテーマ）
+            "capital_rift" => FloorBoss10,         // 始まりの裂け目 - ゴブリンキング
             "forest_corruption" => FloorBoss10,    // 腐敗の森 - ゴブリンキング
             "forest_ruins" => FloorBoss20,         // 古代エルフの遺跡 - ダークエルフ将軍
             "mountain_mine" => FloorBoss10,        // 採掘坑 - ゴブリンキング
             "mountain_lava" => FloorBoss25,        // 溶岩洞 - 炎竜ヴァルグレス
             "mountain_dragon" => FloorBoss30,      // 竜の巣 - 深淵の王
             "coast_cave" => FloorBoss5,            // 海岸洞窟 - スライムキング
-            "coast_wreck" => FloorBoss15,          // 沈没船 - スケルトンロード
+            "coast_wreck" => DeepSeaLeviathan,     // 沈没船 - 深海リヴァイアサン（水棲テーマ）
             "southern_icecave" => FloorBoss15,     // 氷の洞窟 - スケルトンロード
             "southern_battlefield" => FloorBoss20, // 古戦場跡 - ダークエルフ将軍
             "frontier_great_rift" => FloorBoss30,  // 大裂け目 - 深淵の王
