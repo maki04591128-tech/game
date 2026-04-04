@@ -202,7 +202,7 @@ public class CompanionSystem
 
         var companion = _party[idx];
         // 敵レベルがコンパニオンレベル以上の場合にレベルアップ判定（確率20%）
-        if (enemyLevel >= companion.Level && new Random().Next(5) == 0)
+        if (enemyLevel >= companion.Level && Random.Shared.Next(5) == 0)
         {
             _party[idx] = companion with
             {

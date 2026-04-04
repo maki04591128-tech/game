@@ -163,7 +163,7 @@ public class PlayerSaveData
     /// <summary>渇き</summary>
     public int Thirst { get; set; } = 100;
     /// <summary>疲労</summary>
-    public int Fatigue { get; set; }
+    public int Fatigue { get; set; } = 100;  // デフォルト値100（疲労なし）
     /// <summary>衛生</summary>
     public int Hygiene { get; set; } = 100;
 
