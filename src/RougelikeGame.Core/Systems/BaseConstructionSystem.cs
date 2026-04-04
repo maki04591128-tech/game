@@ -54,12 +54,13 @@ public class BaseConstructionSystem
         return def != null && materials >= def.MaterialCost;
     }
 
-    /// <summary>施設を建設</summary>
-    public bool Build(FacilityCategory category, int materials)
+    /// <summary>施設を建設（materialsは呼び出し側の所持素材数。消費量はGetDefinition().MaterialCostを参照）</summary>
+    public (bool Success, int MaterialCost) Build(FacilityCategory category, int materials)
     {
-        if (!CanBuild(category, materials)) return false;
+        if (!CanBuild(category, materials)) return (false, 0);
+        var def = GetDefinition(category)!;
         _built.Add(category);
-        return true;
+        return (true, def.MaterialCost);
     }
 
     /// <summary>施設が建設済みか確認</summary>

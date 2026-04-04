@@ -53,6 +53,7 @@ public class ResourceSystem
     public HpState GetHpState(int currentHp, int maxHp)
     {
         if (currentHp <= 0) return HpState.Dead;
+        if (maxHp <= 0) return HpState.Dead;
 
         double ratio = (double)currentHp / maxHp;
 

@@ -67,7 +67,7 @@ public static class GameClearSystem
     public static ClearScore CalculateScore(int totalTurns, int totalDeaths, int highestLevel, int maxFloor)
     {
         // ターンボーナス（少ないほど高得点）
-        int turnBonus = Math.Max(0, 10000 - totalTurns / 5);
+        int turnBonus = Math.Max(0, 10000 - (int)((double)totalTurns / 5.0));
         // 死亡ペナルティ
         int deathPenalty = totalDeaths * 500;
         // レベルボーナス

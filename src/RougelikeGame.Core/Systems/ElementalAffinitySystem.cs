@@ -149,7 +149,9 @@ public static class ElementalAffinitySystem
     {
         var resistanceLevel = GetResistanceLevel(targetRace, attackElement);
         var multiplier = GetDamageMultiplier(resistanceLevel);
-        return (int)(baseDamage * multiplier);
+        int damage = (int)(baseDamage * multiplier);
+        // FK-1: Absorb（-1.0f）で負ダメージ＝回復にならないよう最低0にクランプ
+        return Math.Max(0, damage);
     }
 
     /// <summary>

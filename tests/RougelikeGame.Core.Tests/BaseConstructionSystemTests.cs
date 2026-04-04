@@ -10,7 +10,7 @@ public class BaseConstructionSystemTests
     public void Build_WithSufficientMaterials_Succeeds()
     {
         var system = new BaseConstructionSystem();
-        Assert.True(system.Build(FacilityCategory.Camp, 100));
+        Assert.True(system.Build(FacilityCategory.Camp, 100).Success);
         Assert.True(system.HasFacility(FacilityCategory.Camp));
     }
 
@@ -18,7 +18,7 @@ public class BaseConstructionSystemTests
     public void Build_InsufficientMaterials_Fails()
     {
         var system = new BaseConstructionSystem();
-        Assert.False(system.Build(FacilityCategory.Smithy, 10));
+        Assert.False(system.Build(FacilityCategory.Smithy, 10).Success);
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public class BaseConstructionSystemTests
     {
         var system = new BaseConstructionSystem();
         system.Build(FacilityCategory.Camp, 100);
-        Assert.False(system.Build(FacilityCategory.Camp, 100));
+        Assert.False(system.Build(FacilityCategory.Camp, 100).Success);
     }
 
     [Fact]

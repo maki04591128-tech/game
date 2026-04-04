@@ -81,7 +81,7 @@ public class SystemExpansionPhase5Tests
     public void Base_Build_Success_AddsToBuiltFacilities()
     {
         var sys = new BaseConstructionSystem();
-        Assert.True(sys.Build(FacilityCategory.Farm, 100));
+        Assert.True(sys.Build(FacilityCategory.Farm, 100).Success);
         Assert.True(sys.HasFacility(FacilityCategory.Farm));
         Assert.Contains(FacilityCategory.Farm, sys.BuiltFacilities);
     }
@@ -90,7 +90,7 @@ public class SystemExpansionPhase5Tests
     public void Base_Build_Failure_DoesNotAdd()
     {
         var sys = new BaseConstructionSystem();
-        Assert.False(sys.Build(FacilityCategory.Smithy, 5));
+        Assert.False(sys.Build(FacilityCategory.Smithy, 5).Success);
         Assert.False(sys.HasFacility(FacilityCategory.Smithy));
     }
 
@@ -285,7 +285,7 @@ public class SystemExpansionPhase5Tests
         var sys = new BaseConstructionSystem();
         sys.Build(FacilityCategory.Camp, 100);
         sys.Reset();
-        Assert.True(sys.Build(FacilityCategory.Camp, 100));
+        Assert.True(sys.Build(FacilityCategory.Camp, 100).Success);
     }
 
     #endregion
