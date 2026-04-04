@@ -217,16 +217,9 @@ public static class BalanceConfig
     };
 
     /// <summary>フロアボスのHP倍率（通常敵比）</summary>
-    public static double GetFloorBossHpMultiplier(int floor) => floor switch
-    {
-        5 => 3.0,    // 初ボスは控えめ
-        10 => 3.5,
-        15 => 4.0,
-        20 => 4.5,
-        25 => 5.0,
-        30 => 6.0,   // 最終ボスは特に硬い
-        _ => 3.0
-    };
+    // K-5: ボスHP倍率を計算式ベースに（フロア深度連動）
+    public static double GetFloorBossHpMultiplier(int floor) =>
+        Math.Min(6.0, 2.5 + (floor * 0.1));
 
     /// <summary>フロアボスの攻撃力倍率（通常敵比）</summary>
     public static double GetFloorBossAttackMultiplier(int floor) => floor switch

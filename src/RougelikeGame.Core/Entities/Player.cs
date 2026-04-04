@@ -378,10 +378,11 @@ public class Player : Character, IPlayer, IInventoryHolder
         DaysSinceLastPrayer = 0;
         HasPrayedToday = false;
 
-        // 再入信の場合、信仰度上限を下げる
+        // S-2: 再入信ペナルティ累積（同じ宗教への再加入回数分）
         if (PreviousReligions.Contains(religionId))
         {
-            FaithCap = Math.Max(0, GameConstants.MaxFaithPoints - GameConstants.MaxFaithCapReductionOnRejoin);
+            int rejoinCount = PreviousReligions.Count(r => r == religionId);
+            FaithCap = Math.Max(0, GameConstants.MaxFaithPoints - GameConstants.MaxFaithCapReductionOnRejoin * rejoinCount);
         }
         else
         {

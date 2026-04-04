@@ -58,7 +58,7 @@ public static class RuneWordDatabase
         Add(new("brjota", "brjóta", "ブリョータ", "砕く", RuneWordCategory.Effect, 5, 5, Difficulty: 1));
         Add(new("snida", "sníða", "スニーザ", "斬る", RuneWordCategory.Effect, 4, 4, Difficulty: 1));
         Add(new("stinga", "stinga", "スティンガ", "貫く", RuneWordCategory.Effect, 6, 6, Difficulty: 2));
-        Add(new("springa", "springa", "スプリンガ", "爆ぜる", RuneWordCategory.Effect, 10, 8, Difficulty: 2));
+        Add(new("springa", "springa", "スプリンガ", "爆ぜる", RuneWordCategory.Effect, 10, 8, Difficulty: 3));  // V-5: 爆発呪文の難易度2→3
         Add(new("tortima", "tortíma", "トルティーマ", "滅ぼす", RuneWordCategory.Effect, 20, 15, Difficulty: 4));
         Add(new("eyda", "eyða", "エイザ", "蝕む", RuneWordCategory.Effect, 8, 8, Difficulty: 3));
         Add(new("granda", "granda", "グランダ", "害する", RuneWordCategory.Effect, 15, 12, Difficulty: 4));

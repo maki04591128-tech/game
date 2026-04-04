@@ -31,8 +31,8 @@ public class DamageCalculator
         // 防御力 = 防具防御力 + (VIT × 1.5) + バフ補正
         int defensePower = param.ArmorDefense + (int)(param.Vitality * 1.5) + param.DefenseBuff;
 
-        // 基礎ダメージ
-        int baseDamage = (int)(attackPower * param.SkillMultiplier) - (int)(defensePower * 0.5);
+        // 基礎ダメージ (K-4: 防御係数0.5→0.65に引上げ、VIT投資価値向上)
+        int baseDamage = (int)(attackPower * param.SkillMultiplier) - (int)(defensePower * 0.65);
         baseDamage = Math.Max(GameConstants.MinimumDamage, baseDamage);
 
         // 乱数幅 (0.9~1.1)
