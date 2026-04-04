@@ -3214,6 +3214,9 @@ public class GameController
 
     public void UseItem(Item item)
     {
+        // EC-2: 死亡後のアイテム使用を禁止
+        if (!Player.IsAlive) { AddMessage("死亡中はアイテムを使用できない"); return; }
+
         var inventory = (Inventory)Player.Inventory;
 
         // アイテムがインベントリに存在するか確認
@@ -4056,6 +4059,9 @@ public class GameController
     /// </summary>
     private bool TryRangedAttack()
     {
+        // EC-4: 死亡後の攻撃禁止
+        if (!Player.IsAlive) return false;
+
         var weapon = Player.Equipment.MainHand;
         if (weapon == null || weapon.Range <= 1)
         {
@@ -4199,6 +4205,9 @@ public class GameController
     private bool TryUseFirstReadySkill(out int actionCost)
     {
         actionCost = TurnCosts.MoveNormal;
+
+        // EC-3: 死亡後のスキル使用禁止
+        if (!Player.IsAlive) return false;
 
         // 使用可能なアクティブスキルを検索
         var usableSkill = Player.LearnedSkills

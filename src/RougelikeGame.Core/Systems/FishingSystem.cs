@@ -35,9 +35,9 @@ public static class FishingSystem
             new[] { TimePeriod.Midnight }, 8, 200, "深層でのみ出現する太古の魚"),
         new("fish_legendary", "幻の大魚", 5, new[] { Season.Autumn },
             new[] { TimePeriod.Dusk }, 10, 500, "伝説に語られる巨大魚"),
-        new("fish_treasure", "宝箱", 0, Array.Empty<Season>(),
+        new("fish_treasure", "宝箱", 1, Array.Empty<Season>(),  // EN-1: Rarity0→1
             Array.Empty<TimePeriod>(), 1, 100, "水底に沈んだ宝箱を釣り上げた"),
-        new("fish_junk", "ガラクタ", 0, Array.Empty<Season>(),
+        new("fish_junk", "ガラクタ", 1, Array.Empty<Season>(),  // EN-1: Rarity0→1
             Array.Empty<TimePeriod>(), 1, 1, "錆びた缶や古い靴"),
     };
 

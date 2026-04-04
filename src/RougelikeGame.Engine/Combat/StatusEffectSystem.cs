@@ -235,7 +235,7 @@ public class StatusEffectSystem
         return new StatusEffect(StatusEffectType.InstantDeath, 1)
         {
             Name = "即死",
-            DamagePerTick = int.MaxValue,
+            DamagePerTick = 999999,  // EO-3: int.MaxValueのオーバーフロー回避
             DamageElement = Element.Dark
         };
     }
