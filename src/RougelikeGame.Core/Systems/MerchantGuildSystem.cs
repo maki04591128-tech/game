@@ -144,4 +144,37 @@ public class MerchantGuildSystem
         if (newRank != _membership.Rank)
             _membership = _membership with { Rank = newRank };
     }
+
+    /// <summary>交易路の状態に基づく価格修正率を取得</summary>
+    public float GetPriceModifier(string routeId)
+    {
+        var route = _routes.FirstOrDefault(r => r.RouteId == routeId);
+        if (route == null) return 1.0f;
+
+        return route.Status switch
+        {
+            TradeRouteStatus.Open => 1.0f,
+            TradeRouteStatus.Prosperous => 1.2f,   // 好景気: 売値20%UP
+            TradeRouteStatus.Closed => 0.7f,        // 閉鎖: 売値30%DOWN
+            TradeRouteStatus.Blocked => 0.5f,       // 封鎖: 売値50%DOWN
+            _ => 1.0f
+        };
+    }
+
+    /// <summary>ギルドランクに基づくショップ割引率を取得</summary>
+    public float GetGuildDiscount()
+    {
+        if (_membership == null) return 0f;
+        return _membership.Rank switch
+        {
+            GuildRank.Copper => 0.02f,
+            GuildRank.Iron => 0.05f,
+            GuildRank.Silver => 0.10f,
+            GuildRank.Gold => 0.15f,
+            GuildRank.Platinum => 0.20f,
+            GuildRank.Mythril => 0.25f,
+            GuildRank.Adamantine => 0.30f,
+            _ => 0f
+        };
+    }
 }

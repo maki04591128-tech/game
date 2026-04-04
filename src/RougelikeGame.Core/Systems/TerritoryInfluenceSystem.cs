@@ -67,4 +67,29 @@ public class TerritoryInfluenceSystem
         foreach (var key in keys)
             factions[key] /= total;
     }
+
+    /// <summary>時間経過による勢力変動（支配勢力は成長、弱小勢力は衰退）</summary>
+    public void UpdateInfluence(int turnsElapsed)
+    {
+        float growthRate = 0.01f * turnsElapsed;
+        float decayRate = 0.005f * turnsElapsed;
+
+        foreach (var territory in _influence.Keys.ToList())
+        {
+            var factions = _influence[territory];
+            if (factions.Count == 0) continue;
+
+            var dominant = factions.OrderByDescending(f => f.Value).First().Key;
+
+            foreach (var faction in factions.Keys.ToList())
+            {
+                if (faction == dominant)
+                    factions[faction] = Math.Min(1f, factions[faction] + growthRate);
+                else
+                    factions[faction] = Math.Max(0f, factions[faction] - decayRate);
+            }
+
+            NormalizeInfluence(territory);
+        }
+    }
 }
