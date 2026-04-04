@@ -294,6 +294,7 @@ public class GameController
         _combatSystem = new CombatSystem(_random);
         _enemyFactory = new EnemyFactory();
         _itemFactory = new ItemFactory();
+        _achievementSystem.RegisterDefaults();
     }
 
     public void Initialize()

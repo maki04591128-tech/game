@@ -45,6 +45,39 @@ public class AchievementSystem
         _achievements[id] = new Achievement(id, name, description, category, false, 0, bonusEffect);
     }
 
+    /// <summary>デフォルト実績を一括登録 (AD-1)</summary>
+    public void RegisterDefaults()
+    {
+        // 戦闘系
+        Register("first_kill", "初めての勝利", "敵を初めて倒した", AchievementCategory.Combat);
+        Register("boss_slayer", "ボスキラー", "ボスを初めて倒した", AchievementCategory.Combat);
+        Register("kill_100", "百人斬り", "敵を100体倒した", AchievementCategory.Combat);
+        Register("kill_1000", "千人斬り", "敵を1000体倒した", AchievementCategory.Combat, "attack_bonus_1");
+        Register("no_damage_boss", "無傷のボス戦", "ボスをノーダメージで倒した", AchievementCategory.Challenge);
+        // 探索系
+        Register("floor_5", "地下5階到達", "ダンジョン5階に到達した", AchievementCategory.Exploration);
+        Register("floor_10", "地下10階到達", "ダンジョン10階に到達した", AchievementCategory.Exploration);
+        Register("floor_20", "深淵探索者", "ダンジョン20階に到達した", AchievementCategory.Exploration);
+        Register("floor_30", "最深部到達", "ダンジョン最深部に到達した", AchievementCategory.Exploration, "unlock_infinite_dungeon");
+        Register("all_territories", "世界踏破", "全ての領地を訪問した", AchievementCategory.Exploration, "wanderer_ending");
+        // 収集系
+        Register("collect_10", "駆け出し収集家", "10種類のアイテムを入手した", AchievementCategory.Collection);
+        Register("collect_50", "収集家", "50種類のアイテムを入手した", AchievementCategory.Collection);
+        Register("legendary_item", "伝説の発見", "伝説級アイテムを入手した", AchievementCategory.Collection);
+        Register("encyclopedia_50", "博識", "図鑑を50%埋めた", AchievementCategory.Collection);
+        // ストーリー系
+        Register("dungeon_clear", "ダンジョンクリア", "ダンジョンを攻略した", AchievementCategory.Story);
+        Register("true_ending", "真のエンディング", "真エンディングに到達した", AchievementCategory.Story);
+        // チャレンジ系
+        Register("speedrun", "スピードランナー", "1000ターン以内にクリアした", AchievementCategory.Challenge);
+        Register("no_death", "不死身", "一度も死なずにクリアした", AchievementCategory.Challenge, "bonus_hp_10");
+        Register("pacifist", "平和主義者", "最小限の敵だけ倒してクリアした", AchievementCategory.Challenge);
+        // メタ系
+        Register("first_clear", "初回クリア", "ゲームを初めてクリアした", AchievementCategory.Meta);
+        Register("ng_plus", "周回プレイ", "ニューゲーム+を開始した", AchievementCategory.Meta, "ng_plus_bonus");
+        Register("all_classes", "全職制覇", "全職業でクリアした", AchievementCategory.Meta, "master_bonus");
+    }
+
     /// <summary>実績を解除</summary>
     public UnlockResult Unlock(string achievementId, int currentTurn = 0)
     {
