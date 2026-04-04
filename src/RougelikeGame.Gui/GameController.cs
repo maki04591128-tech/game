@@ -2234,7 +2234,7 @@ public class GameController
         // 食事不要種族は飢餓ダメージも無し
         if (Player.Hunger <= 0 && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
         {
-            int starvationDamage = Math.Max(1, Player.MaxHp / 50);
+            int starvationDamage = Math.Max(1, (int)(Player.MaxHp / 50 * DifficultyConfig.DamageTakenMultiplier));
             Player.TakeDamage(Damage.Pure(starvationDamage));
             if (TurnCount % 60 == 0) // メッセージは60ターンに1回だけ
             {
@@ -2447,7 +2447,7 @@ public class GameController
             int thirstDamage = ThirstSystem.GetThirstDamage(Player.ThirstStage);
             if (thirstDamage > 0)
             {
-                Player.TakeDamage(Damage.Pure(thirstDamage));
+                Player.TakeDamage(Damage.Pure((int)Math.Max(1, thirstDamage * DifficultyConfig.DamageTakenMultiplier)));
                 _lastDamageCause = DeathCause.Unknown;
             }
         }
@@ -3548,9 +3548,10 @@ public class GameController
         int damage = trapDef.CalculateDamage(CurrentFloor);
         if (damage > 0)
         {
-            Player.TakeDamage(Damage.Pure(damage));
+            int trapDmg = Math.Max(1, (int)(damage * DifficultyConfig.DamageTakenMultiplier));
+            Player.TakeDamage(Damage.Pure(trapDmg));
             _lastDamageCause = DeathCause.Trap;
-            AddMessage($"{damage}ダメージを受けた！");
+            AddMessage($"{trapDmg}ダメージを受けた！");
         }
 
         // 状態異常処理
@@ -7387,6 +7388,10 @@ public class GameController
         {
             _petSystem.Reset();
             _petSystem.AddPet(save.PetData.PetId, save.PetData.Name, petType);
+            // AB-1: ペット属性値を復元
+            _petSystem.RestorePetState(save.PetData.PetId,
+                save.PetData.Level, save.PetData.Experience,
+                save.PetData.Hunger, save.PetData.Loyalty, save.PetData.CurrentHp);
         }
 
         // カルマ復元

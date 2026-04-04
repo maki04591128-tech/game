@@ -129,6 +129,22 @@ public class PetSystem
         _pets.Clear();
     }
 
+    /// <summary>AB-1: セーブデータからペット状態を復元</summary>
+    public void RestorePetState(string petId, int level, int experience, int hunger, int loyalty, int currentHp)
+    {
+        if (_pets.TryGetValue(petId, out var pet))
+        {
+            _pets[petId] = pet with
+            {
+                Level = level,
+                Experience = experience,
+                Hunger = hunger,
+                Loyalty = loyalty,
+                CurrentHp = Math.Min(currentHp, pet.MaxHp)
+            };
+        }
+    }
+
     /// <summary>忠誠度に基づく命令成功率を取得</summary>
     public int GetObedienceRate(string petId)
     {
