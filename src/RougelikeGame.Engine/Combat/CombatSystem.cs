@@ -1,6 +1,7 @@
 using RougelikeGame.Core;
 using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Interfaces;
+using RougelikeGame.Core.Items;
 using RougelikeGame.Core.Systems;
 
 namespace RougelikeGame.Engine.Combat;
@@ -165,6 +166,10 @@ public class CombatSystem : ICombatSystem
         double attackerRacialBonus = 0.0;
         double targetRacialResistance = 0.0;
         double proficiencyMultiplier = 1.0;
+        int attackerLevel = 1;          // BS-8
+        bool hasShield = false;          // BS-11
+        float shieldBlockChance = 0f;    // BS-11
+        float shieldBlockReduction = 0.5f; // BS-11
 
         if (attacker is Character attackerChar)
         {
@@ -193,7 +198,24 @@ public class CombatSystem : ICombatSystem
                         int weaponRangeDmg = _random.Next(weapon.DamageRange.Min, weapon.DamageRange.Max + 1);
                         weaponAttack += weaponRangeDmg;
                     }
+                    // BS-9: 武器固有クリティカルボーナスを適用
+                    critRate += weapon.CriticalBonus;
                 }
+
+                // BS-19: オフハンド武器ダメージ（二刀流時）
+                var offHand = attackerPlayer.Equipment.OffHand;
+                if (offHand is Weapon offHandWeapon)
+                {
+                    int offHandDmg = offHandWeapon.BaseDamage / 2; // オフハンドは50%の攻撃力
+                    if (offHandWeapon.DamageRange.Max > 0)
+                    {
+                        offHandDmg += _random.Next(offHandWeapon.DamageRange.Min, offHandWeapon.DamageRange.Max + 1) / 2;
+                    }
+                    weaponAttack += offHandDmg;
+                }
+
+                // BS-8: レベルスケーリング用
+                attackerLevel = attackerPlayer.Level;
             }
         }
 
@@ -207,6 +229,26 @@ public class CombatSystem : ICombatSystem
             {
                 targetRacialResistance = RacialTraitSystem.CalculatePhysicalResistance(targetPlayer.Race);
             }
+
+            // BS-11: 盾ブロック判定
+            if (target is Player shieldTarget)
+            {
+                var shield = shieldTarget.Equipment.OffHand as Shield;
+                if (shield != null && shield.BlockChance > 0)
+                {
+                    hasShield = true;
+                    shieldBlockChance = shield.BlockChance;
+                    shieldBlockReduction = shield.BlockReduction;
+                }
+            }
+        }
+
+        // BS-5: クリティカル倍率は武器・スキル特化で最大2.5倍に設定可能
+        float critDamageMultiplier = 1.5f;
+        if (attacker is Player critPlayer)
+        {
+            // 基本1.5倍 + パッシブスキルや装備による追加（最大2.5倍）
+            critDamageMultiplier = Math.Min(2.5f, 1.5f + (float)critPlayer.BonusCriticalRate * 2.0f);
         }
 
         var param = new PhysicalDamageParams
@@ -221,7 +263,8 @@ public class CombatSystem : ICombatSystem
             AttackElement = attackElement,
             TargetElement = targetElement,
             CriticalRate = critRate,
-            CriticalDamageMultiplier = 1.5f
+            CriticalDamageMultiplier = critDamageMultiplier,
+            AttackerLevel = attackerLevel
         };
 
         var result = _damageCalculator.CalculatePhysicalDamage(param);
@@ -232,6 +275,13 @@ public class CombatSystem : ICombatSystem
         {
             finalDamage = (int)(finalDamage * (1.0 - targetRacialResistance));
             finalDamage = Math.Max(GameConstants.MinimumDamage, finalDamage);
+        }
+
+        // BS-11: 盾ブロック適用
+        if (hasShield)
+        {
+            var (blocked, reducedDmg) = _damageCalculator.CalculateShieldBlock(finalDamage, shieldBlockChance, shieldBlockReduction);
+            if (blocked) finalDamage = reducedDmg;
         }
 
         return new Damage(finalDamage, DamageType.Physical, attackElement, result.IsCritical);

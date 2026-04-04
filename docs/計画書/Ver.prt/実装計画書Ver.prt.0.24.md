@@ -843,14 +843,14 @@
 | BS-1 | 武器ダメージレンジ（Weapon.DamageRange）が物理ダメージ計算で完全に無視される。EffectiveStats.PhysicalAttackのみ使用 | 致命的 | `Engine/Combat/CombatSystem.cs:154` | 修正済み |
 | BS-2 | 両手武器ダメージボーナスが未実装。IsTwoHandedプロパティがダメージ計算で参照されない | 高 | `Engine/Combat/CombatSystem.cs:140-213` | 修正済み |
 | BS-3 | 武器熟練度がSkillMultiplierとして誤適用（攻撃力ボーナスではなくスキル倍率に適用） | 中 | `Engine/Combat/CombatSystem.cs:195` | |
-| BS-4 | 防御貫通（Armor Penetration）が完全未実装。防御は常にdefensePower×0.5の固定割合 | 高 | `Engine/Combat/DamageCalculator.cs:35` | |
-| BS-5 | クリティカルダメージ倍率が1.5f固定。設計書の「特化ビルドで最大×2.5」が不可能 | 高 | `Engine/Combat/CombatSystem.cs:199` | |
+| BS-4 | 防御貫通（Armor Penetration）が完全未実装。防御は常にdefensePower×0.5の固定割合 | 高 | `Engine/Combat/DamageCalculator.cs:35` | 修正済み |
+| BS-5 | クリティカルダメージ倍率が1.5f固定。設計書の「特化ビルドで最大×2.5」が不可能 | 高 | `Engine/Combat/CombatSystem.cs:199` | 修正済み |
 | BS-6 | 防御計算が物理0.5/魔法0.3のハードコード定数。GameConstantsに未定義 | 中 | `Engine/Combat/DamageCalculator.cs:35,82` | |
 | BS-7 | 再生（Regeneration）回復量がhealPerTick=3固定。MND/INTスケーリングなし | 中 | `Engine/StatusEffectSystem.cs:286` | |
-| BS-8 | レベルによるダメージスケーリングが完全未実装。PhysicalDamageParams/MagicalDamageParamsにレベルフィールドなし | 高 | `Engine/Combat/DamageCalculator.cs,CombatSystem.cs` | |
-| BS-9 | WeaponCritBonus/SkillCritBonusが常に0にハードコード。武器固有クリティカルボーナスが無効 | 高 | `Engine/Combat/CombatSystem.cs:293-294` | |
+| BS-8 | レベルによるダメージスケーリングが完全未実装。PhysicalDamageParams/MagicalDamageParamsにレベルフィールドなし | 高 | `Engine/Combat/DamageCalculator.cs,CombatSystem.cs` | 修正済み |
+| BS-9 | WeaponCritBonus/SkillCritBonusが常に0にハードコード。武器固有クリティカルボーナスが無効 | 高 | `Engine/Combat/CombatSystem.cs:293-294` | 修正済み |
 | BS-10 | ダメージ分散範囲が0.9-1.1固定。名前付き定数未定義 | 低 | `Engine/Combat/DamageCalculator.cs:39,86` | |
-| BS-11 | 盾ブロック/パリィメカニクスがDamageCalculatorに未実装。Shield.BlockChanceが参照されない | 高 | `Engine/Combat/DamageCalculator.cs:192` | |
+| BS-11 | 盾ブロック/パリィメカニクスがDamageCalculatorに未実装。Shield.BlockChanceが参照されない | 高 | `Engine/Combat/DamageCalculator.cs:192` | 修正済み |
 | BS-12 | 防具タイプ別物理耐性なし。重装/軽装が同じ防御計算 | 中 | `Engine/Combat/DamageCalculator.cs:32` | |
 | BS-13 | 回復魔法の威力がBaseMpCost×3固定。MND/INTスケーリングなし | 高 | `Engine/Magic/SpellCastingSystem.cs:362-363` | |
 | BS-14 | 呪文成功率にキャスターステータス（INT/MND）が反映されない。SpellParser固定値のみ | 高 | `Engine/Magic/SpellCastingSystem.cs:161` | |
@@ -858,7 +858,7 @@
 | BS-16 | 攻撃者/防御者のレベル差によるダメージスケーリングなし | 中 | `Engine/Combat/DamageCalculator.cs,CombatSystem.cs` | |
 | BS-17 | 武器の属性ダメージ増強未適用。Weapon.Elementは攻撃シグネチャにのみ使用 | 中 | `Engine/Combat/CombatSystem.cs:196` | |
 | BS-18 | 武器攻撃速度（AttackSpeed）がダメージ分散に影響しない | 低 | `Engine/Combat/DamageCalculator.cs` | |
-| BS-19 | オフハンド武器ダメージが未計算。二刀流時にメインハンドのみ処理 | 高 | `Engine/Combat/CombatSystem.cs:154` | |
+| BS-19 | オフハンド武器ダメージが未計算。二刀流時にメインハンドのみ処理 | 高 | `Engine/Combat/CombatSystem.cs:154` | 修正済み |
 | BS-20 | 武器射程（Weapon.Range）がダメージ計算で無視。近接武器が任意距離で全ダメージ | 低 | `Engine/Combat/CombatSystem.cs` | |
 
 ---
@@ -872,9 +872,9 @@
 | BT-3 | Scroll.Use()のswitchで3種（Freeze/Summon/Return）がdefaultに落ち「何も起こらなかった」を返す | 高 | `Consumables.cs:256-319` | 修正済み |
 | BT-4 | レアリティスケーリングが弱すぎ。Depth 1とDepth 100のLegendary確率が同じ5%上限 | 中 | `ItemFactory.cs:848-861` | |
 | BT-5 | エンチャントがEquipmentItemに実際に保存されない。Enchant()がsuccessを返すが**アイテムオブジェクトを変更しない** | 致命的 | `EnchantmentSystem.cs:139,Equipment.cs:60-76` | 修正済み |
-| BT-6 | エンチャント種別制限なし。ダメージエンチャント（FireDamage等）が防具に適用可。Lifestealが防具に適用可 | 高 | `EnchantmentSystem.cs:128-134` | |
+| BT-6 | エンチャント種別制限なし。ダメージエンチャント（FireDamage等）が防具に適用可。Lifestealが防具に適用可 | 高 | `EnchantmentSystem.cs:128-134` | 修正済み |
 | BT-7 | 8エンチャント種（Lifesteal/ManaSteal/ParalysisChance/ExpBoost/DropBoost/CriticalBoost/SpeedBoost/DefenseBoost）の効果計算が未実装（return 0） | 致命的 | `EnchantmentSystem.cs:186-206` | 修正済み |
-| BT-8 | エンチャント除去/置換メソッドが存在しない。RemoveEnchantment()/ReplaceEnchantment()なし | 高 | `EnchantmentSystem.cs:1-209` | |
+| BT-8 | エンチャント除去/置換メソッドが存在しない。RemoveEnchantment()/ReplaceEnchantment()なし | 高 | `EnchantmentSystem.cs:1-209` | 修正済み |
 | BT-9 | 複数エンチャント非対応。同一装備に2つ以上のエンチャントを持てない | 中 | `Equipment.cs:60-76` | |
 | BT-10 | クラフトレシピが参照する`material_coal`がItemDefinitionsに定義されていない。鋼鉄の剣がクラフト不可 | 致命的 | `CraftingSystem.cs:275,ItemFactory.cs:1159-1260` | 修正済み |
 | BT-11 | クラフトにスキル/ツール/職業要件なし。全職業が全アイテムをクラフト可能 | 中 | `CraftingSystem.cs:92-111` | |

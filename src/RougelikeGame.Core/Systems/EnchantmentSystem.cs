@@ -130,6 +130,10 @@ public static class EnchantmentSystem
         if (!_definitions.TryGetValue(type, out var definition))
             return false;
 
+        // BT-6: エンチャント種別制限チェック
+        if (!IsValidEnchantTarget(item, type))
+            return false;
+
         return gem >= definition.RequiredQuality;
     }
 
@@ -208,4 +212,58 @@ public static class EnchantmentSystem
     }
 
     #endregion
+
+    /// <summary>
+    /// BT-6: エンチャント種別制限。ダメージ系は武器のみ、防御系は防具のみに適用可能。
+    /// </summary>
+    public static bool IsValidEnchantTarget(EquipmentItem item, EnchantmentType type)
+    {
+        bool isDamageEnchant = type is EnchantmentType.FireDamage or EnchantmentType.IceDamage
+            or EnchantmentType.LightningDamage or EnchantmentType.PoisonDamage
+            or EnchantmentType.HolyDamage or EnchantmentType.DarkDamage
+            or EnchantmentType.Lifesteal or EnchantmentType.ManaSteal
+            or EnchantmentType.ParalysisChance or EnchantmentType.CriticalBoost;
+
+        bool isDefenseEnchant = type is EnchantmentType.DefenseBoost or EnchantmentType.Thorns;
+
+        if (isDamageEnchant && item is not Weapon) return false;
+        if (isDefenseEnchant && item is Weapon) return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// BT-8: エンチャント除去。指定タイプのエンチャントをアイテムから除去する。
+    /// </summary>
+    public static bool RemoveEnchantment(EquipmentItem item, EnchantmentType type)
+    {
+        string typeStr = type.ToString();
+        return item.AppliedEnchantments.Remove(typeStr);
+    }
+
+    /// <summary>
+    /// BT-8: エンチャント置換。既存エンチャントを除去して新しいエンチャントを付与する。
+    /// </summary>
+    public static EnchantApplyResult ReplaceEnchantment(EquipmentItem item, EnchantmentType oldType, EnchantmentType newType, SoulGemQuality gem, IRandomProvider random)
+    {
+        if (!item.AppliedEnchantments.Contains(oldType.ToString()))
+            return new EnchantApplyResult(false, "置換対象のエンチャントが存在しません");
+
+        if (!CanEnchant(item, newType, gem))
+            return new EnchantApplyResult(false, "魂石の品質が不足しています");
+
+        if (!IsValidEnchantTarget(item, newType))
+            return new EnchantApplyResult(false, "この装備にはそのエンチャントを付与できません");
+
+        float successRate = GetSuccessRate(gem);
+        if (random.NextDouble() < successRate)
+        {
+            item.AppliedEnchantments.Remove(oldType.ToString());
+            item.AppliedEnchantments.Add(newType.ToString());
+            var def = _definitions.GetValueOrDefault(newType);
+            return new EnchantApplyResult(true, $"{item.Name}のエンチャントを{def?.Name ?? newType.ToString()}に置換した！", newType);
+        }
+
+        return new EnchantApplyResult(false, "エンチャント置換に失敗した…");
+    }
 }

@@ -205,6 +205,9 @@ public class Weapon : EquipmentItem
     /// <summary>攻撃タイプ</summary>
     public AttackType AttackType { get; init; } = AttackType.Slash;
 
+    /// <summary>BS-9: 武器固有クリティカルボーナス（0.0～0.15程度）</summary>
+    public double CriticalBonus { get; init; }
+
     public Weapon()
     {
         Slot = EquipmentSlot.MainHand;
