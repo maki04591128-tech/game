@@ -446,6 +446,16 @@ public class QuestSystem
         if (quest.Reward.Gold > 0) player.AddGold(quest.Reward.Gold);
         if (quest.Reward.Experience > 0) player.GainExperience(quest.Reward.Experience);
 
+        // CQ-1: アイテム報酬の付与
+        if (quest.Reward.ItemIds != null)
+        {
+            foreach (var itemId in quest.Reward.ItemIds)
+            {
+                var item = Items.ItemDefinitions.Create(itemId);
+                if (item != null) ((Entities.Inventory)player.Inventory).Add(item);
+            }
+        }
+
         progress.State = QuestState.TurnedIn;
         _completedQuests.Add(questId);
         _activeQuests.Remove(questId);

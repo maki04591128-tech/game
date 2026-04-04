@@ -729,6 +729,17 @@ public class Player : Character, IPlayer, IInventoryHolder
             player.LearnWord(wordId);
         }
 
+        // Z-1: 素性による初期装備品をインベントリに付与
+        var bgBonusData = BackgroundBonusData.Get(background);
+        foreach (var itemId in bgBonusData.InitialItemIds)
+        {
+            var item = Items.ItemDefinitions.Create(itemId);
+            if (item != null)
+            {
+                ((Inventory)player.Inventory).Add(item);
+            }
+        }
+
         return player;
     }
 
