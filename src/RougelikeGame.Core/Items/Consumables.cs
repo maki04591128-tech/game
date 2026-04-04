@@ -381,6 +381,10 @@ public class Scroll : ConsumableItem
                 return UseResult.Ok("味方モンスターを召喚した！",
                     new ItemEffect(ItemEffectType.Summon, EffectValue));
 
+            case ScrollType.Confusion:  // B-4: 混乱の巻物
+                return UseResult.Ok("混乱の霧が広がった！",
+                    new ItemEffect(ItemEffectType.ApplyStatus, EffectValue, StatusEffect: StatusEffectType.Confusion));
+
             default:
                 return UseResult.Fail("何も起こらなかった");
         }
@@ -417,7 +421,9 @@ public enum ScrollType
     /// <summary>召喚</summary>
     Summon,
     /// <summary>古代の書（ルーン語習得）</summary>
-    AncientBook
+    AncientBook,
+    /// <summary>B-4: 混乱</summary>
+    Confusion
 }
 
 /// <summary>
