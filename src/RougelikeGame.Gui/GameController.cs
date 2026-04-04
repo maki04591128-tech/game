@@ -7132,6 +7132,24 @@ public class GameController
             });
         }
 
+        // 戦闘スタンス保存
+        save.CombatStance = _playerStance.ToString();
+
+        // コンパニオンデータ保存
+        foreach (var companion in _companionSystem.Party)
+        {
+            save.Companions.Add(new CompanionSaveData
+            {
+                Name = companion.Name,
+                Level = companion.Level,
+                Hp = companion.Hp,
+                MaxHp = companion.MaxHp,
+                Attack = companion.Attack,
+                Defense = companion.Defense,
+                IsAlive = companion.IsAlive
+            });
+        }
+
         return save;
     }
 
@@ -7381,6 +7399,12 @@ public class GameController
             {
                 GroundItems.Add((item, new Position(groundData.X, groundData.Y)));
             }
+        }
+
+        // 戦闘スタンスの復元
+        if (!string.IsNullOrEmpty(save.CombatStance) && Enum.TryParse<CombatStance>(save.CombatStance, out var stance))
+        {
+            _playerStance = stance;
         }
 
         AddMessage("セーブデータをロードした");

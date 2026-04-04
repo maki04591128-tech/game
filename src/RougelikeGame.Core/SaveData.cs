@@ -129,6 +129,12 @@ public class SaveData
 
     /// <summary>AS-2: 地面のアイテム</summary>
     public List<GroundItemSaveData> GroundItems { get; set; } = new();
+
+    /// <summary>戦闘スタンス</summary>
+    public string? CombatStance { get; set; }
+
+    /// <summary>コンパニオンデータ</summary>
+    public List<CompanionSaveData> Companions { get; set; } = new();
 }
 
 /// <summary>
@@ -381,4 +387,18 @@ public class GroundItemSaveData
     public ItemSaveData Item { get; set; } = new();
     public int X { get; set; }
     public int Y { get; set; }
+}
+
+/// <summary>
+/// コンパニオンのセーブデータ
+/// </summary>
+public class CompanionSaveData
+{
+    public string Name { get; set; } = string.Empty;
+    public int Level { get; set; }
+    public int Hp { get; set; }
+    public int MaxHp { get; set; }
+    public int Attack { get; set; }
+    public int Defense { get; set; }
+    public bool IsAlive { get; set; }
 }
