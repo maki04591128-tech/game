@@ -134,6 +134,11 @@ public class DungeonGenerator : IMapGenerator
                     .First();
                 farthest.Type = RoomType.Boss;
             }
+            else
+            {
+                // DE-3: 単一部屋の場合は入口兼ボス部屋に
+                rooms[0].Type = RoomType.Boss;
+            }
         }
     }
 

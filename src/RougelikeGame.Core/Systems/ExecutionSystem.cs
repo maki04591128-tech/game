@@ -46,6 +46,13 @@ public static class ExecutionSystem
         WeaponType.Hammer => "粉砕",
         WeaponType.Spear => "貫通",
         WeaponType.Bow => "射殺",
+        WeaponType.Greatsword => "大斬撃",     // DP-1: 追加
+        WeaponType.Greataxe => "叩き割り",      // DP-1: 追加
+        WeaponType.Staff => "魔力爆砕",         // DP-1: 追加
+        WeaponType.Crossbow => "狙撃",          // DP-1: 追加
+        WeaponType.Thrown => "投擲",             // DP-1: 追加
+        WeaponType.Whip => "縛殺",              // DP-1: 追加
+        WeaponType.Fist or WeaponType.Unarmed => "撲殺", // DP-1: 追加
         _ => "止めの一撃"
     };
 }

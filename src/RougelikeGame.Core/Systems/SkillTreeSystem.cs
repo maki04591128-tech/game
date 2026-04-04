@@ -55,7 +55,8 @@ public class SkillTreeSystem
     }
 
     /// <summary>ノードを解放可能か判定</summary>
-    public bool CanUnlock(string nodeId, int playerLevel = int.MaxValue)
+    public bool CanUnlock(string nodeId, int playerLevel = int.MaxValue,
+        CharacterClass? playerClass = null, Race? playerRace = null, Background? playerBackground = null)
     {
         if (!_allNodes.TryGetValue(nodeId, out var node))
             return false;
@@ -70,6 +71,14 @@ public class SkillTreeSystem
         if (playerLevel < node.RequiredLevel)
             return false;
 
+        // FJ-1: クラス/種族/職歴制限チェック
+        if (node.RequiredClass != null && playerClass != null && node.RequiredClass != playerClass)
+            return false;
+        if (node.RequiredRace != null && playerRace != null && node.RequiredRace != playerRace)
+            return false;
+        if (node.RequiredBackground != null && playerBackground != null && node.RequiredBackground != playerBackground)
+            return false;
+
         // 前提条件チェック
         foreach (var prereq in node.Prerequisites)
         {
@@ -81,9 +90,10 @@ public class SkillTreeSystem
     }
 
     /// <summary>ノードを解放する</summary>
-    public bool UnlockNode(string nodeId, int playerLevel = int.MaxValue)
+    public bool UnlockNode(string nodeId, int playerLevel = int.MaxValue,
+        CharacterClass? playerClass = null, Race? playerRace = null, Background? playerBackground = null)
     {
-        if (!CanUnlock(nodeId, playerLevel))
+        if (!CanUnlock(nodeId, playerLevel, playerClass, playerRace, playerBackground))
             return false;
 
         var node = _allNodes[nodeId];

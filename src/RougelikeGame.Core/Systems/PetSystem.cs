@@ -119,6 +119,39 @@ public class PetSystem
         return updated;
     }
 
+    /// <summary>CW-2: ペットにダメージを適用（HP減少・死亡処理）</summary>
+    public (PetState State, bool Died) ApplyDamage(string petId, int damage)
+    {
+        if (!_pets.TryGetValue(petId, out var pet))
+            return (new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 0, false), false);
+        int newHp = Math.Max(0, pet.CurrentHp - Math.Max(0, damage));
+        bool died = newHp <= 0 && pet.CurrentHp > 0;
+        var updated = pet with { CurrentHp = newHp, IsRiding = newHp > 0 && pet.IsRiding };
+        _pets[petId] = updated;
+        return (updated, died);
+    }
+
+    /// <summary>CW-2: ペットを回復</summary>
+    public PetState HealPet(string petId, int amount)
+    {
+        if (!_pets.TryGetValue(petId, out var pet))
+            return new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
+        var updated = pet with { CurrentHp = Math.Min(pet.MaxHp, pet.CurrentHp + Math.Max(0, amount)) };
+        _pets[petId] = updated;
+        return updated;
+    }
+
+    /// <summary>CW-2: 死亡ペットを除去</summary>
+    public bool RemoveDeadPet(string petId)
+    {
+        if (_pets.TryGetValue(petId, out var pet) && pet.CurrentHp <= 0)
+        {
+            _pets.Remove(petId);
+            return true;
+        }
+        return false;
+    }
+
     /// <summary>
     /// 全ペット状態をリセットする（死に戻り時に呼び出し）。
     /// 死に戻りは時間巻き戻しであるため、入手したペットは全て消失する。
