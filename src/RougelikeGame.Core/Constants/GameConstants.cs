@@ -206,13 +206,14 @@ public static class BalanceConfig
     };
 
     /// <summary>階層別推奨レベル</summary>
+    // J-2: ExpGrowthRate=1.15に合わせた現実的な推奨レベル
     public static int GetRecommendedLevel(int depth) => depth switch
     {
-        <= 5 => 1 + (depth - 1),
-        <= 10 => 5 + (depth - 5) * 2,
-        <= 20 => 15 + (depth - 10) * 2,
-        <= 30 => 35 + (depth - 20),
-        _ => 45
+        <= 5 => 1 + (depth - 1),        // F1=1, F5=5
+        <= 10 => 5 + (depth - 5),       // F6=6, F10=10
+        <= 20 => 10 + (depth - 10),     // F11=11, F20=20
+        <= 30 => 20 + (depth - 20),     // F21=21, F30=30
+        _ => 30 + (depth - 30)          // F31+=31+
     };
 
     /// <summary>フロアボスのHP倍率（通常敵比）</summary>

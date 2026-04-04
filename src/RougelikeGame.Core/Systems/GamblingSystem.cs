@@ -22,9 +22,9 @@ public static class GamblingSystem
     }
 
     /// <summary>カード（ハイ&amp;ロー）の結果を判定</summary>
-    public static bool JudgeHighLow(bool playerChoseHigh, int currentCard, int nextCard)
+    public static bool? JudgeHighLow(bool playerChoseHigh, int currentCard, int nextCard)
     {
-        if (currentCard == nextCard) return false; // 引き分けは負け
+        if (currentCard == nextCard) return null; // AG-2: 引き分けは賭け金返却（nullで表現）
         return playerChoseHigh ? nextCard > currentCard : nextCard < currentCard;
     }
 

@@ -86,6 +86,8 @@ public abstract class Character : IEntity, ITurnActor, IDamageable
         {
             DamageType.Physical => EffectiveStats.PhysicalDefense,
             DamageType.Magical => EffectiveStats.MagicalDefense,
+            DamageType.Pure => 0,      // AI-1: 貫通ダメージ（防御無視）
+            DamageType.Healing => 0,   // AI-1: 回復は防御不要
             _ => 0
         };
 

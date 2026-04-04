@@ -1660,7 +1660,10 @@ public class GameController
                 float oathExpBonus = _oathSystem.GetTotalExpBonus();  // AW-1: 誓約経験値ボーナス
                 float religionExpBonus = (float)_religionSystem.GetBenefitValue(Player, ReligionBenefitType.ExpBonus);
                 float ngPlusExpMult = _ngPlusTier.HasValue ? NewGamePlusSystem.GetExpMultiplier(_ngPlusTier.Value) : 1.0f;
-                int totalExp = (int)(enemy.ExperienceReward * (1.0f + executionExpBonus + oathExpBonus + religionExpBonus)
+                // J-3: フロア深度による経験値スケーリング（+10%/フロア）
+                float depthExpBonus = 1.0f + (CurrentFloor - 1) * 0.1f;
+                int totalExp = (int)(enemy.ExperienceReward * depthExpBonus
+                    * (1.0f + executionExpBonus + oathExpBonus + religionExpBonus)
                     * DifficultyConfig.ExpMultiplier * ngPlusExpMult);
 
                 string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
@@ -8423,7 +8426,20 @@ public class GameController
             case GamblingGameType.Card:
                 int currentCard = _random.Next(13) + 1;
                 int nextCard = _random.Next(13) + 1;
-                won = GamblingSystem.JudgeHighLow(playerGuess == 1, currentCard, nextCard);
+                var highLowResult = GamblingSystem.JudgeHighLow(playerGuess == 1, currentCard, nextCard);
+                if (highLowResult == null)
+                {
+                    // AG-2: 引き分け — 賭け金返却
+                    string cardGuessD = playerGuess == 1 ? "ハイ" : "ロー";
+                    AddMessage($"🃏 あなたの予想: {cardGuessD}  ハイ＆ロー: {currentCard} → {nextCard}");
+                    AddMessage($"🤝 引き分け！ 賭け金{betAmount}Gは返却されます");
+                    Player.AddGold(betAmount);
+                    TurnCount += 5;
+                    GameTime.AdvanceTurn(5);
+                    OnStateChanged?.Invoke();
+                    return true;
+                }
+                won = highLowResult.Value;
                 string cardGuess = playerGuess == 1 ? "ハイ" : "ロー";
                 AddMessage($"🃏 あなたの予想: {cardGuess}  ハイ＆ロー: {currentCard} → {nextCard}");
                 break;

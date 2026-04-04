@@ -168,7 +168,7 @@ public class DamageCalculator
     public bool CheckCritical(CriticalCheckParams param)
     {
         double critRate = GameConstants.BaseCriticalRate 
-            + (param.Dexterity * 0.003) 
+            + (param.Dexterity * 0.005)   // K-3: DEXのクリティカル率寄与をLUKと統一
             + (param.Luck * 0.005) 
             + param.WeaponCritBonus 
             + param.SkillCritBonus;

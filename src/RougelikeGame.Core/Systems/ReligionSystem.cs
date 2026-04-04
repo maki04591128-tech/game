@@ -584,11 +584,64 @@ public class ReligionSystem
         player.DaysSinceLastPrayer = 0;
         player.AddFaithPoints(GameConstants.PrayFaithGain);
 
+        // F-2: 宗教固有の祈り効果
+        string extraEffect = ApplyPrayerEffect(player, player.CurrentReligion);
+
         var rank = ReligionDefinition.GetFaithRank(player.FaithPoints);
         var rankName = ReligionDefinition.GetFaithRankName(rank);
 
-        return new ReligionActionResult(true,
-            $"祈りを捧げた。信仰度+{GameConstants.PrayFaithGain}（現在: {player.FaithPoints}、{rankName}）");
+        string msg = $"祈りを捧げた。信仰度+{GameConstants.PrayFaithGain}（現在: {player.FaithPoints}、{rankName}）";
+        if (!string.IsNullOrEmpty(extraEffect)) msg += $"\n{extraEffect}";
+        return new ReligionActionResult(true, msg);
+    }
+
+    /// <summary>F-2: 宗教固有の祈り効果を適用</summary>
+    private string ApplyPrayerEffect(Entities.Player player, string religionId)
+    {
+        return religionId switch
+        {
+            "temple_of_light" => PrayHeal(player),
+            "dark_cult" => PrayDarkPower(player),
+            "nature_faith" => PrayNature(player),
+            "death_faith" => PrayDeath(player),
+            "chaos_cult" => PrayChaos(player),
+            _ => ""
+        };
+    }
+
+    private static string PrayHeal(Entities.Player player)
+    {
+        int heal = Math.Max(5, player.MaxHp / 10);
+        player.Heal(heal);
+        return $"✨ 光の祝福: HP+{heal}回復";
+    }
+
+    private static string PrayDarkPower(Entities.Player player)
+    {
+        int mpRestore = Math.Max(3, player.MaxMp / 10);
+        player.RestoreMp(mpRestore);
+        return $"🌑 闇の力: MP+{mpRestore}回復";
+    }
+
+    private static string PrayNature(Entities.Player player)
+    {
+        int hungerRestore = 10;
+        player.ModifyHunger(hungerRestore);
+        return $"🌿 自然の恵み: 満腹度+{hungerRestore}";
+    }
+
+    private static string PrayDeath(Entities.Player player)
+    {
+        int sanityRestore = 5;
+        player.ModifySanity(sanityRestore);
+        return $"💀 死の静寂: 正気度+{sanityRestore}";
+    }
+
+    private static string PrayChaos(Entities.Player player)
+    {
+        int spRestore = Math.Max(5, player.MaxSp / 10);
+        player.RestoreSp(spRestore);
+        return $"🌀 混沌の活力: SP+{spRestore}回復";
     }
 
     /// <summary>信仰度を増加させる</summary>
