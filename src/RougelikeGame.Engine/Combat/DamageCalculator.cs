@@ -199,6 +199,9 @@ public class DamageCalculator
     /// </summary>
     public HpStatePenalty GetHpStatePenalty(int currentHp, int maxHp)
     {
+        if (maxHp <= 0)
+            return new HpStatePenalty(HpState.Dead, 1.0, 1.0);
+
         double ratio = (double)currentHp / maxHp;
 
         return ratio switch

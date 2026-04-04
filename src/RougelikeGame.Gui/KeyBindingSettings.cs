@@ -162,7 +162,7 @@ public class KeyBindingSettings
         [KeyBindAction.ThrowItem] = new KeyBinding(Key.T),
         [KeyBindAction.StartCasting] = new KeyBinding(Key.V),
         [KeyBindAction.Pray] = new KeyBinding(Key.P),
-        [KeyBindAction.EnterTown] = new KeyBinding(Key.T),
+        [KeyBindAction.EnterTown] = new KeyBinding(Key.T, ModifierKeys.Shift),
 
         // 画面系
         [KeyBindAction.OpenInventory] = new KeyBinding(Key.I),

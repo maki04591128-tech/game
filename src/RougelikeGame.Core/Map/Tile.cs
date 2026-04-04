@@ -431,13 +431,13 @@ public class Tile
 
             case TileType.SymbolMountain:
                 tile.BlocksSight = false;
-                tile.BlocksMovement = false;
+                tile.BlocksMovement = true;
                 tile.MovementCost = 2.0f;
                 break;
 
             case TileType.SymbolWater:
                 tile.BlocksSight = false;
-                tile.BlocksMovement = false;
+                tile.BlocksMovement = true;
                 tile.MovementCost = 1.8f;
                 break;
 

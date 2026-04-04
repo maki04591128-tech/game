@@ -64,7 +64,7 @@ public class PetSystem
     /// <summary>餌をやる（空腹度回復＋忠誠度上昇）</summary>
     public PetState Feed(string petId, int hungerRecovery = 30, int loyaltyBonus = 5)
     {
-        if (!_pets.TryGetValue(petId, out var pet)) return pet!;
+        if (!_pets.TryGetValue(petId, out var pet)) return new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
         var updated = pet with
         {
             Hunger = Math.Min(100, pet.Hunger + hungerRecovery),
@@ -77,7 +77,7 @@ public class PetSystem
     /// <summary>しつけ（忠誠度上昇、レベルに応じて変動）</summary>
     public PetState Train(string petId, int loyaltyChange = 10)
     {
-        if (!_pets.TryGetValue(petId, out var pet)) return pet!;
+        if (!_pets.TryGetValue(petId, out var pet)) return new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
         var updated = pet with { Loyalty = Math.Clamp(pet.Loyalty + loyaltyChange, 0, 100) };
         _pets[petId] = updated;
         return updated;
@@ -86,7 +86,7 @@ public class PetSystem
     /// <summary>騎乗状態を切り替え</summary>
     public PetState ToggleRide(string petId)
     {
-        if (!_pets.TryGetValue(petId, out var pet)) return pet!;
+        if (!_pets.TryGetValue(petId, out var pet)) return new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
         bool canRide = pet.Type == PetType.Horse || pet.Type == PetType.Bear || pet.Type == PetType.Dragon;
         if (!canRide) return pet;
         var updated = pet with { IsRiding = !pet.IsRiding };
@@ -111,7 +111,7 @@ public class PetSystem
     /// <summary>ペットの空腹度を減少（ターン経過）</summary>
     public PetState TickHunger(string petId, int amount = 1)
     {
-        if (!_pets.TryGetValue(petId, out var pet)) return pet!;
+        if (!_pets.TryGetValue(petId, out var pet)) return new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
         var updated = pet with { Hunger = Math.Max(0, pet.Hunger - amount) };
         if (updated.Hunger == 0)
             updated = updated with { Loyalty = Math.Max(0, updated.Loyalty - 2) };

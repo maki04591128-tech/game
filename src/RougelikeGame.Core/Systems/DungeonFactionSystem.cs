@@ -43,13 +43,13 @@ public static class DungeonFactionSystem
     /// <summary>2種族が敵対関係にあるか</summary>
     public static bool AreHostile(MonsterRace race1, MonsterRace race2)
     {
-        return GetHostility(race1, race2) > 0.5f;
+        return GetHostility(race1, race2) >= 0.5f;
     }
 
     /// <summary>2種族が同盟的関係にあるか</summary>
     public static bool AreAllied(MonsterRace race1, MonsterRace race2)
     {
-        return GetHostility(race1, race2) < 0.3f;
+        return GetHostility(race1, race2) <= 0.3f;
     }
 
     /// <summary>指定種族と敵対する種族一覧を取得</summary>

@@ -6207,7 +6207,7 @@ public class GameController
                         AddMessage($"投資には最低{MinInvestment}G必要だ");
                         break;
                     }
-                    Player.AddGold(-investAmount);
+                    Player.SpendGold(investAmount);
                     _investmentSystem.Invest(InvestmentType.Shop, "一般商店", investAmount, TurnCount);
                     float expectedReturn = InvestmentSystem.GetExpectedReturn(InvestmentType.Shop, investAmount);
                     float successRate = InvestmentSystem.GetSuccessRate(InvestmentType.Shop);
@@ -6399,7 +6399,7 @@ public class GameController
             return false;
         }
 
-        Player.AddGold(-companion.HireCost);
+        Player.SpendGold(companion.HireCost);
         AddMessage($"{companion.Name}が仲間になった！（{companion.HireCost}G）");
         return true;
     }
@@ -7633,7 +7633,7 @@ public class GameController
             return false;
         }
 
-        Player.AddGold(-betAmount);
+        Player.SpendGold(betAmount);
         bool won = false;
 
         switch (gameType)
@@ -7798,6 +7798,14 @@ public class GameController
         if (DurabilitySystem.CanSelfRepair(smithingLevel))
         {
             int repairAmount = DurabilitySystem.CalculateSelfRepairAmount(smithingLevel);
+            // 装備品の耐久値を実際に回復 (DZ-1)
+            var equipment = Player.Equipment.GetAll().Values
+                .Where(e => e != null && e.Name == itemName)
+                .FirstOrDefault();
+            if (equipment != null)
+            {
+                equipment.Durability = Math.Min(equipment.MaxDurability, equipment.Durability + repairAmount);
+            }
             AddMessage($"🔧 鍛冶スキルにより追加修理: +{repairAmount}");
         }
 
@@ -7875,7 +7883,7 @@ public class GameController
         if (!evaded)
         {
             int penalty = SmugglingSystem.GetPenalty(contraband.Type);
-            Player.AddGold(-Math.Min(penalty, Player.Gold));
+            Player.SpendGold(Math.Min(penalty, Player.Gold));
             _karmaSystem.ModifyKarma(-5, "密輸");
             AddMessage($"🚨 密輸が発覚！ 罰金{penalty}G、カルマ低下");
         }
@@ -7909,7 +7917,7 @@ public class GameController
             return false;
         }
 
-        Player.AddGold(-recipe.MaterialCost);
+        Player.SpendGold(recipe.MaterialCost);
         float efficiency = TrapCraftingSystem.CalculateEfficiency(trapType, smithingLevel);
         Map.SetTile(Player.Position.X, Player.Position.Y, TileType.TrapHidden);
         _proficiencySystem.GainExperience(ProficiencyCategory.Smithing, 3);
@@ -7938,7 +7946,7 @@ public class GameController
             return false;
         }
 
-        Player.AddGold(-item.Price);
+        Player.SpendGold(item.Price);
         _karmaSystem.ModifyKarma(-2, "闇市場");
         // 闇市場取引はターンを消費する
         TurnCount += 5;

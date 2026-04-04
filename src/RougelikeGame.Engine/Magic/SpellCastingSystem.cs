@@ -366,7 +366,7 @@ public static class SpellEffectResolver
         Element element = DetermineElement(effectWord, elementWord);
 
         // ダメージタイプ決定
-        DamageType damageType = element == Element.None ? DamageType.Magical : DamageType.Magical;
+        DamageType damageType = element == Element.None ? DamageType.Magical : DamageType.Elemental;
 
         // 効果タイプ決定
         SpellEffectType effectType = CategorizeEffect(effectWord.Id);

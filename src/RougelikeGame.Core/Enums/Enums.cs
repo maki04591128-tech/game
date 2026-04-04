@@ -98,7 +98,8 @@ public enum DamageType
     Physical,
     Magical,
     Pure,
-    Healing
+    Healing,
+    Elemental
 }
 
 /// <summary>
