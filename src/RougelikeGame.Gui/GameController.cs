@@ -1532,6 +1532,11 @@ public class GameController
             }
             baseDmg = Math.Max(1, (int)(baseDmg * statusAttackMult));
 
+            // AR-4: パッシブスキル「武器習熟」ボーナス適用
+            double weaponMasteryBonus = _skillSystem.GetPassiveBonus("weapon_mastery");
+            if (weaponMasteryBonus > 0)
+                baseDmg = Math.Max(1, (int)(baseDmg * (1.0 + weaponMasteryBonus)));
+
             int bonusDmg = (int)(baseDmg * (stanceAttackMod - 1.0f)) + weaponDamageBonus;
             int elementalBonusDmg = (int)(baseDmg * (elementalMult - 1.0f));
             int directionBonusDmg = (int)(baseDmg * (dirBonus.DamageModifier - 1.0f));
@@ -5146,6 +5151,35 @@ public class GameController
             if (travelEvent != null)
             {
                 AddMessage($"【旅路イベント】{travelEvent.Name}: {travelEvent.Description}");
+                // AF-1/AF-2/AF-3: イベントタイプに応じた解決処理
+                switch (travelEvent.Type)
+                {
+                    case TravelEventType.Merchant:
+                        AddMessage("旅の商人から品物を見せてもらえそうだ。（Bキーで商店）");
+                        break;
+                    case TravelEventType.Ambush:
+                        AddMessage("⚠ 待ち伏せだ！戦闘に備えろ！");
+                        SpawnEnemies();
+                        break;
+                    case TravelEventType.TreasureChest:
+                        var lootItem = _itemFactory.GenerateRandomItem(CurrentFloor);
+                        if (lootItem != null)
+                        {
+                            GroundItems.Add((lootItem, Player.Position));
+                            AddMessage($"💎 宝箱を発見！{lootItem.GetDisplayName()}が見つかった！");
+                        }
+                        break;
+                    case TravelEventType.Shrine:
+                        Player.Heal(Player.MaxHp / 4);
+                        AddMessage("🏛 祠で体力を回復した");
+                        break;
+                    case TravelEventType.HelpRequest:
+                        AddMessage("救援依頼を受けた。近くに困っている人がいるようだ。");
+                        break;
+                    case TravelEventType.BadWeather:
+                        AddMessage("🌧 悪天候に見舞われ、移動に時間がかかった");
+                        break;
+                }
             }
 
             // ショップ在庫リセット
@@ -6518,12 +6552,31 @@ public class GameController
     {
         var result = _questSystem.TurnInQuest(questId, Player);
         AddMessage(result.Message);
-        if (result.Success && result.Reward?.GuildPoints > 0)
+        if (result.Success && result.Reward != null)
         {
-            AddGuildPoints(result.Reward.GuildPoints);
-        }
-        if (result.Success)
-        {
+            if (result.Reward.GuildPoints > 0)
+                AddGuildPoints(result.Reward.GuildPoints);
+
+            // AO-2: クエスト報酬アイテムをインベントリに追加
+            if (result.Reward.ItemIds != null)
+            {
+                foreach (var itemId in result.Reward.ItemIds)
+                {
+                    var item = ItemDefinitions.Create(itemId);
+                    if (item != null)
+                    {
+                        ((Inventory)Player.Inventory).Add(item);
+                        AddMessage($"📦 報酬アイテム: {item.GetDisplayName()}を受け取った");
+                    }
+                }
+            }
+
+            // 信仰ポイント
+            if (result.Reward.FaithPoints > 0)
+            {
+                Player.AddFaithPoints(result.Reward.FaithPoints);
+            }
+
             OnQuestUpdated?.Invoke(questId);
         }
         return result.Success;

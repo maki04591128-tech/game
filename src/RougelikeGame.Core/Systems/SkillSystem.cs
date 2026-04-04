@@ -360,6 +360,27 @@ public class SkillSystem
             }
         }
     }
+
+    /// <summary>AR-4: 習得済みパッシブスキルの累計ボーナスを取得（カテゴリ名で検索）</summary>
+    public double GetPassiveBonus(string skillId)
+    {
+        if (!_activeSkills.ContainsKey(skillId)) return 0;
+        var skill = SkillDatabase.GetById(skillId);
+        return skill?.Category == SkillCategory.Passive ? skill.BasePower : 0;
+    }
+
+    /// <summary>習得済みパッシブスキルのボーナス合計（カテゴリフィルタ）</summary>
+    public double GetTotalPassiveBonus(SkillCategory category)
+    {
+        double total = 0;
+        foreach (var id in _activeSkills.Keys)
+        {
+            var skill = SkillDatabase.GetById(id);
+            if (skill?.Category == SkillCategory.Passive)
+                total += skill.BasePower;
+        }
+        return total;
+    }
 }
 
 /// <summary>
