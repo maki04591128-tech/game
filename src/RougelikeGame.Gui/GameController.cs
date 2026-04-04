@@ -1968,7 +1968,8 @@ public class GameController
             if (enemy.HasStatusEffect(StatusEffectType.Stun)
                 || enemy.HasStatusEffect(StatusEffectType.Freeze)
                 || enemy.HasStatusEffect(StatusEffectType.Sleep)
-                || enemy.HasStatusEffect(StatusEffectType.Petrification))
+                || enemy.HasStatusEffect(StatusEffectType.Petrification)
+                || enemy.HasStatusEffect(StatusEffectType.Charm))  // AR-1: 魅了追加
             {
                 continue;
             }

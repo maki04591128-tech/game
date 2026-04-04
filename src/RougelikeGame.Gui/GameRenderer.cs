@@ -62,6 +62,17 @@ public class GameRenderer
         // 建物入口/出口
         { TileType.BuildingEntrance, (new SolidColorBrush(Color.FromRgb(80, 60, 30)), Brushes.Wheat) },
         { TileType.BuildingExit, (new SolidColorBrush(Color.FromRgb(30, 60, 100)), Brushes.CornflowerBlue) },
+
+        // AE-6: 不足していたタイルカラーマッピング
+        { TileType.DeepWater, (new SolidColorBrush(Color.FromRgb(10, 30, 70)), Brushes.Blue) },
+        { TileType.Lava, (new SolidColorBrush(Color.FromRgb(80, 20, 0)), Brushes.OrangeRed) },
+        { TileType.Pit, (new SolidColorBrush(Color.FromRgb(10, 10, 10)), Brushes.DarkGray) },
+        { TileType.Pillar, (new SolidColorBrush(Color.FromRgb(50, 50, 60)), Brushes.LightGray) },
+        { TileType.Grass, (new SolidColorBrush(Color.FromRgb(20, 50, 20)), Brushes.Green) },
+        { TileType.Tree, (new SolidColorBrush(Color.FromRgb(10, 40, 10)), Brushes.DarkGreen) },
+        { TileType.SecretDoor, (new SolidColorBrush(Color.FromRgb(60, 60, 80)), Brushes.DarkGray) },
+        { TileType.NpcTrainer, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.Orange) },
+        { TileType.NpcLibrarian, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.MediumPurple) },
     };
 
     private static readonly Brush ExploredBackground = new SolidColorBrush(Color.FromRgb(15, 15, 20));
