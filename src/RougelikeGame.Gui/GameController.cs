@@ -2418,6 +2418,21 @@ public class GameController
             _petSystem.TickHunger(petId);
         }
 
+        // CC-1: ペットの戦闘アクション（近接敵がいる場合）
+        foreach (var (petId, petState) in _petSystem.Pets)
+        {
+            if (petState.CurrentHp <= 0) continue;
+            var nearestEnemy = Enemies.Where(e => e.IsAlive && e.Position.ChebyshevDistanceTo(Player.Position) <= 2)
+                .OrderBy(e => e.Position.ChebyshevDistanceTo(Player.Position)).FirstOrDefault();
+            if (nearestEnemy != null)
+            {
+                int petDmg = Math.Max(1, petState.Level * 2 + 3);
+                nearestEnemy.TakeDamage(Damage.Physical(petDmg));
+                if (!nearestEnemy.IsAlive)
+                    AddMessage($"🐾 {petState.Name}が{nearestEnemy.Name}にとどめを刺した！");
+            }
+        }
+
         // === GUI統合: ターン毎システム処理 ===
 
         // 地表面ダメージ（EnvironmentalCombatSystem）

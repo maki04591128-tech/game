@@ -147,6 +147,8 @@ public static class EnchantmentSystem
         float successRate = GetSuccessRate(gem);
         if (random.NextDouble() < successRate)
         {
+            // BT-5: エンチャントをアイテムに永続保存
+            item.AppliedEnchantments.Add(type.ToString());
             return new EnchantApplyResult(true, $"{item.Name}に{definition.Name}を付与した！", type);
         }
 
