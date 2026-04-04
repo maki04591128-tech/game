@@ -850,14 +850,15 @@ public class ItemFactory
     public Item GenerateRandomItem(int depth)
     {
         var rarity = DetermineRarity(depth);
-        var itemType = (ItemType)_random.Next(3); // Equipment, Consumable, Food
-
-        return itemType switch
+        // HW-1/HZ-5: 全アイテムタイプを生成対象に
+        int roll = _random.Next(100);
+        return roll switch
         {
-            ItemType.Equipment => GenerateRandomEquipment(depth, rarity),
-            ItemType.Consumable => GenerateRandomConsumable(rarity),
-            ItemType.Food => GenerateRandomFood(),
-            _ => CreateBread()
+            < 35 => GenerateRandomEquipment(depth, rarity),
+            < 60 => GenerateRandomConsumable(rarity),
+            < 75 => GenerateRandomFood(),
+            < 90 => GenerateRandomScroll(rarity),
+            _ => CreateBread() // Material等はドロップテーブルから生成
         };
     }
 
@@ -953,6 +954,21 @@ public class ItemFactory
             1 => CreateRation(),
             2 => CreateCookedMeat(),
             _ => CreateBread()
+        };
+    }
+
+    private Item GenerateRandomScroll(ItemRarity rarity)
+    {
+        var scrollTypes = new[] { ScrollType.Teleport, ScrollType.Identify, ScrollType.MagicMapping,
+            ScrollType.Enchant, ScrollType.Freeze, ScrollType.Sanctuary, ScrollType.Return };
+        var type = scrollTypes[_random.Next(scrollTypes.Length)];
+        return new Scroll
+        {
+            ItemId = $"scroll_{type}",
+            Name = $"{type}の巻物",
+            Description = $"{type}の効果を発揮する巻物",
+            ScrollType = type,
+            EffectValue = rarity >= ItemRarity.Rare ? 30 : 15
         };
     }
 
