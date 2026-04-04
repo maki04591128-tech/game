@@ -3118,6 +3118,13 @@ public class GameController
         _autoExploring = false;
         TotalDeaths++;
 
+        // DC-1: 死亡ログを記録
+        _deathLogSystem.AddLog(new DeathLogSystem.DeathLogEntry(
+            TotalDeaths, Player.Name, Player.CharacterClass, Player.Race,
+            Player.Level, cause, cause.ToString(),
+            _worldMapSystem.IsOnSurface ? _worldMapSystem.CurrentTerritory.ToString() : "ダンジョン",
+            CurrentFloor, TurnCount, DateTime.Now));
+
         // 引き継ぎデータを生成（死亡前の知識を保存）
         var transfer = Player.CreateTransferData();
         transfer.TotalDeaths = TotalDeaths;
