@@ -85,6 +85,15 @@ public abstract class EquipmentItem : Item, IEquippable
         if (player.Level < RequiredLevel)
             return false;
 
+        // Y-4: スライム種族の装備制限（指輪・首飾り以外装備不可）
+        if (Systems.RacialTraitSystem.HasEquipmentRestriction(player.Race)
+            && Slot != EquipmentSlot.Ring1
+            && Slot != EquipmentSlot.Ring2
+            && Slot != EquipmentSlot.Neck)
+        {
+            return false;
+        }
+
         if (RequiredStats.HasValue)
         {
             var stats = player.EffectiveStats;

@@ -61,6 +61,31 @@ public class InvestmentSystem
     /// <summary>アクティブな投資数を取得</summary>
     public int GetActiveInvestments() => _investments.Count(i => !i.IsCompleted);
 
+    /// <summary>AT-1: 成熟した投資の回収を試みる</summary>
+    /// <param name="currentTurn">現在のターン数</param>
+    /// <param name="maturityTurns">投資が成熟するまでのターン数（デフォルト1000）</param>
+    /// <returns>回収結果のリスト（投資名、成否、金額）</returns>
+    public List<(string TargetName, bool Success, int ReturnAmount)> TryCollectReturns(int currentTurn, Random random, int maturityTurns = 1000)
+    {
+        var results = new List<(string, bool, int)>();
+
+        for (int i = 0; i < _investments.Count; i++)
+        {
+            var inv = _investments[i];
+            if (inv.IsCompleted) continue;
+            if (currentTurn - inv.InvestedTurn < maturityTurns) continue;
+
+            float successRate = GetSuccessRate(inv.Type);
+            bool success = random.NextDouble() < successRate;
+            int returnAmount = success ? (int)inv.ExpectedReturn : 0;
+
+            _investments[i] = inv with { IsCompleted = true };
+            results.Add((inv.TargetName, success, returnAmount));
+        }
+
+        return results;
+    }
+
     /// <summary>
     /// 全投資を消去する（死に戻り時に呼び出し）。
     /// 死に戻りは時間巻き戻しであるため、投資記録は全て消失する。

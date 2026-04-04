@@ -1974,6 +1974,14 @@ public class GameController
             Player.TakeDamage(Damage.Physical(finalDmg));
             _lastDamageCause = DeathCause.Combat;
 
+            // Y-2: デーモン種族の魔力吸収（被弾時MP5%回復）
+            if (RacialTraitSystem.HasManaAbsorption(Player.Race))
+            {
+                int mpRecovery = Math.Max(1, Player.MaxMp / 20);
+                Player.RestoreMp(mpRecovery);
+                AddMessage($"魔力吸収により{mpRecovery}MP回復！");
+            }
+
             // === 敵種族に基づく状態異常付与 ===
             TryApplyEnemyStatusEffect(enemy);
         }
@@ -2460,6 +2468,8 @@ public class GameController
             if (territoryEvent != null)
             {
                 AddMessage($"【領地イベント】{territoryEvent.Name}: {territoryEvent.Description}");
+                // AF-1/AF-2/AF-3: イベントタイプに応じた解決処理
+                ResolveRandomEvent(territoryEvent);
             }
         }
 
@@ -2467,6 +2477,24 @@ public class GameController
         if (TurnCount == 1000) _achievementSystem.Unlock("turn_1000");
         if (Player.Level >= 10) _achievementSystem.Unlock("level_10");
         if (CurrentFloor >= 10) _achievementSystem.Unlock("floor_10");
+
+        // AT-1: 投資回収チェック（500ターンごと）
+        if (TurnCount > 0 && TurnCount % 500 == 0 && _investmentSystem.GetActiveInvestments() > 0)
+        {
+            var results = _investmentSystem.TryCollectReturns(TurnCount, Random.Shared);
+            foreach (var (targetName, success, returnAmount) in results)
+            {
+                if (success)
+                {
+                    Player.AddGold(returnAmount);
+                    AddMessage($"💰 投資先「{targetName}」から{returnAmount}Gの配当を受け取った！");
+                }
+                else
+                {
+                    AddMessage($"💸 投資先「{targetName}」が失敗した。投資額は戻ってこない...");
+                }
+            }
+        }
 
         if (!Player.IsAlive)
         {
@@ -3542,6 +3570,13 @@ public class GameController
     /// </summary>
     private void TriggerTrap(TrapDefinition trapDef, Position pos)
     {
+        // Y-3: 浮遊種族は落とし穴を無効化
+        if (trapDef.Type == TrapType.PitFall && RacialTraitSystem.IsLevitating(Player.Race))
+        {
+            AddMessage("浮遊しているため落とし穴を回避した！");
+            return;
+        }
+
         AddMessage($"⚠ {trapDef.Name}を踏んだ！");
 
         // ダメージ処理
@@ -5992,6 +6027,8 @@ public class GameController
         if (result.AffinityChange != 0)
         {
             _npcSystem.ModifyAffinity(npcId, result.AffinityChange);
+            // AH-1: NPC記憶に会話の印象を記録
+            _npcMemorySystem.RecordAction(npcId, "dialogue", result.AffinityChange, TurnCount);
         }
 
         if (result.NextNode != null)
@@ -6462,7 +6499,10 @@ public class GameController
     /// <summary>NPC好感度を取得</summary>
     public int GetNpcAffinity(string npcId)
     {
-        return _npcSystem.GetNpcState(npcId).Affinity;
+        // AH-1: NpcMemorySystemの印象値を好感度に反映
+        int baseAffinity = _npcSystem.GetNpcState(npcId).Affinity;
+        int memoryImpression = _npcMemorySystem.CalculateImpression(npcId);
+        return baseAffinity + memoryImpression;
     }
 
     /// <summary>NPC好感度ランクを取得</summary>
@@ -7615,6 +7655,26 @@ public class GameController
     /// <summary>仲間システム</summary>
     public CompanionSystem GetCompanionSystem() => _companionSystem;
 
+    /// <summary>BK-1/BK-2: 仲間のAIモードを変更</summary>
+    public bool SetCompanionAIMode(string companionName, CompanionAIMode mode)
+    {
+        if (_companionSystem.SetAIMode(companionName, mode))
+        {
+            string modeName = mode switch
+            {
+                CompanionAIMode.Aggressive => "攻撃",
+                CompanionAIMode.Defensive => "防御",
+                CompanionAIMode.Support => "支援",
+                CompanionAIMode.Wait => "待機",
+                _ => mode.ToString()
+            };
+            AddMessage($"🤝 {companionName}の行動方針を「{modeName}」に変更した");
+            OnStateChanged?.Invoke();
+            return true;
+        }
+        return false;
+    }
+
     /// <summary>拠点システム</summary>
     public BaseConstructionSystem GetBaseConstructionSystem() => _baseConstructionSystem;
 
@@ -7652,6 +7712,66 @@ public class GameController
             case "treasure_sense":
                 AddMessage("💎 宝探しの勘を獲得！隠しアイテムを見つけやすくなった");
                 break;
+        }
+    }
+
+    /// <summary>AF-1/AF-2/AF-3: ランダムイベントの解決処理</summary>
+    private void ResolveRandomEvent(RandomEventSystem.RandomEvent evt)
+    {
+        switch (evt.Type)
+        {
+            case RandomEventType.NpcEncounter:
+                // NPC遭遇: 情報提供
+                AddMessage("旅人から有益な情報を得た。周囲のマップが明らかになった。");
+                break;
+
+            case RandomEventType.MerchantEncounter:
+                // 商人遭遇: ランダムアイテムを安く購入可能
+                int goldReward = 10 + _random.Next(30);
+                Player.AddGold(goldReward);
+                AddMessage($"商人が特別価格で商品を売ってくれた。{goldReward}Gの価値がある品を得た！");
+                break;
+
+            case RandomEventType.AmbushEvent:
+                // 待ち伏せ: ダメージを受ける
+                int ambushDmg = Math.Max(1, Player.MaxHp / 10);
+                Player.TakeDamage(Damage.Physical(ambushDmg));
+                _lastDamageCause = DeathCause.Combat;
+                AddMessage($"待ち伏せに遭った！ {ambushDmg}ダメージを受けた！");
+                break;
+
+            case RandomEventType.TreasureChest:
+                int treasureGold = 20 + _random.Next(50);
+                Player.AddGold(treasureGold);
+                AddMessage($"宝箱から{treasureGold}Gを見つけた！");
+                break;
+
+            case RandomEventType.Fountain:
+                Player.Heal(Player.MaxHp / 5);
+                AddMessage("泉の水を飲んで体力が回復した。");
+                break;
+
+            case RandomEventType.Shrine:
+                Player.RestoreMp(Player.MaxMp / 4);
+                AddMessage("祠で祈りを捧げ、魔力が回復した。");
+                break;
+
+            case RandomEventType.RestPoint:
+                Player.Heal(Player.MaxHp / 10);
+                Player.ModifyFatigue(20);
+                AddMessage("安全な場所で少し休息を取った。");
+                break;
+
+            case RandomEventType.MaterialDeposit:
+                var materialItem = ItemDefinitions.Create("material_herb");
+                if (materialItem != null)
+                {
+                    ((Inventory)Player.Inventory).Add(materialItem);
+                    AddMessage($"素材採取場で{materialItem.Name}を入手した！");
+                }
+                break;
+
+            // その他のイベントはメッセージ表示のみ（既に表示済み）
         }
     }
 
@@ -8108,7 +8228,30 @@ public class GameController
             bool isRare = _random.NextDouble() < rareChance;
             var node = GatheringSystem.GetNode(gatheringType);
             string nodeName = node?.Name ?? gatheringType.ToString();
-            AddMessage($"🌿 {nodeName}から{(isRare ? "レアな" : "")}素材を採集した！");
+
+            // AM-1/AM-2: 採集したアイテムをインベントリに追加
+            if (node != null && node.PossibleItems.Length > 0)
+            {
+                // レアの場合は後ろの方のアイテム、通常は前の方
+                int itemIndex = isRare
+                    ? Math.Min(node.PossibleItems.Length - 1, _random.Next(node.PossibleItems.Length / 2, node.PossibleItems.Length))
+                    : _random.Next(Math.Min(3, node.PossibleItems.Length));
+                string itemId = node.PossibleItems[itemIndex];
+                var item = ItemDefinitions.Create(itemId);
+                if (item != null)
+                {
+                    ((Inventory)Player.Inventory).Add(item);
+                    AddMessage($"🌿 {nodeName}から{item.Name}を{(isRare ? "レアな素材として" : "")}採集した！");
+                }
+                else
+                {
+                    AddMessage($"🌿 {nodeName}から{(isRare ? "レアな" : "")}素材を採集した！");
+                }
+            }
+            else
+            {
+                AddMessage($"🌿 {nodeName}から{(isRare ? "レアな" : "")}素材を採集した！");
+            }
             _proficiencySystem.GainExperience(ProficiencyCategory.Mining, isRare ? 5 : 2);
         }
         else

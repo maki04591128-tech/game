@@ -147,6 +147,14 @@ public static class RacialTraitSystem
     public static bool HasEquipmentRestriction(Race race) =>
         HasTrait(race, RacialTraitType.EquipmentRestriction);
 
+    /// <summary>Y-2: 魔力吸収能力を持つか</summary>
+    public static bool HasManaAbsorption(Race race) =>
+        HasTrait(race, RacialTraitType.ManaAbsorption);
+
+    /// <summary>Y-1: 分裂能力を持つか</summary>
+    public static bool CanSplit(Race race) =>
+        HasTrait(race, RacialTraitType.Split);
+
     /// <summary>視界ボーナスを取得</summary>
     public static int GetSightBonus(Race race)
     {
