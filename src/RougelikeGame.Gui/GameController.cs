@@ -1642,6 +1642,10 @@ public class GameController
         float oathDropBonus = _oathSystem.GetTotalDropBonus();
         dropChance = (int)(dropChance * (1.0f + oathDropBonus));
 
+        // AY-2: ペット幸運ボーナス（Catドロップ率+15%）
+        float petDropBonus = _petSystem.GetPetAbilityBonuses().DropBonus;
+        dropChance = (int)(dropChance * (1.0f + petDropBonus));
+
         // 難易度によるアイテムドロップ倍率
         dropChance = (int)(dropChance * DifficultyConfig.ItemDropMultiplier);
 
@@ -7607,6 +7611,12 @@ public class GameController
 
     /// <summary>投資システム</summary>
     public InvestmentSystem GetInvestmentSystem() => _investmentSystem;
+
+    /// <summary>AJ-1: 商人ギルドシステム</summary>
+    public MerchantGuildSystem GetMerchantGuildSystem() => _merchantGuildSystem;
+
+    /// <summary>AJ-2: 領地影響力システム</summary>
+    public TerritoryInfluenceSystem GetTerritoryInfluenceSystem() => _territoryInfluenceSystem;
 
     /// <summary>グリッドインベントリシステム</summary>
     public GridInventorySystem GetGridInventorySystem() => _gridInventorySystem;
