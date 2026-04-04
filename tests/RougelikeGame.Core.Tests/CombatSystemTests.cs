@@ -215,7 +215,7 @@ public class CombatSystemTests
         var freeze = system.CreateFreeze();
 
         Assert.Equal(StatusEffectType.Freeze, freeze.Type);
-        Assert.Equal(float.MaxValue, freeze.TurnCostModifier);  // 行動不能
+        Assert.Equal(999f, freeze.TurnCostModifier);  // 行動不能（オーバーフロー回避）
     }
 
     [Fact]

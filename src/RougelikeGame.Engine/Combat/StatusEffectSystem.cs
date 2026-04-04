@@ -82,7 +82,7 @@ public class StatusEffectSystem
         return new StatusEffect(StatusEffectType.Freeze, duration)
         {
             Name = "凍結",
-            TurnCostModifier = float.MaxValue  // 行動不能
+            TurnCostModifier = 999f  // 行動不能（オーバーフロー回避）
         };
     }
 
@@ -107,7 +107,7 @@ public class StatusEffectSystem
         return new StatusEffect(StatusEffectType.Stun, duration)
         {
             Name = "スタン",
-            TurnCostModifier = float.MaxValue  // 行動不能
+            TurnCostModifier = 999f  // 行動不能（オーバーフロー回避）
         };
     }
 
@@ -164,7 +164,7 @@ public class StatusEffectSystem
         return new StatusEffect(StatusEffectType.Sleep, duration)
         {
             Name = "睡眠",
-            TurnCostModifier = float.MaxValue  // 行動不能
+            TurnCostModifier = 999f  // 行動不能（オーバーフロー回避）
         };
     }
 
@@ -343,6 +343,26 @@ public class StatusEffectSystem
         {
             Name = "背教",
             AllStatsMultiplier = 0.9f  // 全ステータス10%減
+        };
+    }
+
+    /// <summary>耐火状態（火属性ダメージ-50%）</summary>
+    public StatusEffect CreateFireResistance(int duration = 30)
+    {
+        return new StatusEffect(StatusEffectType.FireResistance, duration)
+        {
+            Name = "耐火",
+            DefenseMultiplier = 1.0f  // 火属性耐性は別途ElementalAffinitySystemで処理
+        };
+    }
+
+    /// <summary>耐寒状態（氷属性ダメージ-50%）</summary>
+    public StatusEffect CreateColdResistance(int duration = 30)
+    {
+        return new StatusEffect(StatusEffectType.ColdResistance, duration)
+        {
+            Name = "耐寒",
+            DefenseMultiplier = 1.0f  // 氷属性耐性は別途ElementalAffinitySystemで処理
         };
     }
 

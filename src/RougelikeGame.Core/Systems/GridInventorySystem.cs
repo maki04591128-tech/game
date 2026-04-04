@@ -46,18 +46,19 @@ public class GridInventorySystem
     };
 
     /// <summary>配置可能か判定</summary>
-    public bool CanPlace(GridItemSize size, int x, int y)
+    public bool CanPlace(GridItemSize size, int x, int y, bool isRotated = false)
     {
         var (w, h) = GetDimensions(size);
+        if (isRotated) (w, h) = (h, w);  // 回転時は幅と高さを入れ替え
         if (x < 0 || y < 0 || x + w > _width || y + h > _height) return false;
         return !_items.Any(item => Overlaps(item, x, y, w, h));
     }
 
     /// <summary>アイテムを配置</summary>
-    public bool PlaceItem(string itemId, string name, GridItemSize size, int x, int y)
+    public bool PlaceItem(string itemId, string name, GridItemSize size, int x, int y, bool isRotated = false)
     {
-        if (!CanPlace(size, x, y)) return false;
-        _items.Add(new GridItem(itemId, name, size, x, y, false));
+        if (!CanPlace(size, x, y, isRotated)) return false;
+        _items.Add(new GridItem(itemId, name, size, x, y, isRotated));
         return true;
     }
 

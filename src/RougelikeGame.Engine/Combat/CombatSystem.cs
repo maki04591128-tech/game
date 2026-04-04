@@ -410,6 +410,8 @@ public class CombatSystem : ICombatSystem
             StatusEffectType.Invisibility => _statusEffectSystem.CreateInvisibility(),
             StatusEffectType.Blessing => _statusEffectSystem.CreateBlessing(),
             StatusEffectType.Apostasy => _statusEffectSystem.CreateApostasy(),
+            StatusEffectType.FireResistance => _statusEffectSystem.CreateFireResistance(),
+            StatusEffectType.ColdResistance => _statusEffectSystem.CreateColdResistance(),
             _ => null
         };
     }

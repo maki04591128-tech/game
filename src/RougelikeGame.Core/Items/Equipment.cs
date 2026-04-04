@@ -217,7 +217,11 @@ public class Weapon : EquipmentItem
         int max = DamageRange.Max;
         if (min > max) (min, max) = (max, min);
         int baseDmg = random.Next(min, max + 1);
-        return baseDmg + (EnhancementLevel * 2);
+        int enhanceBonus = EnhancementLevel * 2;
+        int totalDmg = baseDmg + enhanceBonus;
+        // 両手武器はダメージ25%ボーナス
+        if (IsTwoHanded) totalDmg = (int)(totalDmg * 1.25f);
+        return totalDmg;
     }
 
     /// <summary>攻撃に必要なターン数</summary>

@@ -215,7 +215,7 @@ public class EngineUnitTests
         var system = new StatusEffectSystem(new FixedRandom());
         var effect = system.CreateFreeze();
         Assert.Equal(StatusEffectType.Freeze, effect.Type);
-        Assert.Equal(float.MaxValue, effect.TurnCostModifier);
+        Assert.Equal(999f, effect.TurnCostModifier);  // 行動不能（オーバーフロー回避）
     }
 
     [Fact]
