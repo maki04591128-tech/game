@@ -81,7 +81,7 @@ public readonly struct TurnAction
         Type = TurnActionType.UseSkill,
         SkillId = skillId,
         Target = target,
-        BaseTurnCost = turnCost
+        BaseTurnCost = Math.Clamp(turnCost, 1, 50)  // IO-3: ターンコスト範囲チェック
     };
 
     /// <summary>

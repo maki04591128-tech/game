@@ -56,7 +56,7 @@ public class StatusEffect
     /// </summary>
     public void Stack(StatusEffect other)
     {
-        if (other.Type != Type) return;
+        if (other.Type != Type || other.StackCount <= 0) return;  // IJ-1: 負値/ゼロスタック防止
 
         StackCount = Math.Min(StackCount + other.StackCount, MaxStack);
         Duration = Math.Max(Duration, other.Duration);

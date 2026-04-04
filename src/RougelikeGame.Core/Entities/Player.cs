@@ -139,7 +139,9 @@ public class Player : Character, IPlayer, IInventoryHolder
     /// <summary>ゴールドを直接設定する（セーブ復元用）</summary>
     public void SetGold(int amount)
     {
+        int diff = Math.Max(0, amount) - Gold;
         Gold = Math.Max(0, amount);
+        OnGoldChanged?.Invoke(this, new GoldChangedEventArgs(diff, Gold));  // IG-1: イベント発火
     }
     #endregion
 
