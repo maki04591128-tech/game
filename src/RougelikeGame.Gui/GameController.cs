@@ -1968,6 +1968,16 @@ public class GameController
                     }
                 }
             }
+
+            // CC-14: コンパニオン脱走チェック
+            foreach (var companion in _companionSystem.Party.ToList())
+            {
+                if (CompanionSystem.CheckDesertion(companion.Loyalty, companion.Type))
+                {
+                    AddMessage($"⚠️ {companion.Name}（忠誠度:{companion.Loyalty}）が脱走した！");
+                    _companionSystem.RemoveCompanion(companion.Name);
+                }
+            }
         }
 
         // プレイヤーからActiveRange以内の敵のみ処理する

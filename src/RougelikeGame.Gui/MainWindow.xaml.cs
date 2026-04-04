@@ -830,8 +830,10 @@ public partial class MainWindow : Window
         try
         {
             var saveData = _gameController.CreateSaveData();
-            SaveManager.Save(saveData);
-            AddMessage("💾 ゲームをセーブした");
+            if (SaveManager.Save(saveData))
+                AddMessage("💾 ゲームをセーブした");
+            else
+                AddMessage("⚠ セーブに失敗しました（ディスク容量や権限を確認してください）");
         }
         catch (Exception ex)
         {

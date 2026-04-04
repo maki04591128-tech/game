@@ -22,12 +22,21 @@ public static class SaveManager
     /// <summary>
     /// セーブデータをJSON形式でファイルに保存する
     /// </summary>
-    public static void Save(SaveData data, int slot = 0)
+    public static bool Save(SaveData data, int slot = 0)
     {
-        Directory.CreateDirectory(SaveDirectory);
-        var path = GetSavePath(slot);
-        var json = JsonSerializer.Serialize(data, JsonOptions);
-        File.WriteAllText(path, json);
+        try
+        {
+            Directory.CreateDirectory(SaveDirectory);
+            var path = GetSavePath(slot);
+            var json = JsonSerializer.Serialize(data, JsonOptions);
+            File.WriteAllText(path, json);
+            return true;
+        }
+        catch (Exception)
+        {
+            // CA-5: ディスク容量不足/権限エラー等を安全に処理
+            return false;
+        }
     }
 
     /// <summary>
@@ -35,11 +44,19 @@ public static class SaveManager
     /// </summary>
     public static SaveData? Load(int slot = 0)
     {
-        var path = GetSavePath(slot);
-        if (!File.Exists(path)) return null;
+        try
+        {
+            var path = GetSavePath(slot);
+            if (!File.Exists(path)) return null;
 
-        var json = File.ReadAllText(path);
-        return JsonSerializer.Deserialize<SaveData>(json, JsonOptions);
+            var json = File.ReadAllText(path);
+            return JsonSerializer.Deserialize<SaveData>(json, JsonOptions);
+        }
+        catch (Exception)
+        {
+            // CA-6: 破損JSONやI/Oエラーを安全に処理
+            return null;
+        }
     }
 
     /// <summary>
