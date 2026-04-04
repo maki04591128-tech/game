@@ -311,6 +311,9 @@ public class ItemSaveData
 
     /// <summary>AS-1: アイテム品質</summary>
     public string Grade { get; set; } = nameof(ItemGrade.Standard);
+
+    /// <summary>AN-3: 適用済みエンチャントIDリスト</summary>
+    public List<string> AppliedEnchantments { get; set; } = new();
 }
 
 /// <summary>

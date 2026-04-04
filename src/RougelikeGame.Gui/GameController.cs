@@ -1689,6 +1689,11 @@ public class GameController
         // 難易度によるアイテムドロップ倍率
         dropChance = (int)(dropChance * DifficultyConfig.ItemDropMultiplier);
 
+        // BH-2: treasure_senseパッシブスキルによるドロップ率+15%
+        double treasureBonus = _skillSystem.GetPassiveBonus("treasure_sense");
+        if (treasureBonus > 0)
+            dropChance = (int)(dropChance * 1.15);
+
         // ダンジョン特徴によるルート倍率（DungeonFeatureGenerator）
         if (_currentDungeonFeature.HasValue)
         {
@@ -1994,6 +1999,15 @@ public class GameController
                 enemyStatusAttackMult *= eff.AttackMultiplier;
             }
             baseDmg = Math.Max(1, (int)(baseDmg * enemyStatusAttackMult));
+
+            // BG-1: プレイヤーのDefenseMultiplierバフ（Protection等）適用
+            float playerDefMult = 1.0f;
+            foreach (var eff in Player.StatusEffects)
+            {
+                playerDefMult *= eff.DefenseMultiplier;
+            }
+            if (playerDefMult > 1.0f)
+                baseDmg = Math.Max(1, (int)(baseDmg / playerDefMult));
 
             // 攻撃方向ダメージ修正（背面攻撃でダメージ増加）
             // AY-2: ペットの防壁/威嚇ボーナス
@@ -7665,7 +7679,8 @@ public class GameController
         IsBlessed = item.IsBlessed,
         Durability = item.Durability,
         StackCount = item is IStackable stackable ? stackable.StackCount : 1,
-        Grade = item.Grade.ToString()  // AS-1: アイテム品質を保存
+        Grade = item.Grade.ToString(),  // AS-1: アイテム品質を保存
+        AppliedEnchantments = item.AppliedEnchantments.ToList()  // AN-3: エンチャント保存
     };
 
     private static Item? RestoreItem(ItemSaveData data)
@@ -7682,6 +7697,10 @@ public class GameController
         // AS-1: アイテム品質を復元
         if (!string.IsNullOrEmpty(data.Grade) && Enum.TryParse<ItemGrade>(data.Grade, out var grade))
             item.Grade = grade;
+
+        // AN-3: エンチャントを復元
+        if (data.AppliedEnchantments.Count > 0)
+            item.AppliedEnchantments = data.AppliedEnchantments.ToList();
 
         if (item is IStackable stackable)
         {

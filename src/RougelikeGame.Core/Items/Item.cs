@@ -257,6 +257,9 @@ public abstract class Item : IItem
     /// <summary>アイテム等級（品質）</summary>
     public ItemGrade Grade { get; set; } = ItemGrade.Standard;
 
+    /// <summary>AN-3: 適用済みエンチャントIDリスト（永続化用）</summary>
+    public List<string> AppliedEnchantments { get; set; } = new();
+
     /// <summary>実際の価格を計算</summary>
     public virtual int CalculatePrice()
     {
