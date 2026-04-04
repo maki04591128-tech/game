@@ -286,6 +286,31 @@ public class Player : Character, IPlayer, IInventoryHolder
             var bonuses = SkillTreeBonusProvider();
             yield return ConvertSkillBonusesToStatModifier(bonuses);
         }
+
+        // D-1/D-2/D-3: 飢餓・渇き・疲労ペナルティ
+        var hungerPenalty = HungerStage switch
+        {
+            HungerStage.Starving => new StatModifier(Strength: -3, Agility: -3, Dexterity: -2),
+            HungerStage.Hungry => new StatModifier(Strength: -1, Agility: -1),
+            _ => (StatModifier?)null
+        };
+        if (hungerPenalty.HasValue) yield return hungerPenalty.Value;
+
+        var thirstPenalty = ThirstStage switch
+        {
+            ThirstStage.Dehydrated => new StatModifier(Intelligence: -3, Mind: -3, Agility: -2),
+            ThirstStage.Thirsty => new StatModifier(Intelligence: -1, Mind: -1),
+            _ => (StatModifier?)null
+        };
+        if (thirstPenalty.HasValue) yield return thirstPenalty.Value;
+
+        var fatiguePenalty = FatigueStage switch
+        {
+            FatigueStage.Exhausted => new StatModifier(Strength: -2, Agility: -2, Dexterity: -2, Intelligence: -2),
+            FatigueStage.Tired => new StatModifier(Agility: -1, Dexterity: -1),
+            _ => (StatModifier?)null
+        };
+        if (fatiguePenalty.HasValue) yield return fatiguePenalty.Value;
     }
 
     /// <summary>スキルツリーボーナス辞書をStatModifierに変換（ステータス系のみ）</summary>

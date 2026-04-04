@@ -1957,6 +1957,14 @@ public class GameController
 
             int modifiedDmg = Math.Max(1, (int)(baseDmg * activityMult * defDirBonus.DamageModifier / stanceDefMod * petDmgReduction * enemyAtkDebuff));
 
+            // O-1: 盾装備によるダメージ軽減（オフハンド防御力分を軽減）
+            var offHandItem = Player.Equipment[EquipmentSlot.OffHand];
+            if (offHandItem != null && offHandItem is Armor shield)
+            {
+                int shieldBlock = Math.Min(modifiedDmg / 2, shield.BaseDefense);
+                modifiedDmg = Math.Max(1, modifiedDmg - shieldBlock);
+            }
+
             // 防具耐久度消耗（DurabilitySystem）
             var bodyArmor = Player.Equipment[EquipmentSlot.Body];
             if (bodyArmor != null)
