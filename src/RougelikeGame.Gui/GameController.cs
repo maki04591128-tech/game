@@ -362,6 +362,17 @@ public class GameController
         // CE-2: ヘルプシステムのデフォルトトピック登録
         _contextHelpSystem.RegisterDefaultTopics();
 
+        // DungeonEcosystemSystem: 捕食関係の初期化
+        InitializeEcosystemRelations();
+
+        // TerritoryInfluenceSystem: 開始領地の勢力初期化
+        _territoryInfluenceSystem.Initialize(startTerritory, new Dictionary<string, float>
+        {
+            ["冒険者ギルド"] = 0.4f,
+            ["商人連合"] = 0.3f,
+            ["王国軍"] = 0.3f
+        });
+
         // マップ生成（シンボルマップから開始）
         GenerateSymbolMap();
 
@@ -1791,6 +1802,21 @@ public class GameController
             enemy.Position.X, enemy.Position.Y, CurrentFloor, enemy.ExperienceReward,
             $"プレイヤーが{enemy.Name}を撃破", TurnCount);
 
+        // エコシステム: 捕食者-被食者の相互作用チェック
+        foreach (var otherEnemy in Enemies.Where(e => e.IsAlive && e.Position.ChebyshevDistanceTo(enemy.Position) <= 5))
+        {
+            var interaction = _dungeonEcosystemSystem.ProcessInteraction(
+                otherEnemy.EnemyTypeId, otherEnemy.Race, enemy.EnemyTypeId, enemy.Race,
+                CurrentFloor, TurnCount);
+            if (interaction != null)
+            {
+                AddMessage($"🌿 {interaction.Description}");
+            }
+        }
+
+        // NPC関係値更新（敵を倒すとその領地のNPCの好感度UP）
+        ModifyNpcRelation(_worldMapSystem.CurrentTerritory.ToString(), 1);
+
         // 実績チェック
         _achievementSystem.Unlock($"kill_{enemy.EnemyTypeId}");
         if (_infiniteDungeonKills >= 100) _achievementSystem.Unlock("infinite_100_kills");
@@ -2507,6 +2533,46 @@ public class GameController
                 {
                     AddMessage($"💸 投資先「{targetName}」が失敗した。投資額は戻ってこない...");
                 }
+            }
+        }
+
+        // === 未接続システム統合 ===
+
+        // DungeonEcosystemSystem: 危険度をメッセージに反映
+        if (!_worldMapSystem.IsOnSurface && TurnCount % 200 == 0)
+        {
+            int dangerLevel = _dungeonEcosystemSystem.EstimateDangerLevel(CurrentFloor);
+            if (dangerLevel > 50)
+            {
+                AddMessage($"🌿 このフロアの生態系は不安定だ（危険度: {dangerLevel}）");
+            }
+        }
+
+        // FactionWarSystem: 一定ターンごとに派閥戦争の進行チェック
+        if (TurnCount > 0 && TurnCount % 3000 == 0 && _factionWarSystem.GetWarsInvolving(_worldMapSystem.CurrentTerritory).Count > 0)
+        {
+            foreach (var war in _factionWarSystem.GetWarsInvolving(_worldMapSystem.CurrentTerritory))
+            {
+                var advanced = _factionWarSystem.AdvancePhase(war.WarId, TurnCount);
+                if (advanced != null)
+                {
+                    AddMessage($"⚔ 派閥戦争「{advanced.Name}」が{FactionWarSystem.GetPhaseDescription(advanced.Phase)}に移行した");
+                }
+            }
+        }
+
+        // RelationshipSystem: NPC好感度がショップ割引に影響（既存の購入処理と連携）
+        // ItemIdentificationSystem: 未鑑定アイテム拾得時の自動鑑定チェック（知力依存）
+        // InscriptionSystem: ダンジョン探索中に碑文発見チェック
+        if (!_worldMapSystem.IsOnSurface && !_isInLocationMap && TurnCount % 500 == 0)
+        {
+            if (_random.NextDouble() < 0.15)
+            {
+                string inscId = $"inscr_{CurrentFloor}_{TurnCount}";
+                _inscriptionSystem.Register(inscId, InscriptionType.Lore,
+                    "古代の碑文", "この地に眠る力を解放せよ",
+                    requiredLevel: CurrentFloor);
+                AddMessage("📜 壁面に古代の碑文を発見した");
             }
         }
 
@@ -5817,6 +5883,10 @@ public class GameController
         float territoryMod = PriceFluctuationSystem.GetTerritoryModifier(_worldMapSystem.CurrentTerritory, "general");
         discount *= (double)(reputationMod * karmaMod * territoryMod);
 
+        // RelationshipSystem: NPC好感度による追加割引
+        float npcDiscount = GetNpcShopDiscount(shopType.ToString());
+        if (npcDiscount > 0) discount *= (1.0 - npcDiscount);
+
         var result = _shopSystem.Buy(Player, shopType, index, discount);
         if (result.Success && result.ItemId is not null)
         {
@@ -8219,6 +8289,76 @@ public class GameController
         GameTime.AdvanceTurn(30);
         OnStateChanged?.Invoke();
         return true;
+    }
+
+    // === 生態系・派閥・鑑定 システム統合 ===
+
+    /// <summary>ダンジョン生態系の捕食関係を初期化</summary>
+    private void InitializeEcosystemRelations()
+    {
+        _dungeonEcosystemSystem.RegisterRelation(MonsterRace.Dragon, MonsterRace.Beast, 90);
+        _dungeonEcosystemSystem.RegisterRelation(MonsterRace.Beast, MonsterRace.Insect, 70);
+        _dungeonEcosystemSystem.RegisterRelation(MonsterRace.Demon, MonsterRace.Humanoid, 60);
+        _dungeonEcosystemSystem.RegisterRelation(MonsterRace.Spirit, MonsterRace.Undead, 50);
+        _dungeonEcosystemSystem.RegisterRelation(MonsterRace.Insect, MonsterRace.Plant, 80);
+        _dungeonEcosystemSystem.RegisterRelation(MonsterRace.Dragon, MonsterRace.Demon, 40);
+    }
+
+    /// <summary>アイテム鑑定を試みる</summary>
+    public bool TryIdentifyItem(string itemId, string trueName)
+    {
+        if (_itemIdentificationSystem.IsIdentified(itemId)) return false;
+        var result = _itemIdentificationSystem.Identify(itemId, trueName);
+        AddMessage($"🔍 {result.TrueName}の正体が判明した！ {result.Description}");
+        if (result.Curse != CurseType.None)
+        {
+            AddMessage($"⚠ 呪いが検出された: {ItemIdentificationSystem.GetCurseDescription(result.Curse)}");
+        }
+        return true;
+    }
+
+    /// <summary>碑文の解読を試みる</summary>
+    public bool TryDecodeInscription(string inscriptionId)
+    {
+        var result = _inscriptionSystem.TryDecode(inscriptionId, Player.EffectiveStats.Intelligence);
+        if (result.Success)
+        {
+            AddMessage($"📜 碑文を解読した: 「{result.Message}」");
+            if (result.RewardInfo != null)
+            {
+                AddMessage($"  → {result.RewardInfo}");
+            }
+        }
+        else
+        {
+            AddMessage($"📜 {result.Message}");
+        }
+        return result.Success;
+    }
+
+    /// <summary>商人ギルドに加入</summary>
+    public bool TryJoinMerchantGuild()
+    {
+        var membership = _merchantGuildSystem.JoinGuild(Player.Name);
+        if (membership != null)
+        {
+            AddMessage($"🏪 商人ギルドに加入した！ ランク: {membership.Rank}");
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>NPC好感度による割引率を取得</summary>
+    public float GetNpcShopDiscount(string npcId)
+    {
+        int relation = _relationshipSystem.GetRelation(RelationshipType.Personal, "player", npcId);
+        return RelationshipSystem.GetShopDiscount(relation);
+    }
+
+    /// <summary>NPC関係値を更新</summary>
+    public void ModifyNpcRelation(string npcId, int delta)
+    {
+        _relationshipSystem.ModifyRelation(RelationshipType.Personal, "player", npcId, delta);
     }
 
     // === 採集 (GatheringSystem) ===
