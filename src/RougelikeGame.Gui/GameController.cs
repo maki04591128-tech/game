@@ -1248,7 +1248,7 @@ public class GameController
             // 非フィールドのロケーションマップでは全タイル可視のためFOV計算不要
             if (!_isInLocationMap || _isLocationField)
             {
-                Map.ComputeFov(Player.Position, 8);
+                Map.ComputeFov(Player.Position, GetEffectiveViewRadius());  // AL-3: 天候修正付きFOV
             }
 
             if (!Player.IsAlive)
@@ -7595,6 +7595,14 @@ public class GameController
                 Player.AddFaithPoints(-10);
             }
         }
+    }
+
+    /// <summary>AL-3: 天候・ペット補正付きFOV半径を取得</summary>
+    private int GetEffectiveViewRadius(int baseRadius = GameConstants.DefaultViewRadius)
+    {
+        float sightMod = WeatherSystem.GetSightModifier(CurrentWeather);
+        int petViewBonus = _petSystem.GetPetAbilityBonuses().ViewRadiusBonus;
+        return Math.Max(2, (int)(baseRadius * sightMod) + petViewBonus);
     }
 
     /// <summary>投資システム</summary>
