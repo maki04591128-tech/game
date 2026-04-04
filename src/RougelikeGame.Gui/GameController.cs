@@ -2636,6 +2636,9 @@ public class GameController
                 Player.ModifyHunger(foodProduction);
                 AddMessage($"🌾 畑から食料が収穫された（満腹度+{foodProduction}）");
             }
+
+            // DA-4: 評判の時間減衰（1日ごと）
+            _reputationSystem.DecayReputations();
         }
 
         // 渇き進行（ThirstSystem: 満腹度の1.2倍速で減少）
