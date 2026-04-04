@@ -119,6 +119,7 @@ public class GameController
 
     /// <summary>デバッグモードかどうか</summary>
     private bool _isDebugMode = false;
+    private bool _hasSlimeSplit = false; // Y-1: スライム分裂フラグ（1回のみ）
 
     /// <summary>デバッグ: 現在の敵定義インデックス（敵種類切替用）</summary>
     private int _debugEnemyIndex = 0;
@@ -2016,6 +2017,17 @@ public class GameController
                 AddMessage($"魔力吸収により{mpRecovery}MP回復！");
             }
 
+            // Y-1: スライム種族の分裂（HP50%以下で味方召喚、1回のみ）
+            if (!_hasSlimeSplit && RacialTraitSystem.CanSplit(Player.Race)
+                && Player.CurrentHp <= Player.MaxHp / 2 && Player.IsAlive)
+            {
+                _hasSlimeSplit = true;
+                // 味方として一時的にHP回復効果
+                int splitHeal = Player.MaxHp / 5;
+                Player.Heal(splitHeal);
+                AddMessage($"🟢 スライムが分裂した！ 分裂体がHP{splitHeal}回復の力を与えた！");
+            }
+
             // === 敵種族に基づく状態異常付与 ===
             TryApplyEnemyStatusEffect(enemy);
         }
@@ -3495,6 +3507,7 @@ public class GameController
         _dungeonEcosystemSystem.Reset();
         _tutorialSystem.Reset();
         _skillTreeSystem.Reset();
+        _hasSlimeSplit = false; // Y-1: 分裂フラグリセット
 
         // 正気度0の場合、知識系システムも消失
         if (isSanityZero)
@@ -8360,6 +8373,30 @@ public class GameController
     {
         _relationshipSystem.ModifyRelation(RelationshipType.Personal, "player", npcId, delta);
     }
+
+    /// <summary>GridInventorySystem: グリッドインベントリの空き率を取得</summary>
+    public float GetGridInventoryFreeSpace() => _gridInventorySystem.GetFreeSpaceRatio();
+
+    /// <summary>GridInventorySystem: アイテムをグリッドに配置</summary>
+    public bool TryPlaceItemInGrid(string itemId, string name, GridItemSize size)
+    {
+        // 自動配置: 空きスロットを探して配置
+        var (w, h) = GridInventorySystem.GetDimensions(size);
+        for (int y = 0; y < 6; y++)
+        {
+            for (int x = 0; x < 10; x++)
+            {
+                if (_gridInventorySystem.CanPlace(size, x, y))
+                {
+                    return _gridInventorySystem.PlaceItem(itemId, name, size, x, y);
+                }
+            }
+        }
+        return false;
+    }
+
+    /// <summary>GridInventorySystem: アイテムをグリッドから除去</summary>
+    public bool RemoveItemFromGrid(string itemId) => _gridInventorySystem.RemoveItem(itemId);
 
     // === 採集 (GatheringSystem) ===
 
