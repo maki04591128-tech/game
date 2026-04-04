@@ -31,7 +31,9 @@ public class SmithingSystem
         if (!player.SpendGold(cost))
             return new SmithingResult(false, $"ゴールドが足りない（必要: {cost}G）");
 
-        return new SmithingResult(true, $"{itemName}を修理した（{cost}G）");
+        // DZ-1: 修理結果に回復した耐久度を含める（呼び出し側でアイテムに適用する）
+        return new SmithingResult(true, $"{itemName}を修理した（{cost}G、耐久度+{durabilityLost}）",
+            RecoveredDurability: durabilityLost);
     }
 
     /// <summary>素材を合成して新アイテムを作成</summary>
@@ -77,7 +79,8 @@ public record SmithingResult(
     bool Success,
     string Message,
     int NewEnhanceLevel = 0,
-    string? ResultItemId = null);
+    string? ResultItemId = null,
+    int RecoveredDurability = 0);  // DZ-1: 修理で回復した耐久度
 
 /// <summary>
 /// チュートリアルシステム - 初回プレイ時の操作ガイド
