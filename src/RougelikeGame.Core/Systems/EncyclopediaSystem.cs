@@ -55,7 +55,7 @@ public class EncyclopediaSystem
         if (_entries.ContainsKey(id)) return;
         _entries[id] = new EncyclopediaEntry(
             EncyclopediaCategory.Monster, id, name,
-            DiscoveryLevel: 1, // 初回登録時に名前と種族を開示
+            DiscoveryLevel: 0, // DI-1: 初回は未発見（0）。遭遇で1に上がる
             MaxLevel: MonsterRevealThresholds.MaxDiscoveryLevel,
             LevelDescriptions: new Dictionary<int, string>(),
             KillCount: 0,

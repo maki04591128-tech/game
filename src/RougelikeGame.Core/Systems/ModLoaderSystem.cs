@@ -52,8 +52,12 @@ public class ModLoaderSystem
     public ModManifest? ParseManifest(string modId, string name, string author, string version,
         string description, List<ModContentEntry>? contents = null)
     {
+        // DI-3/DI-4: null/空文字バリデーション
+        if (string.IsNullOrWhiteSpace(modId) || string.IsNullOrWhiteSpace(name))
+            return null;
         contents ??= new List<ModContentEntry>();
-        var manifest = new ModManifest(modId, name, author, version, description, contents, true);
+        bool isValid = !string.IsNullOrWhiteSpace(author) && !string.IsNullOrWhiteSpace(version);
+        var manifest = new ModManifest(modId, name, author ?? "", version ?? "0.0.0", description ?? "", contents, isValid);
         return manifest;
     }
 
