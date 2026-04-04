@@ -126,6 +126,9 @@ public class SaveData
 
     /// <summary>累計死亡回数</summary>
     public int TotalDeaths { get; set; }
+
+    /// <summary>AS-2: 地面のアイテム</summary>
+    public List<GroundItemSaveData> GroundItems { get; set; } = new();
 }
 
 /// <summary>
@@ -368,4 +371,14 @@ public class PetSaveData
 
     /// <summary>騎乗中か</summary>
     public bool IsRiding { get; set; }
+}
+
+/// <summary>
+/// AS-2: 地面アイテムのセーブデータ
+/// </summary>
+public class GroundItemSaveData
+{
+    public ItemSaveData Item { get; set; } = new();
+    public int X { get; set; }
+    public int Y { get; set; }
 }

@@ -1959,6 +1959,22 @@ public class GameController
                 AddMessage($"{enemy.Name}の攻撃は外れた");
             }
         }
+
+        // AX-1: コンパニオンにもダメージ（敵が近くにいる仲間を攻撃する確率20%）
+        if (_companionSystem.Party.Count > 0 && _random.NextDouble() < 0.20)
+        {
+            var aliveCompanion = _companionSystem.Party.FirstOrDefault(c => c.IsAlive);
+            if (aliveCompanion != null)
+            {
+                int companionDmg = Math.Max(1, enemy.EffectiveStats.Strength / 3);
+                bool died = _companionSystem.DamageCompanion(aliveCompanion.Name, companionDmg);
+                AddMessage($"⚔ {enemy.Name}が{aliveCompanion.Name}を攻撃！（{companionDmg}ダメージ）");
+                if (died)
+                {
+                    AddMessage($"💀 仲間の{aliveCompanion.Name}が倒れた！");
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -7096,6 +7112,17 @@ public class GameController
         save.InfiniteDungeonKills = _infiniteDungeonKills;
         save.TotalDeaths = TotalDeaths;
 
+        // AS-2: 地面アイテムの保存
+        foreach (var (item, pos) in GroundItems)
+        {
+            save.GroundItems.Add(new GroundItemSaveData
+            {
+                Item = CreateItemSaveData(item),
+                X = pos.X,
+                Y = pos.Y
+            });
+        }
+
         return save;
     }
 
@@ -7335,6 +7362,17 @@ public class GameController
         _infiniteDungeonMode = save.InfiniteDungeonMode;
         _infiniteDungeonKills = save.InfiniteDungeonKills;
         TotalDeaths = save.TotalDeaths;
+
+        // AS-2: 地面アイテムの復元
+        GroundItems.Clear();
+        foreach (var groundData in save.GroundItems)
+        {
+            var item = RestoreItem(groundData.Item);
+            if (item != null)
+            {
+                GroundItems.Add((item, new Position(groundData.X, groundData.Y)));
+            }
+        }
 
         AddMessage("セーブデータをロードした");
         OnStateChanged?.Invoke();
@@ -7659,6 +7697,22 @@ public class GameController
     public float GetBaseCraftingBonus()
     {
         return _baseConstructionSystem.GetCraftingSuccessBonus();
+    }
+
+    /// <summary>AP-1: 拠点施設を建設</summary>
+    public bool TryBuildFacility(FacilityCategory category)
+    {
+        int materials = Player.Gold; // 素材コストをゴールドで代用
+        var (success, cost) = _baseConstructionSystem.Build(category, materials);
+        if (success)
+        {
+            Player.SpendGold(cost);
+            AddMessage($"🏗 {category}を建設した！（{cost}G消費）");
+            OnStateChanged?.Invoke();
+            return true;
+        }
+        AddMessage("建設条件を満たしていない");
+        return false;
     }
 
     /// <summary>ゲームオーバー選択肢を処理</summary>
