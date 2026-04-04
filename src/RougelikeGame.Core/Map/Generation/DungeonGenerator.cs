@@ -396,6 +396,61 @@ public class DungeonGenerator : IMapGenerator
             }
         }
 
+        // BV-1/CO-1: entranceまたはbossがnull、または階段配置に失敗した場合のフォールバック
+        if (!upPos.HasValue)
+        {
+            var fallbackRoom = map.Rooms.FirstOrDefault();
+            if (fallbackRoom != null)
+            {
+                var pos = map.GetRandomWalkablePositionInRoom(fallbackRoom, _random);
+                if (pos.HasValue)
+                {
+                    map.SetStairsUp(pos.Value);
+                    map.SetEntrance(pos.Value);
+                    upPos = pos.Value;
+                }
+            }
+            // 最終フォールバック: 歩行可能タイルを線形探索
+            if (!upPos.HasValue)
+            {
+                for (int y = 1; y < map.Height - 1 && !upPos.HasValue; y++)
+                    for (int x = 1; x < map.Width - 1 && !upPos.HasValue; x++)
+                        if (map.GetTileType(new Position(x, y)) == TileType.Floor)
+                        {
+                            var fp = new Position(x, y);
+                            map.SetStairsUp(fp);
+                            map.SetEntrance(fp);
+                            upPos = fp;
+                        }
+            }
+        }
+
+        if (!downPos.HasValue)
+        {
+            var fallbackRoom = map.Rooms.LastOrDefault();
+            if (fallbackRoom != null)
+            {
+                var pos = map.GetRandomWalkablePositionInRoom(fallbackRoom, _random);
+                if (pos.HasValue)
+                {
+                    map.SetStairsDown(pos.Value);
+                    downPos = pos.Value;
+                }
+            }
+            // 最終フォールバック: 歩行可能タイルを逆方向に線形探索
+            if (!downPos.HasValue)
+            {
+                for (int y = map.Height - 2; y > 0 && !downPos.HasValue; y--)
+                    for (int x = map.Width - 2; x > 0 && !downPos.HasValue; x--)
+                        if (map.GetTileType(new Position(x, y)) == TileType.Floor && new Position(x, y) != upPos)
+                        {
+                            var fp = new Position(x, y);
+                            map.SetStairsDown(fp);
+                            downPos = fp;
+                        }
+            }
+        }
+
         // 到達可能性チェック: 上り階段から下り階段へ到達できるか確認
         if (upPos.HasValue && downPos.HasValue && !IsReachable(map, upPos.Value, downPos.Value))
         {

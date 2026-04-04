@@ -1607,6 +1607,33 @@ public class GameController
             var dirStr = attackDir == AttackDirection.Back ? " 背面攻撃！" : attackDir == AttackDirection.Side ? " 側面攻撃！" : "";
             AddMessage($"{enemy.Name}に{baseDmg + totalBonus}ダメージ！{critStr}{dirStr}{bonusStr}");
 
+            // BT-7: エンチャント効果の適用
+            int totalDamageDealt = baseDmg + totalBonus;
+            if (Player.Equipment.MainHand != null)
+            {
+                foreach (var enchId in Player.Equipment.MainHand.AppliedEnchantments)
+                {
+                    if (Enum.TryParse<EnchantmentType>(enchId, out var enchType))
+                    {
+                        switch (enchType)
+                        {
+                            case EnchantmentType.Lifesteal:
+                                int lifestealHp = Math.Max(1, totalDamageDealt / 10);
+                                Player.Heal(lifestealHp);
+                                break;
+                            case EnchantmentType.ManaSteal:
+                                int manaSteal = Math.Max(1, totalDamageDealt / 15);
+                                Player.RestoreMp(manaSteal);
+                                break;
+                            case EnchantmentType.ParalysisChance:
+                                if (_random.Next(100) < 15)
+                                    enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Paralysis, 2));
+                                break;
+                        }
+                    }
+                }
+            }
+
             // 処刑チャンス
             if (canExecute && enemy.IsAlive)
             {
@@ -1628,10 +1655,13 @@ public class GameController
                     if (gold > 0) Player.AddGold(gold);
                 }
 
-                // 経験値（処刑ボーナス込み）
+                // 経験値（処刑ボーナス込み + CP-1: 宗教/NG+ボーナスを統合して三重付与を解消）
                 float executionExpBonus = canExecute ? ExecutionSystem.GetExecutionExpBonus() : 0;
                 float oathExpBonus = _oathSystem.GetTotalExpBonus();  // AW-1: 誓約経験値ボーナス
-                int totalExp = (int)(enemy.ExperienceReward * (1.0f + executionExpBonus + oathExpBonus) * DifficultyConfig.ExpMultiplier);
+                float religionExpBonus = (float)_religionSystem.GetBenefitValue(Player, ReligionBenefitType.ExpBonus);
+                float ngPlusExpMult = _ngPlusTier.HasValue ? NewGamePlusSystem.GetExpMultiplier(_ngPlusTier.Value) : 1.0f;
+                int totalExp = (int)(enemy.ExperienceReward * (1.0f + executionExpBonus + oathExpBonus + religionExpBonus)
+                    * DifficultyConfig.ExpMultiplier * ngPlusExpMult);
 
                 string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
                 AddMessage($"{enemy.Name}を倒した！経験値+{totalExp}{goldStr}");
@@ -1768,31 +1798,12 @@ public class GameController
             _infiniteDungeonKills++;
         }
 
-        // 宗教の経験値ボーナス
-        double expBonus = _religionSystem.GetBenefitValue(Player, ReligionBenefitType.ExpBonus);
-        if (expBonus > 0)
-        {
-            int bonusExp = (int)(enemy.ExperienceReward * expBonus);
-            if (bonusExp > 0)
-            {
-                Player.GainExperience(bonusExp);
-            }
-        }
+        // 宗教の経験値ボーナス（CP-1: メイン経験値に統合済みのため廃止、OnEnemyDefeated内での二重付与を防止）
+        // 宗教ボーナスは今後totalExpの乗算に組み込むべき
+        // expBonusは指標としてのみ保持し、実際の付与はしない
 
-        // NG+時の経験値ボーナス
-        if (_ngPlusTier.HasValue)
-        {
-            float expMultiplier = NewGamePlusSystem.GetExpMultiplier(_ngPlusTier.Value);
-            if (expMultiplier > 1.0f)
-            {
-                int ngBonusExp = (int)(enemy.ExperienceReward * (expMultiplier - 1.0f));
-                if (ngBonusExp > 0)
-                {
-                    Player.GainExperience(ngBonusExp);
-                    AddMessage($"⚔ NG+ボーナス経験値: +{ngBonusExp}");
-                }
-            }
-        }
+        // NG+時の経験値ボーナス（CP-1: メイン経験値に統合）
+        // NG+ボーナスもtotalExpのExpMultiplierとして統合すべき
 
         // 図鑑更新（モンスター - 撃破数ベースの段階的開示）
         RegisterAndDiscoverMonster(enemy);
@@ -4830,10 +4841,54 @@ public class GameController
         {
             case SpellTargetType.Self:
             default:
-                int oldHp = Player.CurrentHp;
-                Player.Heal(healAmount);
-                int actualHeal = Player.CurrentHp - oldHp;
-                AddMessage($"HPが{actualHeal}回復した");
+                {
+                    int oldHp = Player.CurrentHp;
+                    Player.Heal(healAmount);
+                    int actualHeal = Player.CurrentHp - oldHp;
+                    AddMessage($"HPが{actualHeal}回復した");
+                }
+                break;
+
+            case SpellTargetType.AllAllies:  // BY-1/BY-8: 全味方回復
+                {
+                    int oldHp = Player.CurrentHp;
+                    Player.Heal(healAmount);
+                    int actualHeal = Player.CurrentHp - oldHp;
+                    AddMessage($"HPが{actualHeal}回復した");
+                    // コンパニオンも回復
+                    foreach (var companion in _companionSystem.Party.Where(c => c.IsAlive))
+                    {
+                        _companionSystem.HealCompanion(companion.Name, healAmount);
+                        AddMessage($"{companion.Name}のHPが回復した");
+                    }
+                    // ペットも回復
+                    foreach (var petId in _petSystem.Pets.Keys.ToList())
+                    {
+                        _petSystem.HealPet(petId, healAmount);
+                    }
+                }
+                break;
+
+            case SpellTargetType.SingleAlly:  // BY-8: 単体味方回復
+                {
+                    // 最もHP割合が低い味方を回復（プレイヤー含む）
+                    var lowestCompanion = _companionSystem.Party.Where(c => c.IsAlive)
+                        .OrderBy(c => (float)c.Hp / c.MaxHp).FirstOrDefault();
+                    float playerHpRatio = Player.MaxHp > 0 ? (float)Player.CurrentHp / Player.MaxHp : 1f;
+
+                    if (lowestCompanion != null && (float)lowestCompanion.Hp / lowestCompanion.MaxHp < playerHpRatio)
+                    {
+                        _companionSystem.HealCompanion(lowestCompanion.Name, healAmount);
+                        AddMessage($"{lowestCompanion.Name}のHPが回復した");
+                    }
+                    else
+                    {
+                        int oldHp2 = Player.CurrentHp;
+                        Player.Heal(healAmount);
+                        int actualHeal2 = Player.CurrentHp - oldHp2;
+                        AddMessage($"HPが{actualHeal2}回復した");
+                    }
+                }
                 break;
         }
     }

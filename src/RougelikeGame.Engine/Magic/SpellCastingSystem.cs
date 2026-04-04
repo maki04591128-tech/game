@@ -523,6 +523,7 @@ public enum SpellTargetType
     Self,
     SingleEnemy,
     AllEnemies,
+    SingleAlly,
     AllAllies,
     All,
     Object,

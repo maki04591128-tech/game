@@ -879,16 +879,20 @@ public class ItemFactory
 
     private Item GenerateRandomEquipment(int depth, ItemRarity rarity)
     {
-        int equipType = _random.Next(4);
+        // BT-1: 全装備種から深さに応じてランダム生成
+        var shallowWeapons = new Func<Item>[] { CreateRustySword, CreateDagger, CreateWoodenStaff, CreateShortBow, CreateWoodenShield };
+        var midWeapons = new Func<Item>[] { CreateIronSword, CreateBattleAxe, CreateSpear, CreateLeatherArmor, CreateIronShield, CreateCrossbow };
+        var deepWeapons = new Func<Item>[] { CreateSteelSword, CreateGreatsword, CreateWarHammer, CreateMithrilDagger, CreatePlateArmor, CreateWhip, CreateIronHelm };
 
-        Item baseItem = equipType switch
-        {
-            0 => CreateIronSword(),
-            1 => CreateDagger(),
-            2 => CreateLeatherArmor(),
-            3 => CreateWoodenShield(),
-            _ => CreateIronSword()
-        };
+        Func<Item>[] pool;
+        if (depth <= 5)
+            pool = shallowWeapons;
+        else if (depth <= 15)
+            pool = shallowWeapons.Concat(midWeapons).ToArray();
+        else
+            pool = shallowWeapons.Concat(midWeapons).Concat(deepWeapons).ToArray();
+
+        Item baseItem = pool[_random.Next(pool.Length)]();
 
         // レアリティに応じて強化
         if (baseItem is EquipmentItem equip)
@@ -924,16 +928,42 @@ public class ItemFactory
 
     private Item GenerateRandomConsumable(ItemRarity rarity)
     {
-        int consumableType = _random.Next(4);
-
-        var item = consumableType switch
-        {
-            0 => (Item)(rarity >= ItemRarity.Uncommon ? CreateHealingPotion() : CreateMinorHealingPotion()),
-            1 => CreateMinorManaPotion(),
-            2 => CreateAntidote(),
-            3 => CreateScrollOfIdentify(),
-            _ => CreateMinorHealingPotion()
+        // BT-2: レアリティに応じて消耗品プールを拡張
+        var commonPool = new Func<Item>[] {
+            () => rarity >= ItemRarity.Uncommon ? CreateHealingPotion() : CreateMinorHealingPotion(),
+            CreateMinorManaPotion,
+            CreateAntidote,
+            CreateScrollOfIdentify
         };
+        var uncommonPool = new Func<Item>[] {
+            CreateManaPotion,
+            CreateScrollOfTeleport,
+            CreateScrollOfMagicMapping,
+            CreateCureAllPotion,
+            CreateScrollOfRemoveCurse
+        };
+        var rarePool = new Func<Item>[] {
+            CreateStrengthPotion,
+            CreateAgilityPotion,
+            CreateInvisibilityPotion,
+            CreateFireResistPotion,
+            CreateColdResistPotion,
+            CreateSuperHealingPotion,
+            CreateScrollOfFireball,
+            CreateScrollOfLightning,
+            CreateScrollOfFreeze,
+            CreateScrollOfEnchant
+        };
+
+        Func<Item>[] pool;
+        if (rarity >= ItemRarity.Rare)
+            pool = commonPool.Concat(uncommonPool).Concat(rarePool).ToArray();
+        else if (rarity >= ItemRarity.Uncommon)
+            pool = commonPool.Concat(uncommonPool).ToArray();
+        else
+            pool = commonPool;
+
+        var item = pool[_random.Next(pool.Length)]();
 
         // 巻物は未鑑定で生成
         if (item is Scroll scroll)
