@@ -29,10 +29,14 @@ public class StatusEffect
     // ターン修正
     public float TurnCostModifier { get; init; } = 1.0f;
 
+    // IJ-2: 持続時間上限（スタック時のリフレッシュ制限）
+    public int MaxDuration { get; init; } = 100;
+
     public StatusEffect(StatusEffectType type, int duration)
     {
         Type = type;
         Duration = duration;
+        MaxDuration = Math.Max(duration * 2, 100);  // 初期値の2倍、最低100
         Name = type.ToString();
 
         // BG-1: 状態異常ごとのデフォルト倍率を設定
@@ -59,7 +63,8 @@ public class StatusEffect
         if (other.Type != Type || other.StackCount <= 0) return;  // IJ-1: 負値/ゼロスタック防止
 
         StackCount = Math.Min(StackCount + other.StackCount, MaxStack);
-        Duration = Math.Max(Duration, other.Duration);
+        // IJ-2: 持続時間の上限を設ける（初期値の2倍まで）
+        Duration = Math.Min(Math.Max(Duration, other.Duration), MaxDuration);
     }
 
     /// <summary>

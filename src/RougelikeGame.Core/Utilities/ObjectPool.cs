@@ -71,7 +71,17 @@ public class ObjectPool<T> where T : class
     {
         if (item == null) return;
 
-        _resetAction?.Invoke(item);
+        // IL-2: resetAction例外時にプール整合性を維持
+        try
+        {
+            _resetAction?.Invoke(item);
+        }
+        catch
+        {
+            // リセット失敗時はオブジェクトをプールに戻さない
+            Interlocked.Decrement(ref _currentCount);
+            return;
+        }
 
         if (_pool.Count < _maxSize)
         {
