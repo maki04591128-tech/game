@@ -404,6 +404,7 @@ public class GroundItemSaveData
 public class CompanionSaveData
 {
     public string Name { get; set; } = string.Empty;
+    public string? CompanionType { get; set; }
     public int Level { get; set; }
     public int Hp { get; set; }
     public int MaxHp { get; set; }

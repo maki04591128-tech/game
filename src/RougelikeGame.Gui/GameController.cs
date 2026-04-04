@@ -7403,6 +7403,7 @@ public class GameController
             save.Companions.Add(new CompanionSaveData
             {
                 Name = companion.Name,
+                CompanionType = companion.Type.ToString(),
                 Level = companion.Level,
                 Hp = companion.Hp,
                 MaxHp = companion.MaxHp,
@@ -7694,6 +7695,22 @@ public class GameController
                 .Select(f => Enum.Parse<FacilityCategory>(f))
                 .ToList();
             _baseConstructionSystem.RestoreFromSave(facilities);
+        }
+
+        // M-2: コンパニオンデータの復元
+        if (save.Companions.Count > 0)
+        {
+            _companionSystem.Reset();
+            foreach (var cd in save.Companions)
+            {
+                if (Enum.TryParse<CompanionType>(cd.CompanionType ?? "Mercenary", out var compType))
+                {
+                    var companion = new CompanionSystem.CompanionData(
+                        cd.Name, compType, CompanionAIMode.Defensive,
+                        cd.Level, 50, 0, cd.Hp, cd.MaxHp, cd.Attack, cd.Defense, cd.IsAlive);
+                    _companionSystem.AddCompanion(companion);
+                }
+            }
         }
 
         AddMessage("セーブデータをロードした");
