@@ -785,7 +785,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| BP-1 | ReputationSystem/KarmaSystem/RelationshipSystemの各GetShopDiscount()が全てデッドコード。PriceFluctuationSystemのみが使用され、3システムの価格メソッドが冗長 | 高 | `ReputationSystem.cs:53-63`, `KarmaSystem.cs:60-70`, `RelationshipSystem.cs:52-59` | |
+| BP-1 | ReputationSystem/KarmaSystem/RelationshipSystemの各GetShopDiscount()が全てデッドコード。PriceFluctuationSystemのみが使用され、3システムの価格メソッドが冗長 | 高 | `ReputationSystem.cs:53-63`, `KarmaSystem.cs:60-70`, `RelationshipSystem.cs:52-59` | 修正済み |
 | BP-2 | カルマ/評判がNPCエンカウント率に影響しない。WorldMapSystem.RollRandomEvent()の確率がカルマ/評判無関係の固定値 | 中 | `WorldMapSystem.cs:794-811` | |
 
 ---
@@ -852,8 +852,8 @@
 | BS-10 | ダメージ分散範囲が0.9-1.1固定。名前付き定数未定義 | 低 | `Engine/Combat/DamageCalculator.cs:39,86` | |
 | BS-11 | 盾ブロック/パリィメカニクスがDamageCalculatorに未実装。Shield.BlockChanceが参照されない | 高 | `Engine/Combat/DamageCalculator.cs:192` | 修正済み |
 | BS-12 | 防具タイプ別物理耐性なし。重装/軽装が同じ防御計算 | 中 | `Engine/Combat/DamageCalculator.cs:32` | |
-| BS-13 | 回復魔法の威力がBaseMpCost×3固定。MND/INTスケーリングなし | 高 | `Engine/Magic/SpellCastingSystem.cs:362-363` | |
-| BS-14 | 呪文成功率にキャスターステータス（INT/MND）が反映されない。SpellParser固定値のみ | 高 | `Engine/Magic/SpellCastingSystem.cs:161` | |
+| BS-13 | 回復魔法の威力がBaseMpCost×3固定。MND/INTスケーリングなし | 高 | `Engine/Magic/SpellCastingSystem.cs:362-363` | 修正済み |
+| BS-14 | 呪文成功率にキャスターステータス（INT/MND）が反映されない。SpellParser固定値のみ | 高 | `Engine/Magic/SpellCastingSystem.cs:161` | 修正済み |
 | BS-15 | DoTダメージ（毒2%/猛毒5%）がハードコード。毒源による威力差なし | 中 | `Engine/StatusEffectSystem.cs:26,41` | |
 | BS-16 | 攻撃者/防御者のレベル差によるダメージスケーリングなし | 中 | `Engine/Combat/DamageCalculator.cs,CombatSystem.cs` | |
 | BS-17 | 武器の属性ダメージ増強未適用。Weapon.Elementは攻撃シグネチャにのみ使用 | 中 | `Engine/Combat/CombatSystem.cs:196` | |
@@ -879,7 +879,7 @@
 | BT-10 | クラフトレシピが参照する`material_coal`がItemDefinitionsに定義されていない。鋼鉄の剣がクラフト不可 | 致命的 | `CraftingSystem.cs:275,ItemFactory.cs:1159-1260` | 修正済み |
 | BT-11 | クラフトにスキル/ツール/職業要件なし。全職業が全アイテムをクラフト可能 | 中 | `CraftingSystem.cs:92-111` | |
 | BT-12 | ItemFactory.GenerateLoot()がDropTableSystemを使用しない。ボスドラゴンがゴブリンと同じランダムアイテムをドロップ | 致命的 | `ItemFactory.cs:950-969` | 修正済み |
-| BT-13 | 非人型敵（Dragon/Undead/Demon）がゴールドをドロップしない。Humanoidのみゴールド生成 | 高 | `DropTableSystem.cs:188` | |
+| BT-13 | 非人型敵（Dragon/Undead/Demon）がゴールドをドロップしない。Humanoidのみゴールド生成 | 高 | `DropTableSystem.cs:188` | 修正済み |
 | BT-14 | 宝箱システム（TreasureChest/ChestGeneration）が存在しない。ダンジョン宝箱のアイテム生成不可 | 高 | リポジトリ全体 | |
 | BT-15 | 強化レベルの上限検証なし。Legendary生成でEnhancementLevel=9が可能だが上限チェックなし | 低 | `ItemFactory.cs:879-886` | |
 | BT-16 | 未識別アイテムのUnidentifiedNameが設定されない。IsIdentified=falseだが未識別名なし | 中 | `ItemFactory.cs:888-890` | |
@@ -933,12 +933,12 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | BW-1 | InitializeNewGamePlus()がキャリーオーバーを表示するが適用しない。レベル1/初期ゴールド/無装備にリセット | 高 | `GameController.cs:7154-7167` | 修正済み |
-| BW-2 | NG+敵スケーリング乗数が計算されるが適用されない。EXPボーナスのみ使用でダンジョン生成時の敵強化なし | 高 | `GameController.cs:751-752,1666` | |
-| BW-3 | Wandererエンディングが到達不可能。allTerritoriesVisitedがfalse固定値でハードコード | 高 | `GameController.cs:7811,MultiEndingSystem.cs:54-61` | |
+| BW-2 | NG+敵スケーリング乗数が計算されるが適用されない。EXPボーナスのみ使用でダンジョン生成時の敵強化なし | 高 | `GameController.cs:751-752,1666` | 修正済み |
+| BW-3 | Wandererエンディングが到達不可能。allTerritoriesVisitedがfalse固定値でハードコード | 高 | `GameController.cs:7811,MultiEndingSystem.cs:54-61` | 修正済み |
 | BW-4 | ExecuteRebirth()がGetRebirthEffect()を呼ばない。宗教による転生ボーナス（HP/MP/ステータス）が破棄 | 中 | `GameController.cs:4894-4896,3085-3100` | |
 | BW-5 | TransferDataにLevelフィールドなし。転生時に常にLv1に戻る。進捗保持の手段がない | 高 | `Player.cs:849-860` | 修正済み |
 | BW-6 | TransferDataにGoldフィールドなし。転生時に全ゴールド消失。背景初期ゴールドのみ | 高 | `Player.cs:849-860,659` | 修正済み |
-| BW-7 | テリトリー訪問追跡メカニズム不在。6テリトリーのうちどれを訪問したか記録する仕組みがない | 高 | `GameController.cs:7810,MultiEndingSystem.cs:101` | |
+| BW-7 | テリトリー訪問追跡メカニズム不在。6テリトリーのうちどれを訪問したか記録する仕組みがない | 高 | `GameController.cs:7810,MultiEndingSystem.cs:101` | 修正済み |
 
 ---
 
@@ -949,10 +949,10 @@
 | BX-1 | Inventory.Add()が重量制限を無視。UsedSlots < MaxSlotsのみチェックし、TotalWeight vs MaxWeightを検証しない | 高 | `Inventory.cs:35-56` | 修正済み |
 | BX-2 | 盾が両手武器装備中でもオフハンドに装備可能。両手武器→盾装備禁止の逆チェックなし | 致命的 | `Equipment.cs:341-367` | 修正済み |
 | BX-3 | 両手武器装備時にオフハンド装備が消失。previousItemとしてMainHandのみ返却、OffHandはインベントリに戻らない | 致命的 | `Equipment.cs:349-356,GameController.cs:2828-2839` | 修正済み |
-| BX-4 | Armor.SpeedModifierが完全未適用。革鎧(0.95)/板金鎧(0.8)等の速度補正がStats.ActionSpeed計算に反映されない | 高 | `Equipment.cs:264,Stats.cs:33` | |
+| BX-4 | Armor.SpeedModifierが完全未適用。革鎧(0.95)/板金鎧(0.8)等の速度補正がStats.ActionSpeed計算に反映されない | 高 | `Equipment.cs:264,Stats.cs:33` | 修正済み |
 | BX-5 | OnUnequip()が空実装。統計修正以外の永続的効果が解除されない。呪い装備のチェックのみ | 中 | `Equipment.cs:116-123` | |
 | BX-6 | 装備比較/プレビュー機能が完全未実装。装備前のステータス差分表示なし | 中 | リポジトリ全体 | |
-| BX-7 | 耐久度0以下の装備が装備可能。CanEquip()にDurability <= 0チェックなし | 高 | `Item.cs:246-249,Equipment.cs:83` | |
+| BX-7 | 耐久度0以下の装備が装備可能。CanEquip()にDurability <= 0チェックなし | 高 | `Item.cs:246-249,Equipment.cs:83` | 修正済み |
 | BX-8 | IsOverweightプロパティが存在するが効果なし。移動速度低下/スタミナ消費増/行動コスト増なし | 中 | `Player.cs:172` | |
 | BX-9 | アクセサリスロット（Neck/Ring1/Ring2/Back/Waist）5箇所が未テスト。全スロット動作確認なし | 低 | `Item.cs:7-11` | |
 | BX-10 | 両手武器装備時OffHandアイテムのOnUnequip()は呼ばれるが、返却処理のTODOコメントが放置 | 高 | `Equipment.cs:349-356` | |

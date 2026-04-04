@@ -158,7 +158,13 @@ public class SpellCastingSystem
         }
 
         // 成功判定
-        bool success = random.NextDouble() < result.SuccessRate;
+        // BS-14: キャスターのINT/MNDで成功率を修正
+        double adjustedSuccessRate = result.SuccessRate;
+        int casterInt = player.EffectiveStats.Intelligence;
+        int casterMnd = player.EffectiveStats.Mind;
+        adjustedSuccessRate += (casterInt - 10) * 0.005 + (casterMnd - 10) * 0.003;
+        adjustedSuccessRate = Math.Clamp(adjustedSuccessRate, 0.05, 0.99);
+        bool success = random.NextDouble() < adjustedSuccessRate;
 
         // MP消費（失敗しても消費）
         player.ConsumeMp(result.MpCost);

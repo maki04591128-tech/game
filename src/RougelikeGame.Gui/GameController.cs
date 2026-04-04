@@ -1287,6 +1287,20 @@ public class GameController
                 }
             }
 
+            // BX-4: 防具の速度修正を適用（重鎧は遅く、軽鎧は速い）
+            float armorSpeedMod = 1.0f;
+            foreach (var (_, equip) in Player.Equipment.GetAll())
+            {
+                if (equip is Armor armor && armor.SpeedModifier != 1.0f)
+                {
+                    armorSpeedMod *= armor.SpeedModifier;
+                }
+            }
+            if (armorSpeedMod != 1.0f && actionCost <= TurnCosts.AttackNormal)
+            {
+                actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / armorSpeedMod));
+            }
+
             // 行動コスト分のターンを消費（最低1）
             int finalCost = Math.Max(1, actionCost);
             TurnCount += finalCost;
@@ -4805,6 +4819,21 @@ public class GameController
     /// <summary>魔法効果をゲームに適用</summary>
     private void ApplySpellEffect(SpellEffect effect)
     {
+        // BS-13: 回復魔法のINT/MNDスケーリング
+        if (effect.Type == SpellEffectType.Heal)
+        {
+            float mndScale = 1.0f + (Player.EffectiveStats.Mind - 10) * 0.03f;
+            float intScale = 1.0f + (Player.EffectiveStats.Intelligence - 10) * 0.02f;
+            float healMultiplier = Math.Max(0.5f, mndScale * intScale);
+            effect = effect with { Power = (int)(effect.Power * healMultiplier) };
+        }
+        // BS-13: ダメージ魔法のINTスケーリング
+        else if (effect.Type == SpellEffectType.Damage)
+        {
+            float intScale = 1.0f + (Player.EffectiveStats.Intelligence - 10) * 0.025f;
+            effect = effect with { Power = (int)(effect.Power * Math.Max(0.5f, intScale)) };
+        }
+
         // 魔法属性による禁忌チェック
         if (effect.Element == Element.Dark || effect.Element == Element.Curse)
         {
