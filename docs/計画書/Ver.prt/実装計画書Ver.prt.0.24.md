@@ -363,7 +363,7 @@
 |---|------|--------|------|---------|
 | AE-1 | `TileType.DeepWater`/`Lava`/`Pit`/`Tree`の4種がプロパティ定義済みだがダンジョン生成で一切配置されない。遭遇不可能な地形 | 高 | `DungeonGenerator.cs`, `Tile.cs` | |
 | AE-2 | `TileType.Altar`が祠部屋に配置されるが、GameControllerにインタラクションハンドラなし。踏んでも何も起こらない | 致命的 | `RoomCorridorGenerator.cs:487`, `GameController.cs:1406-1430` | 修正済み |
-| AE-3 | `TileType.Fountain`が通常部屋に50%確率で配置されるが、インタラクションハンドラなし。踏んでも何も起こらない | 致命的 | `RoomCorridorGenerator.cs:197`, `GameController.cs` | |
+| AE-3 | `TileType.Fountain`が通常部屋に50%確率で配置されるが、インタラクションハンドラなし。踏んでも何も起こらない | 致命的 | `RoomCorridorGenerator.cs:197`, `GameController.cs` | 修正済み |
 | AE-4 | `RoomType.Library`/`Prison`/`Storage`の3種が定義済みだが生成ロジックなし。ダンジョンに出現しない | 高 | `Tile.cs:531-577`, `DungeonGenerator.cs` | |
 | AE-5 | `FeaturePlacer.cs`（秘密部屋生成）がコードベース全体で一度もインスタンス化されない。`RoomType.Secret`の部屋が完全に無効化 | 高 | `FeaturePlacer.cs`, 全ソース | |
 | AE-6 | `GameRenderer.TileColors`辞書に21種のTileType（DeepWater/Lava/Pit/Pillar/RuneInscription/SecretDoor/Grass/Tree/全SymbolMap10種/NpcTrainer/NpcLibrarian）のカラーマッピングがない | 高 | `GameRenderer.cs:35-65` | 修正済み |
@@ -435,7 +435,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| AL-1 | `WeatherSystem.GetElementDamageModifier()`/`GetRangedHitModifier()`が戦闘ダメージ計算から呼ばれない。雨天の雷+20%/火-20%、嵐の遠距離-30%等が全て無効 | 致命的 | `WeatherSystem.cs:102,105`, `GameController.cs:1874-1885` | |
+| AL-1 | `WeatherSystem.GetElementDamageModifier()`/`GetRangedHitModifier()`が戦闘ダメージ計算から呼ばれない。雨天の雷+20%/火-20%、嵐の遠距離-30%等が全て無効 | 致命的 | `WeatherSystem.cs:102,105`, `GameController.cs:1874-1885` | 修正済み |
 | AL-2 | `WeatherSystem.GetMovementCostModifier()`が移動処理から呼ばれない。吹雪の移動コスト+50%、雨の+10%等が全て無効 | 高 | `WeatherSystem.cs:105`, `GameController.cs` | 修正済み |
 | AL-3 | `WeatherSystem.GetSightModifier()`が視界計算から呼ばれない。霧の視界50%低下、嵐の40%低下が無効。視界は常にComputeFov(12)の固定値 | 高 | `WeatherSystem.cs:90`, `GameController.cs:2224,2718` | 修正済み |
 
@@ -467,7 +467,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| AO-1 | ボスフロアで階段が制限されない。TryDescendStairs()にIsBossFloorチェックがなく、プレイヤーがボス戦をスキップして次の階に進める | 致命的 | `GameController.cs:2635-2683` | |
+| AO-1 | ボスフロアで階段が制限されない。TryDescendStairs()にIsBossFloorチェックがなく、プレイヤーがボス戦をスキップして次の階に進める | 致命的 | `GameController.cs:2635-2683` | 修正済み |
 | AO-2 | クエスト報酬のItemIdsが処理されない。QuestRewardにItemIds配列が定義済みだが、TurnInQuest()でGold/Experience/GuildPointsのみ処理されItemIdsは無視される | 致命的 | `NpcSystem.cs:434-456`, `GameController.cs:6333-6346` | 修正済み |
 | AO-3 | クエスト報酬アイテム付与時にインベントリ容量チェックがない。報酬アイテムがインベントリ満杯時に消失する可能性 | 高 | `NpcSystem.cs:434-456` | |
 | AO-4 | `HasPrayedToday`の日次リセットが実装されていない。ProcessTurnEffects()に日替わりリセットコードがなく、祈りの1日1回制限が保持されない（AB-7と関連するが根本原因が異なる） | 高 | `Player.cs:303,317`, `GameController.cs:2125+` | |
@@ -478,7 +478,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| AP-1 | `BaseConstructionSystem.Build()`メソッドが一度も呼ばれない。7種の施設（Camp/Workbench/Smithy/Storage/Farm/Barricade/Barracks）が建設不可能。GetRestHpRecoveryMultiplier()とGetCraftingSuccessBonus()のみ使用 | 致命的 | `BaseConstructionSystem.cs`, `GameController.cs:48,7287,7293` | |
+| AP-1 | `BaseConstructionSystem.Build()`メソッドが一度も呼ばれない。7種の施設（Camp/Workbench/Smithy/Storage/Farm/Barricade/Barracks）が建設不可能。GetRestHpRecoveryMultiplier()とGetCraftingSuccessBonus()のみ使用 | 致命的 | `BaseConstructionSystem.cs`, `GameController.cs:48,7287,7293` | 修正済み |
 | AP-2 | `AmbientSoundSystem.GetCurrentAmbientSound()`（GC:7968）が一度も呼ばれない。9種のアンビエント音（Dungeon/Forest/Mountain等）が定義済みだが再生システムなし。`_currentAmbientSound`（GC:640）は設定されるが消費されない | 中 | `AmbientSoundSystem.cs`, `GameController.cs:640,2668,7968` | |
 
 ---
@@ -500,7 +500,7 @@
 | AR-2 | `Madness`状態異常のランダム行動ロジック未適用。`StatusEffectSystem.GetMadnessAction()`が定義済みだがGameControllerから一度も呼ばれず、狂気状態でも通常行動可能 | 高 | `StatusEffectSystem.cs:401-411`, `GameController.cs` | 修正済み |
 | AR-3 | `InstantDeath`状態異常が確実に即死しない。DamagePerTick=int.MaxValue, Duration=1で設計されるが、TickStatusEffectsの呼び出しタイミングに依存し即死が保証されない | 中 | `StatusEffectSystem.cs:235-240`, `GameController.cs:1973-1979` | |
 | AR-4 | パッシブスキル（weapon_mastery「武器ダメージ+20%」、hp_boost「最大HP+10%」等）が定義済みだがBasePower値が実際のステータス/ダメージ計算に反映されない。学習しても効果ゼロ | 致命的 | `SkillSystem.cs:95,156-157`, `GameController.cs` | 修正済み |
-| AR-5 | `Character.TickStatusEffects()`がGameControllerのターンループから呼ばれない。バフ/デバフの持続時間がデクリメントされず、一度適用された効果が永続化する | 致命的 | `GameController.cs`, `Character.cs:161-187` | |
+| AR-5 | `Character.TickStatusEffects()`がGameControllerのターンループから呼ばれない。バフ/デバフの持続時間がデクリメントされず、一度適用された効果が永続化する | 致命的 | `GameController.cs`, `Character.cs:161-187` | 修正済み |
 | AR-6 | 相反するバフ/デバフの共存チェックなし。Strength（攻撃力1.25倍）とWeakness（全ステ0.80倍）が同時に適用可能。相互排他ルールが未実装 | 中 | `Character.cs:124-146` | |
 | AR-7 | スキル前提条件のID検証なし。SkillTreeNodeのPrerequisites配列にタイプミスのスキルIDが含まれていても検出されず、そのスキルが学習不能になるがエラー表示なし | 中 | `SkillSystem.cs:29-42,163-252` | |
 | AR-8 | 誓約（Oath）の違反チェック`IsViolation()`が一度も呼ばれない。use_alcohol/attack_enemy/use_torch等の禁止行動を実行しても誓約違反が発生しない | 致命的 | `OathSystem.cs:62-71`, `GameController.cs` | 修正済み |
@@ -557,7 +557,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| AW-1 | 誓約ボーナス（GetTotalExpBonus/GetTotalDropBonus）が一度も呼ばれない。誓約を守る報酬として経験値/ドロップ率ボーナスが定義されるが適用されない | 致命的 | `OathSystem.cs:50-60`, `GameController.cs` | |
+| AW-1 | 誓約ボーナス（GetTotalExpBonus/GetTotalDropBonus）が一度も呼ばれない。誓約を守る報酬として経験値/ドロップ率ボーナスが定義されるが適用されない | 致命的 | `OathSystem.cs:50-60`, `GameController.cs` | 修正済み |
 | AW-2 | 誓約破棄にペナルティなし。BreakOath()が「ペナルティあり」とコメントされるが、実装は`_activeOaths.Remove(type)`のみで信仰/正気度/ステータスへの影響ゼロ | 高 | `OathSystem.cs:45-48` | |
 | AW-3 | 信仰システムに献金/供物メカニクスが存在しない。Pray()のみが信仰ポイント獲得手段で、ゴールド/アイテムを捧げる経済的手段が未実装 | 中 | `ReligionSystem.cs:574-592` | |
 | AW-4 | 奇跡/神の祝福を発動する手段がない。信仰ランクに基づくパッシブ恩恵は存在するが、RequestMiracle()等のアクティブな神の介入メカニクスが未定義 | 中 | `ReligionSystem.cs` | |
@@ -617,7 +617,7 @@
 | BB-3 | DungeonFeatureGeneratorの9テーマ（Cave/Ruins/Sewer/Mine/Crypt/Temple/IceCavern/Volcanic/Forest）のパラメータがDungeonGeneratorから参照されない。WaterTileChance/LavaTileChance/CorridorTwistChance等が未適用 | 高 | `DungeonFeatureGenerator.cs`, `DungeonGenerator.cs` | |
 | BB-4 | Water/Lavaタイルが定義済みだがダンジョン生成で一度も配置されない。テーマ別環境タイルが完全に欠落 | 高 | `DungeonGenerator.cs`, `DungeonFeatureGenerator.cs` | |
 | BB-5 | SecretRoomSystem.CalculateDiscoveryChance()/CalculateSecretRoomCount()が定義済みだがDungeonGeneratorから呼ばれない。秘密の部屋が報酬なしのSecretDoorタイルのみ | 中 | `DungeonGenerator.cs:520-558` | |
-| BB-6 | 宝箱がChestOpened=falseで配置されるが開封インタラクションシステムが未接続。宝箱を実際に開けて中身を取得する手段がない | 致命的 | `DungeonGenerator.cs:583-627` | |
+| BB-6 | 宝箱がChestOpened=falseで配置されるが開封インタラクションシステムが未接続。宝箱を実際に開けて中身を取得する手段がない | 致命的 | `DungeonGenerator.cs:583-627` | 修正済み |
 | BB-7 | 祠（Shrine）部屋にAltarタイルが配置されるが祝福/バフ付与システムが未接続。祈祷やバフの実効果なし | 高 | `RoomCorridorGenerator.cs:108-109` | |
 | BB-8 | フロア深度による部屋サイズのスケーリングなし。全階層で同一サイズの部屋が生成され、深層ほど複雑/広大になる設計が未実装 | 中 | `DungeonGenerator.cs:197-212` | |
 | BB-9 | 無限ダンジョンの50階以降が全て同一ティア（Abyss）。マイルストーン報酬（50/100/150階等）やスコアボード永続化が未実装 | 中 | `InfiniteDungeonSystem.cs:17-38` | |
@@ -629,7 +629,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| BC-1 | Ironmanモード（PermaDeath=true）でもセーブファイルが削除されない。SaveManager.DeleteSave()がGameOver時に呼ばれず、永久死がセーブ削除を伴わない | 致命的 | `GameController.cs:3061-3074`, `DifficultySettings.cs:45,172` | |
+| BC-1 | Ironmanモード（PermaDeath=true）でもセーブファイルが削除されない。SaveManager.DeleteSave()がGameOver時に呼ばれず、永久死がセーブ削除を伴わない | 致命的 | `GameController.cs:3061-3074`, `DifficultySettings.cs:45,172` | 修正済み |
 | BC-2 | DeathCauseに火傷/溺死/環境ダメージ/即死の4種が未定義。StatusEffect由来の死亡が全て「不明な原因」と表示される | 高 | `Enums.cs:126-139` | |
 | BC-3 | GameOverSystem.GetDeathCauseDetail()にPoison/Fall/Suicide/SanityDeathのメッセージが未定義。これらの死因で「不明な原因」が表示される | 高 | `GameOverSystem.cs:76-88` | |
 | BC-4 | TickStatusEffects()後にHP0チェックがない。状態異常ダメージで死亡した場合、死因追跡が不正確（後段の処理で別の原因に上書きされる可能性） | 高 | `GameController.cs:2184,2361-2366` | |
@@ -672,7 +672,7 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | BG-1 | StatusEffectのAttackMultiplier/DefenseMultiplier/AllStatsMultiplierが一度も適用されない。GetAllStatModifiers()がStatModifierのみ処理し、乗算フィールドを無視。CreateStrengthBuff(1.25x)/CreateProtection(1.50x)/CreateBlessing(1.10x)の全バフが実効果ゼロ | 致命的 | `Character.cs:32-37`, `StatusEffectSystem.cs:267,279` | 修正済み |
-| BG-2 | StatusEffectsリストがセーブデータに含まれない。ゲームロード時に全てのアクティブバフ/デバフ/呪いが消失する | 致命的 | `SaveData.cs`, `Character.cs:79` | |
+| BG-2 | StatusEffectsリストがセーブデータに含まれない。ゲームロード時に全てのアクティブバフ/デバフ/呪いが消失する | 致命的 | `SaveData.cs`, `Character.cs:79` | 修正済み |
 | BG-3 | StatusEffect適用時にCheckResistance()がPoison免疫チェックのみ実行。他の状態異常（Stun/Freeze/Sleep等）の耐性値が完全に無視される | 高 | `StatusEffectSystem.cs:297-344`, `GameController.cs:1940-2000` | |
 | BG-4 | Equipment.OnEquip()のStatBuffエフェクトループが空実装。装備エンチャントのバフ効果が一切適用されない | 高 | `Equipment.cs:107-114` | |
 | BG-5 | 祈祷の祝福バフがAllStatsMultiplier=1.10fを設定するが、BG-1により実効果ゼロ。祈祷が完全に視覚的のみ | 高 | `GameController.cs:4414-4416` | |
@@ -777,7 +777,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| BO-1 | RelationshipSystem全体がGameControllerで初期化・リセットのみされ、SetRelation()/GetRelation()/ModifyRelation()が一度も呼ばれない。種族/テリトリー/宗教/個人関係の4種の関係性追跡が完全にデッドコード | 致命的 | `RelationshipSystem.cs:1-78`, `GameController.cs:55,3146` | |
+| BO-1 | RelationshipSystem全体がGameControllerで初期化・リセットのみされ、SetRelation()/GetRelation()/ModifyRelation()が一度も呼ばれない。種族/テリトリー/宗教/個人関係の4種の関係性追跡が完全にデッドコード | 致命的 | `RelationshipSystem.cs:1-78`, `GameController.cs:55,3146` | 修正済み |
 
 ---
 
@@ -876,9 +876,9 @@
 | BT-7 | 8エンチャント種（Lifesteal/ManaSteal/ParalysisChance/ExpBoost/DropBoost/CriticalBoost/SpeedBoost/DefenseBoost）の効果計算が未実装（return 0） | 致命的 | `EnchantmentSystem.cs:186-206` | 修正済み |
 | BT-8 | エンチャント除去/置換メソッドが存在しない。RemoveEnchantment()/ReplaceEnchantment()なし | 高 | `EnchantmentSystem.cs:1-209` | |
 | BT-9 | 複数エンチャント非対応。同一装備に2つ以上のエンチャントを持てない | 中 | `Equipment.cs:60-76` | |
-| BT-10 | クラフトレシピが参照する`material_coal`がItemDefinitionsに定義されていない。鋼鉄の剣がクラフト不可 | 致命的 | `CraftingSystem.cs:275,ItemFactory.cs:1159-1260` | |
+| BT-10 | クラフトレシピが参照する`material_coal`がItemDefinitionsに定義されていない。鋼鉄の剣がクラフト不可 | 致命的 | `CraftingSystem.cs:275,ItemFactory.cs:1159-1260` | 修正済み |
 | BT-11 | クラフトにスキル/ツール/職業要件なし。全職業が全アイテムをクラフト可能 | 中 | `CraftingSystem.cs:92-111` | |
-| BT-12 | ItemFactory.GenerateLoot()がDropTableSystemを使用しない。ボスドラゴンがゴブリンと同じランダムアイテムをドロップ | 致命的 | `ItemFactory.cs:950-969` | |
+| BT-12 | ItemFactory.GenerateLoot()がDropTableSystemを使用しない。ボスドラゴンがゴブリンと同じランダムアイテムをドロップ | 致命的 | `ItemFactory.cs:950-969` | 修正済み |
 | BT-13 | 非人型敵（Dragon/Undead/Demon）がゴールドをドロップしない。Humanoidのみゴールド生成 | 高 | `DropTableSystem.cs:188` | |
 | BT-14 | 宝箱システム（TreasureChest/ChestGeneration）が存在しない。ダンジョン宝箱のアイテム生成不可 | 高 | リポジトリ全体 | |
 | BT-15 | 強化レベルの上限検証なし。Legendary生成でEnhancementLevel=9が可能だが上限チェックなし | 低 | `ItemFactory.cs:879-886` | |
@@ -918,7 +918,7 @@
 | BV-1 | PlaceStairs()で入口/ボス部屋がnullの場合に階段が生成されない。フォールバックなしでフロア進行不可 | 致命的 | `DungeonGenerator.cs:365-392` | 修正済み |
 | BV-2 | IsReachable() BFSがトラップ/チェスト配置前に実行される。配置後に通路がブロックされる可能性あり | 高 | `DungeonGenerator.cs:414-456` | |
 | BV-3 | フロアキャッシュヒット時にプレイヤー位置が古いキャッシュ位置に復帰。初回訪問と再訪問の区別なし | 高 | `GameController.cs:650-663` | |
-| BV-4 | キャッシュ復元時に階段存在確認なし。StairsUpPosition/EntrancePosition両方nullの場合、フォールバック(5,5)が壁の可能性 | 致命的 | `GameController.cs:650-663` | |
+| BV-4 | キャッシュ復元時に階段存在確認なし。StairsUpPosition/EntrancePosition両方nullの場合、フォールバック(5,5)が壁の可能性 | 致命的 | `GameController.cs:650-663` | 修正済み |
 | BV-5 | 階段到達性リトライが階段位置を更新しない。回廊追加後も古い到達不可位置のまま | 中 | `DungeonGenerator.cs:395-408` | |
 | BV-6 | ConnectRooms()のMSTが入口/ボス部屋の接続を保証しない。rooms[0]が入口でない場合に未接続 | 中 | `DungeonGenerator.cs:286-339` | |
 | BV-7 | TryAscendStairs()がキャッシュマップのStairsDownPositionを使用。新フロアではなく古いマップの位置を参照 | 高 | `GameController.cs:2733` | |
@@ -948,7 +948,7 @@
 |---|------|--------|------|---------|
 | BX-1 | Inventory.Add()が重量制限を無視。UsedSlots < MaxSlotsのみチェックし、TotalWeight vs MaxWeightを検証しない | 高 | `Inventory.cs:35-56` | |
 | BX-2 | 盾が両手武器装備中でもオフハンドに装備可能。両手武器→盾装備禁止の逆チェックなし | 致命的 | `Equipment.cs:341-367` | 修正済み |
-| BX-3 | 両手武器装備時にオフハンド装備が消失。previousItemとしてMainHandのみ返却、OffHandはインベントリに戻らない | 致命的 | `Equipment.cs:349-356,GameController.cs:2828-2839` | |
+| BX-3 | 両手武器装備時にオフハンド装備が消失。previousItemとしてMainHandのみ返却、OffHandはインベントリに戻らない | 致命的 | `Equipment.cs:349-356,GameController.cs:2828-2839` | 修正済み |
 | BX-4 | Armor.SpeedModifierが完全未適用。革鎧(0.95)/板金鎧(0.8)等の速度補正がStats.ActionSpeed計算に反映されない | 高 | `Equipment.cs:264,Stats.cs:33` | |
 | BX-5 | OnUnequip()が空実装。統計修正以外の永続的効果が解除されない。呪い装備のチェックのみ | 中 | `Equipment.cs:116-123` | |
 | BX-6 | 装備比較/プレビュー機能が完全未実装。装備前のステータス差分表示なし | 中 | リポジトリ全体 | |
@@ -964,13 +964,13 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | BY-1 | ApplySpellHealがAllAlliesターゲットを無視。`graeda vinir`（全味方回復）がプレイヤーのみ回復 | 致命的 | `GameController.cs:4362-4377` | 修正済み |
-| BY-2 | ApplySpellBuffがTargetTypeを一切チェックしない。`styrkja vinir`（全味方バフ）がプレイヤーのみバフ | 致命的 | `GameController.cs:4401-4438` | |
-| BY-3 | ApplySpellControlにAllAlliesケース欠落。`binda vinir`のハンドラなし | 致命的 | `GameController.cs:4441-4482` | |
-| BY-4 | ApplySpellSealがAllAlliesターゲットを無視。`banna vinir`が失敗 | 致命的 | `GameController.cs:4648-4679` | |
-| BY-5 | Object(hlutr)/Ground(jord)ターゲットタイプが全呪文適用で未処理。`opna hlutr`（解錠）が機能しない | 致命的 | `GameController.cs:4255-4314` | |
+| BY-2 | ApplySpellBuffがTargetTypeを一切チェックしない。`styrkja vinir`（全味方バフ）がプレイヤーのみバフ | 致命的 | `GameController.cs:4401-4438` | 修正済み |
+| BY-3 | ApplySpellControlにAllAlliesケース欠落。`binda vinir`のハンドラなし | 致命的 | `GameController.cs:4441-4482` | 修正済み |
+| BY-4 | ApplySpellSealがAllAlliesターゲットを無視。`banna vinir`が失敗 | 致命的 | `GameController.cs:4648-4679` | 修正済み |
+| BY-5 | Object(hlutr)/Ground(jord)ターゲットタイプが全呪文適用で未処理。`opna hlutr`（解錠）が機能しない | 致命的 | `GameController.cs:4255-4314` | 修正済み |
 | BY-6 | ApplySpellDetectがトラップのみ検出。オブジェクト検出(`sja hlutr`)と地面透視(`sja jord`)が未実装 | 高 | `GameController.cs:4485-4511` | |
 | BY-7 | ApplySpellUnlockがTargetTypeを未チェック。環境オブジェクトとの連携なし | 高 | `GameController.cs:4512-4535` | |
-| BY-8 | 回復呪文にSingleAlly/AllAllies/SingleEnemyのケースなし。Selfのみ処理 | 致命的 | `GameController.cs:4362-4377` | |
+| BY-8 | 回復呪文にSingleAlly/AllAllies/SingleEnemyのケースなし。Selfのみ処理 | 致命的 | `GameController.cs:4362-4377` | 修正済み |
 | BY-9 | ApplySpellResurrectがTargetType未チェック。コンパニオン蘇生不可、プレイヤーのみ | 高 | `GameController.cs:4682-4702` | |
 | BY-10 | 敵の魔法耐性が未実装。全敵が全属性に0%耐性。炎敵も炎呪文で通常ダメージ | 高 | `Enemy.cs (GetResistanceAgainst未オーバーライド)` | |
 | BY-11 | 聖職者の初期単語に`vinir`（ターゲット修飾子）が含まれるが、単体では無効な呪文。効果語なしエラー | 高 | `Player.cs:682` | |
@@ -1068,7 +1068,7 @@
 |---|------|--------|------|---------|
 | CD-1 | DifficultyConfig.ExpMultiplierが経験値計算に未適用。Hard/Nightmareの経験値減少が機能しない | 致命的 | `GameController.cs:1540` | 修正済み |
 | CD-2 | DifficultyConfig.HungerDecayMultiplierが空腹減少に未適用。全難易度で同一の空腹減少速度 | 高 | `GameController.cs:2132` | |
-| CD-3 | DifficultyConfig.DamageTakenMultiplier/DamageDealtMultiplierがDamageCalculatorで未使用。Easyでも被ダメージ同一 | 致命的 | `DamageCalculator.cs:28-93` | |
+| CD-3 | DifficultyConfig.DamageTakenMultiplier/DamageDealtMultiplierがDamageCalculatorで未使用。Easyでも被ダメージ同一 | 致命的 | `DamageCalculator.cs:28-93` | 修正済み |
 | CD-4 | DifficultyConfig.ItemDropMultiplierがDropTableSystem呼び出しに未適用。全難易度でドロップ率同一 | 高 | `GameController.cs:1577-1593` | |
 | CD-5 | DifficultyConfig.EnemyStatMultiplierが敵生成に未適用。深度スケーリングのみで難易度スケーリングなし | 高 | `DropTableSystem.cs:99-110` | |
 | CD-6 | RestSystem.GetRecovery()に難易度乗数なし。Easy+高回復で戦闘が些末化する | 中 | `RestSystem.cs:9-16` | |
@@ -1223,9 +1223,9 @@
 
 | ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
 |----|------------|--------|-----------|---------|
-| CO-1 | PlaceStairs()で階段配置が失敗してもvoid返り値のためGenerate()が検出不可。階段なしマップを返す可能性 | 致命的 | `DungeonGenerator.cs:51,365-409` | |
-| CO-2 | GetRandomWalkablePositionInRoom()が50回試行で失敗→null返却。上り/下り階段が配置されずプレイヤーが階移動不能になる | 致命的 | `DungeonGenerator.cs:373-391` | |
-| CO-3 | TryAscendStairsで前フロアのStairsDownPositionがnullの場合、プレイヤー位置が設定されない。壁の中にスポーンする可能性 | 致命的 | `GameController.cs:2726-2741` | |
+| CO-1 | PlaceStairs()で階段配置が失敗してもvoid返り値のためGenerate()が検出不可。階段なしマップを返す可能性 | 致命的 | `DungeonGenerator.cs:51,365-409` | 修正済み |
+| CO-2 | GetRandomWalkablePositionInRoom()が50回試行で失敗→null返却。上り/下り階段が配置されずプレイヤーが階移動不能になる | 致命的 | `DungeonGenerator.cs:373-391` | 修正済み |
+| CO-3 | TryAscendStairsで前フロアのStairsDownPositionがnullの場合、プレイヤー位置が設定されない。壁の中にスポーンする可能性 | 致命的 | `GameController.cs:2726-2741` | 修正済み |
 | CO-4 | 宝物部屋がnormalRooms.Count>2の場合のみ配置。小規模ダンジョン（3部屋以下）では宝物部屋が生成されない | 中 | `DungeonGenerator.cs:468-474` | |
 | CO-5 | HasLineOfSight()にwhile(true)ループの最大反復制限なし。マップ状態破損時に無限ループのリスク | 中 | `DungeonMap.cs:187-200` | |
 
@@ -1235,11 +1235,11 @@
 |----|------------|--------|-----------|---------|
 | CP-1 | XP三重付与バグ。Player.GainExperience(totalExp) + OnEnemyDefeated内のreligionBonus + NG+bonusで1体の敵から3回XP獲得。レベリングが設計の3倍速 | 致命的 | `GameController.cs:1544,1653-1676` | 修正済み |
 | CP-2 | CheckCritical(CriticalCheckParams)メソッド（DEX/LUK考慮版）が完全デッドコード。実際にはCheckCritical(double)のみ使用され、DEX/LUKがクリティカル率に影響しない | 致命的 | `DamageCalculator.cs:168-182` | |
-| CP-3 | maxHpが0の場合にGetHpStatePenalty()で除算ゼロクラッシュ。キャラ生成バグやセーブ破損時に発生 | 致命的 | `DamageCalculator.cs:202`, `ResourceSystem.cs:54` | |
+| CP-3 | maxHpが0の場合にGetHpStatePenalty()で除算ゼロクラッシュ。キャラ生成バグやセーブ破損時に発生 | 致命的 | `DamageCalculator.cs:202`, `ResourceSystem.cs:54` | 修正済み |
 | CP-4 | AttackTypeが6種（Slash/Pierce/Blunt/Unarmed/Ranged/Magic）だがMagic以外は全て同一物理計算。武器タイプ別の差別化が存在しない | 高 | `DamageCalculator.cs:127-138` | |
 | CP-5 | CombatSystem.ExecuteAttack()がSP/MPコスト未消費で攻撃実行。リソース消費なしで無限攻撃可能 | 高 | `CombatSystem.cs:37-65` | |
 | CP-6 | 魔法攻撃でspellElement引数が渡されるがダメージ計算に未使用。属性弱点が魔法ダメージに反映されない | 高 | `CombatSystem.cs:215-270` | |
-| CP-7 | TryApplyStatusEffect()がtrue/false判定のみ返し、実際にキャラクターへの状態異常適用を行わない。戦闘中の状態異常が一切機能しない | 致命的 | `CombatSystem.cs:307-370` | |
+| CP-7 | TryApplyStatusEffect()がtrue/false判定のみ返し、実際にキャラクターへの状態異常適用を行わない。戦闘中の状態異常が一切機能しない | 致命的 | `CombatSystem.cs:307-370` | 修正済み |
 
 ### CQ: クエスト報酬・宗教スキル欠落
 
@@ -1293,7 +1293,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| CV-1 | SpellCastingSystemのダメージタイプ決定で三項演算子が`element == Element.None ? DamageType.Magical : DamageType.Magical`。両分岐が同じ値でエレメント属性がダメージ計算に全く反映されない | 致命的 | `SpellCastingSystem.cs:369` | |
+| CV-1 | SpellCastingSystemのダメージタイプ決定で三項演算子が`element == Element.None ? DamageType.Magical : DamageType.Magical`。両分岐が同じ値でエレメント属性がダメージ計算に全く反映されない | 致命的 | `SpellCastingSystem.cs:369` | 修正済み |
 | CV-2 | 回復呪文（graeda/blessa）がダメージ呪文と同じ`basePower = effectWord.BaseMpCost * 3`計算を使用。SpellEffectType.Healの分岐がなく回復量が不適切 | 致命的 | `SpellCastingSystem.cs:361-363` | 修正済み |
 | CV-3 | 呪文のSpellEffectType（Damage/Heal/Buff/Debuff/Summon/Teleport）のうち、Summon/Teleportの実効果が空。キャストしてもログ出力のみ | 高 | `SpellCastingSystem.cs` | |
 | CV-4 | 呪文詠唱成功率(CastResult.PowerMultiplier)が0.0～2.0の範囲だが、0.0の場合でもキャスト成功として処理。威力ゼロの呪文が「成功」として発動 | 中 | `SpellCastingSystem.cs` | |

@@ -4985,39 +4985,61 @@ public class GameController
     private void ApplySpellBuff(SpellEffect effect)
     {
         int duration = Math.Max(effect.Duration, 10);
-        switch (effect.Type)
+
+        // BY-2: AllAlliesターゲットの場合、仲間にもバフを適用
+        void ApplyBuffToCharacter(Character target, string targetName)
         {
-            case SpellEffectType.Speed:
-                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Haste, duration)
-                {
-                    Name = "加速",
-                    TurnCostModifier = 0.75f
-                });
-                AddMessage($"加速の魔法が発動した（{duration}ターン）");
-                break;
-            case SpellEffectType.Blessing:
-                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Blessing, duration)
-                {
-                    Name = "祝福",
-                    AllStatsMultiplier = 1.10f
-                });
-                AddMessage($"祝福の魔法が発動した（{duration}ターン）");
-                break;
-            case SpellEffectType.Buff:
-            default:
-                // Buff魔法は攻撃力・防御力を同時に強化
-                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Strength, duration)
-                {
-                    Name = "強化",
-                    AttackMultiplier = 1.25f
-                });
-                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Protection, duration)
-                {
-                    Name = "防護",
-                    DefenseMultiplier = 1.50f
-                });
-                AddMessage($"能力強化の魔法が発動した（{duration}ターン）");
-                break;
+            switch (effect.Type)
+            {
+                case SpellEffectType.Speed:
+                    target.ApplyStatusEffect(new StatusEffect(StatusEffectType.Haste, duration)
+                    {
+                        Name = "加速",
+                        TurnCostModifier = 0.75f
+                    });
+                    break;
+                case SpellEffectType.Blessing:
+                    target.ApplyStatusEffect(new StatusEffect(StatusEffectType.Blessing, duration)
+                    {
+                        Name = "祝福",
+                        AllStatsMultiplier = 1.10f
+                    });
+                    break;
+                case SpellEffectType.Buff:
+                default:
+                    target.ApplyStatusEffect(new StatusEffect(StatusEffectType.Strength, duration)
+                    {
+                        Name = "強化",
+                        AttackMultiplier = 1.25f
+                    });
+                    target.ApplyStatusEffect(new StatusEffect(StatusEffectType.Protection, duration)
+                    {
+                        Name = "防護",
+                        DefenseMultiplier = 1.50f
+                    });
+                    break;
+            }
+        }
+
+        string effectName = effect.Type switch
+        {
+            SpellEffectType.Speed => "加速",
+            SpellEffectType.Blessing => "祝福",
+            _ => "能力強化"
+        };
+
+        if (effect.TargetType == SpellTargetType.AllAllies || effect.TargetType == SpellTargetType.All)
+        {
+            // プレイヤーにバフ + 仲間の数をカウント
+            ApplyBuffToCharacter(Player, "あなた");
+            int allyCount = 1 + _companionSystem.Party.Count(c => c.IsAlive);
+            AddMessage($"{effectName}の魔法が味方全体に発動した（{allyCount}体、{duration}ターン）");
+        }
+        else
+        {
+            // 自分のみ
+            ApplyBuffToCharacter(Player, "あなた");
+            AddMessage($"{effectName}の魔法が発動した（{duration}ターン）");
         }
     }
 
@@ -5058,6 +5080,24 @@ public class GameController
                     });
                 }
                 AddMessage($"{targets.Count}体の敵に減速が効いた（{duration}ターン）");
+                break;
+            // BY-3: AllAllies/Self — 味方への制御魔法は防護効果として適用
+            case SpellTargetType.AllAllies:
+            case SpellTargetType.Self:
+                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Protection, duration)
+                {
+                    Name = "制御結界",
+                    DefenseMultiplier = 1.30f
+                });
+                if (effect.TargetType == SpellTargetType.AllAllies)
+                {
+                    int allyCount = 1 + _companionSystem.Party.Count(c => c.IsAlive);
+                    AddMessage($"味方全体に制御結界が展開された（{allyCount}体、{duration}ターン）");
+                }
+                else
+                {
+                    AddMessage($"制御結界を展開した（{duration}ターン）");
+                }
                 break;
             default:
                 AddMessage("制御の魔法が発動した");
@@ -5255,6 +5295,24 @@ public class GameController
                     enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Silence, duration));
                 }
                 AddMessage(targets.Count > 0 ? $"{targets.Count}体の敵を封印した" : "範囲内に敵がいない");
+                break;
+            // BY-4: AllAllies/Self — 味方への封印は魔法無効化バリア
+            case SpellTargetType.AllAllies:
+            case SpellTargetType.Self:
+                Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Protection, duration)
+                {
+                    Name = "魔法障壁",
+                    DefenseMultiplier = 1.50f
+                });
+                if (effect.TargetType == SpellTargetType.AllAllies)
+                {
+                    int allyCount = 1 + _companionSystem.Party.Count(c => c.IsAlive);
+                    AddMessage($"味方全体に魔法障壁を展開した（{allyCount}体、{duration}ターン）");
+                }
+                else
+                {
+                    AddMessage($"魔法障壁を展開した（{duration}ターン）");
+                }
                 break;
             default:
                 AddMessage("封印の魔法が虚空に消えた");
