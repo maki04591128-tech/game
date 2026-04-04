@@ -162,12 +162,20 @@ public class CombatSystem : ICombatSystem
                     attackerPlayer.Race, attackerPlayer.CurrentHp, attackerPlayer.MaxHp);
                 // 種族特性: 幸運体質（クリティカル率ボーナス）
                 critRate += RacialTraitSystem.GetTraitValue(attackerPlayer.Race, RacialTraitType.LuckyBody);
+                // BH-2: パッシブスキル由来のクリティカル率ボーナス
+                critRate += attackerPlayer.BonusCriticalRate;
                 // 装備適性倍率
                 var weapon = attackerPlayer.Equipment.MainHand;
                 if (weapon != null)
                 {
                     proficiencyMultiplier = ClassEquipmentSystem.GetProficiencyMultiplier(
                         attackerPlayer.CharacterClass, weapon.Category);
+                    // BS-1: 武器ダメージレンジを物理ダメージに反映
+                    if (weapon.DamageRange.Max > 0)
+                    {
+                        int weaponRangeDmg = _random.Next(weapon.DamageRange.Min, weapon.DamageRange.Max + 1);
+                        weaponAttack += weaponRangeDmg;
+                    }
                 }
             }
         }

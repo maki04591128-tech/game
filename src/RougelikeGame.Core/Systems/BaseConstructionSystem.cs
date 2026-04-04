@@ -135,4 +135,12 @@ public class BaseConstructionSystem
     {
         _built.Clear();
     }
+
+    /// <summary>BQ-8: セーブデータから状態を復元</summary>
+    public void RestoreFromSave(IEnumerable<FacilityCategory> builtFacilities)
+    {
+        _built.Clear();
+        foreach (var f in builtFacilities)
+            _built.Add(f);
+    }
 }

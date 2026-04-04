@@ -2348,7 +2348,19 @@ public class GameController
             }
         }
 
+        // BH-2: poison_resistパッシブスキルによる毒ダメージ半減
+        int hpBeforeTick = Player.CurrentHp;
+        bool hasPoisonResist = _skillSystem.GetPassiveBonus("poison_resist") > 0;
+        bool isPoisoned = Player.HasStatusEffect(StatusEffectType.Poison);
+
         Player.TickStatusEffects();
+
+        if (hasPoisonResist && isPoisoned && Player.CurrentHp < hpBeforeTick)
+        {
+            int poisonDmg = hpBeforeTick - Player.CurrentHp;
+            int mitigated = poisonDmg / 2;
+            if (mitigated > 0) Player.Heal(mitigated);
+        }
 
         // スキルクールダウン進行
         _skillSystem.TickCooldowns();
@@ -7356,6 +7368,13 @@ public class GameController
             });
         }
 
+        // BQ-7: スキルツリー状態の保存
+        save.SkillTreeLearnedSkills = _skillTreeSystem.UnlockedNodes.ToList();
+
+        // BQ-8: 建設済み施設の保存
+        save.BuiltFacilities = _baseConstructionSystem.BuiltFacilities
+            .Select(f => f.ToString()).ToList();
+
         return save;
     }
 
@@ -7617,6 +7636,22 @@ public class GameController
             _playerStance = stance;
         }
 
+        // BQ-7: スキルツリー状態の復元
+        if (save.SkillTreeLearnedSkills.Count > 0)
+        {
+            _skillTreeSystem.RestoreFromSave(save.SkillTreeLearnedSkills, _skillTreeSystem.AvailablePoints);
+        }
+
+        // BQ-8: 建設済み施設の復元
+        if (save.BuiltFacilities.Count > 0)
+        {
+            var facilities = save.BuiltFacilities
+                .Where(f => Enum.TryParse<FacilityCategory>(f, out _))
+                .Select(f => Enum.Parse<FacilityCategory>(f))
+                .ToList();
+            _baseConstructionSystem.RestoreFromSave(facilities);
+        }
+
         AddMessage("セーブデータをロードした");
         OnStateChanged?.Invoke();
     }
@@ -7826,13 +7861,17 @@ public class GameController
                 AddMessage("✨ 魔力強化！最大MPが上昇した");
                 break;
             case "poison_resist":
+                // BH-2: 毒耐性実効果 — SkillSystemに登録済みなのでダメージ計算時にGetPassiveBonus("poison_resist")で参照
                 AddMessage("🛡 毒耐性を獲得！毒ダメージが半減する");
                 break;
             case "critical_eye":
-                AddMessage("👁 鋭い眼を獲得！クリティカル率が上昇した");
+                // BH-2: クリティカル率+5%の実効果
+                Player.BonusCriticalRate += 0.05;
+                AddMessage("👁 鋭い眼を獲得！クリティカル率+5%");
                 break;
             case "treasure_sense":
-                AddMessage("💎 宝探しの勘を獲得！隠しアイテムを見つけやすくなった");
+                // BH-2: 宝探しの勘の実効果（ドロップ率+15%はGetPassiveBonus参照）
+                AddMessage("💎 宝探しの勘を獲得！アイテムドロップ率が上昇した");
                 break;
         }
     }

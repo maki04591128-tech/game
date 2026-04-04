@@ -255,6 +255,8 @@ public class Player : Character, IPlayer, IInventoryHolder
     /// <summary>種族・職業由来のHP/MPボーナス</summary>
     public int BonusMaxHp { get; set; }
     public int BonusMaxMp { get; set; }
+    /// <summary>BH-2: パッシブスキル由来のクリティカル率ボーナス</summary>
+    public double BonusCriticalRate { get; set; }
 
     public override int MaxHp => base.MaxHp + BonusMaxHp + GetSkillTreeResourceBonus("MaxHp");
     public override int MaxMp => base.MaxMp + BonusMaxMp + GetSkillTreeResourceBonus("MaxMp");

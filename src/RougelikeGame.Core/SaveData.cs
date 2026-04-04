@@ -135,6 +135,12 @@ public class SaveData
 
     /// <summary>コンパニオンデータ</summary>
     public List<CompanionSaveData> Companions { get; set; } = new();
+
+    /// <summary>BQ-7: スキルツリー習得済みスキルID</summary>
+    public List<string> SkillTreeLearnedSkills { get; set; } = new();
+
+    /// <summary>BQ-8: 建設済み施設カテゴリ</summary>
+    public List<string> BuiltFacilities { get; set; } = new();
 }
 
 /// <summary>

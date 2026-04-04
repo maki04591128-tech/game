@@ -1147,6 +1147,15 @@ public class SkillTreeSystem
         _equippedSkillSlots.Clear();
     }
 
+    /// <summary>BQ-7: セーブデータから状態を復元</summary>
+    public void RestoreFromSave(IEnumerable<string> unlockedNodeIds, int availablePoints)
+    {
+        _unlockedNodes.Clear();
+        foreach (var id in unlockedNodeIds)
+            _unlockedNodes.Add(id);
+        _availablePoints = availablePoints;
+    }
+
     // ── スキルスロット（習得済みスキルを装備するスロット） ──
 
     /// <summary>スキルスロット数上限</summary>
