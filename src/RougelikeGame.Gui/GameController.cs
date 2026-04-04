@@ -2451,6 +2451,12 @@ public class GameController
             }
         }
 
+        // 宗教日次処理（600ターンごと＝1日相当）
+        if (TurnCount > 0 && TurnCount % 600 == 0)
+        {
+            _religionSystem.ProcessDailyTick(Player);
+        }
+
         // 渇き進行（ThirstSystem: 満腹度の1.2倍速で減少）
         if (TurnCount > 0 && TurnCount % TimeConstants.HungerDecayInterval == 0)
         {
@@ -3421,12 +3427,13 @@ public class GameController
         _merchantGuildSystem.Reset();
         _factionWarSystem.Reset();
         _dungeonEcosystemSystem.Reset();
+        _tutorialSystem.Reset();
+        _skillTreeSystem.Reset();
 
         // 正気度0の場合、知識系システムも消失
         if (isSanityZero)
         {
             _encyclopediaSystem.ResetDiscoveryLevels();
-            _skillTreeSystem.Reset();
         }
 
         // マップ・領地リセット（開始地点に帰還）
