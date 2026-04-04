@@ -773,7 +773,9 @@ public class GameController
         float ngPlusMultiplier = _ngPlusTier.HasValue
             ? NewGamePlusSystem.GetEnemyStatMultiplier(_ngPlusTier.Value)
             : 1.0f;
-        int ngPlusBonus = (int)((ngPlusMultiplier - 1.0f) * 10);
+        // BD-3: 難易度による敵ステータス倍率
+        float difficultyStatMult = (float)DifficultyConfig.EnemyStatMultiplier;
+        int ngPlusBonus = (int)((ngPlusMultiplier * difficultyStatMult - 1.0f) * 10);
 
         StatModifier? bonus = (floorBonus > 0 || ngPlusBonus > 0)
             ? new StatModifier(
@@ -1590,6 +1592,15 @@ public class GameController
                 Player.GainExperience(totalExp);
                 TryDropItem(enemy);
                 OnEnemyDefeated(enemy);
+
+                // AX-2: コンパニオンも経験値獲得
+                foreach (var companion in _companionSystem.Party.Where(c => c.IsAlive))
+                {
+                    if (_companionSystem.GainExperience(companion.Name, CurrentFloor))
+                    {
+                        AddMessage($"📈 仲間の{companion.Name}がレベルアップ！");
+                    }
+                }
             }
         }
         else
@@ -1957,6 +1968,10 @@ public class GameController
             var critStr = result.IsCritical ? " クリティカル！" : "";
             var dirWarnStr = defenseDir == AttackDirection.Back ? " 背面を取られた！" : "";
             AddMessage($"{enemy.Name}の攻撃！{modifiedDmg}ダメージ！{critStr}{dirWarnStr}");
+
+            // ダメージ適用（難易度被ダメージ倍率を加味）
+            int finalDmg = Math.Max(1, (int)(modifiedDmg * DifficultyConfig.DamageTakenMultiplier));
+            Player.TakeDamage(Damage.Physical(finalDmg));
             _lastDamageCause = DeathCause.Combat;
 
             // === 敵種族に基づく状態異常付与 ===
@@ -2211,7 +2226,7 @@ public class GameController
         {
             if (!RacialTraitSystem.IsNoFoodRequired(Player.Race))
             {
-                Player.ModifyHunger(-1);
+                Player.ModifyHunger(-(int)Math.Ceiling(DifficultyConfig.HungerDecayMultiplier));  // BD-3: 難易度による飢餓速度
             }
         }
 
@@ -7666,6 +7681,26 @@ public class GameController
 
     /// <summary>AJ-2: 領地影響力システム</summary>
     public TerritoryInfluenceSystem GetTerritoryInfluenceSystem() => _territoryInfluenceSystem;
+
+    /// <summary>AY-1: ペットに食事を与える</summary>
+    public bool TryFeedPet(string petId)
+    {
+        if (!_petSystem.Pets.ContainsKey(petId)) return false;
+        var pet = _petSystem.Feed(petId);
+        AddMessage($"🍖 {pet.Name}に食事をやった！（空腹度: {pet.Hunger}、忠誠度: {pet.Loyalty}）");
+        OnStateChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>AY-1: ペットを訓練する</summary>
+    public bool TryTrainPet(string petId)
+    {
+        if (!_petSystem.Pets.ContainsKey(petId)) return false;
+        var pet = _petSystem.Train(petId);
+        AddMessage($"📖 {pet.Name}を訓練した！（レベル: {pet.Level}）");
+        OnStateChanged?.Invoke();
+        return true;
+    }
 
     /// <summary>グリッドインベントリシステム</summary>
     public GridInventorySystem GetGridInventorySystem() => _gridInventorySystem;

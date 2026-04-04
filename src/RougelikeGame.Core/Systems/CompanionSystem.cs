@@ -193,4 +193,27 @@ public class CompanionSystem
     {
         _party.Clear();
     }
+
+    /// <summary>AX-2: コンパニオンが経験値を獲得してレベルアップ</summary>
+    public bool GainExperience(string companionName, int enemyLevel)
+    {
+        var idx = _party.FindIndex(c => c.Name == companionName && c.IsAlive);
+        if (idx < 0) return false;
+
+        var companion = _party[idx];
+        // 敵レベルがコンパニオンレベル以上の場合にレベルアップ判定（確率20%）
+        if (enemyLevel >= companion.Level && new Random().Next(5) == 0)
+        {
+            _party[idx] = companion with
+            {
+                Level = companion.Level + 1,
+                MaxHp = companion.MaxHp + 10,
+                Hp = Math.Min(companion.Hp + 10, companion.MaxHp + 10),
+                Attack = companion.Attack + 3,
+                Defense = companion.Defense + 2
+            };
+            return true;
+        }
+        return false;
+    }
 }

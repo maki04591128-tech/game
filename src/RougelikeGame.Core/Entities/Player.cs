@@ -240,6 +240,15 @@ public class Player : Character, IPlayer, IInventoryHolder
     }
 
     public bool HasSkill(string skillId) => LearnedSkills.Contains(skillId);
+
+    /// <summary>AN-1: 習得済みルーン</summary>
+    public HashSet<string> KnownRunes { get; } = new();
+
+    /// <summary>ルーンを習得する</summary>
+    public bool LearnRune(string runeId)
+    {
+        return KnownRunes.Add(runeId);
+    }
     #endregion
 
     #region Stat Overrides
