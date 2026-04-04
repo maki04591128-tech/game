@@ -974,11 +974,15 @@ public class GameController
             || Player.HasStatusEffect(StatusEffectType.Petrification)
             || Player.HasStatusEffect(StatusEffectType.Charm))  // AR-1: 魅了追加
         {
-            var blockingEffect = Player.StatusEffects.First(e =>
+            // EE-1: FirstOrDefaultで安全にアクセス（ProcessTurnEffects等での解除対策）
+            var blockingEffect = Player.StatusEffects.FirstOrDefault(e =>
                 e.Type is StatusEffectType.Stun or StatusEffectType.Freeze
                     or StatusEffectType.Sleep or StatusEffectType.Petrification
                     or StatusEffectType.Charm);
-            AddMessage($"⚠ {blockingEffect.Name}状態のため行動できない！（残り{blockingEffect.Duration}ターン）");
+            if (blockingEffect != null)
+                AddMessage($"⚠ {blockingEffect.Name}状態のため行動できない！（残り{blockingEffect.Duration}ターン）");
+            else
+                AddMessage("⚠ 行動不可状態のため行動できない！");
 
             // ターンを消費して状態異常を進行させる
             TurnCount += 1;
@@ -1660,10 +1664,17 @@ public class GameController
                 float oathExpBonus = _oathSystem.GetTotalExpBonus();  // AW-1: 誓約経験値ボーナス
                 float religionExpBonus = (float)_religionSystem.GetBenefitValue(Player, ReligionBenefitType.ExpBonus);
                 float ngPlusExpMult = _ngPlusTier.HasValue ? NewGamePlusSystem.GetExpMultiplier(_ngPlusTier.Value) : 1.0f;
+                // EP-1: 装備のExpBoostエンチャント効果
+                float enchantExpBonus = 0f;
+                foreach (var eq in Player.Equipment.GetAll().Values)
+                {
+                    if (eq != null && eq.AppliedEnchantments.Contains(EnchantmentType.ExpBoost.ToString()))
+                        enchantExpBonus += 0.15f;  // +15% per ExpBoost enchantment
+                }
                 // J-3: フロア深度による経験値スケーリング（+10%/フロア）
                 float depthExpBonus = 1.0f + (CurrentFloor - 1) * 0.1f;
                 int totalExp = (int)(enemy.ExperienceReward * depthExpBonus
-                    * (1.0f + executionExpBonus + oathExpBonus + religionExpBonus)
+                    * (1.0f + executionExpBonus + oathExpBonus + religionExpBonus + enchantExpBonus)
                     * DifficultyConfig.ExpMultiplier * ngPlusExpMult);
 
                 string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
@@ -1747,6 +1758,13 @@ public class GameController
         double treasureBonus = _skillSystem.GetPassiveBonus("treasure_sense");
         if (treasureBonus > 0)
             dropChance = (int)(dropChance * 1.15);
+
+        // EP-2: 装備のDropBoostエンチャント効果（+20%/個）
+        foreach (var eq in Player.Equipment.GetAll().Values)
+        {
+            if (eq != null && eq.AppliedEnchantments.Contains(EnchantmentType.DropBoost.ToString()))
+                dropChance = (int)(dropChance * 1.20f);
+        }
 
         // ダンジョン特徴によるルート倍率（DungeonFeatureGenerator）
         if (_currentDungeonFeature.HasValue)

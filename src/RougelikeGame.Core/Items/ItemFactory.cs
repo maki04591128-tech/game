@@ -559,6 +559,7 @@ public class ItemFactory
         Name = "透明化薬",
         Description = "一時的に透明になれる薬。",
         PotionType = PotionType.Invisibility,
+        EffectValue = 1,  // X-1: 透明化フラグ（1=有効）
         Duration = 20,
         Rarity = ItemRarity.Rare,
         BasePrice = 200,
@@ -569,8 +570,9 @@ public class ItemFactory
     {
         ItemId = "potion_fire_resist",
         Name = "耐火薬",
-        Description = "火のダメージを軽減する薬。",
+        Description = "火のダメージを50%軽減する薬。",
         PotionType = PotionType.FireResistance,
+        EffectValue = 50,  // X-3: 耐性50%
         Duration = 50,
         Rarity = ItemRarity.Uncommon,
         BasePrice = 80,
@@ -581,8 +583,9 @@ public class ItemFactory
     {
         ItemId = "potion_cold_resist",
         Name = "耐冷薬",
-        Description = "冷気のダメージを軽減する薬。",
+        Description = "冷気のダメージを50%軽減する薬。",
         PotionType = PotionType.ColdResistance,
+        EffectValue = 50,  // X-4: 耐性50%
         Duration = 50,
         Rarity = ItemRarity.Uncommon,
         BasePrice = 80,
@@ -595,8 +598,51 @@ public class ItemFactory
         Name = "万能薬",
         Description = "全ての状態異常を治す奇跡の薬。",
         PotionType = PotionType.CureAll,
+        EffectValue = 100,  // X-2: 全状態異常解除（100%効果）
         Rarity = ItemRarity.Rare,
         BasePrice = 300,
+        Weight = 0.5f
+    };
+
+    // B-7: 知力増強薬ファクトリ追加
+    public static Potion CreateIntelligenceBoostPotion() => new()
+    {
+        ItemId = "potion_intelligence_boost",
+        Name = "知力増強薬",
+        Description = "一時的に知力を上昇させる薬。",
+        PotionType = PotionType.IntelligenceBoost,
+        EffectValue = 5,
+        Duration = 30,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 100,
+        Weight = 0.5f
+    };
+
+    // B-11: 毒薬ファクトリ追加
+    public static Potion CreatePoisonPotion() => new()
+    {
+        ItemId = "potion_poison",
+        Name = "毒薬",
+        Description = "飲むと毒に侵される危険な薬。武器に塗ることも可能。",
+        PotionType = PotionType.Poison,
+        EffectValue = 10,
+        Duration = 10,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 50,
+        Weight = 0.5f
+    };
+
+    // B-12: 混乱薬ファクトリ追加
+    public static Potion CreateConfusionPotion() => new()
+    {
+        ItemId = "potion_confusion",
+        Name = "混乱薬",
+        Description = "飲むと方向感覚を失い混乱する薬。",
+        PotionType = PotionType.Confusion,
+        EffectValue = 1,
+        Duration = 10,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 40,
         Weight = 0.5f
     };
 
@@ -830,6 +876,20 @@ public class ItemFactory
         Weight = 0.1f
     };
 
+    // B-3: 召喚の巻物ファクトリ追加
+    public static Scroll CreateScrollOfSummon() => new()
+    {
+        ItemId = "scroll_summon",
+        Name = "召喚の巻物",
+        Description = "味方のクリーチャーを一体召喚する。",
+        ScrollType = ScrollType.Summon,
+        TargetType = TargetType.Self,
+        EffectValue = 1,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 250,
+        Weight = 0.1f
+    };
+
     public static Scroll CreateAncientBook() => new()
     {
         ItemId = "ancient_book",
@@ -943,7 +1003,10 @@ public class ItemFactory
             CreateScrollOfTeleport,
             CreateScrollOfMagicMapping,
             CreateCureAllPotion,
-            CreateScrollOfRemoveCurse
+            CreateScrollOfRemoveCurse,
+            CreateIntelligenceBoostPotion,  // B-7
+            CreatePoisonPotion,  // B-11
+            CreateConfusionPotion  // B-12
         };
         var rarePool = new Func<Item>[] {
             CreateStrengthPotion,
@@ -999,7 +1062,7 @@ public class ItemFactory
     private Item GenerateRandomScroll(ItemRarity rarity)
     {
         var scrollTypes = new[] { ScrollType.Teleport, ScrollType.Identify, ScrollType.MagicMapping,
-            ScrollType.Enchant, ScrollType.Freeze, ScrollType.Sanctuary, ScrollType.Return };
+            ScrollType.Enchant, ScrollType.Freeze, ScrollType.Sanctuary, ScrollType.Return, ScrollType.Summon };
         var type = scrollTypes[_random.Next(scrollTypes.Length)];
         return new Scroll
         {
@@ -1303,6 +1366,9 @@ public static class ItemDefinitions
         ["potion_fire_resist"] = ItemFactory.CreateFireResistPotion,
         ["potion_cold_resist"] = ItemFactory.CreateColdResistPotion,
         ["potion_cure_all"] = ItemFactory.CreateCureAllPotion,
+        ["potion_intelligence_boost"] = ItemFactory.CreateIntelligenceBoostPotion,  // B-7
+        ["potion_poison"] = ItemFactory.CreatePoisonPotion,  // B-11
+        ["potion_confusion"] = ItemFactory.CreateConfusionPotion,  // B-12
 
         // 食料
         ["food_bread"] = ItemFactory.CreateBread,
@@ -1325,6 +1391,7 @@ public static class ItemDefinitions
         ["scroll_enchant"] = ItemFactory.CreateScrollOfEnchant,
         ["scroll_return"] = ItemFactory.CreateScrollOfReturn,
         ["scroll_sanctuary"] = ItemFactory.CreateScrollOfSanctuary,
+        ["scroll_summon"] = ItemFactory.CreateScrollOfSummon,  // B-3
         ["ancient_book"] = ItemFactory.CreateAncientBook,
 
         // 素材 - 魔物素材
