@@ -2418,7 +2418,13 @@ public class GameController
         // CC-13: ペットの空腹度減少
         foreach (var petId in _petSystem.Pets.Keys.ToList())
         {
-            _petSystem.TickHunger(petId);
+            var petState = _petSystem.TickHunger(petId);
+            // CC-2: 忠誠度0でペット逃亡
+            if (petState.Loyalty <= 0)
+            {
+                AddMessage($"🐾 {petState.Name}は空腹に耐えかねて逃げ出した！");
+                _petSystem.DismissPet(petId);
+            }
         }
 
         // CC-1: ペットの戦闘アクション（近接敵がいる場合）

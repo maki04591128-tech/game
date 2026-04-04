@@ -152,6 +152,12 @@ public class PetSystem
         return false;
     }
 
+    /// <summary>CC-2: ペットを解散（逃亡/解放）</summary>
+    public bool DismissPet(string petId)
+    {
+        return _pets.Remove(petId);
+    }
+
     /// <summary>
     /// 全ペット状態をリセットする（死に戻り時に呼び出し）。
     /// 死に戻りは時間巻き戻しであるため、入手したペットは全て消失する。
