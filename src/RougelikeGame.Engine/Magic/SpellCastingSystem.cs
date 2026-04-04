@@ -359,7 +359,17 @@ public static class SpellEffectResolver
         var elementWord = castResult.ElementWord;
 
         // 基本ダメージ/回復量
-        int basePower = effectWord.BaseMpCost * 3;
+        // CV-2: 回復呪文はINT/MND依存の別計算
+        SpellEffectType effectType = CategorizeEffect(effectWord.Id);
+        int basePower;
+        if (effectType == SpellEffectType.Heal)
+        {
+            basePower = effectWord.BaseMpCost * 4;  // 回復呪文は基本回復量を高めに
+        }
+        else
+        {
+            basePower = effectWord.BaseMpCost * 3;
+        }
         int finalPower = (int)(basePower * castResult.PowerMultiplier);
 
         // 属性決定
@@ -367,9 +377,6 @@ public static class SpellEffectResolver
 
         // ダメージタイプ決定
         DamageType damageType = element == Element.None ? DamageType.Magical : DamageType.Elemental;
-
-        // 効果タイプ決定
-        SpellEffectType effectType = CategorizeEffect(effectWord.Id);
 
         // ターゲットタイプ決定
         SpellTargetType targetType = DetermineTarget(targetWord, castResult.RangeWord);
