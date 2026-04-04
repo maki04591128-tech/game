@@ -357,6 +357,9 @@ public class GameController
         _questSystem.RegisterMainQuest();
         _questSystem.AcceptQuest("main_quest_abyss", Player.Level, GuildRank.None);
 
+        // CE-2: ヘルプシステムのデフォルトトピック登録
+        _contextHelpSystem.RegisterDefaultTopics();
+
         // マップ生成（シンボルマップから開始）
         GenerateSymbolMap();
 
@@ -2209,6 +2212,12 @@ public class GameController
 
         // スキルクールダウン進行
         _skillSystem.TickCooldowns();
+
+        // CC-13: ペットの空腹度減少
+        foreach (var petId in _petSystem.Pets.Keys.ToList())
+        {
+            _petSystem.TickHunger(petId);
+        }
 
         // === GUI統合: ターン毎システム処理 ===
 
@@ -6996,6 +7005,15 @@ public class GameController
             save.DiseaseRemainingTurns = _diseaseRemainingTurns;
         }
 
+        // CM-1/CM-2/CM-3: NG+/クリア/無限ダンジョン状態の保存
+        if (_ngPlusTier.HasValue)
+            save.NgPlusTier = (int)_ngPlusTier.Value;
+        save.HasCleared = _hasCleared;
+        save.ClearRank = _clearRank;
+        save.InfiniteDungeonMode = _infiniteDungeonMode;
+        save.InfiniteDungeonKills = _infiniteDungeonKills;
+        save.TotalDeaths = TotalDeaths;
+
         return save;
     }
 
@@ -7227,6 +7245,15 @@ public class GameController
             _diseaseRemainingTurns = save.DiseaseRemainingTurns;
         }
 
+        // CM-1/CM-2/CM-3: NG+/クリア/無限ダンジョン状態の復元
+        if (save.NgPlusTier.HasValue && Enum.IsDefined(typeof(NewGamePlusTier), save.NgPlusTier.Value))
+            _ngPlusTier = (NewGamePlusTier)save.NgPlusTier.Value;
+        _hasCleared = save.HasCleared;
+        _clearRank = save.ClearRank ?? "";
+        _infiniteDungeonMode = save.InfiniteDungeonMode;
+        _infiniteDungeonKills = save.InfiniteDungeonKills;
+        TotalDeaths = save.TotalDeaths;
+
         AddMessage("セーブデータをロードした");
         OnStateChanged?.Invoke();
     }
@@ -7239,7 +7266,8 @@ public class GameController
         IsCursed = item.IsCursed,
         IsBlessed = item.IsBlessed,
         Durability = item.Durability,
-        StackCount = item is IStackable stackable ? stackable.StackCount : 1
+        StackCount = item is IStackable stackable ? stackable.StackCount : 1,
+        Grade = item.Grade.ToString()  // AS-1: アイテム品質を保存
     };
 
     private static Item? RestoreItem(ItemSaveData data)
@@ -7252,6 +7280,10 @@ public class GameController
         item.IsCursed = data.IsCursed;
         item.IsBlessed = data.IsBlessed;
         item.Durability = data.Durability;
+
+        // AS-1: アイテム品質を復元
+        if (!string.IsNullOrEmpty(data.Grade) && Enum.TryParse<ItemGrade>(data.Grade, out var grade))
+            item.Grade = grade;
 
         if (item is IStackable stackable)
         {

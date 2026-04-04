@@ -306,6 +306,13 @@ public class CombatSystem : ICombatSystem
     /// </summary>
     public bool TryApplyStatusEffect(IDamageable target, StatusEffectType effectType)
     {
+        // CB-5: ボス/種族免疫チェック
+        if (target is Core.Entities.Enemy enemy &&
+            Core.Systems.MonsterRaceSystem.IsStatusEffectImmune(enemy.Race, effectType))
+        {
+            return false;
+        }
+
         int vitality = 10;
         int mind = 10;
         int luck = 10;
@@ -333,7 +340,12 @@ public class CombatSystem : ICombatSystem
             return false;
         }
 
-        // 状態異常を適用（実際の適用はCharacter側で行う）
+        // 状態異常を適用（CP-7: 実際にターゲットに適用する）
+        var effect = CreateStatusEffect(effectType, target is Core.Entities.Character c ? c.MaxHp : 100);
+        if (effect != null && target is Core.Entities.Character targetCharApply)
+        {
+            targetCharApply.ApplyStatusEffect(effect);
+        }
         return true;
     }
 
@@ -365,6 +377,11 @@ public class CombatSystem : ICombatSystem
             StatusEffectType.Strength => _statusEffectSystem.CreateStrengthBuff(),
             StatusEffectType.Protection => _statusEffectSystem.CreateProtection(),
             StatusEffectType.Regeneration => _statusEffectSystem.CreateRegeneration(),
+            StatusEffectType.Slow => _statusEffectSystem.CreateSlow(),
+            StatusEffectType.Vulnerability => _statusEffectSystem.CreateVulnerability(),
+            StatusEffectType.Invisibility => _statusEffectSystem.CreateInvisibility(),
+            StatusEffectType.Blessing => _statusEffectSystem.CreateBlessing(),
+            StatusEffectType.Apostasy => _statusEffectSystem.CreateApostasy(),
             _ => null
         };
     }

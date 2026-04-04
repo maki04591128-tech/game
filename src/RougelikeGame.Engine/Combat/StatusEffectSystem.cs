@@ -292,6 +292,58 @@ public class StatusEffectSystem
         };
     }
 
+    /// <summary>CB-1: 鈍足 - 行動速度低下</summary>
+    public StatusEffect CreateSlow(int duration = 15)
+    {
+        return new StatusEffect(StatusEffectType.Slow, duration)
+        {
+            Name = "鈍足",
+            TurnCostModifier = 1.5f  // 行動コスト1.5倍
+        };
+    }
+
+    /// <summary>CB-1/CB-9: 脆弱 - 被ダメージ増加</summary>
+    public StatusEffect CreateVulnerability(int duration = 15)
+    {
+        return new StatusEffect(StatusEffectType.Vulnerability, duration)
+        {
+            Name = "脆弱",
+            DefenseMultiplier = 0.5f  // 防御力半減
+        };
+    }
+
+    /// <summary>CB-1/CB-10: 透明化 - 命中率/回避率修正</summary>
+    public StatusEffect CreateInvisibility(int duration = 20)
+    {
+        return new StatusEffect(StatusEffectType.Invisibility, duration)
+        {
+            Name = "透明",
+            EvasionRateModifier = 0.5f,  // 回避率+50%
+            HitRateModifier = -0.1f      // 視界不良で命中率微減
+        };
+    }
+
+    /// <summary>CB-1: 祝福 - 全ステータス微増</summary>
+    public StatusEffect CreateBlessing(int duration = 30)
+    {
+        return new StatusEffect(StatusEffectType.Blessing, duration)
+        {
+            Name = "祝福",
+            AttackMultiplier = 1.1f,
+            DefenseMultiplier = 1.1f
+        };
+    }
+
+    /// <summary>CB-1: 背教 - 信仰喪失デバフ</summary>
+    public StatusEffect CreateApostasy(int duration = 50)
+    {
+        return new StatusEffect(StatusEffectType.Apostasy, duration)
+        {
+            Name = "背教",
+            AllStatsMultiplier = 0.9f  // 全ステータス10%減
+        };
+    }
+
     #endregion
 
     #region 耐性判定

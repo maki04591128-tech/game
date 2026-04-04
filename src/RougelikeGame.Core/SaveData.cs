@@ -108,6 +108,24 @@ public class SaveData
 
     /// <summary>現在の季節</summary>
     public string? SeasonState { get; set; }
+
+    /// <summary>CM-1: NG+ティア</summary>
+    public int? NgPlusTier { get; set; }
+
+    /// <summary>CM-2: クリア済みフラグ</summary>
+    public bool HasCleared { get; set; }
+
+    /// <summary>CM-2: クリアランク</summary>
+    public string? ClearRank { get; set; }
+
+    /// <summary>CM-3: 無限ダンジョンモード</summary>
+    public bool InfiniteDungeonMode { get; set; }
+
+    /// <summary>CM-3: 無限ダンジョン撃破数</summary>
+    public int InfiniteDungeonKills { get; set; }
+
+    /// <summary>累計死亡回数</summary>
+    public int TotalDeaths { get; set; }
 }
 
 /// <summary>
@@ -275,6 +293,9 @@ public class ItemSaveData
 
     /// <summary>スタック数（スタック可能アイテムの場合）</summary>
     public int StackCount { get; set; } = 1;
+
+    /// <summary>AS-1: アイテム品質</summary>
+    public string Grade { get; set; } = nameof(ItemGrade.Standard);
 }
 
 /// <summary>
