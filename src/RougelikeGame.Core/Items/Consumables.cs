@@ -98,6 +98,13 @@ public class Potion : ConsumableItem
                 user.RemoveStatusEffect(StatusEffectType.Petrification);
                 user.RemoveStatusEffect(StatusEffectType.Fear);
                 user.RemoveStatusEffect(StatusEffectType.Sleep);
+                // CB-3: 不足していたデバフの除去
+                user.RemoveStatusEffect(StatusEffectType.Weakness);
+                user.RemoveStatusEffect(StatusEffectType.Curse);
+                user.RemoveStatusEffect(StatusEffectType.Slow);
+                user.RemoveStatusEffect(StatusEffectType.Vulnerability);
+                user.RemoveStatusEffect(StatusEffectType.Apostasy);
+                user.RemoveStatusEffect(StatusEffectType.InstantDeath);
                 return UseResult.Ok("全ての状態異常が解消された！");
 
             case PotionType.StrengthBoost:

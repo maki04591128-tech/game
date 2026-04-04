@@ -343,6 +343,10 @@ public class Equipment
         if (!item.CanEquip(player))
             return null;
 
+        // BX-2: 両手武器装備中は盾/オフハンド装備不可
+        if (item.Slot == EquipmentSlot.OffHand && MainHand is Weapon mainWeapon && mainWeapon.IsTwoHanded)
+            return null;
+
         var previousItem = _slots[item.Slot];
 
         // 両手武器の場合、オフハンドも外す

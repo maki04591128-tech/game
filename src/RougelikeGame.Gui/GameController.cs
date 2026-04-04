@@ -2877,6 +2877,13 @@ public class GameController
                 Player.Position = downStairsPos.Value;
                 Map.ComputeFov(Player.Position, 8);
             }
+            else
+            {
+                // CO-3: 下り階段が見つからない場合のフォールバック
+                var fallback = Map.StairsUpPosition ?? Map.GetRandomWalkablePosition(_random) ?? Player.Position;
+                Player.Position = fallback;
+                Map.ComputeFov(Player.Position, 8);
+            }
             AddMessage($"第{CurrentFloor}層に上がった");
             return true;
         }
