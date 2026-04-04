@@ -184,8 +184,12 @@ public static class DropTableSystem
     {
         var baseResult = GenerateLoot(tableId, depth, rank, random);
 
-        // 人型以外の敵はゴールドをドロップしない
-        int gold = (race == null || race == MonsterRace.Humanoid) ? baseResult.Gold : 0;
+        // IH-2: 非人型でも少量のゴールドをドロップ（宝物等の概念）
+        int gold = baseResult.Gold;
+        if (race != null && race != MonsterRace.Humanoid)
+        {
+            gold = (int)(gold * 0.3); // 非人型は30%のゴールド
+        }
 
         if (race == null || !_raceBonusDrops.TryGetValue(race.Value, out var bonusEntries))
             return new DropResult(baseResult.Items, gold);

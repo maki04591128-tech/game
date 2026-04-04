@@ -176,18 +176,19 @@ public class Player : Character, IPlayer, IInventoryHolder
     // IInventoryHolder implementation
     public bool CanPickUp(Interfaces.IItem item)
     {
+        // IF-3: 非Items.Item型は拾えない
+        if (item is not Items.Item concreteItem)
+            return false;
+
         if (Inventory.UsedSlots >= Inventory.MaxSlots)
             return false;
 
         // 重量チェック
-        if (item is Items.Item concreteItem)
-        {
-            float itemWeight = concreteItem.Weight;
-            if (concreteItem is IStackable stackable)
-                itemWeight *= stackable.StackCount;
-            if (((Inventory)Inventory).TotalWeight + itemWeight > CalculateMaxWeight())
-                return false;
-        }
+        float itemWeight = concreteItem.Weight;
+        if (concreteItem is IStackable stackable)
+            itemWeight *= stackable.StackCount;
+        if (((Inventory)Inventory).TotalWeight + itemWeight > CalculateMaxWeight())
+            return false;
 
         return true;
     }
@@ -375,7 +376,7 @@ public class Player : Character, IPlayer, IInventoryHolder
         }
 
         CurrentReligion = religionId;
-        FaithPoints = 0;
+        FaithPoints = GameConstants.InitialFaithOnJoin;  // IT-1: 入信時に初期信仰値を設定
         DaysSinceLastPrayer = 0;
         HasPrayedToday = false;
 
@@ -415,6 +416,8 @@ public class Player : Character, IPlayer, IInventoryHolder
     #region Level System
     public void GainExperience(int amount)
     {
+        // ID-1: 負値の経験値は無視
+        if (amount <= 0) return;
         // 種族の経験値倍率を適用
         var raceDef = RaceDefinition.Get(Race);
         int adjustedAmount = (int)(amount * raceDef.ExpMultiplier);
@@ -545,7 +548,7 @@ public class Player : Character, IPlayer, IInventoryHolder
     /// <summary>
     /// 引き継ぎデータを生成
     /// </summary>
-    public TransferData CreateTransferData()
+    public TransferData CreateTransferData(int totalDeaths = 0)
     {
         return new TransferData
         {
@@ -555,7 +558,7 @@ public class Player : Character, IPlayer, IInventoryHolder
             FaithPoints = FaithPoints,
             PreviousReligion = PreviousReligion,
             PreviousReligions = new HashSet<string>(PreviousReligions),
-            TotalDeaths = 0,  // IG-4: 外部（GameController）で管理
+            TotalDeaths = totalDeaths,  // IG-4: 外部から渡す
             RescueCountRemaining = RescueCountRemaining
         };
     }
