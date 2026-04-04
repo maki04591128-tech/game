@@ -339,6 +339,17 @@ public class GameController
         ((Inventory)Player.Inventory).Add(ItemFactory.CreateHealingPotion());
         ((Inventory)Player.Inventory).Add(ItemFactory.CreateBread());
 
+        // Z-1: 素性固有の初期装備を適用
+        var bgBonus = BackgroundBonusData.Get(background);
+        foreach (var itemId in bgBonus.InitialItemIds)
+        {
+            var bgItem = ItemDefinitions.Create(itemId);
+            if (bgItem != null)
+            {
+                ((Inventory)Player.Inventory).Add(bgItem);
+            }
+        }
+
         // STRベースの最大重量を更新
         Player.UpdateMaxWeight();
 
@@ -649,7 +660,8 @@ public class GameController
             Map.Name = _currentMapName;
 
             // キャッシュから復帰時は上り階段位置に配置
-            var cachedStartPos = Map.StairsUpPosition ?? Map.EntrancePosition ?? new Position(5, 5);
+            var cachedStartPos = Map.StairsUpPosition ?? Map.EntrancePosition
+                ?? Map.GetRandomWalkablePosition(_random) ?? new Position(5, 5);
             Player.Position = cachedStartPos;
 
             // 敵は再生成（動的要素）
@@ -687,8 +699,9 @@ public class GameController
         Map = (DungeonMap)generator.Generate(parameters);
         Map.Name = _currentMapName;
 
-        // プレイヤー配置
-        var startPos = Map.StairsUpPosition ?? Map.EntrancePosition ?? new Position(5, 5);
+        // プレイヤー配置 (ED-1: 壁内スポーン防止)
+        var startPos = Map.StairsUpPosition ?? Map.EntrancePosition
+            ?? Map.GetRandomWalkablePosition(_random) ?? new Position(5, 5);
         Player.Position = startPos;
 
         // 敵を配置
@@ -5166,7 +5179,8 @@ public class GameController
         _currentMapName = location.Id;
 
         Map = locationMap;
-        var startPos = locationMap.EntrancePosition ?? locationMap.StairsUpPosition ?? new Position(5, 5);
+        var startPos = locationMap.EntrancePosition ?? locationMap.StairsUpPosition
+            ?? locationMap.GetRandomWalkablePosition(_random) ?? new Position(5, 5);
         Player.Position = startPos;
 
         Enemies.Clear();
