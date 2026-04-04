@@ -1,3 +1,5 @@
+using RougelikeGame.Core.Interfaces;
+
 namespace RougelikeGame.Core.Systems;
 
 /// <summary>
@@ -213,4 +215,42 @@ public class PetSystem
         }
         return (dropBonus, viewBonus, dmgReduction, atkDebuff);
     }
+
+    /// <summary>CC-1: ペットの戦闘アクションを実行（ターン毎に呼ばれる）</summary>
+    public PetCombatResult ExecutePetCombatAction(string petId, int enemyDefense, IRandomProvider? random = null)
+    {
+        if (!_pets.TryGetValue(petId, out var pet) || pet.CurrentHp <= 0)
+            return new PetCombatResult(false, 0, "ペットが行動不能");
+
+        var def = _definitions.GetValueOrDefault(pet.Type);
+        if (def == null) return new PetCombatResult(false, 0, "未知のペット種別");
+
+        // 忠誠度ベースの命令成功率
+        int obedience = GetObedienceRate(petId);
+        int roll = random?.Next(100) ?? new Random().Next(100);
+        if (roll >= obedience)
+            return new PetCombatResult(false, 0, $"{pet.Name}は言うことを聞かない！");
+
+        // ダメージ計算: 基本攻撃力 + レベルボーナス - 敵防御
+        int attack = def.BaseAttack + pet.Level * 2;
+        int damage = Math.Max(1, attack - enemyDefense);
+        return new PetCombatResult(true, damage, $"{pet.Name}の攻撃！{damage}ダメージ！");
+    }
+
+    /// <summary>CC-1: ペットがダメージを受ける</summary>
+    public (bool Survived, string Message) ApplyDamageToPet(string petId, int damage)
+    {
+        if (!_pets.TryGetValue(petId, out var pet)) return (false, "ペットが見つからない");
+
+        int newHp = Math.Max(0, pet.CurrentHp - damage);
+        _pets[petId] = pet with { CurrentHp = newHp };
+
+        if (newHp <= 0)
+            return (false, $"{pet.Name}は倒れた…");
+
+        return (true, $"{pet.Name}は{damage}ダメージを受けた（HP: {newHp}/{pet.MaxHp}）");
+    }
 }
+
+/// <summary>CC-1: ペット戦闘結果</summary>
+public record PetCombatResult(bool Success, int Damage, string Message);
