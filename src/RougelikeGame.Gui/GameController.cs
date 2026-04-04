@@ -230,6 +230,7 @@ public class GameController
     public event Action<string>? OnMessage;
     public event Action? OnStateChanged;
     public event Action? OnGameOver;
+    public event Action? OnPermaDeathSaveDelete;  // BC-1: Ironman死亡時セーブ削除通知
     public event Action<List<Item>>? OnShowInventory;
     public event Action? OnShowStatus;
     public event Action<List<string>>? OnShowMessageLog;
@@ -946,7 +947,7 @@ public class GameController
 
     public void ProcessInput(GameAction action)
     {
-        if (IsGameOver || !IsRunning) return;
+        if (IsGameOver || !IsRunning || !Player.IsAlive) return;  // EC-1: 死亡プレイヤーの行動阻止
 
         // 行動不可状態チェック（スタン/凍結/睡眠/石化）
         if (Player.HasStatusEffect(StatusEffectType.Stun)
@@ -3218,6 +3219,14 @@ public class GameController
             {
                 AddMessage("もう戻ることはできない...");
             }
+
+            // BC-1: Ironmanモードではセーブデータ削除を通知
+            if (DifficultyConfig.PermaDeath)
+            {
+                AddMessage("⚠ 鉄人モード: セーブデータは削除されます");
+                OnPermaDeathSaveDelete?.Invoke();
+            }
+
             OnGameOver?.Invoke();
         }
     }

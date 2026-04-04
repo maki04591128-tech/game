@@ -16,7 +16,7 @@ public class Player : Character, IPlayer, IInventoryHolder
     /// <summary>種族</summary>
     public Race Race { get; private set; } = Race.Human;
     /// <summary>職業</summary>
-    public CharacterClass CharacterClass { get; private set; } = CharacterClass.Fighter;
+    public CharacterClass CharacterClass { get; internal set; } = CharacterClass.Fighter;  // BH-1: 転職用にinternal set
     /// <summary>素性</summary>
     public Background Background { get; private set; } = Background.Adventurer;
     public int ExperienceToNextLevel => CalculateExpRequired(Level);
@@ -603,6 +603,9 @@ public class Player : Character, IPlayer, IInventoryHolder
             BaseStats = baseStats,
             _sanity = GameConstants.InitialSanity,
             _hunger = GameConstants.InitialHunger,
+            _thirst = GameConstants.InitialThirst,       // EX-1: 渇き初期化
+            _fatigue = GameConstants.InitialFatigue,      // EX-1: 疲労初期化
+            _hygiene = GameConstants.InitialHygiene,      // EX-1: 衛生初期化
             Faction = Faction.Player
         };
 
