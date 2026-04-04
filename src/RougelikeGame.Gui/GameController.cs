@@ -1831,6 +1831,12 @@ public class GameController
         // NPC関係値更新（敵を倒すとその領地のNPCの好感度UP）
         ModifyNpcRelation(_worldMapSystem.CurrentTerritory.ToString(), 1);
 
+        // 領地勢力に影響（敵種族の勢力を減少）
+        _territoryInfluenceSystem.ModifyInfluence(
+            _worldMapSystem.CurrentTerritory, enemy.Race.ToString(), -0.01f);
+        _territoryInfluenceSystem.ModifyInfluence(
+            _worldMapSystem.CurrentTerritory, "冒険者ギルド", 0.005f);
+
         // 実績チェック
         _achievementSystem.Unlock($"kill_{enemy.EnemyTypeId}");
         if (_infiniteDungeonKills >= 100) _achievementSystem.Unlock("infinite_100_kills");
@@ -2302,6 +2308,7 @@ public class GameController
         if (Player.Hunger <= 0 && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
         {
             int starvationDamage = Math.Max(1, (int)(Player.MaxHp / 50 * DifficultyConfig.DamageTakenMultiplier));
+            _lastDamageCause = DeathCause.Starvation;
             Player.TakeDamage(Damage.Pure(starvationDamage));
             if (TurnCount % 60 == 0) // メッセージは60ターンに1回だけ
             {
@@ -2360,6 +2367,7 @@ public class GameController
             int surfaceDmg = EnvironmentalCombatSystem.GetSurfaceDamage(playerSurface);
             if (surfaceDmg > 0)
             {
+                _lastDamageCause = DeathCause.Trap;
                 Player.TakeDamage(Damage.Pure(surfaceDmg));
                 AddMessage($"🔥 {playerSurface}の地表面で{surfaceDmg}ダメージ！");
                 if (!Player.IsAlive)
@@ -2440,7 +2448,7 @@ public class GameController
                 if (disease != null)
                 {
                     Player.TakeDamage(Damage.Pure(1));
-                    _lastDamageCause = DeathCause.Unknown;
+                    _lastDamageCause = DeathCause.Curse;
                 }
             }
         }
@@ -2521,7 +2529,7 @@ public class GameController
             if (thirstDamage > 0)
             {
                 Player.TakeDamage(Damage.Pure((int)Math.Max(1, thirstDamage * DifficultyConfig.DamageTakenMultiplier)));
-                _lastDamageCause = DeathCause.Unknown;
+                _lastDamageCause = DeathCause.Starvation;
             }
         }
 
