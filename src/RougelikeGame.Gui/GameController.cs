@@ -967,15 +967,17 @@ public class GameController
     {
         if (IsGameOver || !IsRunning || !Player.IsAlive) return;  // EC-1: 死亡プレイヤーの行動阻止
 
-        // 行動不可状態チェック（スタン/凍結/睡眠/石化）
+        // 行動不可状態チェック（スタン/凍結/睡眠/石化/魅了）
         if (Player.HasStatusEffect(StatusEffectType.Stun)
             || Player.HasStatusEffect(StatusEffectType.Freeze)
             || Player.HasStatusEffect(StatusEffectType.Sleep)
-            || Player.HasStatusEffect(StatusEffectType.Petrification))
+            || Player.HasStatusEffect(StatusEffectType.Petrification)
+            || Player.HasStatusEffect(StatusEffectType.Charm))  // AR-1: 魅了追加
         {
             var blockingEffect = Player.StatusEffects.First(e =>
                 e.Type is StatusEffectType.Stun or StatusEffectType.Freeze
-                    or StatusEffectType.Sleep or StatusEffectType.Petrification);
+                    or StatusEffectType.Sleep or StatusEffectType.Petrification
+                    or StatusEffectType.Charm);
             AddMessage($"⚠ {blockingEffect.Name}状態のため行動できない！（残り{blockingEffect.Duration}ターン）");
 
             // ターンを消費して状態異常を進行させる
@@ -995,6 +997,18 @@ public class GameController
             }
             OnStateChanged?.Invoke();
             return;
+        }
+
+        // AR-2: 狂気状態のランダム行動（60%確率で意図と異なる行動に）
+        if (Player.HasStatusEffect(StatusEffectType.Madness))
+        {
+            int madRoll = _random.Next(100);
+            if (madRoll < 60) // 60%の確率でランダム行動
+            {
+                GameAction[] randomMoves = { GameAction.MoveUp, GameAction.MoveDown, GameAction.MoveLeft, GameAction.MoveRight };
+                action = randomMoves[_random.Next(randomMoves.Length)];
+                AddMessage("🌀 狂気に蝕まれ、思い通りに動けない！");
+            }
         }
 
         // 自動探索中に何か操作したら中断
