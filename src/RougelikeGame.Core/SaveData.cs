@@ -141,6 +141,18 @@ public class SaveData
 
     /// <summary>BQ-8: 建設済み施設カテゴリ</summary>
     public List<string> BuiltFacilities { get; set; } = new();
+
+    /// <summary>BQ-2: 領地別評判値</summary>
+    public Dictionary<string, int> ReputationValues { get; set; } = new();
+
+    /// <summary>BQ-24/BU-12: チュートリアル完了済みステップ</summary>
+    public List<string> CompletedTutorialSteps { get; set; } = new();
+
+    /// <summary>BU-11: 解除済み実績ID</summary>
+    public List<string> UnlockedAchievements { get; set; } = new();
+
+    /// <summary>BR-5: 現在のダンジョン特性</summary>
+    public string? CurrentDungeonFeature { get; set; }
 }
 
 /// <summary>
@@ -341,6 +353,10 @@ public class TransferDataSaveData
     public int TotalDeaths { get; set; }
     public int RescueCountRemaining { get; set; } = GameConstants.MaxRescueCount;
     public int Sanity { get; set; } = GameConstants.InitialSanity;
+    /// <summary>BW-5: 引き継ぎレベル</summary>
+    public int Level { get; set; }
+    /// <summary>BW-6: 引き継ぎゴールド</summary>
+    public int Gold { get; set; }
 }
 
 /// <summary>

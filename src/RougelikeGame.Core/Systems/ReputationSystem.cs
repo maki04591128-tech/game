@@ -133,4 +133,16 @@ public class ReputationSystem
             }
         }
     }
+
+    /// <summary>BQ-2: セーブデータから評判値を復元する</summary>
+    public void RestoreReputations(Dictionary<string, int> saved)
+    {
+        foreach (var (key, value) in saved)
+        {
+            if (Enum.TryParse<TerritoryId>(key, out var territory))
+            {
+                _reputations[territory] = Math.Clamp(value, -100, 100);
+            }
+        }
+    }
 }

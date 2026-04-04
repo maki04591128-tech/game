@@ -1276,6 +1276,17 @@ public class GameController
                 actionCost = (int)Math.Ceiling(actionCost * weatherMoveMod);
             }
 
+            // AY-3: ペット騎乗速度ボーナス（移動コストを速度倍率で除算）
+            foreach (var petId in _petSystem.Pets.Keys)
+            {
+                float speedMult = _petSystem.GetMoveSpeedMultiplier(petId);
+                if (speedMult > 1.0f && actionCost <= TurnCosts.AttackNormal)
+                {
+                    actionCost = Math.Max(1, (int)(actionCost / speedMult));
+                    break; // 最初の騎乗ペットのみ適用
+                }
+            }
+
             // 行動コスト分のターンを消費（最低1）
             int finalCost = Math.Max(1, actionCost);
             TurnCount += finalCost;
@@ -5590,6 +5601,13 @@ public class GameController
             return false;
         }
 
+        // BM-2: 評判が「嫌悪」の場合、領地への入場を拒否
+        if (!_reputationSystem.IsWelcome(destination))
+        {
+            AddMessage($"⛔ {destination}の住人から追い返された！評判が低すぎて入場できない。");
+            return false;
+        }
+
         var result = _worldMapSystem.TravelTo(destination, Player.Level);
         AddMessage(result.Message);
 
@@ -6154,7 +6172,9 @@ public class GameController
         float reputationMod = PriceFluctuationSystem.GetReputationModifier(PlayerReputationRank, true);
         float karmaMod = PriceFluctuationSystem.GetKarmaModifier(PlayerKarmaRank, true);
         float territoryMod = PriceFluctuationSystem.GetTerritoryModifier(_worldMapSystem.CurrentTerritory, "general");
-        discount *= (double)(reputationMod * karmaMod * territoryMod);
+        // BM-1: ReputationSystem評判割引を統合
+        double reputationDiscount = _reputationSystem.GetShopDiscount(_worldMapSystem.CurrentTerritory);
+        discount *= (double)(reputationMod * karmaMod * territoryMod) * reputationDiscount;
 
         // RelationshipSystem: NPC好感度による追加割引
         float npcDiscount = GetNpcShopDiscount(shopType.ToString());
@@ -6189,7 +6209,9 @@ public class GameController
         float reputationMod = PriceFluctuationSystem.GetReputationModifier(PlayerReputationRank, false);
         float karmaMod = PriceFluctuationSystem.GetKarmaModifier(PlayerKarmaRank, false);
         float territoryMod = PriceFluctuationSystem.GetTerritoryModifier(_worldMapSystem.CurrentTerritory, "general");
-        charismaBonus *= (double)(reputationMod * karmaMod * territoryMod);
+        // BM-1: ReputationSystem評判割引を売却にも統合（逆数で高評判→高売値）
+        double reputationSellMod = 2.0 - _reputationSystem.GetShopDiscount(_worldMapSystem.CurrentTerritory);
+        charismaBonus *= (double)(reputationMod * karmaMod * territoryMod) * reputationSellMod;
 
         var result = _shopSystem.Sell(Player, itemName, baseValue, charismaBonus);
         AddMessage(result.Message);
@@ -7458,7 +7480,9 @@ public class GameController
                     PreviousReligions = _transferData.PreviousReligions.ToList(),
                     TotalDeaths = _transferData.TotalDeaths,
                     RescueCountRemaining = _transferData.RescueCountRemaining,
-                    Sanity = _transferData.Sanity
+                    Sanity = _transferData.Sanity,
+                    Level = _transferData.Level,     // BW-5
+                    Gold = _transferData.Gold         // BW-6
                 } : null
             }
         };
@@ -7609,6 +7633,22 @@ public class GameController
         save.BuiltFacilities = _baseConstructionSystem.BuiltFacilities
             .Select(f => f.ToString()).ToList();
 
+        // BQ-2: 領地別評判値の保存
+        foreach (var (territory, value) in _reputationSystem.GetAllReputations())
+        {
+            save.ReputationValues[territory.ToString()] = value;
+        }
+
+        // BQ-24/BU-12: チュートリアル完了済みステップの保存
+        save.CompletedTutorialSteps = _tutorialSystem.GetCompletedSteps().ToList();
+
+        // BU-11: 解除済み実績の保存
+        save.UnlockedAchievements = _achievementSystem.GetUnlockedIds();
+
+        // BR-5: 現在のダンジョン特性の保存
+        if (_currentDungeonFeature.HasValue)
+            save.CurrentDungeonFeature = _currentDungeonFeature.Value.ToString();
+
         return save;
     }
 
@@ -7734,7 +7774,9 @@ public class GameController
                 PreviousReligions = new HashSet<string>(save.Player.TransferData.PreviousReligions),
                 TotalDeaths = save.Player.TransferData.TotalDeaths,
                 RescueCountRemaining = save.Player.TransferData.RescueCountRemaining,
-                Sanity = save.Player.TransferData.Sanity
+                Sanity = save.Player.TransferData.Sanity,
+                Level = save.Player.TransferData.Level,   // BW-5
+                Gold = save.Player.TransferData.Gold       // BW-6
             };
         }
 
@@ -7901,6 +7943,30 @@ public class GameController
                     _companionSystem.AddCompanion(companion);
                 }
             }
+        }
+
+        // BQ-2: 領地別評判値の復元
+        if (save.ReputationValues.Count > 0)
+        {
+            _reputationSystem.RestoreReputations(save.ReputationValues);
+        }
+
+        // BQ-24/BU-12: チュートリアル完了済みステップの復元
+        if (save.CompletedTutorialSteps.Count > 0)
+        {
+            _tutorialSystem.RestoreCompletedSteps(save.CompletedTutorialSteps);
+        }
+
+        // BU-11: 解除済み実績の復元
+        if (save.UnlockedAchievements.Count > 0)
+        {
+            _achievementSystem.RestoreUnlocked(save.UnlockedAchievements);
+        }
+
+        // BR-5: 現在のダンジョン特性の復元
+        if (save.CurrentDungeonFeature != null && Enum.TryParse<DungeonFeatureType>(save.CurrentDungeonFeature, out var feature))
+        {
+            _currentDungeonFeature = feature;
         }
 
         AddMessage("セーブデータをロードした");

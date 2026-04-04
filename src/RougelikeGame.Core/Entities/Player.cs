@@ -560,7 +560,9 @@ public class Player : Character, IPlayer, IInventoryHolder
             PreviousReligion = PreviousReligion,
             PreviousReligions = new HashSet<string>(PreviousReligions),
             TotalDeaths = totalDeaths,  // IG-4: 外部から渡す
-            RescueCountRemaining = RescueCountRemaining
+            RescueCountRemaining = RescueCountRemaining,
+            Level = Level,               // BW-5: レベル引き継ぎ
+            Gold = Gold / 4              // BW-6: ゴールドの25%を引き継ぎ
         };
     }
 
@@ -599,6 +601,22 @@ public class Player : Character, IPlayer, IInventoryHolder
         }
 
         RescueCountRemaining = data.RescueCountRemaining;
+
+        // BW-5: レベル引き継ぎ（半分のレベルから再開）
+        if (data.Level > 1)
+        {
+            int transferLevel = Math.Max(1, data.Level / 2);
+            for (int i = 1; i < transferLevel; i++)
+            {
+                LevelUp(); // レベルアップで基礎ステータスも上昇
+            }
+        }
+
+        // BW-6: ゴールド引き継ぎ
+        if (data.Gold > 0)
+        {
+            AddGold(data.Gold);
+        }
     }
     #endregion
 
@@ -939,5 +957,9 @@ public class TransferData
     public int TotalDeaths { get; set; }
     public int RescueCountRemaining { get; set; } = GameConstants.MaxRescueCount;
     public int Sanity { get; set; } = GameConstants.InitialSanity;
+    /// <summary>BW-5: 転生時のレベル引き継ぎ</summary>
+    public int Level { get; set; }
+    /// <summary>BW-6: 転生時のゴールド引き継ぎ（一部）</summary>
+    public int Gold { get; set; }
 }
 #endregion

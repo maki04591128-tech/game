@@ -220,7 +220,7 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | R-1 | `BaseConstructionSystem.GetDailyFoodProduction()`が定義されているが、GameControllerから一度も呼び出されていない。畑を建設しても食料が自動生産されない | 高 | `BaseConstructionSystem.cs:93`, `GameController.cs` | 修正済み |
-| R-2 | `InvestmentSystem`で投資が記録されるが、投資の完了・配当支払いを処理するコードがGameControllerに存在しない。投資したゴールドが回収不能 | 高 | `InvestmentSystem.cs`, `GameController.cs` | |
+| R-2 | `InvestmentSystem`で投資が記録されるが、投資の完了・配当支払いを処理するコードがGameControllerに存在しない。投資したゴールドが回収不能 | 高 | `InvestmentSystem.cs`, `GameController.cs` | 修正済み |
 
 ---
 
@@ -257,7 +257,7 @@
 |---|------|--------|------|---------|
 | V-1 | ルーン語"loka"（閉じる）が`CategorizeEffect()`のswitchに存在しない。デフォルトでDamage型に分類されるため、ドア閉鎖呪文が攻撃呪文として処理される | 致命的 | `SpellCastingSystem.cs:421-441`, `RuneWordDatabase.cs:92` | 修正済み |
 | V-2 | `DetermineElement()`にPoison元素のマッピングがない。毒属性呪文が`Element.None`として処理され、耐性計算が無効化される | 致命的 | `SpellCastingSystem.cs:388-419` | 修正済み |
-| V-3 | `StatusEffect.Invisibility`/`Slow`/`Vulnerability`/`Apostasy`の4種にCreate系ファクトリメソッドが存在しない。これらの状態異常を生成できない | 高 | `StatusEffectSystem.cs`, `Enums.cs:214-239` | |
+| V-3 | `StatusEffect.Invisibility`/`Slow`/`Vulnerability`/`Apostasy`の4種にCreate系ファクトリメソッドが存在しない。これらの状態異常を生成できない | 高 | `StatusEffectSystem.cs`, `Enums.cs:214-239` | 修正済み |
 | V-4 | Dark→Curse元素の相性が0.0（無効化）だが、逆方向Curse→Darkは1.0（中立）。一方向の完全耐性は不自然 | 中 | `ElementSystem.cs:143-164` | 修正済み |
 | V-5 | "springa"（爆発）の難易度が2でMP=10だが、同MPの"hylja"（隠す）は難易度3。高火力呪文が先に習得可能で学習曲線が崩壊 | 中 | `RuneWordDatabase.cs:55-92` | 修正済み |
 | V-6 | バフ"berserk"のAttackMultiplier=0.5fだが説明は「攻撃力+50%」。0.5は-50%を意味し、説明と効果が逆転している可能性 | 高 | `ExtendedStatusEffectSystem.cs:41-42` | 修正済み |
@@ -306,7 +306,7 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | Z-1 | 全10職歴（冒険者/兵士/学者等）の初期装備品が`BackgroundBonusData`に定義されているが、`Player.Create()`で一度も適用されない。職歴固有の初期装備が受け取れない | 致命的 | `RacialTraitSystem.cs:218-262`, `Player.cs:625-674` | 修正済み |
-| Z-2 | `CompanionSystem`（仲間システム）が完全実装済み（追加/除去/AI行動/ターン処理）だが、GameControllerから`AddCompanion()`を呼ぶコードパスがない。仲間の募集が不可能 | 高 | `CompanionSystem.cs`, `GameController.cs` | |
+| Z-2 | `CompanionSystem`（仲間システム）が完全実装済み（追加/除去/AI行動/ターン処理）だが、GameControllerから`AddCompanion()`を呼ぶコードパスがない。仲間の募集が不可能 | 高 | `CompanionSystem.cs`, `GameController.cs` | 修正済み |
 
 ---
 
@@ -582,8 +582,8 @@
 |---|------|--------|------|---------|
 | AY-1 | PetSystem.Feed()/Train()/TickHunger()が一度も呼ばれない。ペットの餌やり/訓練/空腹値減少が未接続で、空腹/忠誠度が初期値から変化しない | 致命的 | `PetSystem.cs:64-120`, `GameController.cs` | 修正済み |
 | AY-2 | ペット特殊能力（Wolf威嚇/Horse騎乗/Hawk偵察/Cat幸運/Bear防壁/Dragonブレス）がテキスト定義のみで実行コードなし。6種全ての能力が機能しない | 致命的 | `PetSystem.cs:43-48` | 修正済み |
-| AY-3 | PetSystem.GetMoveSpeedMultiplier()（Horse2.0/Bear1.3/Dragon2.5倍）がプレイヤー移動処理から呼ばれない。騎乗速度ボーナスがデータのみ | 高 | `PetSystem.cs:97-109`, `GameController.cs` | |
-| AY-4 | PetSystem.GetObedienceRate()（忠誠度に基づく命令成功率）が一度も呼ばれない。ペットコマンドが忠誠度に関係なく100%成功 | 高 | `PetSystem.cs:132-137` | |
+| AY-3 | PetSystem.GetMoveSpeedMultiplier()（Horse2.0/Bear1.3/Dragon2.5倍）がプレイヤー移動処理から呼ばれない。騎乗速度ボーナスがデータのみ | 高 | `PetSystem.cs:97-109`, `GameController.cs` | 修正済み |
+| AY-4 | PetSystem.GetObedienceRate()（忠誠度に基づく命令成功率）が一度も呼ばれない。ペットコマンドが忠誠度に関係なく100%成功 | 高 | `PetSystem.cs:132-137` | 修正済み |
 
 ---
 
@@ -756,8 +756,8 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| BM-1 | ReputationSystem.GetShopDiscount()がGameControllerから一度も呼ばれない。PriceFluctuationSystem.GetReputationModifier()で代替計算され、本来のメソッドがデッドコード | 高 | `ReputationSystem.cs:53-63`, `GameController.cs:5482,5513` | |
-| BM-2 | ReputationSystem.IsWelcome()がGameControllerから一度も呼ばれない。「嫌悪」評判でもテリトリーに自由アクセス可能 | 高 | `ReputationSystem.cs:79-80`, `GameController.cs` | |
+| BM-1 | ReputationSystem.GetShopDiscount()がGameControllerから一度も呼ばれない。PriceFluctuationSystem.GetReputationModifier()で代替計算され、本来のメソッドがデッドコード | 高 | `ReputationSystem.cs:53-63`, `GameController.cs:5482,5513` | 修正済み |
+| BM-2 | ReputationSystem.IsWelcome()がGameControllerから一度も呼ばれない。「嫌悪」評判でもテリトリーに自由アクセス可能 | 高 | `ReputationSystem.cs:79-80`, `GameController.cs` | 修正済み |
 | BM-3 | 評判は増加のみ（正の修正値）で低下メカニクスが存在しない。クエスト失敗/NPC裏切り/犯罪行為が評判無影響 | 中 | `GameController.cs`, `NpcSystem.cs` | |
 
 ---
@@ -797,7 +797,7 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | BQ-1 | KarmaSystemステート（カルマ値/履歴）がセーブされない。店舗価格/NPC態度/聖地アクセスに影響するカルマが消失 | 高 | `GameController.cs:41,6694-6801` | 修正済み |
-| BQ-2 | ReputationSystemステート（テリトリー別評判値）がセーブされない | 高 | `GameController.cs:42,6694-6801` | |
+| BQ-2 | ReputationSystemステート（テリトリー別評判値）がセーブされない | 高 | `GameController.cs:42,6694-6801` | 修正済み |
 | BQ-3 | CompanionSystemステート（仲間/忠誠度/ステータス）がセーブされない。パーティ全消失 | 致命的 | `GameController.cs:43,6694-6801` | 修正済み |
 | BQ-4 | EncyclopediaSystemステート（モンスター討伐数/発見ティア）がセーブされない | 中 | `GameController.cs:44,6694-6801` | |
 | BQ-5 | DeathLogSystemステート（死亡記録/統計）がセーブされない | 中 | `GameController.cs:45,6694-6801` | |
@@ -819,7 +819,7 @@
 | BQ-21 | DungeonShortcutSystemステート（発見済みショートカット）がセーブされない | 中 | `GameController.cs:66,6694-6801` | |
 | BQ-22 | SmithingSystemステート（鍛冶レシピ/進捗）がセーブされない | 中 | `GameController.cs:67,6694-6801` | |
 | BQ-23 | AchievementSystemステート（解除済み実績）がセーブされない。実績がロード時にリセット | 高 | `GameController.cs:68,6694-6801` | 修正済み |
-| BQ-24 | TutorialSystemステート（完了済みチュートリアルステップ）がセーブされない。毎回チュートリアル再表示 | 高 | `GameController.cs,SmithingSystem.cs:167-173` | |
+| BQ-24 | TutorialSystemステート（完了済みチュートリアルステップ）がセーブされない。毎回チュートリアル再表示 | 高 | `GameController.cs,SmithingSystem.cs:167-173` | 修正済み |
 
 ---
 
@@ -830,8 +830,8 @@
 | BR-1 | 病気タイプ/残りターン（_playerDisease/_diseaseRemainingTurns）がセーブされない。ロード時に病気が自動治癒 | 致命的 | `GameController.cs:90-93,6694-6801` | 修正済み |
 | BR-2 | 戦闘スタンス（_playerStance）がセーブされない。ロード時にBalancedにリセット | 中 | `GameController.cs:87,6694-6801` | |
 | BR-3 | NG+ティア（_ngPlusTier）とゲームクリア状態（_hasCleared）がセーブされない。NG+進行が追跡不可 | 致命的 | `GameController.cs:155-158,6694-6801` | 修正済み |
-| BR-4 | 無限ダンジョンモード（_infiniteDungeonMode）とキル数（_infiniteDungeonKills）がセーブされない。100キル実績進捗消失 | 高 | `GameController.cs:164-167,6694-6801` | |
-| BR-5 | ダンジョン特性（_currentDungeonFeature）がセーブされない。敵密度/ルート倍率/罠確率がリセット | 高 | `GameController.cs:78,6694-6801` | |
+| BR-4 | 無限ダンジョンモード（_infiniteDungeonMode）とキル数（_infiniteDungeonKills）がセーブされない。100キル実績進捗消失 | 高 | `GameController.cs:164-167,6694-6801` | 修正済み |
+| BR-5 | ダンジョン特性（_currentDungeonFeature）がセーブされない。敵密度/ルート倍率/罠確率がリセット | 高 | `GameController.cs:78,6694-6801` | 修正済み |
 | BR-6 | Player.HasPrayedTodayがセーブされない。毎日の祈りフラグがリセット | 中 | `Player.cs:303,GameController.cs:6694-6801` | |
 
 ---
@@ -869,7 +869,7 @@
 |---|------|--------|------|---------|
 | BT-1 | GenerateRandomEquipment()が4種のみ生成（IronSword/Dagger/LeatherArmor/WoodenShield）。Greatsword/BattleAxe/Spear等10+装備が生成不可 | 致命的 | `ItemFactory.cs:865-874` | 修正済み |
 | BT-2 | GenerateRandomConsumable()が4種のみ生成。8+巻物/7+ポーション（Fireball/Lightning/Strength/Invisibility等）が生成不可 | 致命的 | `ItemFactory.cs:910-919` | 修正済み |
-| BT-3 | Scroll.Use()のswitchで3種（Freeze/Summon/Return）がdefaultに落ち「何も起こらなかった」を返す | 高 | `Consumables.cs:256-319` | |
+| BT-3 | Scroll.Use()のswitchで3種（Freeze/Summon/Return）がdefaultに落ち「何も起こらなかった」を返す | 高 | `Consumables.cs:256-319` | 修正済み |
 | BT-4 | レアリティスケーリングが弱すぎ。Depth 1とDepth 100のLegendary確率が同じ5%上限 | 中 | `ItemFactory.cs:848-861` | |
 | BT-5 | エンチャントがEquipmentItemに実際に保存されない。Enchant()がsuccessを返すが**アイテムオブジェクトを変更しない** | 致命的 | `EnchantmentSystem.cs:139,Equipment.cs:60-76` | 修正済み |
 | BT-6 | エンチャント種別制限なし。ダメージエンチャント（FireDamage等）が防具に適用可。Lifestealが防具に適用可 | 高 | `EnchantmentSystem.cs:128-134` | |
@@ -900,9 +900,9 @@
 | BU-7 | NPC行動スケジュールが600ターンごとの固定間隔で更新。時間帯変更との連動なし | 中 | `GameController.cs:2313-2320` | |
 | BU-8 | 天候システムの日次リセットなし。300ターンごとの固定間隔で変化 | 低 | `GameController.cs:2329-2337` | |
 | BU-9 | TurnCountとGameTime.TotalTurnsの二重追跡。同期保証メカニズムなし | 低 | `GameController.cs:191-192` | |
-| BU-10 | DifficultySettings.ExpMultiplier（0.6～1.5）が経験値獲得に適用されない。GoldMultiplierは適用済み | 高 | `GameController.cs:1540,DifficultySettings.cs:18-42` | |
-| BU-11 | AchievementSystemステートがセーブされない（BQ-23と同根）。実績解除がセッション間で消失 | 高 | `GameController.cs:68,1727,2357-2359` | |
-| BU-12 | TutorialSystemステートがセーブされない（BQ-24と同根）。完了済みチュートリアルが毎回再表示 | 高 | `SmithingSystem.cs:167-173` | |
+| BU-10 | DifficultySettings.ExpMultiplier（0.6～1.5）が経験値獲得に適用されない。GoldMultiplierは適用済み | 高 | `GameController.cs:1540,DifficultySettings.cs:18-42` | 修正済み |
+| BU-11 | AchievementSystemステートがセーブされない（BQ-23と同根）。実績解除がセッション間で消失 | 高 | `GameController.cs:68,1727,2357-2359` | 修正済み |
+| BU-12 | TutorialSystemステートがセーブされない（BQ-24と同根）。完了済みチュートリアルが毎回再表示 | 高 | `SmithingSystem.cs:167-173` | 修正済み |
 | BU-13 | チュートリアル個別スキップ機能なし。IsEnabled=falseで全無効のみ。個別ステップのスキップ不可 | 中 | `SmithingSystem.cs:92,140-152` | |
 | BU-14 | 難易度設定がゲーム中に制限なく変更可能。SetDifficulty()にターン数/ダンジョン状態のバリデーションなし | 中 | `GameController.cs:3228-3233` | |
 | BU-15 | EncyclopediaSystemの発見進捗がセーブされない（BQ-4と同根）。モンスター討伐数が消失 | 中 | `GameController.cs:44,7092` | |
@@ -932,12 +932,12 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| BW-1 | InitializeNewGamePlus()がキャリーオーバーを表示するが適用しない。レベル1/初期ゴールド/無装備にリセット | 高 | `GameController.cs:7154-7167` | |
+| BW-1 | InitializeNewGamePlus()がキャリーオーバーを表示するが適用しない。レベル1/初期ゴールド/無装備にリセット | 高 | `GameController.cs:7154-7167` | 修正済み |
 | BW-2 | NG+敵スケーリング乗数が計算されるが適用されない。EXPボーナスのみ使用でダンジョン生成時の敵強化なし | 高 | `GameController.cs:751-752,1666` | |
 | BW-3 | Wandererエンディングが到達不可能。allTerritoriesVisitedがfalse固定値でハードコード | 高 | `GameController.cs:7811,MultiEndingSystem.cs:54-61` | |
 | BW-4 | ExecuteRebirth()がGetRebirthEffect()を呼ばない。宗教による転生ボーナス（HP/MP/ステータス）が破棄 | 中 | `GameController.cs:4894-4896,3085-3100` | |
-| BW-5 | TransferDataにLevelフィールドなし。転生時に常にLv1に戻る。進捗保持の手段がない | 高 | `Player.cs:849-860` | |
-| BW-6 | TransferDataにGoldフィールドなし。転生時に全ゴールド消失。背景初期ゴールドのみ | 高 | `Player.cs:849-860,659` | |
+| BW-5 | TransferDataにLevelフィールドなし。転生時に常にLv1に戻る。進捗保持の手段がない | 高 | `Player.cs:849-860` | 修正済み |
+| BW-6 | TransferDataにGoldフィールドなし。転生時に全ゴールド消失。背景初期ゴールドのみ | 高 | `Player.cs:849-860,659` | 修正済み |
 | BW-7 | テリトリー訪問追跡メカニズム不在。6テリトリーのうちどれを訪問したか記録する仕組みがない | 高 | `GameController.cs:7810,MultiEndingSystem.cs:101` | |
 
 ---

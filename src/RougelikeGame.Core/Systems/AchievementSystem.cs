@@ -149,4 +149,22 @@ public class AchievementSystem
         AchievementCategory.Meta => "メタ",
         _ => "不明"
     };
+
+    /// <summary>BU-11: 解除済み実績IDのリストを取得（セーブ用）</summary>
+    public List<string> GetUnlockedIds()
+    {
+        return _achievements.Values.Where(a => a.IsUnlocked).Select(a => a.AchievementId).ToList();
+    }
+
+    /// <summary>BU-11: セーブデータから解除済み実績を復元</summary>
+    public void RestoreUnlocked(IEnumerable<string> unlockedIds)
+    {
+        foreach (var id in unlockedIds)
+        {
+            if (_achievements.TryGetValue(id, out var achievement) && !achievement.IsUnlocked)
+            {
+                _achievements[id] = achievement with { IsUnlocked = true };
+            }
+        }
+    }
 }
