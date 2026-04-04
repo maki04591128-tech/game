@@ -79,6 +79,7 @@ public static class GameOverSystem
         DeathCause.Combat => "戦闘中の致命傷",
         DeathCause.Boss => "ボスとの激戦",
         DeathCause.Starvation => "飢餓",
+        DeathCause.Dehydration => "脱水",  // DC-1: 渇き死
         DeathCause.Trap => "罠",
         DeathCause.Poison => "毒",
         DeathCause.TimeLimit => "時間切れ",

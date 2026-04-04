@@ -535,6 +535,7 @@ public class Player : Character, IPlayer, IInventoryHolder
         DeathCause.Combat => SanityLoss.Combat,
         DeathCause.Boss => SanityLoss.Boss,
         DeathCause.Starvation => SanityLoss.Starvation,
+        DeathCause.Dehydration => SanityLoss.Starvation,  // DC-1: 渇き死も飢餓と同等
         DeathCause.Trap => SanityLoss.Trap,
         DeathCause.TimeLimit => SanityLoss.TimeLimit,
         DeathCause.Curse => SanityLoss.Curse,

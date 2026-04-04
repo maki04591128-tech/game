@@ -129,6 +129,7 @@ public enum DeathCause
     Combat,
     Boss,
     Starvation,
+    Dehydration,  // DC-1: 渇き死を飢餓と区別
     Trap,
     TimeLimit,
     Curse,
