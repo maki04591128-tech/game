@@ -145,7 +145,8 @@ public class CombatSystem : ICombatSystem
     {
         if (attackType == AttackType.Magic)
         {
-            return CalculateMagicalDamage(attacker, target, attackElement, targetElement);
+            // K-2: 魔法攻撃もクリティカル可能に
+            return CalculateMagicalDamage(attacker, target, attackElement, targetElement, isCritical);
         }
         else
         {
@@ -237,7 +238,7 @@ public class CombatSystem : ICombatSystem
     }
 
     private Damage CalculateMagicalDamage(IDamageable attacker, IDamageable target,
-        Element spellElement, Element targetElement)
+        Element spellElement, Element targetElement, bool isCritical = false)
     {
         int staffAttack = 10;
         int intelligence = 10;
@@ -290,7 +291,10 @@ public class CombatSystem : ICombatSystem
             }
         }
 
-        return new Damage(result.FinalDamage, DamageType.Magical, spellElement, false);
+        // K-2: 魔法クリティカル対応（1.3倍）
+        int finalDmg = isCritical ? (int)(result.FinalDamage * 1.3) : result.FinalDamage;
+
+        return new Damage(finalDmg, DamageType.Magical, spellElement, isCritical);
     }
 
     #endregion

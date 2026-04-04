@@ -160,6 +160,7 @@ public static class ElementSystem
     {
         Element.Light => DisadvantageMutiplier, // 光に不利
         Element.Holy => DisadvantageMutiplier,  // 聖に不利
+        Element.Dark => NullifyMutiplier,       // V-4: 闇に無効（双方向対称に）
         _ => NeutralMutiplier
     };
 
