@@ -135,4 +135,25 @@ public class PetSystem
         if (!_pets.TryGetValue(petId, out var pet)) return 0;
         return Math.Clamp(pet.Loyalty, 0, 100);
     }
+
+    /// <summary>AY-2: ペットの特殊能力ボーナスを取得</summary>
+    public (float DropBonus, int ViewRadiusBonus, float DamageReduction, float AttackDebuff) GetPetAbilityBonuses()
+    {
+        float dropBonus = 0;
+        int viewBonus = 0;
+        float dmgReduction = 0;
+        float atkDebuff = 0;
+
+        foreach (var pet in _pets.Values.Where(p => p.CurrentHp > 0))
+        {
+            switch (pet.Type)
+            {
+                case PetType.Cat: dropBonus += 0.15f; break;     // 幸運: ドロップ率+15%
+                case PetType.Hawk: viewBonus += 3; break;         // 偵察: 視野+3
+                case PetType.Bear: dmgReduction += 0.10f; break;  // 防壁: 被ダメージ-10%
+                case PetType.Wolf: atkDebuff += 0.10f; break;     // 威嚇: 敵攻撃力-10%
+            }
+        }
+        return (dropBonus, viewBonus, dmgReduction, atkDebuff);
+    }
 }

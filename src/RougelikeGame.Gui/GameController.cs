@@ -1928,7 +1928,12 @@ public class GameController
             baseDmg = Math.Max(1, (int)(baseDmg * enemyStatusAttackMult));
 
             // 攻撃方向ダメージ修正（背面攻撃でダメージ増加）
-            int modifiedDmg = Math.Max(1, (int)(baseDmg * activityMult * defDirBonus.DamageModifier / stanceDefMod));
+            // AY-2: ペットの防壁/威嚇ボーナス
+            var petBonuses = _petSystem.GetPetAbilityBonuses();
+            float petDmgReduction = 1.0f - petBonuses.DamageReduction;
+            float enemyAtkDebuff = 1.0f - petBonuses.AttackDebuff;
+
+            int modifiedDmg = Math.Max(1, (int)(baseDmg * activityMult * defDirBonus.DamageModifier / stanceDefMod * petDmgReduction * enemyAtkDebuff));
 
             // 防具耐久度消耗（DurabilitySystem）
             var bodyArmor = Player.Equipment[EquipmentSlot.Body];
@@ -5886,6 +5891,10 @@ public class GameController
         }
 
         AddMessage($"{npcDef.Name}「こんにちは、冒険者さん」");
+
+        // BZ-3: NPC会話時にTalk/Deliver/Escortクエスト目標を更新
+        _questSystem.UpdateObjective(npcId);
+
         return true;
     }
 
