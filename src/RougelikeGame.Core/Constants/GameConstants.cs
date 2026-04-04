@@ -332,7 +332,7 @@ public static class BalanceConfig
     public const double ShopBuyMultiplier = 1.2;  // L-1: 往復80%損失を56%損失に緩和
 
     /// <summary>ショップ売値倍率（基本価格 × この倍率）</summary>
-    public const double ShopSellMultiplier = 0.3;
+    public const double ShopSellMultiplier = 0.5;  // L-1: 往復損失を40%に緩和（買1.2×売0.5=0.6）
 
     /// <summary>識別済みアイテムの売値ボーナス倍率</summary>
     public const double IdentifiedSellBonus = 1.2;

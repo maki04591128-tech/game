@@ -459,7 +459,8 @@ public class ItemFactory
         Name = "小回復薬",
         Description = "傷を癒す赤い薬。",
         PotionType = PotionType.HealingMinor,
-        EffectValue = 30,
+        EffectValue = 0,
+        EffectPercentage = 0.25f,  // L-2: MaxHP25%回復（スケーリング対応）
         Rarity = ItemRarity.Common,
         BasePrice = 25,
         Weight = 0.5f
@@ -471,7 +472,8 @@ public class ItemFactory
         Name = "回復薬",
         Description = "効果の高い回復薬。",
         PotionType = PotionType.HealingMajor,
-        EffectValue = 75,
+        EffectValue = 0,
+        EffectPercentage = 0.50f,  // L-2: MaxHP50%回復
         Rarity = ItemRarity.Uncommon,
         BasePrice = 80,
         Weight = 0.5f
@@ -506,7 +508,8 @@ public class ItemFactory
         Name = "超回復薬",
         Description = "非常に効果の高い回復薬。",
         PotionType = PotionType.HealingSuper,
-        EffectValue = 150,
+        EffectValue = 0,
+        EffectPercentage = 0.80f,  // L-2: MaxHP80%回復
         Rarity = ItemRarity.Rare,
         BasePrice = 200,
         Weight = 0.5f
@@ -976,13 +979,19 @@ public class ItemFactory
 
     private Item GenerateRandomFood()
     {
-        int foodType = _random.Next(3);
+        // U-1: 全食品タイプから生成
+        int foodType = _random.Next(8);
 
         return foodType switch
         {
             0 => CreateBread(),
             1 => CreateRation(),
             2 => CreateCookedMeat(),
+            3 => CreateEmergencyRation(),
+            4 => CreateFruit(),
+            5 => CreateWater(),
+            6 => CreateCleanWater(),
+            7 => CreateLembas(),
             _ => CreateBread()
         };
     }
