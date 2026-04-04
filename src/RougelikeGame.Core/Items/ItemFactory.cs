@@ -890,6 +890,20 @@ public class ItemFactory
         Weight = 0.1f
     };
 
+    // B-4: 混乱の巻物
+    public static Scroll CreateScrollOfConfusion() => new()
+    {
+        ItemId = "scroll_confusion",
+        Name = "混乱の巻物",
+        Description = "読むと周囲の敵を混乱させる霧を発生させる。",
+        ScrollType = ScrollType.Confusion,
+        TargetType = TargetType.Area,
+        EffectValue = 10,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 120,
+        Weight = 0.1f
+    };
+
     public static Scroll CreateAncientBook() => new()
     {
         ItemId = "ancient_book",
@@ -1392,6 +1406,7 @@ public static class ItemDefinitions
         ["scroll_return"] = ItemFactory.CreateScrollOfReturn,
         ["scroll_sanctuary"] = ItemFactory.CreateScrollOfSanctuary,
         ["scroll_summon"] = ItemFactory.CreateScrollOfSummon,  // B-3
+        ["scroll_confusion"] = ItemFactory.CreateScrollOfConfusion,  // B-4
         ["ancient_book"] = ItemFactory.CreateAncientBook,
 
         // 素材 - 魔物素材
