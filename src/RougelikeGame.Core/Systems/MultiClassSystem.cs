@@ -21,6 +21,12 @@ public static class MultiClassSystem
         new(CharacterClass.Thief, CharacterClass.Ranger, ClassTier.Advanced, 20, "ranger_trial"),
         new(CharacterClass.Cleric, CharacterClass.Monk, ClassTier.Advanced, 20, "monk_trial"),
         new(CharacterClass.Bard, CharacterClass.Alchemist, ClassTier.Advanced, 20, "alchemist_trial"),
+        // DR-1: Master職への昇進条件
+        new(CharacterClass.Knight, CharacterClass.Fighter, ClassTier.Master, 40, "master_knight_trial"),
+        new(CharacterClass.Necromancer, CharacterClass.Mage, ClassTier.Master, 40, "master_necro_trial"),
+        new(CharacterClass.Ranger, CharacterClass.Thief, ClassTier.Master, 40, "master_ranger_trial"),
+        new(CharacterClass.Monk, CharacterClass.Cleric, ClassTier.Master, 40, "master_monk_trial"),
+        new(CharacterClass.Alchemist, CharacterClass.Bard, ClassTier.Master, 40, "master_alchemist_trial"),
     };
 
     /// <summary>転職可能か判定</summary>

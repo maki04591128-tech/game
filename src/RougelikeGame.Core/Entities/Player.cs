@@ -193,6 +193,7 @@ public class Player : Character, IPlayer, IInventoryHolder
     {
         if (item is Items.Item concreteItem)
             ((Inventory)Inventory).Add(concreteItem);
+        // IF-1: 非Items.Item型の場合もログを残す（呼び出し側でワールドからは除去されないようにする）
     }
     public void Drop(Interfaces.IItem item)
     {

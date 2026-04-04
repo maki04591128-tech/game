@@ -1518,6 +1518,9 @@ public class GameController
             // 追加ダメージ計算
             int baseDmg = result.Damage?.Amount ?? 0;
 
+            // CD-3: 難易度によるダメージ倍率適用
+            baseDmg = Math.Max(1, (int)(baseDmg * DifficultyConfig.DamageDealtMultiplier));
+
             // 状態異常による攻撃力修正（麻痺: 0.7倍、火傷: 0.85倍等）
             float statusAttackMult = 1.0f;
             foreach (var eff in Player.StatusEffects)
@@ -1564,7 +1567,7 @@ public class GameController
 
                 // 経験値（処刑ボーナス込み）
                 float executionExpBonus = canExecute ? ExecutionSystem.GetExecutionExpBonus() : 0;
-                int totalExp = (int)(enemy.ExperienceReward * (1.0f + executionExpBonus));
+                int totalExp = (int)(enemy.ExperienceReward * (1.0f + executionExpBonus) * DifficultyConfig.ExpMultiplier);  // CD-1: 難易度倍率適用
 
                 string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
                 AddMessage($"{enemy.Name}を倒した！経験値+{totalExp}{goldStr}");

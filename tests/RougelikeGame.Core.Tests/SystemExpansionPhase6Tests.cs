@@ -1408,7 +1408,7 @@ public class Phase6Expansion_MultiClassSystemTests
     public void GetAvailableChanges_NoneForKnight()
     {
         var changes = MultiClassSystem.GetAvailableChanges(CharacterClass.Knight);
-        Assert.Empty(changes);
+        Assert.NotEmpty(changes); // DR-1: Knight→Master(Fighter)への転職ルートが存在する
     }
 
     [Theory]
