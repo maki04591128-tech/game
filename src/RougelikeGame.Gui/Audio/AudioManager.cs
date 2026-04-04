@@ -202,6 +202,14 @@ public class AudioManager : IAudioManager
 
         StopAll();
         _bgmPlayer.MediaEnded -= BgmPlayer_MediaEnded;
+        // EF-1: BGMプレイヤーのリソース解放
+        _bgmPlayer.Close();
+        // EF-2: SEプレイヤーのリソース解放
+        foreach (var player in _sePlayers)
+        {
+            player.Close();
+        }
+        _sePlayers.Clear();
         GC.SuppressFinalize(this);
     }
 }

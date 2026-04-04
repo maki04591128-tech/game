@@ -87,6 +87,8 @@ public class PetSystem
     public PetState ToggleRide(string petId)
     {
         if (!_pets.TryGetValue(petId, out var pet)) return new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
+        // EM-2: 死亡ペットには騎乗不可
+        if (pet.CurrentHp <= 0) return pet;
         bool canRide = pet.Type == PetType.Horse || pet.Type == PetType.Bear || pet.Type == PetType.Dragon;
         if (!canRide) return pet;
         var updated = pet with { IsRiding = !pet.IsRiding };

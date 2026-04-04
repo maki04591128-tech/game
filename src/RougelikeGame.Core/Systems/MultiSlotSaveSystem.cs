@@ -61,8 +61,9 @@ public class MultiSlotSaveSystem
     /// <summary>最も古いスロット番号を取得（上書き用）</summary>
     public int GetOldestSlot()
     {
+        // DF-1/DF-2: SaveTimeがnullの場合はDateTime.MinValueで比較、全スロット空の場合はスロット1を返す
         var oldest = _slots.Where(s => !s.IsEmpty)
-            .OrderBy(s => s.SaveTime)
+            .OrderBy(s => s.SaveTime ?? DateTime.MinValue)
             .FirstOrDefault();
         return oldest?.SlotNumber ?? 1;
     }
