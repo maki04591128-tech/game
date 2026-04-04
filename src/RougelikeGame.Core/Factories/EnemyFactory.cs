@@ -440,7 +440,7 @@ public static class EnemyDefinitions
         BaseStats: new Stats(4, 4, 14, 12, 9, 10, 14, 3, 8),
         EnemyType: EnemyType.Coward,
         Rank: EnemyRank.Common,
-        ExperienceReward: 25,
+        ExperienceReward: 40,  // D-4: ステータス相応に経験値引上げ
         DropTableId: "drop_sprite",
         SightRange: 12,
         FleeThreshold: 0.4f,
