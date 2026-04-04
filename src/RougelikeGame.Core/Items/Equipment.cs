@@ -348,10 +348,12 @@ public class Equipment
         // 両手武器の場合、オフハンドも外す
         if (item is Weapon weapon && weapon.IsTwoHanded)
         {
-            if (_slots[EquipmentSlot.OffHand] != null)
+            var offHandItem = _slots[EquipmentSlot.OffHand];
+            if (offHandItem != null)
             {
-                _slots[EquipmentSlot.OffHand]?.OnUnequip(player);
-                // オフハンドアイテムをインベントリに戻す処理が必要
+                offHandItem.OnUnequip(player);
+                // オフハンドアイテムをインベントリに戻す
+                ((Entities.Inventory)player.Inventory).Add(offHandItem);
             }
             _slots[EquipmentSlot.OffHand] = null;
         }

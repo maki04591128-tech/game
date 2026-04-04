@@ -834,8 +834,10 @@ partial class Program
         // クラス別HP/MP成長
         Console.WriteLine("【クラス別HP/MP成長（レベル10時）】");
         var classes = new[] {
-            RougelikeGame.Engine.Combat.CharacterClass.Warrior, RougelikeGame.Engine.Combat.CharacterClass.Berserker, RougelikeGame.Engine.Combat.CharacterClass.Monk,
-            RougelikeGame.Engine.Combat.CharacterClass.Cleric, RougelikeGame.Engine.Combat.CharacterClass.Mage, RougelikeGame.Engine.Combat.CharacterClass.Necromancer
+            RougelikeGame.Engine.Combat.CharacterClass.Warrior, RougelikeGame.Engine.Combat.CharacterClass.Knight, RougelikeGame.Engine.Combat.CharacterClass.Monk,
+            RougelikeGame.Engine.Combat.CharacterClass.Cleric, RougelikeGame.Engine.Combat.CharacterClass.Mage, RougelikeGame.Engine.Combat.CharacterClass.Necromancer,
+            RougelikeGame.Engine.Combat.CharacterClass.Thief, RougelikeGame.Engine.Combat.CharacterClass.Ranger, RougelikeGame.Engine.Combat.CharacterClass.Bard,
+            RougelikeGame.Engine.Combat.CharacterClass.Alchemist
         };
 
         foreach (var charClass in classes)
