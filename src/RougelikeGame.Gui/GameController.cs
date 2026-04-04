@@ -7323,6 +7323,7 @@ public class GameController
                 HasApostasyCurse = Player.HasApostasyCurse,
                 ApostasyCurseRemainingDays = Player.ApostasyCurseRemainingDays,
                 DaysSinceLastPrayer = Player.DaysSinceLastPrayer,
+                HasPrayedToday = Player.HasPrayedToday,  // AB-7/M-3
                 FaithCap = Player.FaithCap,
                 Thirst = Player.Thirst,
                 Fatigue = Player.Fatigue,
@@ -7544,6 +7545,7 @@ public class GameController
         Player.HasApostasyCurse = save.Player.HasApostasyCurse;
         Player.ApostasyCurseRemainingDays = save.Player.ApostasyCurseRemainingDays;
         Player.DaysSinceLastPrayer = save.Player.DaysSinceLastPrayer;
+        Player.HasPrayedToday = save.Player.HasPrayedToday;  // AB-7/M-3
         Player.FaithCap = save.Player.FaithCap;
         foreach (var prevReligion in save.Player.PreviousReligions)
         {

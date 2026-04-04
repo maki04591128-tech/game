@@ -215,6 +215,9 @@ public class PlayerSaveData
     /// <summary>最終祈祷からの経過日数</summary>
     public int DaysSinceLastPrayer { get; set; }
 
+    /// <summary>AB-7/M-3: 今日祈ったかフラグ</summary>
+    public bool HasPrayedToday { get; set; }
+
     /// <summary>信仰度上限</summary>
     public int FaithCap { get; set; } = 100;
 
