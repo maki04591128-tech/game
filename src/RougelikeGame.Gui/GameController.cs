@@ -1495,6 +1495,8 @@ public class GameController
         {
             elementalMult = ElementalAffinitySystem.GetDamageMultiplier(
                 ElementalAffinitySystem.GetResistanceLevel(enemy.Race, Player.Equipment.MainHand.Element));
+            // AL-1: 天候による属性ダメージ修正
+            elementalMult *= WeatherSystem.GetElementDamageModifier(CurrentWeather, Player.Equipment.MainHand.Element);
         }
 
         // 処刑判定（ExecutionSystem）
@@ -1567,7 +1569,8 @@ public class GameController
 
                 // 経験値（処刑ボーナス込み）
                 float executionExpBonus = canExecute ? ExecutionSystem.GetExecutionExpBonus() : 0;
-                int totalExp = (int)(enemy.ExperienceReward * (1.0f + executionExpBonus) * DifficultyConfig.ExpMultiplier);  // CD-1: 難易度倍率適用
+                float oathExpBonus = _oathSystem.GetTotalExpBonus();  // AW-1: 誓約経験値ボーナス
+                int totalExp = (int)(enemy.ExperienceReward * (1.0f + executionExpBonus + oathExpBonus) * DifficultyConfig.ExpMultiplier);
 
                 string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
                 AddMessage($"{enemy.Name}を倒した！経験値+{totalExp}{goldStr}");
@@ -1625,6 +1628,13 @@ public class GameController
 
         // DropTableIdがない場合のフォールバック: 従来の確率ベースドロップ
         int dropChance = 25 + CurrentFloor * 2;
+
+        // AW-1: 誓約ドロップボーナス
+        float oathDropBonus = _oathSystem.GetTotalDropBonus();
+        dropChance = (int)(dropChance * (1.0f + oathDropBonus));
+
+        // 難易度によるアイテムドロップ倍率
+        dropChance = (int)(dropChance * DifficultyConfig.ItemDropMultiplier);
 
         // ダンジョン特徴によるルート倍率（DungeonFeatureGenerator）
         if (_currentDungeonFeature.HasValue)

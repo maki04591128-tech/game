@@ -380,7 +380,26 @@ public class Enemy : Character
                 break;
 
             case TurnActionType.Search:
-                // 周囲を見回す（特に何もしない）
+            case TurnActionType.Wait:
+            case TurnActionType.Rest:
+                // 待機/探索/休憩 - 何もしない
+                break;
+
+            case TurnActionType.UseSkill:
+            case TurnActionType.CastSpell:
+                // HH-1: スキル/呪文は攻撃として処理
+                if (action.Target != null)
+                {
+                    state.CombatSystem.ExecuteAttack(this, action.Target, AttackType.Slash);
+                }
+                break;
+
+            case TurnActionType.UseItem:
+                // HH-1: アイテム使用（敵はHP回復を試みる）
+                if (CurrentHp < MaxHp / 2)
+                {
+                    Heal(MaxHp / 10);
+                }
                 break;
         }
 
