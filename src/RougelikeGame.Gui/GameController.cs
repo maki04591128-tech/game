@@ -28,6 +28,7 @@ public class GameController
     private readonly SpellCastingSystem _spellCastingSystem = new();
     private readonly ReligionSystem _religionSystem = new();
     private readonly WorldMapSystem _worldMapSystem = new();
+    private readonly RandomEventSystem _randomEventSystem = new();  // BJ-1
     private readonly TownSystem _townSystem = new();
     private readonly ShopSystem _shopSystem = new();
     private readonly NpcSystem _npcSystem = new();
@@ -601,6 +602,9 @@ public class GameController
                 ?? ReligionSkillSystem.GetSkillName(e.SkillId)
                 ?? e.SkillId;
             AddMessage($"📖 スキル「{skillName}」を習得した！");
+
+            // BH-2: パッシブスキル効果を即時適用
+            ApplyPassiveSkillEffect(e.SkillId);
         };
     }
 
@@ -2433,6 +2437,17 @@ public class GameController
             }
         }
 
+        // BJ-1: 領地イベント発生判定（地上にいるとき）
+        if (_worldMapSystem.IsOnSurface && TurnCount % 50 == 0)
+        {
+            var territoryEvent = _randomEventSystem.RollTerritoryEvent(
+                CurrentFloor, _worldMapSystem.CurrentTerritory, _random);
+            if (territoryEvent != null)
+            {
+                AddMessage($"【領地イベント】{territoryEvent.Name}: {territoryEvent.Description}");
+            }
+        }
+
         // 実績チェック（AchievementSystem: 主要マイルストーン）
         if (TurnCount == 1000) _achievementSystem.Unlock("turn_1000");
         if (Player.Level >= 10) _achievementSystem.Unlock("level_10");
@@ -3312,11 +3327,17 @@ public class GameController
 
         // === 世界状態の全リセット（キャラクター作成直後への時間巻き戻し） ===
 
+        // BN-1: NPC好感度データを保存（リセット前）
+        var npcAffectionTransfer = _npcSystem.CreateTransferData();
+
         // NPC関連リセット（好感度・出会い・会話フラグ・クエスト・ギルド）
         _npcSystem.Reset();
         _dialogueSystem.Reset();
         _questSystem.Reset();
         _guildSystem.Reset();
+
+        // BN-1: NPC好感度を部分復元（80%引き継ぎ）
+        _npcSystem.ApplyTransferData(npcAffectionTransfer);
 
         // メインクエストを再登録・受注
         _questSystem.RegisterMainQuest();
@@ -7585,6 +7606,34 @@ public class GameController
 
     /// <summary>誓約システム</summary>
     public OathSystem GetOathSystem() => _oathSystem;
+
+    /// <summary>BH-2: パッシブスキル効果を適用</summary>
+    private void ApplyPassiveSkillEffect(string skillId)
+    {
+        switch (skillId)
+        {
+            case "hp_boost":
+                // 最大HP+10%
+                Player.BonusMaxHp += (int)(Player.EffectiveStats.MaxHp * 0.10);
+                Player.Heal(0); // MaxHp更新を反映
+                AddMessage("💪 体力強化！最大HPが上昇した");
+                break;
+            case "mp_boost":
+                // 最大MP+10%
+                Player.BonusMaxMp += (int)(Player.EffectiveStats.MaxMp * 0.10);
+                AddMessage("✨ 魔力強化！最大MPが上昇した");
+                break;
+            case "poison_resist":
+                AddMessage("🛡 毒耐性を獲得！毒ダメージが半減する");
+                break;
+            case "critical_eye":
+                AddMessage("👁 鋭い眼を獲得！クリティカル率が上昇した");
+                break;
+            case "treasure_sense":
+                AddMessage("💎 宝探しの勘を獲得！隠しアイテムを見つけやすくなった");
+                break;
+        }
+    }
 
     /// <summary>AR-8: 誓約違反チェック</summary>
     private void CheckOathViolation(string action)
