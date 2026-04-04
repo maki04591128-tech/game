@@ -63,6 +63,6 @@ public static class EnvironmentalCombatSystem
         SurfaceType.Poison => 15,
         SurfaceType.Fire => 8,
         SurfaceType.Electrified => 5,
-        _ => 0
+        _ => 5  // 不明な地表面: デフォルト5ターン
     };
 }

@@ -34,6 +34,7 @@ public static class ExecutionSystem
         MonsterRace.Undead => 0,       // 不死には影響なし
         MonsterRace.Demon => 2,        // 悪魔はカルマ上昇
         MonsterRace.Dragon => -2,
+        MonsterRace.Amorphous => -1,  // 不定形は軽いペナルティ
         _ => 0
     };
 

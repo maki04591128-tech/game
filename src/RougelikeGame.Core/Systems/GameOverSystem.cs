@@ -69,7 +69,7 @@ public static class GameOverSystem
                 new GameOverActionResult(true, false, false, "タイトル画面に戻ります..."),
             GameOverChoice.Quit =>
                 new GameOverActionResult(false, true, false, "ゲームを終了します..."),
-            _ => new GameOverActionResult(false, false, false, "")
+            _ => new GameOverActionResult(false, false, false, "無効な選択です")
         };
     }
 
@@ -84,6 +84,9 @@ public static class GameOverSystem
         DeathCause.Poison => "毒",
         DeathCause.TimeLimit => "時間切れ",
         DeathCause.Curse => "呪い",
+        DeathCause.Suicide => "自らの意志で命を絶った",
+        DeathCause.SanityDeath => "正気を完全に失い倒れた",
+        DeathCause.Fall => "落下",
         _ => "不明な原因"
     };
 }

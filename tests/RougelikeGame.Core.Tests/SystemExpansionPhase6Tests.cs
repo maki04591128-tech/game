@@ -1140,7 +1140,7 @@ public class Phase6Expansion_EnvironmentalCombatSystemTests
     [InlineData(SurfaceType.Poison, 15)]
     [InlineData(SurfaceType.Fire, 8)]
     [InlineData(SurfaceType.Electrified, 5)]
-    [InlineData(SurfaceType.Normal, 0)]
+    [InlineData(SurfaceType.Normal, 5)]  // 不明な地表面: デフォルト5ターン
     public void GetSurfaceDuration_CorrectValues(SurfaceType surface, int expected)
     {
         Assert.Equal(expected, EnvironmentalCombatSystem.GetSurfaceDuration(surface));

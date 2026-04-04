@@ -494,7 +494,7 @@ public static class SpellEffectResolver
             "eilifr" => 100,
             "sidar" => 5,
             "endalauss" => 999,
-            _ => 0
+            _ => 1  // 不明なルーン: 最小持続時間
         };
     }
 }
