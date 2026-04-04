@@ -117,9 +117,9 @@ public class ExtendedStatusEffectSystemTests2
     [Fact]
     public void GetStatModifier_Berserk_AttackMultiplier()
     {
-        // 狂戦士の攻撃力倍率が+50%
+        // V-6: 狂戦士の攻撃力倍率が+50% (1.5f)
         float atk = ExtendedStatusEffectSystem.GetStatModifier("berserk", "AttackMultiplier");
-        Assert.Equal(0.5f, atk);
+        Assert.Equal(1.5f, atk);
     }
 
     [Fact]

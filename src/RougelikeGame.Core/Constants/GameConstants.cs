@@ -329,7 +329,7 @@ public static class BalanceConfig
     #region ショップバランス
 
     /// <summary>ショップ買値倍率（基本価格 × この倍率）</summary>
-    public const double ShopBuyMultiplier = 1.5;
+    public const double ShopBuyMultiplier = 1.2;  // L-1: 往復80%損失を56%損失に緩和
 
     /// <summary>ショップ売値倍率（基本価格 × この倍率）</summary>
     public const double ShopSellMultiplier = 0.3;

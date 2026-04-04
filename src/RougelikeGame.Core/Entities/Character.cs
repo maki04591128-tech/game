@@ -106,6 +106,7 @@ public abstract class Character : IEntity, ITurnActor, IDamageable
 
     public virtual void Heal(int amount)
     {
+        amount = Math.Max(0, amount);  // AH-5b: 負値ガード
         int oldHp = CurrentHp;
         CurrentHp += amount;
         int actualHeal = CurrentHp - oldHp;
@@ -113,11 +114,11 @@ public abstract class Character : IEntity, ITurnActor, IDamageable
         OnHealed?.Invoke(this, new HealEventArgs(actualHeal, CurrentHp));
     }
 
-    public virtual void RestoreMp(int amount) => CurrentMp += amount;
-    public virtual void RestoreSp(int amount) => CurrentSp += amount;
+    public virtual void RestoreMp(int amount) => CurrentMp += Math.Max(0, amount);
+    public virtual void RestoreSp(int amount) => CurrentSp += Math.Max(0, amount);
 
-    public virtual void ConsumeMp(int amount) => CurrentMp -= amount;
-    public virtual void ConsumeSp(int amount) => CurrentSp -= amount;
+    public virtual void ConsumeMp(int amount) => CurrentMp -= Math.Max(0, amount);  // AH-5: 負値ガード
+    public virtual void ConsumeSp(int amount) => CurrentSp -= Math.Max(0, amount);
     #endregion
 
     #region Status Effects

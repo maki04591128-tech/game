@@ -220,7 +220,7 @@ public class BalanceConfigTests
     [Fact]
     public void ShopConstants_HaveExpectedValues()
     {
-        Assert.Equal(1.5, BalanceConfig.ShopBuyMultiplier);
+        Assert.Equal(1.2, BalanceConfig.ShopBuyMultiplier);  // L-1: 購入倍率を1.5→1.2に修正
         Assert.Equal(0.3, BalanceConfig.ShopSellMultiplier);
         Assert.Equal(1.2, BalanceConfig.IdentifiedSellBonus);
     }

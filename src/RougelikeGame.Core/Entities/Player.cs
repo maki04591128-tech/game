@@ -492,7 +492,7 @@ public class Player : Character, IPlayer, IInventoryHolder
             FaithPoints = FaithPoints,
             PreviousReligion = PreviousReligion,
             PreviousReligions = new HashSet<string>(PreviousReligions),
-            TotalDeaths = 0,  // 外部で管理
+            TotalDeaths = 0,  // IG-4: 外部（GameController）で管理
             RescueCountRemaining = RescueCountRemaining
         };
     }

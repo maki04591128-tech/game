@@ -518,6 +518,8 @@ public class Tile
             TileType.NpcShopkeeper => 'S',
             TileType.NpcBlacksmith => 'B',
             TileType.NpcInnkeeper => 'I',
+            TileType.NpcTrainer => 'T',      // P-1
+            TileType.NpcLibrarian => 'L',     // P-2
             TileType.BuildingEntrance => '⌂',
             TileType.BuildingExit => '<',
             _ => '?'

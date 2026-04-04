@@ -79,7 +79,7 @@ public class DamageCalculator
         int magicDefense = param.MagicDefense + (param.Mind * 2) + param.MagicDefenseBuff;
 
         // 基礎ダメージ（魔法言語補正含む）
-        int baseDamage = (int)(magicAttack * param.SkillMultiplier * param.LanguageBonus) - (int)(magicDefense * 0.3);
+        int baseDamage = (int)(magicAttack * param.SkillMultiplier * param.LanguageBonus) - (int)(magicDefense * 0.5);  // K-1: 魔法防御係数を物理と統一
         baseDamage = Math.Max(GameConstants.MinimumDamage, baseDamage);
 
         // 乱数幅 (0.9~1.1)
