@@ -529,7 +529,7 @@ public static class EnemyDefinitions
         BaseStats: new Stats(10, 16, 4, 6, 1, 10, 3, 1, 3),
         EnemyType: EnemyType.Defensive,
         Rank: EnemyRank.Common,
-        ExperienceReward: 25,
+        ExperienceReward: 30,  // D-5: VIT16のCommonとして経験値引上げ
         DropTableId: "drop_crab",
         SightRange: 5,
         FleeThreshold: 0.0f,

@@ -128,12 +128,12 @@ public enum TileType
     SymbolForest,
 
     /// <summary>
-    /// シンボルマップ: 山岳（通行不可）
+    /// シンボルマップ: 山岳（通行可、移動コスト2.0）
     /// </summary>
     SymbolMountain,
 
     /// <summary>
-    /// シンボルマップ: 水域（通行不可）
+    /// シンボルマップ: 水域（通行可、移動コスト1.8）
     /// </summary>
     SymbolWater,
 

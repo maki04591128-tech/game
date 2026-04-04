@@ -89,7 +89,7 @@ public static class ThirstSystem
     public static int GetThirstDamage(ThirstLevel level) => level switch
     {
         ThirstLevel.Dehydrated => 1,
-        ThirstLevel.SevereDehydration => 3,
+        ThirstLevel.SevereDehydration => 2,  // S-1: ThirstStageと統一（3→2）
         _ => 0
     };
 }
