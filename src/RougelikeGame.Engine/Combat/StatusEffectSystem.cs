@@ -173,7 +173,8 @@ public class StatusEffectSystem
     /// </summary>
     public StatusEffect CreateCurse()
     {
-        return new StatusEffect(StatusEffectType.Curse, int.MaxValue)
+        // EO-1: 呪い持続を有限化（200ターン）。scroll_remove_curseで解除可能
+        return new StatusEffect(StatusEffectType.Curse, 200)
         {
             Name = "呪い",
             AllStatsMultiplier = 0.80f  // 全ステータス-20%
@@ -219,11 +220,12 @@ public class StatusEffectSystem
     /// </summary>
     public StatusEffect CreatePetrification()
     {
-        return new StatusEffect(StatusEffectType.Petrification, int.MaxValue)
+        // EO-2: 石化持続を有限化（50ターン）。TurnCostModifierも安全な値に
+        return new StatusEffect(StatusEffectType.Petrification, 50)
         {
             Name = "石化",
-            TurnCostModifier = float.MaxValue,  // 行動不能
-            DefenseMultiplier = 3.0f             // 防御力大幅上昇
+            TurnCostModifier = 999f,  // 実質行動不能だがオーバーフロー回避
+            DefenseMultiplier = 3.0f  // 防御力大幅上昇
         };
     }
 

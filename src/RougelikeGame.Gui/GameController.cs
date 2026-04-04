@@ -2368,6 +2368,9 @@ public class GameController
 
     private void ProcessTurnEffects()
     {
+        // DA-3: カルマシステムのターン同期
+        _karmaSystem.SetCurrentTurn(TurnCount);
+
         // 詠唱中の処理
         ProcessChanting();
 
@@ -7122,6 +7125,14 @@ public class GameController
         if (Player.CurrentHp < Player.MaxHp / 2)
             return true;
 
+        // DD-2: 満腹度が低い（25%以下）
+        if (Player.Hunger < GameConstants.MaxHunger / 4)
+            return true;
+
+        // DD-2: 正気度が低い（25%以下）
+        if (Player.Sanity < GameConstants.MaxSanity / 4)
+            return true;
+
         return false;
     }
 
@@ -8537,9 +8548,10 @@ public class GameController
             return true;
         }
 
-        // 宝判定
+        // EN-2: 宝判定（残りの確率空間で正規化）
         float treasureRate = FishingSystem.CalculateTreasureRate(fishingLevel, Player.EffectiveStats.Luck * 0.01f);
-        if (_random.NextDouble() < treasureRate)
+        float normalizedTreasureRate = Math.Min(treasureRate / (1f - junkRate), 0.5f);  // 最大50%
+        if (_random.NextDouble() < normalizedTreasureRate)
         {
             AddMessage("🎣 ✨ 宝箱を釣り上げた！");
             _proficiencySystem.GainExperience(ProficiencyCategory.Exploration, 5);
