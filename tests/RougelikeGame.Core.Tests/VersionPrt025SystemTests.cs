@@ -414,4 +414,267 @@ public class VersionPrt025SystemTests
     }
 
     #endregion
+
+    #region タスク42: 行動ターン消費テスト
+
+    [Fact]
+    public void TurnCosts_AttackNormal_Is1()
+    {
+        Assert.Equal(1, TurnCosts.AttackNormal);
+    }
+
+    [Fact]
+    public void TurnCosts_AttackUnarmed_Is1()
+    {
+        Assert.Equal(1, TurnCosts.AttackUnarmed);
+    }
+
+    [Fact]
+    public void TurnCosts_AttackTwoHanded_Is1()
+    {
+        Assert.Equal(1, TurnCosts.AttackTwoHanded);
+    }
+
+    [Fact]
+    public void TurnCosts_AttackBow_Is5()
+    {
+        Assert.Equal(5, TurnCosts.AttackBow);
+    }
+
+    [Fact]
+    public void TurnCosts_AttackThrow_Is5()
+    {
+        Assert.Equal(5, TurnCosts.AttackThrow);
+    }
+
+    [Fact]
+    public void TurnCosts_UsePotion_Is1()
+    {
+        Assert.Equal(1, TurnCosts.UsePotion);
+    }
+
+    [Fact]
+    public void TurnCosts_MoveNormal_Is1()
+    {
+        Assert.Equal(1, TurnCosts.MoveNormal);
+    }
+
+    [Fact]
+    public void TurnCosts_Search_Is5()
+    {
+        Assert.Equal(5, TurnCosts.Search);
+    }
+
+    [Fact]
+    public void TurnCosts_UseStairs_Is10()
+    {
+        Assert.Equal(10, TurnCosts.UseStairs);
+    }
+
+    [Fact]
+    public void TurnCosts_Pray_Is10()
+    {
+        Assert.Equal(10, TurnCosts.Pray);
+    }
+
+    [Fact]
+    public void TurnCosts_EquipWeapon_Is1()
+    {
+        Assert.Equal(1, TurnCosts.EquipWeapon);
+    }
+
+    [Fact]
+    public void TurnCosts_EquipAccessory_Is1()
+    {
+        Assert.Equal(1, TurnCosts.EquipAccessory);
+    }
+
+    [Fact]
+    public void TurnCosts_EquipArms_Is10()
+    {
+        Assert.Equal(10, TurnCosts.EquipArms);
+    }
+
+    [Fact]
+    public void TurnCosts_EquipHead_Is10()
+    {
+        Assert.Equal(10, TurnCosts.EquipHead);
+    }
+
+    [Fact]
+    public void TurnCosts_EquipBody_Is20()
+    {
+        Assert.Equal(20, TurnCosts.EquipBody);
+    }
+
+    [Fact]
+    public void TurnCosts_InventorySort_Is20()
+    {
+        Assert.Equal(20, TurnCosts.InventorySort);
+    }
+
+    [Fact]
+    public void TurnCosts_SymbolMapMove_Is300()
+    {
+        Assert.Equal(300, TurnCosts.SymbolMapMove);
+    }
+
+    [Fact]
+    public void TurnCosts_SymbolMapEntry_Is0()
+    {
+        Assert.Equal(0, TurnCosts.SymbolMapEntry);
+    }
+
+    [Fact]
+    public void TurnCosts_OpenDoor_Is1()
+    {
+        Assert.Equal(1, TurnCosts.OpenDoor);
+    }
+
+    [Fact]
+    public void TurnCosts_EngagedNonCombatMultiplier_Is2()
+    {
+        Assert.Equal(2, TurnCosts.EngagedNonCombatMultiplier);
+    }
+
+    [Fact]
+    public void TurnCosts_StealthMovementMultiplier_Is5()
+    {
+        Assert.Equal(5, TurnCosts.StealthMovementMultiplier);
+    }
+
+    #endregion
+
+    #region タスク47: 状態別ターンコストテスト
+
+    [Fact]
+    public void Engaged_CombatAction_NormalCost()
+    {
+        // 接敵中に通常攻撃はコスト変更なし
+        var action = TurnAction.Attack(null!);
+        int normalCost = action.CalculateFinalCost(CombatState.Normal);
+        int engagedCost = action.CalculateFinalCost(CombatState.Combat);
+        Assert.Equal(normalCost, engagedCost);
+    }
+
+    [Fact]
+    public void Engaged_NonCombatAction_Interact_DoubledCost()
+    {
+        // 接敵中にインタラクト（ドア開閉等）は×2
+        var action = TurnAction.Interact;
+        int normalCost = action.CalculateFinalCost(CombatState.Normal);
+        int engagedCost = action.CalculateFinalCost(CombatState.Combat);
+        Assert.Equal(normalCost * TurnCosts.EngagedNonCombatMultiplier, engagedCost);
+    }
+
+    [Fact]
+    public void Engaged_NonCombatAction_Search_DoubledCost()
+    {
+        // 接敵中に周辺調査は×2
+        var action = TurnAction.Search;
+        int normalCost = action.CalculateFinalCost(CombatState.Normal);
+        int engagedCost = action.CalculateFinalCost(CombatState.Combat);
+        Assert.Equal(normalCost * TurnCosts.EngagedNonCombatMultiplier, engagedCost);
+    }
+
+    [Fact]
+    public void Stealth_Move_PenaltyCost()
+    {
+        // 隠密中に移動はMoveStealth（GetMovementMultiplierで適用）
+        var action = TurnAction.Move(Direction.North);
+        int stealthCost = action.CalculateFinalCost(CombatState.Stealth);
+        Assert.Equal(TurnCosts.MoveStealth, stealthCost);
+    }
+
+    [Fact]
+    public void Stealth_Interact_PenaltyCost()
+    {
+        // 隠密中にインタラクト（ドア開閉）は×5
+        var action = TurnAction.Interact;
+        int normalCost = action.CalculateFinalCost(CombatState.Normal);
+        int stealthCost = action.CalculateFinalCost(CombatState.Stealth);
+        Assert.Equal(normalCost * TurnCosts.StealthMovementMultiplier, stealthCost);
+    }
+
+    [Fact]
+    public void Stealth_Attack_NormalCost()
+    {
+        // 隠密中に通常攻撃はコスト変更なし
+        var action = TurnAction.Attack(null!);
+        int normalCost = action.CalculateFinalCost(CombatState.Normal);
+        int stealthCost = action.CalculateFinalCost(CombatState.Stealth);
+        Assert.Equal(normalCost, stealthCost);
+    }
+
+    [Fact]
+    public void Debuff_HungerBonus_AddsToNormalCost()
+    {
+        // 通常状態で移動（1T）+飢餓デバフ（+2T）=3T
+        var action = TurnAction.Move(Direction.North);
+        int cost = action.CalculateFinalCost(CombatState.Normal, hungerCostBonus: 2);
+        Assert.Equal(3, cost);
+    }
+
+    [Fact]
+    public void Debuff_HungerBonus_AddsToEngagedCost()
+    {
+        // 接敵状態でインタラクト（1×2=2T）+飢餓デバフ（+2T）=4T
+        var action = TurnAction.Interact;
+        int cost = action.CalculateFinalCost(CombatState.Combat, hungerCostBonus: 2);
+        Assert.Equal(4, cost);
+    }
+
+    [Fact]
+    public void Debuff_HungerBonus_AddsToStealthCost()
+    {
+        // 隠密状態でインタラクト（1×5=5T）+飢餓デバフ（+2T）=7T
+        var action = TurnAction.Interact;
+        int cost = action.CalculateFinalCost(CombatState.Stealth, hungerCostBonus: 2);
+        Assert.Equal(7, cost);
+    }
+
+    [Fact]
+    public void MultipleDebuffs_Combined()
+    {
+        // 複数デバフ: 移動1T + hunger+2 + thirst+2 = 5T
+        var action = TurnAction.Move(Direction.North);
+        int cost = action.CalculateFinalCost(CombatState.Normal, hungerCostBonus: 2, thirstCostBonus: 2);
+        Assert.Equal(5, cost);
+    }
+
+    [Fact]
+    public void IsCombatAction_AttackIsTrue()
+    {
+        Assert.True(TurnAction.IsCombatAction(TurnActionType.Attack));
+        Assert.True(TurnAction.IsCombatAction(TurnActionType.UseSkill));
+        Assert.True(TurnAction.IsCombatAction(TurnActionType.CastSpell));
+        Assert.True(TurnAction.IsCombatAction(TurnActionType.UseItem));
+    }
+
+    [Fact]
+    public void IsCombatAction_MoveIsFalse()
+    {
+        Assert.False(TurnAction.IsCombatAction(TurnActionType.Move));
+        Assert.False(TurnAction.IsCombatAction(TurnActionType.Wait));
+        Assert.False(TurnAction.IsCombatAction(TurnActionType.Search));
+        Assert.False(TurnAction.IsCombatAction(TurnActionType.Rest));
+        Assert.False(TurnAction.IsCombatAction(TurnActionType.Interact));
+    }
+
+    [Fact]
+    public void IsStealthPenaltyAction_MoveAndInteractAreTrue()
+    {
+        Assert.True(TurnAction.IsStealthPenaltyAction(TurnActionType.Move));
+        Assert.True(TurnAction.IsStealthPenaltyAction(TurnActionType.Interact));
+    }
+
+    [Fact]
+    public void IsStealthPenaltyAction_AttackIsFalse()
+    {
+        Assert.False(TurnAction.IsStealthPenaltyAction(TurnActionType.Attack));
+        Assert.False(TurnAction.IsStealthPenaltyAction(TurnActionType.UseSkill));
+        Assert.False(TurnAction.IsStealthPenaltyAction(TurnActionType.Wait));
+    }
+
+    #endregion
 }

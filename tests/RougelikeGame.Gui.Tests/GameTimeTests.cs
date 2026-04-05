@@ -50,7 +50,7 @@ public class GameTimeTests
         var time = new GameTime();
 
         // Assert
-        Assert.Equal("冒険歴1024年 緑風の月 15日 08:00", time.ToFullString());
+        Assert.Equal("冒険歴1024年 緑風の月 15日 08:00:00", time.ToFullString());
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class GameTimeTests
         var time = new GameTime();
 
         // Assert
-        Assert.Equal("緑風の月 15日 08:00", time.ToShortString());
+        Assert.Equal("緑風の月 15日 08:00:00", time.ToShortString());
     }
 
     [Fact]
@@ -259,7 +259,7 @@ public class GameTimeTests
         };
 
         // Assert
-        Assert.Equal("魔王歴2000年 星霜の月 30日 23:59", time.ToFullString());
+        Assert.Equal("魔王歴2000年 星霜の月 30日 23:59:00", time.ToFullString());
     }
 
     [Fact]
@@ -310,7 +310,7 @@ public class GameTimeTests
         };
 
         // Assert - 年は4桁ゼロ埋め、日は2桁、時:分は2桁ゼロ埋め
-        Assert.Equal("冒険歴0005年 霜の月 01日 01:05", time.ToFullString());
+        Assert.Equal("冒険歴0005年 霜の月 01日 01:05:00", time.ToFullString());
     }
 
     [Fact]
@@ -329,4 +329,67 @@ public class GameTimeTests
         Assert.Equal(8, time.Hour);
         Assert.Equal(0, time.Minute);
     }
+
+    #region Ver.prt.0.25 — Secondプロパティテスト
+
+    [Fact]
+    public void Second_InitialState_IsZero()
+    {
+        var time = new GameTime();
+        Assert.Equal(0, time.Second);
+    }
+
+    [Fact]
+    public void Second_AfterAdvance30Turns_Is30()
+    {
+        var time = new GameTime();
+        time.AdvanceTurn(30);
+        Assert.Equal(30, time.Second);
+    }
+
+    [Fact]
+    public void Second_After60Turns_WrapsToZero()
+    {
+        var time = new GameTime();
+        time.AdvanceTurn(60);
+        Assert.Equal(0, time.Second);
+    }
+
+    [Fact]
+    public void Second_After59Turns_Is59()
+    {
+        var time = new GameTime();
+        time.AdvanceTurn(59);
+        Assert.Equal(59, time.Second);
+    }
+
+    [Fact]
+    public void ToFullString_ContainsSecondsFormat()
+    {
+        var time = new GameTime();
+        time.AdvanceTurn(35);
+        string full = time.ToFullString();
+        Assert.Matches(@"\d{2}:\d{2}:\d{2}", full);
+    }
+
+    [Fact]
+    public void ToShortString_ContainsSecondsFormat()
+    {
+        var time = new GameTime();
+        time.AdvanceTurn(5);
+        string short_ = time.ToShortString();
+        Assert.Matches(@"\d{2}:\d{2}:\d{2}", short_);
+    }
+
+    [Fact]
+    public void AdvanceTurn_SecondIncrements()
+    {
+        var time = new GameTime();
+        time.AdvanceTurn(1);
+        Assert.Equal(1, time.Second);
+        time.AdvanceTurn(5);
+        Assert.Equal(6, time.Second);
+    }
+
+    #endregion
 }

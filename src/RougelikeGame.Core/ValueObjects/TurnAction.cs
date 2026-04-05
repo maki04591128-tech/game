@@ -34,6 +34,32 @@ public readonly struct TurnAction
             }
         }
 
+        // 接敵状態（Combat/Engaged）の倍率適用
+        if (combatState.HasFlag(CombatState.Combat))
+        {
+            if (!IsCombatAction(Type))
+            {
+                // 非戦闘行動は×2（移動は上のGetMovementMultiplierで処理済みの場合があるが、
+                // 移動以外のドア開閉等にも適用する）
+                if (Type != TurnActionType.Move)
+                {
+                    modifier *= TurnCosts.EngagedNonCombatMultiplier;
+                }
+            }
+        }
+        // 隠密状態の倍率適用
+        else if (combatState.HasFlag(CombatState.Stealth))
+        {
+            if (IsStealthPenaltyAction(Type))
+            {
+                // 移動は上のGetMovementMultiplierで処理済みなので、ドア開閉のみここで倍率
+                if (Type != TurnActionType.Move)
+                {
+                    modifier *= TurnCosts.StealthMovementMultiplier;
+                }
+            }
+        }
+
         // 各種修正適用
         modifier *= equipmentModifier;
         modifier *= statusModifier;
@@ -44,6 +70,18 @@ public readonly struct TurnAction
         // 満腹度・渇き度の行動コスト加算（デバフ加算方式）
         return Math.Max(1, baseCost + hungerCostBonus + thirstCostBonus);
     }
+
+    /// <summary>
+    /// 戦闘行動かどうかを判定（接敵状態で倍率×1の行動）
+    /// </summary>
+    public static bool IsCombatAction(TurnActionType type) => type is
+        TurnActionType.Attack or TurnActionType.UseSkill or TurnActionType.CastSpell or TurnActionType.UseItem;
+
+    /// <summary>
+    /// 隠密ペナルティ対象行動かどうか（移動・ドア開閉）
+    /// </summary>
+    public static bool IsStealthPenaltyAction(TurnActionType type) => type is
+        TurnActionType.Move or TurnActionType.Interact;
 
     private static float GetMovementMultiplier(CombatState state)
     {

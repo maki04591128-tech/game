@@ -191,6 +191,12 @@ public class GameController
     /// <summary>累計死亡回数</summary>
     public int TotalDeaths { get; private set; } = 0;
 
+    /// <summary>リアルタイムターン消費の開始時刻</summary>
+    private DateTime? _realTimeTurnStart;
+
+    /// <summary>リアルタイムターン消費中に累計されたターン数</summary>
+    private int _realTimeTurnAccumulated = 0;
+
     public Player Player { get; private set; } = null!;
     public DungeonMap Map { get; private set; } = null!;
     public List<Enemy> Enemies { get; } = new();
@@ -3763,6 +3769,36 @@ public class GameController
         EquipmentSlot.Body => TurnCosts.EquipBody,
         _ => TurnCosts.EquipWeapon
     };
+
+    /// <summary>
+    /// リアルタイムターン消費を開始（ウィンドウ操作・釣り等の実時間活動用）
+    /// 1秒毎に1ターン消費
+    /// </summary>
+    public void StartRealTimeTurnConsumption()
+    {
+        _realTimeTurnStart = DateTime.UtcNow;
+        _realTimeTurnAccumulated = 0;
+    }
+
+    /// <summary>
+    /// リアルタイムターン消費を停止し、累計ターンをTurnCountに加算
+    /// </summary>
+    public void StopRealTimeTurnConsumption()
+    {
+        if (_realTimeTurnStart.HasValue)
+        {
+            var elapsed = DateTime.UtcNow - _realTimeTurnStart.Value;
+            int realTimeTurns = (int)elapsed.TotalSeconds;
+            if (realTimeTurns > 0)
+            {
+                TurnCount += realTimeTurns;
+                GameTime.AdvanceTurn(realTimeTurns);
+                ProcessTurnEffects();
+            }
+            _realTimeTurnStart = null;
+            _realTimeTurnAccumulated = 0;
+        }
+    }
 
     /// <summary>
     /// 識別効果を処理（インベントリ内最初の未鑑定アイテムを鑑定）
