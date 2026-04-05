@@ -101,6 +101,9 @@ public class Enemy : Character
     /// AIビヘイビア
     /// </summary>
     public IAIBehavior? Behavior { get; set; }
+
+    /// <summary>CC-10: 召喚クリーチャーの残りターン数（-1=非召喚/無限）</summary>
+    public int SummonRemainingTurns { get; set; } = -1;
     #endregion
 
     #region Perception

@@ -153,6 +153,12 @@ public class SaveData
 
     /// <summary>BR-5: 現在のダンジョン特性</summary>
     public string? CurrentDungeonFeature { get; set; }
+
+    /// <summary>BZ-5: 商人ギルドデータ</summary>
+    public MerchantGuildSaveData? MerchantGuild { get; set; }
+
+    /// <summary>BZ-6: 派閥戦争データ</summary>
+    public FactionWarSaveData? FactionWar { get; set; }
 }
 
 /// <summary>
@@ -430,4 +436,56 @@ public class CompanionSaveData
     public int Attack { get; set; }
     public int Defense { get; set; }
     public bool IsAlive { get; set; }
+}
+
+/// <summary>BZ-5: 商人ギルドのセーブデータ</summary>
+public class MerchantGuildSaveData
+{
+    public bool IsMember { get; set; }
+    public string Rank { get; set; } = nameof(GuildRank.None);
+    public int GuildPoints { get; set; }
+    public int TradeCount { get; set; }
+    public int TotalProfit { get; set; }
+    public List<TradeRouteSaveData> Routes { get; set; } = new();
+}
+
+/// <summary>BZ-5: 交易路セーブデータ</summary>
+public class TradeRouteSaveData
+{
+    public string RouteId { get; set; } = string.Empty;
+    public string Origin { get; set; } = string.Empty;
+    public string Destination { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public int ProfitMultiplier { get; set; }
+    public int EstablishmentCost { get; set; }
+}
+
+/// <summary>BZ-6: 派閥戦争のセーブデータ</summary>
+public class FactionWarSaveData
+{
+    public List<WarEventSaveData> ActiveWars { get; set; } = new();
+    public List<WarOutcomeSaveData> WarHistory { get; set; } = new();
+}
+
+/// <summary>BZ-6: 戦争イベントセーブデータ</summary>
+public class WarEventSaveData
+{
+    public string WarId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Attacker { get; set; } = string.Empty;
+    public string Defender { get; set; } = string.Empty;
+    public string Phase { get; set; } = string.Empty;
+    public int TurnStarted { get; set; }
+    public int Duration { get; set; }
+    public string PlayerAlignment { get; set; } = string.Empty;
+}
+
+/// <summary>BZ-6: 戦争結果セーブデータ</summary>
+public class WarOutcomeSaveData
+{
+    public string WarId { get; set; } = string.Empty;
+    public string Winner { get; set; } = string.Empty;
+    public string Loser { get; set; } = string.Empty;
+    public int TerritoryInfluenceChange { get; set; }
+    public string Description { get; set; } = string.Empty;
 }
