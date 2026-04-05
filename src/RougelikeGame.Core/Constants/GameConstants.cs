@@ -24,19 +24,27 @@ public static class TurnCosts
     public const int DiagonalDenominator = 10;
 
     // 攻撃
-    public const int AttackNormal = 3;
-    public const int AttackUnarmed = 2;
-    public const int AttackTwoHanded = 5;
-    public const int AttackBow = 4;
-    public const int AttackThrow = 2;
+    public const int AttackNormal = 1;      // 3→1
+    public const int AttackUnarmed = 1;     // 2→1（通常攻撃に統合）
+    public const int AttackTwoHanded = 1;   // 5→1（通常攻撃に統合）
+    public const int AttackBow = 5;         // 4→5（遠距離攻撃統一）
+    public const int AttackThrow = 5;       // 2→5（遠距離攻撃統一）
 
     // アイテム
-    public const int UsePotion = 2;
+    public const int UsePotion = 1;         // 2→1（クイックユーズ）
     public const int UseScroll = 3;
     public const int Eat = 10;
+    [System.Obsolete("部位別コスト（EquipWeapon/EquipAccessory/EquipArms/EquipHead/EquipBody）を使用してください")]
     public const int EquipChange = 5;
     public const int SetTrap = 15;
     public const int Craft = 30;
+
+    // 装備部位別コスト
+    public const int EquipWeapon = 1;       // 武器着脱
+    public const int EquipAccessory = 1;    // アクセサリー着脱
+    public const int EquipArms = 10;        // 腕装備着脱
+    public const int EquipHead = 10;        // 頭装備着脱
+    public const int EquipBody = 20;        // 胴装備着脱
 
     // その他
     public const int Wait = 1;
@@ -46,6 +54,12 @@ public static class TurnCosts
     public const int Unlock = 10;
     public const int OpenChest = 5;
     public const int Talk = 0;  // 戦闘外のみ
+    public const int InventorySort = 20;    // インベントリソート
+    public const int UseStairs = 10;        // 階層移動（階段使用）
+
+    // シンボルマップ
+    public const int SymbolMapMove = 300;   // シンボルマップ上の移動
+    public const int SymbolMapEntry = 0;    // Tキーによるシンボルマップ進入
 
     // 魔法（最小・最大）
     public const int SpellMinimum = 5;
@@ -54,6 +68,10 @@ public static class TurnCosts
     // 宗教
     public const int Pray = 10;
     public const int ReligionAction = 5;
+
+    // 状態別ターンコスト倍率
+    public const int EngagedNonCombatMultiplier = 2;  // 接敵状態・非戦闘行動倍率
+    public const int StealthMovementMultiplier = 5;    // 隠密状態・移動ドア開閉倍率
 }
 
 /// <summary>

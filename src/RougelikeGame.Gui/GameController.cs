@@ -1142,39 +1142,42 @@ public class GameController
         int actionCost = TurnCosts.MoveNormal; // デフォルト: 移動コスト
         bool isDiagonal = false;
 
+        // シンボルマップ上の移動コスト判定
+        int baseMoveActionCost = _worldMapSystem.IsOnSurface ? TurnCosts.SymbolMapMove : TurnCosts.MoveNormal;
+
         switch (action)
         {
             case GameAction.MoveUp:
                 newPos = new Position(Player.Position.X, Player.Position.Y - 1);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.North;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveDown:
                 newPos = new Position(Player.Position.X, Player.Position.Y + 1);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.South;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveLeft:
                 newPos = new Position(Player.Position.X - 1, Player.Position.Y);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.West;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveRight:
                 newPos = new Position(Player.Position.X + 1, Player.Position.Y);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.East;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveUpLeft:
                 newPos = new Position(Player.Position.X - 1, Player.Position.Y - 1);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.NorthWest;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
@@ -1182,7 +1185,7 @@ public class GameController
                 break;
             case GameAction.MoveUpRight:
                 newPos = new Position(Player.Position.X + 1, Player.Position.Y - 1);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.NorthEast;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
@@ -1190,7 +1193,7 @@ public class GameController
                 break;
             case GameAction.MoveDownLeft:
                 newPos = new Position(Player.Position.X - 1, Player.Position.Y + 1);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.SouthWest;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
@@ -1198,7 +1201,7 @@ public class GameController
                 break;
             case GameAction.MoveDownRight:
                 newPos = new Position(Player.Position.X + 1, Player.Position.Y + 1);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.SouthEast;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
@@ -1215,11 +1218,11 @@ public class GameController
                 break;
             case GameAction.UseStairs:
                 turnUsed = TryDescendStairs();
-                actionCost = TurnCosts.MoveNormal;
+                actionCost = TurnCosts.UseStairs;
                 break;
             case GameAction.AscendStairs:
                 turnUsed = TryAscendStairs();
-                actionCost = TurnCosts.MoveNormal;
+                actionCost = TurnCosts.UseStairs;
                 break;
             case GameAction.OpenInventory:
                 ShowInventory();
@@ -1278,7 +1281,7 @@ public class GameController
                 return;
             case GameAction.EnterTown:
                 turnUsed = TryEnterTown();
-                actionCost = TurnCosts.MoveNormal;
+                actionCost = TurnCosts.SymbolMapEntry;
                 break;
             case GameAction.LeaveTown:
                 turnUsed = TryLeaveTown();
@@ -1435,7 +1438,14 @@ public class GameController
                 actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / thirstMoveMod));
             }
 
-            // 行動コスト分のターンを消費（最低1）
+            // 行動コスト分のターンを消費（最低1、ただしコスト0の場合はスキップ）
+            if (actionCost <= 0)
+            {
+                // ターン消費0の場合（シンボルマップ進入等）はターン進行なし
+                OnStateChanged?.Invoke();
+            }
+            else
+            {
             int finalCost = Math.Max(1, actionCost);
             TurnCount += finalCost;
             GameTime.AdvanceTurn(finalCost);
@@ -1461,6 +1471,7 @@ public class GameController
             {
                 HandleTurnLimitExceeded();
             }
+            }  // end of actionCost > 0 block
         }
 
         OnStateChanged?.Invoke();
@@ -3696,8 +3707,8 @@ public class GameController
                 AddMessage("⚠ 呪いの力を感じる...外せない！");
             }
 
-            TurnCount += TurnCosts.EquipChange;
-            GameTime.AdvanceTurn(TurnCosts.EquipChange);
+            TurnCount += GetEquipCostBySlot(equipItem.Slot);
+            GameTime.AdvanceTurn(GetEquipCostBySlot(equipItem.Slot));
             OnStateChanged?.Invoke();
         }
     }
@@ -3733,13 +3744,25 @@ public class GameController
         {
             inventory.Add(unequipped);
             AddMessage($"{unequipped.GetDisplayName()}を外した");
-            TurnCount += TurnCosts.EquipChange;
-            GameTime.AdvanceTurn(TurnCosts.EquipChange);
+            TurnCount += GetEquipCostBySlot(slot);
+            GameTime.AdvanceTurn(GetEquipCostBySlot(slot));
             OnStateChanged?.Invoke();
             return true;
         }
         return false;
     }
+
+    /// <summary>
+    /// 装備スロットに応じたターンコストを取得
+    /// </summary>
+    private static int GetEquipCostBySlot(EquipmentSlot slot) => slot switch
+    {
+        EquipmentSlot.MainHand or EquipmentSlot.OffHand => TurnCosts.EquipWeapon,
+        EquipmentSlot.Ring1 or EquipmentSlot.Ring2 or EquipmentSlot.Neck or EquipmentSlot.Waist or EquipmentSlot.Back => TurnCosts.EquipAccessory,
+        EquipmentSlot.Hands or EquipmentSlot.Feet or EquipmentSlot.Head => TurnCosts.EquipArms,
+        EquipmentSlot.Body => TurnCosts.EquipBody,
+        _ => TurnCosts.EquipWeapon
+    };
 
     /// <summary>
     /// 識別効果を処理（インベントリ内最初の未鑑定アイテムを鑑定）
