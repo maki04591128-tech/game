@@ -8146,6 +8146,11 @@ public class GameController
         }
 
         AddMessage("セーブデータをロードした");
+
+        // AS-5: スキルツリーボーナスプロバイダーを再設定（ロード後のステータス計算に必要）
+        Player.SkillTreeBonusProvider = () => _skillTreeSystem.GetTotalStatBonuses();
+        Player.UpdateMaxWeight();
+
         OnStateChanged?.Invoke();
     }
 
@@ -8746,8 +8751,14 @@ public class GameController
         TurnCount += sleepDuration;
         GameTime.AdvanceTurn(sleepDuration);
 
+        // AT-3: 休息中の食料/水消費（睡眠ターン分の空腹・渇き減少）
+        int hungerCost = (int)(sleepDuration * DifficultyConfig.HungerDecayMultiplier * 0.5);
+        int thirstCost = (int)(sleepDuration * DifficultyConfig.HungerDecayMultiplier * 0.3);
+        Player.ModifyHunger(-hungerCost);
+        Player.ModifyThirst(-thirstCost);
+
         AddMessage($"💤 {RestSystem.GetQualityName(quality)}な休息をとった (HP+{hpAmount}, 疲労回復)");
-        AddMessage($"  {sleepDuration}ターン経過");
+        AddMessage($"  {sleepDuration}ターン経過 (空腹-{hungerCost}, 渇き-{thirstCost})");
         OnStateChanged?.Invoke();
         return true;
     }

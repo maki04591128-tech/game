@@ -291,7 +291,8 @@ public class ResourceSystem
         double multiplier = 1.5;
 
         double required = baseExp * Math.Pow(multiplier, level - 1);
-        return (int)required;
+        // AI-2: 高レベルでint.MaxValueを超えないようにクランプ
+        return (int)Math.Min(required, int.MaxValue - 1);
     }
 
     /// <summary>
