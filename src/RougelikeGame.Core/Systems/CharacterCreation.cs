@@ -80,6 +80,40 @@ public record RaceDefinition(
     public static RaceDefinition Get(Race race) =>
         All.TryGetValue(race, out var def) ? def : All[Race.Human];  // ID-3: 未登録種族はHumanにフォールバック
     public static IReadOnlyDictionary<Race, RaceDefinition> GetAll() => All;
+
+    /// <summary>Y-6: ステータス修正を含む詳細説明を取得</summary>
+    public string GetDetailedDescription()
+    {
+        var parts = new List<string> { Description };
+
+        // ボーナス表示
+        var bonuses = new List<string>();
+        var penalties = new List<string>();
+        AddStatInfo(bonuses, penalties, "STR", StatBonus.Strength);
+        AddStatInfo(bonuses, penalties, "VIT", StatBonus.Vitality);
+        AddStatInfo(bonuses, penalties, "AGI", StatBonus.Agility);
+        AddStatInfo(bonuses, penalties, "DEX", StatBonus.Dexterity);
+        AddStatInfo(bonuses, penalties, "INT", StatBonus.Intelligence);
+        AddStatInfo(bonuses, penalties, "MND", StatBonus.Mind);
+        AddStatInfo(bonuses, penalties, "PER", StatBonus.Perception);
+        AddStatInfo(bonuses, penalties, "CHA", StatBonus.Charisma);
+        AddStatInfo(bonuses, penalties, "LUK", StatBonus.Luck);
+
+        if (bonuses.Count > 0)
+            parts.Add($"[ボーナス: {string.Join(", ", bonuses)}]");
+        if (penalties.Count > 0)
+            parts.Add($"[ペナルティ: {string.Join(", ", penalties)}]");
+        if (SanityLossMultiplier != 1.0)
+            parts.Add($"[正気度消耗: {SanityLossMultiplier:F1}倍]");
+
+        return string.Join(" ", parts);
+    }
+
+    private static void AddStatInfo(List<string> bonuses, List<string> penalties, string name, int value)
+    {
+        if (value > 0) bonuses.Add($"{name}+{value}");
+        else if (value < 0) penalties.Add($"{name}{value}");
+    }
 }
 
 /// <summary>

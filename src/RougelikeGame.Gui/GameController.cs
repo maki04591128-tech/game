@@ -3452,6 +3452,11 @@ public class GameController
         if (unidentified != null)
         {
             unidentified.IsIdentified = true;
+
+            // CI-5: ItemIdentificationSystemにも識別状態を登録
+            var curseType = unidentified.IsCursed ? CurseType.Minor : CurseType.None;
+            _itemIdentificationSystem.Identify(unidentified.ItemId, unidentified.GetDisplayName(), curseType);
+
             AddMessage($"✨ {unidentified.GetDisplayName()}を識別した！");
 
             if (unidentified.IsCursed)
@@ -6127,6 +6132,13 @@ public class GameController
             return false;
         }
 
+        // BL-3: カルマによる聖地進入制限
+        if (!_karmaSystem.CanEnterHolyGround())
+        {
+            AddMessage("⛪ あなたの邪悪な行いが知れ渡っている。教会への立ち入りを拒否された");
+            return false;
+        }
+
         var result = _townSystem.RemoveCurseAtChurch(Player);
         AddMessage(result.Message);
         OnStateChanged?.Invoke();
@@ -7178,7 +7190,18 @@ public class GameController
     /// <summary>受注可能なクエスト一覧を取得</summary>
     public IReadOnlyList<QuestDefinition> GetAvailableQuests()
     {
-        return _questSystem.GetAvailableQuests(Player.Level, _guildSystem.CurrentRank);
+        var quests = _questSystem.GetAvailableQuests(Player.Level, _guildSystem.CurrentRank);
+
+        // AW-5: 評判によるクエスト解放率フィルタリング
+        var territory = _worldMapSystem.CurrentTerritory;
+        double availability = _reputationSystem.GetQuestAvailability(territory);
+        if (availability < 1.0)
+        {
+            int maxQuests = Math.Max(1, (int)(quests.Count * availability));
+            return quests.Take(maxQuests).ToList();
+        }
+
+        return quests;
     }
 
     /// <summary>完了済みクエスト数を取得</summary>
@@ -8408,7 +8431,19 @@ public class GameController
                 break;
 
             case RandomEventType.MerchantEncounter:
-                // 商人遭遇: ランダムアイテムを安く購入可能
+                // AJ-1: 商人ギルドメンバーは交易利益を得る
+                if (_merchantGuildSystem.IsMember && _merchantGuildSystem.Routes.Count > 0)
+                {
+                    var route = _merchantGuildSystem.Routes[_random.Next(_merchantGuildSystem.Routes.Count)];
+                    var tradeResult = _merchantGuildSystem.ExecuteTrade(route.RouteId, 50 + CurrentFloor * 10);
+                    if (tradeResult != null)
+                    {
+                        Player.AddGold(tradeResult.ActualProfit);
+                        AddMessage($"🏪 {tradeResult.Description}");
+                        break;
+                    }
+                }
+                // 非ギルドメンバーまたは交易失敗時: 通常の商人遭遇
                 int goldReward = 10 + _random.Next(30);
                 Player.AddGold(goldReward);
                 AddMessage($"商人が特別価格で商品を売ってくれた。{goldReward}Gの価値がある品を得た！");
@@ -8965,6 +9000,19 @@ public class GameController
         if (membership != null)
         {
             AddMessage($"🏪 商人ギルドに加入した！ ランク: {membership.Rank}");
+
+            // AJ-1: 初期交易路を自動確立
+            var currentTerritory = _worldMapSystem.CurrentTerritory;
+            var nearbyTerritories = new[] { TerritoryId.Capital, TerritoryId.Forest, TerritoryId.Mountain, TerritoryId.Coast };
+            foreach (var dest in nearbyTerritories)
+            {
+                if (dest != currentTerritory)
+                {
+                    _merchantGuildSystem.EstablishRoute($"route_{currentTerritory}_{dest}", currentTerritory, dest, 50);
+                    break;  // 初期は1路線のみ
+                }
+            }
+
             return true;
         }
         return false;
