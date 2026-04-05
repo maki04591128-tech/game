@@ -18,7 +18,7 @@ public readonly struct TurnAction
     /// <summary>
     /// 最終ターン消費を計算
     /// </summary>
-    public int CalculateFinalCost(CombatState combatState, float equipmentModifier = 1.0f, float statusModifier = 1.0f, float environmentModifier = 1.0f)
+    public int CalculateFinalCost(CombatState combatState, float equipmentModifier = 1.0f, float statusModifier = 1.0f, float environmentModifier = 1.0f, int hungerCostBonus = 0, int thirstCostBonus = 0)
     {
         float modifier = 1.0f;
 
@@ -39,7 +39,10 @@ public readonly struct TurnAction
         modifier *= statusModifier;
         modifier *= environmentModifier;
 
-        return Math.Max(1, (int)Math.Ceiling(BaseTurnCost * modifier));
+        int baseCost = Math.Max(1, (int)Math.Ceiling(BaseTurnCost * modifier));
+
+        // 満腹度・渇き度の行動コスト加算（デバフ加算方式）
+        return Math.Max(1, baseCost + hungerCostBonus + thirstCostBonus);
     }
 
     private static float GetMovementMultiplier(CombatState state)

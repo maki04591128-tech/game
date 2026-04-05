@@ -99,6 +99,12 @@ public class GameController
     /// <summary>最後のダメージ原因（死亡判定用）</summary>
     private DeathCause _lastDamageCause = DeathCause.Unknown;
 
+    /// <summary>満腹度が最後に減少したターン</summary>
+    private long _lastHungerDecayTurn = 0;
+
+    /// <summary>渇き度が最後に減少したターン</summary>
+    private long _lastThirstDecayTurn = 0;
+
     /// <summary>自動探索中かどうか</summary>
     private bool _autoExploring = false;
 
@@ -1083,6 +1089,45 @@ public class GameController
                 GameAction[] randomMoves = { GameAction.MoveUp, GameAction.MoveDown, GameAction.MoveLeft, GameAction.MoveRight };
                 action = randomMoves[_random.Next(randomMoves.Length)];
                 AddMessage("🌀 狂気に蝕まれ、思い通りに動けない！");
+            }
+        }
+
+        // 餓死寸前・干死寸前の移動・攻撃不能チェック（待機・アイテム使用は可能）
+        bool isMovementOrAttack = action is GameAction.MoveUp or GameAction.MoveDown or GameAction.MoveLeft or GameAction.MoveRight
+            or GameAction.MoveUpLeft or GameAction.MoveUpRight or GameAction.MoveDownLeft or GameAction.MoveDownRight
+            or GameAction.RangedAttack or GameAction.ThrowItem;
+        if (isMovementOrAttack)
+        {
+            if (Player.HungerStage == HungerStage.NearStarvation)
+            {
+                AddMessage("🍖 飢えで動けない…");
+                OnStateChanged?.Invoke();
+                return;
+            }
+            if (Player.ThirstStage == ThirstStage.NearDesiccation)
+            {
+                AddMessage("💧 渇きで動けない…");
+                OnStateChanged?.Invoke();
+                return;
+            }
+        }
+
+        // 吐き気（満腹度/渇き度120以上）の30%行動不可チェック
+        if (Player.HungerStage == HungerStage.Nausea || Player.ThirstStage == ThirstStage.Nausea)
+        {
+            if (_random.Next(100) < 30)
+            {
+                AddMessage("🤢 吐き気で行動できない！");
+                // ターンのみ消費
+                TurnCount += TurnCosts.MoveNormal;
+                GameTime.AdvanceTurn(TurnCosts.MoveNormal);
+                ProcessEnemyTurns();
+                ProcessTurnEffects();
+                CheckTurnLimitWarnings();
+                if (!Player.IsAlive) HandlePlayerDeath(_lastDamageCause);
+                else if (CheckTurnLimitExceeded()) HandleTurnLimitExceeded();
+                OnStateChanged?.Invoke();
+                return;
             }
         }
 
@@ -2541,31 +2586,111 @@ public class GameController
         // 詠唱中の処理
         ProcessChanting();
 
-        // 満腹度減少（HungerDecayInterval ターンごとに1減少）
+        // 満腹度減少（経過ターン方式）
         // アンデッド「食事不要」特性: 満腹度が減少しない
-        if (TurnCount > 0 && TurnCount % TimeConstants.HungerDecayInterval == 0)
+        if (TurnCount > 0 && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
         {
-            if (!RacialTraitSystem.IsNoFoodRequired(Player.Race))
+            int hungerInterval = Player.Hunger > 0 ? TimeConstants.HungerDecayInterval : TimeConstants.HungerDecayIntervalStarving;
+            if ((TurnCount - _lastHungerDecayTurn) >= hungerInterval)
             {
                 Player.ModifyHunger(-(int)Math.Ceiling(DifficultyConfig.HungerDecayMultiplier));  // BD-3: 難易度による飢餓速度
+                _lastHungerDecayTurn = TurnCount;
             }
         }
 
-        // 飢餓ダメージ（満腹度0の場合、毎ターンダメージ）
-        // 食事不要種族は飢餓ダメージも無し
-        if (Player.Hunger <= 0 && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        // 渇き度減少（経過ターン方式）
+        if (TurnCount > 0 && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
         {
-            int starvationDamage = Math.Max(1, (int)(Player.MaxHp / 50 * DifficultyConfig.DamageTakenMultiplier));
+            int thirstInterval = Player.Thirst > 0 ? TimeConstants.ThirstDecayInterval : TimeConstants.ThirstDecayIntervalStarving;
+            if ((TurnCount - _lastThirstDecayTurn) >= thirstInterval)
+            {
+                Player.ModifyThirst(-1);
+                _lastThirstDecayTurn = TurnCount;
+            }
+        }
+
+        // 餓死判定（満腹度-10で即死）
+        if (Player.Hunger <= GameConstants.MinHunger && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        {
+            _lastDamageCause = DeathCause.Starvation;
+            HandlePlayerDeath(DeathCause.Starvation);
+            return;
+        }
+
+        // 干死判定（渇き度-10で即死）
+        if (Player.Thirst <= GameConstants.MinThirst && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        {
+            _lastDamageCause = DeathCause.Dehydration;
+            HandlePlayerDeath(DeathCause.Dehydration);
+            return;
+        }
+
+        // 餓死寸前ダメージ（満腹度-9: 毎ターン10HP）
+        if (Player.HungerStage == HungerStage.NearStarvation && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        {
+            int starvationDamage = (int)Math.Max(10, 10 * DifficultyConfig.DamageTakenMultiplier);
             _lastDamageCause = DeathCause.Starvation;
             Player.TakeDamage(Damage.Pure(starvationDamage));
-            if (TurnCount % 60 == 0) // メッセージは60ターンに1回だけ
+            if (TurnCount % 10 == 0)
             {
-                AddMessage($"空腹で体力が奪われている！（{starvationDamage}ダメージ）");
+                AddMessage($"🍖 飢えで{starvationDamage}ダメージ！もう限界だ…");
             }
 
             if (!Player.IsAlive)
             {
                 HandlePlayerDeath(DeathCause.Starvation);
+                return;
+            }
+        }
+        // 飢餓ダメージ（満腹度-1〜-8: 毎ターン1HP）
+        else if (Player.HungerStage == HungerStage.Starving && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        {
+            int starvationDamage = (int)Math.Max(1, 1 * DifficultyConfig.DamageTakenMultiplier);
+            _lastDamageCause = DeathCause.Starvation;
+            Player.TakeDamage(Damage.Pure(starvationDamage));
+            if (TurnCount % 60 == 0)
+            {
+                AddMessage($"🍖 飢えで{starvationDamage}ダメージ！");
+            }
+
+            if (!Player.IsAlive)
+            {
+                HandlePlayerDeath(DeathCause.Starvation);
+                return;
+            }
+        }
+
+        // 干死寸前ダメージ（渇き度-9: 毎ターン10HP）
+        if (Player.ThirstStage == ThirstStage.NearDesiccation && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        {
+            int dehydrationDamage = (int)Math.Max(10, 10 * DifficultyConfig.DamageTakenMultiplier);
+            _lastDamageCause = DeathCause.Dehydration;
+            Player.TakeDamage(Damage.Pure(dehydrationDamage));
+            if (TurnCount % 10 == 0)
+            {
+                AddMessage($"💧 渇きで{dehydrationDamage}ダメージ！もう限界だ…");
+            }
+
+            if (!Player.IsAlive)
+            {
+                HandlePlayerDeath(DeathCause.Dehydration);
+                return;
+            }
+        }
+        // 脱水ダメージ（渇き度-1〜-8: 毎ターン1HP）
+        else if (Player.ThirstStage == ThirstStage.Dehydrated && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        {
+            int dehydrationDamage = (int)Math.Max(1, 1 * DifficultyConfig.DamageTakenMultiplier);
+            _lastDamageCause = DeathCause.Dehydration;
+            Player.TakeDamage(Damage.Pure(dehydrationDamage));
+            if (TurnCount % 60 == 0)
+            {
+                AddMessage($"💧 渇きで{dehydrationDamage}ダメージ！");
+            }
+
+            if (!Player.IsAlive)
+            {
+                HandlePlayerDeath(DeathCause.Dehydration);
                 return;
             }
         }
@@ -2811,20 +2936,12 @@ public class GameController
             _reputationSystem.DecayReputations();
         }
 
-        // 渇き進行（ThirstSystem: 満腹度の1.2倍速で減少）
-        if (TurnCount > 0 && TurnCount % TimeConstants.HungerDecayInterval == 0)
+        // 渇き度の段階メッセージ表示（定期的に警告）
+        if (TurnCount > 0 && TurnCount % TimeConstants.ThirstDecayInterval == 0)
         {
-            // 満腹度の1.2倍速で渇きが減少
-            Player.ModifyThirst(-3);  // 満腹度は-2想定、渇きは-3で約1.5倍
-            if (Player.ThirstStage >= ThirstStage.SlightlyThirsty)
+            if (Player.ThirstStage >= ThirstStage.SlightlyThirsty && Player.ThirstStage <= ThirstStage.VeryThirsty)
             {
                 AddMessage($"💧 渇き: {ThirstSystem.GetThirstName(Player.ThirstStage)}({Player.Thirst})");
-            }
-            int thirstDamage = ThirstSystem.GetThirstDamage(Player.ThirstStage);
-            if (thirstDamage > 0)
-            {
-                Player.TakeDamage(Damage.Pure((int)Math.Max(1, thirstDamage * DifficultyConfig.DamageTakenMultiplier)));
-                _lastDamageCause = DeathCause.Dehydration;
             }
         }
 
