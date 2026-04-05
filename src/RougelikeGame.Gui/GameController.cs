@@ -381,6 +381,74 @@ public class GameController
         var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
         AddMessage($"{territoryName}のシンボルマップに入った");
         AddMessage("WASD/矢印で移動、ロケーションに到着して>キーでダンジョン、Tキーで街に入る");
+
+        // BA-1: NPC対話ノードの初期登録
+        RegisterDefaultNpcDialogues();
+    }
+
+    /// <summary>BA-1: NPC固有の対話ツリーを登録</summary>
+    private void RegisterDefaultNpcDialogues()
+    {
+        _dialogueSystem.RegisterNodes(new DialogueNode[]
+        {
+            new("dlg_leon_intro", "レオン", "やあ、冒険者。ギルドへようこそ。\n何か依頼を探しているなら、掲示板を確認してくれ。",
+                new[] { new DialogueChoice("クエストを見せてくれ", "action:show_quest_board", 5),
+                        new DialogueChoice("ギルドについて教えて", "dlg_leon_quest") }),
+            new("dlg_leon_quest", "レオン", "このギルドは冒険者を支援する組織だ。\n依頼を達成してポイントを貯めれば、ランクが上がるぞ。"),
+
+            new("dlg_marco_intro", "マルコ", "いらっしゃい！ 何かお探しかな？\n良い品を揃えているよ。",
+                new[] { new DialogueChoice("商品を見せてくれ", "action:open_shop", 3),
+                        new DialogueChoice("最近何か変わったことは？", "dlg_marco_intro") }),
+
+            new("dlg_albert_intro", "アルバート", "神の祝福がありますように。\n呪いを解いたり、祈りを捧げることができますよ。",
+                new[] { new DialogueChoice("呪いを解いてほしい", "action:remove_curse", 5),
+                        new DialogueChoice("祈りを捧げたい", "action:pray") }),
+
+            new("dlg_mervin_intro", "マーヴィン", "ほう、魔術に興味があるのかね？\nルーン語を学べば強力な魔法が使えるようになるぞ。",
+                new[] { new DialogueChoice("魔法の品を見せてくれ", "action:open_shop", 3),
+                        new DialogueChoice("ルーン語について教えてくれ", "dlg_mervin_intro") }),
+
+            new("dlg_elwen_intro", "エルウェン", "…森は多くを語る。耳を澄ませば、真実が聞こえるだろう。",
+                new[] { new DialogueChoice("何か教えてくれ", "dlg_elwen_intro", 3) }),
+
+            new("dlg_leena_intro", "リーナ", "薬草の調合なら任せて！\n素材があれば色々作れるわよ。",
+                new[] { new DialogueChoice("調合を頼みたい", "action:open_alchemy", 3),
+                        new DialogueChoice("素材について教えて", "dlg_leena_intro") }),
+
+            new("dlg_gard_intro", "ガルド", "おう、強そうな奴が来たな。\n森の奥で厄介な魔物が暴れてるんだ。退治してくれねえか？",
+                new[] { new DialogueChoice("依頼を受ける", "action:accept_quest", 5),
+                        new DialogueChoice("考えさせてくれ", "dlg_gard_intro") }),
+
+            new("dlg_dwal_intro", "ドワル", "鍛冶仕事なら俺に任せろ！\n良い鉱石があれば最高の武器を打ってやるぞ。",
+                new[] { new DialogueChoice("鍛冶を頼みたい", "action:open_smithing", 3),
+                        new DialogueChoice("装備を見せてくれ", "action:open_shop", 3) }),
+
+            new("dlg_brock_intro", "ブロック", "山岳地帯は危険が多い。\n装備を整えてから挑んだ方がいいぞ。",
+                new[] { new DialogueChoice("何か依頼はあるか", "action:show_quest_board", 3) }),
+
+            new("dlg_carina_intro", "カリーナ", "風の向くまま旅をしている者よ。\n面白い話なら聞くわ。",
+                new[] { new DialogueChoice("最近のニュースは？", "dlg_carina_intro", 3) }),
+
+            new("dlg_mira_intro", "ミラ", "お疲れ様！ ゆっくり休んでいって。\n食事も用意できるわよ。",
+                new[] { new DialogueChoice("休憩したい", "action:rest", 3),
+                        new DialogueChoice("食事を頼む", "action:open_cooking") }),
+
+            new("dlg_thomas_intro", "トーマス", "最近、海岸沿いで怪しい影を見たって噂があるんだ…。",
+                new[] { new DialogueChoice("詳しく聞かせてくれ", "dlg_thomas_intro", 3) }),
+
+            new("dlg_hassan_intro", "ハッサン", "…表には出せない品もある。\n金さえあれば、何でも手に入るさ。",
+                new[] { new DialogueChoice("品物を見せてくれ", "action:open_shop", 0),
+                        new DialogueChoice("やめておく", "dlg_hassan_intro") }),
+
+            new("dlg_sara_intro", "サラ", "古の知識を求めてここまで来たの。\n砂漠の遺跡には多くの秘密が眠っている…。",
+                new[] { new DialogueChoice("遺跡について教えて", "dlg_sara_intro", 5) }),
+
+            new("dlg_wolf_intro", "ヴォルフ", "辺境は弱い奴には生き残れねえ。\nそれでもやるなら、覚悟を決めろ。",
+                new[] { new DialogueChoice("仕事はあるか", "action:show_quest_board", 3) }),
+
+            new("dlg_igor_intro", "イゴール", "…この地の闇は深い。\n気をつけることだ、冒険者よ。",
+                new[] { new DialogueChoice("何か知っているのか", "dlg_igor_intro", 3) }),
+        });
     }
 
     /// <summary>
