@@ -47,6 +47,17 @@ public class OathSystem
         return _activeOaths.Remove(type);
     }
 
+    /// <summary>CS-2: 誓約を達成して報酬を獲得</summary>
+    public (bool Success, float ExpBonus, float DropBonus) CompleteOath(OathType type)
+    {
+        if (!_activeOaths.Contains(type)) return (false, 0, 0);
+        var def = GetDefinition(type);
+        if (def == null) return (false, 0, 0);
+        _activeOaths.Remove(type);
+        // 達成報酬は誓約ボーナスの2倍
+        return (true, def.ExpBonus * 2, def.DropBonus * 2);
+    }
+
     /// <summary>累計経験値ボーナスを計算</summary>
     public float GetTotalExpBonus()
     {

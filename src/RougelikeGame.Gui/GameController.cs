@@ -6250,6 +6250,10 @@ public class GameController
         float npcDiscount = GetNpcShopDiscount(shopType.ToString());
         if (npcDiscount > 0) discount *= (1.0 - npcDiscount);
 
+        // BZ-10: 商人ギルドランクによる割引適用
+        float guildDiscount = _merchantGuildSystem.GetGuildDiscount();
+        if (guildDiscount > 0) discount *= (1.0 - guildDiscount);
+
         var result = _shopSystem.Buy(Player, shopType, index, discount);
         if (result.Success && result.ItemId is not null)
         {

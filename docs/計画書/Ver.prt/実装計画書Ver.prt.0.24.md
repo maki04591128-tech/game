@@ -995,7 +995,7 @@
 | BZ-7 | MerchantGuildSystemの全機能がGameControllerから未公開。ギルド加入/交易実行の手段なし | 致命的 | `GameController.cs:59` | 修正済み |
 | BZ-8 | FactionWarSystemの全機能がGameControllerから未公開。派閥戦争参加/選択の手段なし | 致命的 | `GameController.cs:61` | 修正済み |
 | BZ-9 | QuestState.Failedが定義済みだが一度もセットされない。クエスト失敗条件/タイムアウトなし | 中 | `Enums.cs:484-490,NpcSystem.cs` | |
-| BZ-10 | ギルドランクボーナスがショップ価格/NPC対話に適用されない。ランク上昇のゲームプレイ効果なし | 高 | `MerchantGuildSystem.cs:115-127` | |
+| BZ-10 | ギルドランクボーナスがショップ価格/NPC対話に適用されない。ランク上昇のゲームプレイ効果なし | 高 | `MerchantGuildSystem.cs:115-127` | 修正済み |
 | BZ-11 | QuestBoardWindowの「完了タブ」がGetActiveQuests()を呼ぶ紛らわしい実装。機能的には正常 | 低 | `QuestBoardWindow.xaml.cs:148-192` | |
 | BZ-12 | QuestLogWindowが読み取り専用。クエスト受注/報告ボタンなし。QuestBoardWindow必須 | 中 | `QuestLogWindow.xaml.cs:42-79` | |
 | BZ-13 | MerchantGuild JoinGuild()が初期ランクNone（ランク無し）を設定。GuildSystemはCopper設定。一貫性なし | 中 | `MerchantGuildSystem.cs:46-50` | |
@@ -1265,8 +1265,8 @@
 
 | ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
 |----|------------|--------|-----------|---------|
-| CS-1 | OathSystem.IsViolation()が存在するが戦闘/アイテム使用/コンパニオン募集システムから自動呼出されない。誓約違反が検出されない | 高 | `OathSystem.cs:63-71` | |
-| CS-2 | 誓約完了条件（CompleteOath）メソッドが存在しない。TakeOath/BreakOathのみで、誓約を「達成」する方法がない | 高 | `OathSystem.cs` | |
+| CS-1 | OathSystem.IsViolation()が存在するが戦闘/アイテム使用/コンパニオン募集システムから自動呼出されない。誓約違反が検出されない | 高 | `OathSystem.cs:63-71` | 修正済み |
+| CS-2 | 誓約完了条件（CompleteOath）メソッドが存在しない。TakeOath/BreakOathのみで、誓約を「達成」する方法がない | 高 | `OathSystem.cs` | 修正済み |
 | CS-3 | SP上限（MaxStamina=100）がRestoreSp()等で強制されない。呼出元がMath.Min制約を忘れるとSP>100になる | 中 | `ResourceSystem.cs:135` | |
 | CS-4 | GetStaminaCost()にCharacterClass引数がない。全職業で同一SP消費。戦士のDashとシーフのDashが同コスト | 中 | `ResourceSystem.cs:140-162` | |
 
@@ -1277,7 +1277,7 @@
 | CT-1 | HungerState.StarvingがDamagePerTurn=0でHP回復無効のみ。飢餓状態でダメージがないのは設計意図と矛盾する可能性 | 中 | `ResourceSystem.cs:226` | |
 | CT-2 | HungerState.StarvationがDamagePerTurn=999で即死級ダメージ。段階的な餓死ではなく突然死 | 中 | `ResourceSystem.cs:228` | |
 | CT-3 | XP計算にオーバーフロー/負数チェックなし。float→intキャストでNaN/Infinityの場合クラッシュ。NG+倍率が上限なし | 高 | `GameController.cs:1544,1653-1676` | 修正済み |
-| CT-4 | レベルアップ時のHP/MP最大値更新・EffectiveStatsキャッシュ再計算が明示的に行われない。サイレントレベルアップで即時ステータス反映なし | 高 | `GameController.cs` | |
+| CT-4 | レベルアップ時のHP/MP最大値更新・EffectiveStatsキャッシュ再計算が明示的に行われない。サイレントレベルアップで即時ステータス反映なし | 高 | `GameController.cs` | 修正済み |
 
 ### CU: アイテム生成・Create()null返却
 
