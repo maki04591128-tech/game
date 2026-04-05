@@ -6749,6 +6749,29 @@ public class GameController
                 OnShowCooking?.Invoke();
                 break;
 
+            // BA-2: ダイアログから料理画面を開く
+            case "open_cooking":
+                OnShowCooking?.Invoke();
+                break;
+
+            // BA-2: ダイアログから鍛冶メニューを開く
+            case "open_smithing":
+                {
+                    var smithNode = new DialogueNode(
+                        "npc_smithing_menu",
+                        "鍛冶屋",
+                        "何を頼みたいんだ？",
+                        new[]
+                        {
+                            new DialogueChoice("装備を修理する（最も破損した装備）", "action:smith_repair_auto"),
+                            new DialogueChoice("やめておく", "action:close")
+                        });
+                    _dialogueSystem.RegisterNode(smithNode);
+                    _dialogueSystem.StartDialogue(smithNode.Id);
+                    OnShowDialogue?.Invoke(smithNode);
+                }
+                break;
+
             // === 賭博メニュー ===
             case "gamble_menu":
                 {
@@ -7169,6 +7192,9 @@ public class GameController
     /// <summary>仲間募集処理</summary>
     private void HandleRecruitCompanion()
     {
+        // CS-3: 孤独の誓約違反チェック
+        CheckOathViolation("recruit_companion");
+
         if (_companionSystem.Party.Count >= CompanionSystem.MaxPartySize)
         {
             AddMessage("パーティが満員だ！（最大4人）");
