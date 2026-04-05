@@ -497,6 +497,7 @@ public class ItemFactory
         Name = "解毒剤",
         Description = "毒を中和する薬。",
         PotionType = PotionType.Antidote,
+        EffectValue = 100,  // CN-8: 解毒効果（100%毒解除）
         Rarity = ItemRarity.Common,
         BasePrice = 40,
         Weight = 0.3f

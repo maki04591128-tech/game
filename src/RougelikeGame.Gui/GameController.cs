@@ -1170,9 +1170,11 @@ public class GameController
                 break;
             case GameAction.UseInn:
                 turnUsed = TryUseInn();
+                actionCost = TurnCosts.MoveNormal;
                 break;
             case GameAction.VisitChurch:
                 turnUsed = TryVisitChurch();
+                actionCost = TurnCosts.MoveNormal;
                 break;
             case GameAction.VisitBank:
                 // 銀行は外部UIから DepositGold/WithdrawGold を呼ぶ
@@ -7243,6 +7245,10 @@ public class GameController
 
         // DD-2: 正気度が低い（25%以下）
         if (Player.Sanity < GameConstants.MaxSanity / 4)
+            return true;
+
+        // CJ-3: 渇きが低い（25%以下）
+        if (Player.Thirst < GameConstants.MaxThirst / 4)
             return true;
 
         return false;

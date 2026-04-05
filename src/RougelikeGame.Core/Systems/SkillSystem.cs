@@ -94,7 +94,7 @@ public static class SkillDatabase
         Add(new("shield_bash", "盾打ち", "盾で殴りつけスタンさせる", SkillCategory.Combat, SkillTarget.SingleEnemy, 0, 15, 5, 3, CharacterClass.Knight, null, 1.0));
         Add(new("weapon_mastery", "武器習熟", "装備武器のダメージ+20%（パッシブ）", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 1, CharacterClass.Fighter, null, 0.20));
         Add(new("shield_block", "盾防御", "次の攻撃のダメージを50%軽減", SkillCategory.Combat, SkillTarget.Self, 0, 10, 4, 1, CharacterClass.Knight, null, 0.50));
-        Add(new("provoke", "挑発", "周囲の敵を引き付ける", SkillCategory.Combat, SkillTarget.AllEnemies, 0, 20, 8, 5, CharacterClass.Knight, "shield_block", 0.0));
+        Add(new("provoke", "挑発", "周囲の敵を引き付ける", SkillCategory.Combat, SkillTarget.AllEnemies, 0, 20, 8, 5, CharacterClass.Knight, "shield_block", 1.0));
         Add(new("whirlwind", "旋風斬", "周囲の全敵に攻撃", SkillCategory.Combat, SkillTarget.AllEnemies, 0, 25, 6, 8, CharacterClass.Fighter, "strong_strike", 1.2));
 
         // 盗賊系
@@ -111,7 +111,7 @@ public static class SkillDatabase
         // 修道士系
         Add(new("ki_strike", "気功", "MPではなく内気で攻撃。VIT依存ダメージ", SkillCategory.Combat, SkillTarget.SingleEnemy, 0, 15, 3, 1, CharacterClass.Monk, null, 1.2));
         Add(new("combo_strike", "連打", "3連続攻撃（各0.6倍ダメージ）", SkillCategory.Combat, SkillTarget.SingleEnemy, 0, 20, 4, 1, CharacterClass.Monk, null, 0.6, TurnCost: 5));
-        Add(new("meditation", "瞑想", "HP・MP・SPを少量回復", SkillCategory.Support, SkillTarget.Self, 0, 0, 10, 5, CharacterClass.Monk, "ki_strike", 0.0, TurnCost: 10));
+        Add(new("meditation", "瞑想", "HP・MP・SPを少量回復", SkillCategory.Support, SkillTarget.Self, 0, 0, 10, 5, CharacterClass.Monk, "ki_strike", 0.15, TurnCost: 10));
     }
 
     private static void InitializeMagicSkills()
@@ -121,27 +121,27 @@ public static class SkillDatabase
         Add(new("basic_magic", "基礎魔法", "基本的な魔法攻撃", SkillCategory.Magic, SkillTarget.SingleEnemy, 8, 0, 0, 1, CharacterClass.Mage, null, 1.0, Element.None));
         Add(new("fireball", "ファイアボール", "範囲火属性攻撃", SkillCategory.Magic, SkillTarget.Area, 15, 0, 4, 5, CharacterClass.Mage, "basic_magic", 1.5, Element.Fire));
         Add(new("ice_storm", "アイスストーム", "範囲氷属性攻撃", SkillCategory.Magic, SkillTarget.Area, 18, 0, 5, 8, CharacterClass.Mage, "basic_magic", 1.4, Element.Ice));
-        Add(new("arcane_shield", "魔法障壁", "魔法防御力を一時的に大幅上昇", SkillCategory.Support, SkillTarget.Self, 12, 0, 8, 6, CharacterClass.Mage, "mana_focus", 0.0));
+        Add(new("arcane_shield", "魔法障壁", "魔法防御力を一時的に大幅上昇", SkillCategory.Support, SkillTarget.Self, 12, 0, 8, 6, CharacterClass.Mage, "mana_focus", 0.50));
 
         // 僧侶系
         Add(new("heal", "回復術", "HPを回復する", SkillCategory.Magic, SkillTarget.Self, 10, 0, 0, 1, CharacterClass.Cleric, null, 1.0, Element.Light));
-        Add(new("purify", "浄化", "状態異常を1つ解除", SkillCategory.Support, SkillTarget.Self, 8, 0, 3, 1, CharacterClass.Cleric, null, 0.0));
+        Add(new("purify", "浄化", "状態異常を1つ解除", SkillCategory.Support, SkillTarget.Self, 8, 0, 3, 1, CharacterClass.Cleric, null, 1.0));
         Add(new("holy_light", "聖光", "アンデッドに大ダメージ", SkillCategory.Magic, SkillTarget.SingleEnemy, 12, 0, 4, 5, CharacterClass.Cleric, "heal", 2.0, Element.Holy));
-        Add(new("blessing", "祝福", "一定時間全ステータス微増", SkillCategory.Support, SkillTarget.Self, 15, 0, 10, 7, CharacterClass.Cleric, "purify", 0.0));
+        Add(new("blessing", "祝福", "一定時間全ステータス微増", SkillCategory.Support, SkillTarget.Self, 15, 0, 10, 7, CharacterClass.Cleric, "purify", 0.10));
 
         // 死霊術師系
-        Add(new("summon_undead", "死霊召喚", "骸骨の味方を召喚", SkillCategory.Magic, SkillTarget.Self, 20, 0, 8, 1, CharacterClass.Necromancer, null, 0.0, Element.Dark));
+        Add(new("summon_undead", "死霊召喚", "骸骨の味方を召喚", SkillCategory.Magic, SkillTarget.Self, 20, 0, 8, 1, CharacterClass.Necromancer, null, 1.0, Element.Dark));
         Add(new("life_drain", "生命吸収", "敵のHPを吸収する", SkillCategory.Magic, SkillTarget.SingleEnemy, 12, 0, 3, 1, CharacterClass.Necromancer, null, 1.0, Element.Dark));
-        Add(new("curse", "呪詛", "敵の全ステータスを低下", SkillCategory.Magic, SkillTarget.SingleEnemy, 15, 0, 6, 5, CharacterClass.Necromancer, "life_drain", 0.0, Element.Curse));
+        Add(new("curse", "呪詛", "敵の全ステータスを低下", SkillCategory.Magic, SkillTarget.SingleEnemy, 15, 0, 6, 5, CharacterClass.Necromancer, "life_drain", 0.20, Element.Curse));
     }
 
     private static void InitializeSupportSkills()
     {
         // 吟遊詩人系
-        Add(new("inspire_song", "鼓舞の歌", "味方全体の攻撃力を一時的に上昇", SkillCategory.Support, SkillTarget.AllAllies, 8, 0, 6, 1, CharacterClass.Bard, null, 0.0));
+        Add(new("inspire_song", "鼓舞の歌", "味方全体の攻撃力を一時的に上昇", SkillCategory.Support, SkillTarget.AllAllies, 8, 0, 6, 1, CharacterClass.Bard, null, 0.20));
         Add(new("knowledge_collect", "知識収集", "アイテムを自動鑑定する", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 1, CharacterClass.Bard, null, 0.0));
-        Add(new("lullaby", "子守唄", "周囲の敵を眠らせる", SkillCategory.Support, SkillTarget.AllEnemies, 12, 0, 8, 5, CharacterClass.Bard, "inspire_song", 0.0));
-        Add(new("charm", "魅了の旋律", "敵1体を一時的に味方にする", SkillCategory.Support, SkillTarget.SingleEnemy, 18, 0, 10, 8, CharacterClass.Bard, "lullaby", 0.0));
+        Add(new("lullaby", "子守唄", "周囲の敵を眠らせる", SkillCategory.Support, SkillTarget.AllEnemies, 12, 0, 8, 5, CharacterClass.Bard, "inspire_song", 1.0));
+        Add(new("charm", "魅了の旋律", "敵1体を一時的に味方にする", SkillCategory.Support, SkillTarget.SingleEnemy, 18, 0, 10, 8, CharacterClass.Bard, "lullaby", 1.0));
 
         // 錬金術師系
         Add(new("brew", "調合", "素材からポーションを作成", SkillCategory.Crafting, SkillTarget.Self, 5, 0, 0, 1, CharacterClass.Alchemist, null, 0.0, TurnCost: 10));
@@ -162,23 +162,23 @@ public static class SkillDatabase
         // CQ-2: 宗教スキル（信仰段階に応じて解放）
         // 光の神殿
         Add(new("holy_light", "聖なる光", "光属性で範囲ダメージ＋アンデッド特攻", SkillCategory.Magic, SkillTarget.AllEnemies, 25, 0, 3, 1, null, null, 1.5, Element.Holy));
-        Add(new("purify", "浄化", "全状態異常を解除", SkillCategory.Support, SkillTarget.Self, 15, 0, 5, 1, null, null, 0.0));
+        Add(new("purify", "浄化", "全状態異常を解除", SkillCategory.Support, SkillTarget.Self, 15, 0, 5, 1, null, null, 1.0));
         Add(new("divine_protection", "神の加護", "一定ターン被ダメージ30%減", SkillCategory.Support, SkillTarget.Self, 30, 0, 8, 1, null, null, 0.30));
         Add(new("divine_miracle", "神の奇跡", "HP全回復＋全状態異常解除", SkillCategory.Support, SkillTarget.Self, 60, 0, 15, 1, null, null, 1.0));
         // 闇の教団
         Add(new("dark_pact", "闇の契約", "HP消費で攻撃力大幅上昇", SkillCategory.Support, SkillTarget.Self, 0, 0, 5, 1, null, null, 0.50));
         Add(new("shadow_strike", "影の一撃", "闇属性の高威力単体攻撃", SkillCategory.Combat, SkillTarget.SingleEnemy, 20, 0, 2, 1, null, null, 2.0, Element.Dark));
-        Add(new("summon_undead", "アンデッド召喚", "アンデッドの味方を召喚", SkillCategory.Magic, SkillTarget.Self, 40, 0, 10, 1, null, null, 0.0));
+        Add(new("summon_undead", "アンデッド召喚", "アンデッドの味方を召喚", SkillCategory.Magic, SkillTarget.Self, 40, 0, 10, 1, null, null, 1.0));
         // 自然崇拝
         Add(new("nature_heal", "自然の癒し", "周囲の自然力でHP回復", SkillCategory.Support, SkillTarget.Self, 20, 0, 4, 1, null, null, 0.40));
-        Add(new("beast_summon", "獣召喚", "野生の獣を味方として召喚", SkillCategory.Magic, SkillTarget.Self, 35, 0, 8, 1, null, null, 0.0));
+        Add(new("beast_summon", "獣召喚", "野生の獣を味方として召喚", SkillCategory.Magic, SkillTarget.Self, 35, 0, 8, 1, null, null, 1.0));
         Add(new("shapeshift", "変身", "一時的に獣の姿に変身し攻撃力上昇", SkillCategory.Support, SkillTarget.Self, 25, 0, 6, 1, null, null, 0.50));
         Add(new("world_tree_protection", "世界樹の加護", "全属性耐性上昇", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 1, null, null, 0.25));
         // 死の信仰
         Add(new("death_premonition", "死の予兆", "敵の残りHPを可視化", SkillCategory.Support, SkillTarget.Self, 10, 0, 3, 1, null, null, 0.0));
         Add(new("soul_harvest", "魂の収穫", "敵撃破時にMP回復", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 1, null, null, 0.15));
         Add(new("guide_of_dead", "死者の導き", "アンデッド系敵が非敵対化", SkillCategory.Support, SkillTarget.Self, 30, 0, 10, 1, null, null, 0.0));
-        Add(new("death_sentence", "死の宣告", "3ターン後に対象即死（ボス耐性あり）", SkillCategory.Magic, SkillTarget.SingleEnemy, 50, 0, 12, 1, null, null, 0.0, Element.Dark));
+        Add(new("death_sentence", "死の宣告", "3ターン後に対象即死（ボス耐性あり）", SkillCategory.Magic, SkillTarget.SingleEnemy, 50, 0, 12, 1, null, null, 1.0, Element.Dark));
         // 混沌の教団
         Add(new("chaos_wave", "混沌の波動", "ランダム属性の範囲攻撃", SkillCategory.Magic, SkillTarget.AllEnemies, 30, 0, 4, 1, null, null, 1.3));
         Add(new("reality_warp", "現実歪曲", "ランダムな有益効果を自分に付与", SkillCategory.Support, SkillTarget.Self, 25, 0, 6, 1, null, null, 0.0));

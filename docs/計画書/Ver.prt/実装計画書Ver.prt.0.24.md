@@ -1026,7 +1026,7 @@
 | CB-1 | StatusEffectType.Slow/Vulnerability/Invisibility/Blessing/Apostasyの5種がCombatSystem.CreateStatusEffectでnull返却。ファクトリメソッド欠落 | 致命的 | `CombatSystem.cs:343-370` | 修正済み |
 | CB-2 | StatusEffectSystemにCreateSlow/CreateVulnerability/CreateInvisibility/CreateBlessing/CreateApostasyの5メソッドなし | 高 | `StatusEffectSystem.cs:19-295` | 修正済み |
 | CB-3 | CureAllポーションが22種中9種のみ解除。「全てのデバフを解除」コメントと矛盾。Charm/Madness/Petrification/Fear/Sleep等13種が解除されない | 致命的 | `Consumables.cs:85-96` | 修正済み |
-| CB-4 | Curse/Petrificationがint.MaxValue持続だが解除手段がCurseのみ（専用アイテム）。Petrificationの解除方法なし | 高 | `StatusEffectSystem.cs:174-228` | |
+| CB-4 | Curse/Petrificationがint.MaxValue持続だが解除手段がCurseのみ（専用アイテム）。Petrificationの解除方法なし | 高 | `StatusEffectSystem.cs:174-228` | 修正済み |
 | CB-5 | MonsterRaceSystem.IsStatusEffectImmune()がCombatSystem.TryApplyStatusEffect()で呼び出されない。ボス免疫が機能しない | 致命的 | `CombatSystem.cs:307-338`, `MonsterRaceSystem.cs:132` | 修正済み |
 | CB-6 | 耐性チェックが最大95%キャップ。真の免疫（100%確定）と耐性（確率的）の区別なし | 中 | `StatusEffectSystem.cs:299-332` | |
 | CB-7 | 矛盾する効果（Haste+Slow、Strength+Weakness）が同時適用可能。相反効果の管理ロジックなし | 中 | `Character.cs:124-146` | |
@@ -1074,7 +1074,7 @@
 | CD-6 | RestSystem.GetRecovery()に難易度乗数なし。Easy+高回復で戦闘が些末化する | 中 | `RestSystem.cs:9-16` | |
 | CD-7 | AudioManager.ApplyVolumeSettings()がGameSettings.EffectiveVolume系プロパティを使用しない。設定UIとオーディオシステムが未接続 | 高 | `AudioManager.cs:129-138`, `GameSettings.cs:53-58` | |
 | CD-8 | レベル50キャップ到達後の報酬/称号/特殊ボーナスなし。エンドゲームコンテンツが欠如 | 中 | `Player.cs:359` | |
-| CD-9 | Ironman難易度のUI説明「敵ダメージ1.5倍」が実コード値1.2倍と不一致 | 高 | `DifficultySettings.cs:158-173`, `DifficultySelectWindow.xaml.cs` | |
+| CD-9 | Ironman難易度のUI説明「敵ダメージ1.5倍」が実コード値1.2倍と不一致 | 高 | `DifficultySettings.cs:158-173`, `DifficultySelectWindow.xaml.cs` | 修正済み |
 
 ---
 
@@ -1160,9 +1160,9 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| CJ-1 | GameAction.UseInn処理でactionCost変数が設定されない。宿屋利用がターンを消費せずに無限回復可能 | 高 | `GameController.cs:1117-1122` | |
-| CJ-2 | GameAction.VisitChurch処理でactionCost変数が設定されない。教会訪問がターンを消費しない | 高 | `GameController.cs:1117-1122` | |
-| CJ-3 | ShouldStopAutoExplore()がHP≤50%のみチェック。空腹/渇き閾値チェックなし。自動探索中に餓死/渇死の可能性 | 高 | `GameController.cs:6466-6486` | |
+| CJ-1 | GameAction.UseInn処理でactionCost変数が設定されない。宿屋利用がターンを消費せずに無限回復可能 | 高 | `GameController.cs:1117-1122` | 修正済み |
+| CJ-2 | GameAction.VisitChurch処理でactionCost変数が設定されない。教会訪問がターンを消費しない | 高 | `GameController.cs:1117-1122` | 修正済み |
+| CJ-3 | ShouldStopAutoExplore()がHP≤50%のみチェック。空腹/渇き閾値チェックなし。自動探索中に餓死/渇死の可能性 | 高 | `GameController.cs:6466-6486` | 修正済み |
 | CJ-4 | TryUseInn()のHP/MP/SP完全回復がメッセージに表示されない。疲労/衛生/渇きの回復メッセージのみ表示 | 中 | `GameController.cs:5324-5340` | |
 | CJ-5 | メッセージ履歴が1000件上限でFIFO削除。重要度による優先保持なし。ボス警告等の重要メッセージが消失可能 | 中 | `GameController.cs:6679-6687` | |
 | CJ-6 | GetBossRoom()がnull時にGetRandomFloorPosition()へフォールバック。ボスが廊下/階段横等の不適切な位置に配置される可能性 | 低 | `GameController.cs:765-785` | |
@@ -1210,14 +1210,14 @@
 
 | ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
 |----|------------|--------|-----------|---------|
-| CN-1 | 挑発（provoke）のBasePower=0。「敵の注意を引き付ける」効果が数値的にゼロで機能しない | 高 | `SkillSystem.cs:97` | |
-| CN-2 | 瞑想（meditation）のBasePower=0。「HP・MP・SP回復」と説明があるが回復量ゼロ | 高 | `SkillSystem.cs:114` | |
-| CN-3 | 魔法障壁（arcane_shield）のBasePower=0。「魔法防御力上昇」バフだが上昇量ゼロ | 高 | `SkillSystem.cs:124` | |
-| CN-4 | 浄化（purify）/祝福（blessing）のBasePower=0。状態異常解除力/全ステ微増がゼロ | 高 | `SkillSystem.cs:128,130` | |
-| CN-5 | 死霊召喚（summon_undead）/呪詛（curse）のBasePower=0。召喚パワーとデバフ効果がゼロ | 高 | `SkillSystem.cs:133,135` | |
-| CN-6 | 鼓舞の歌（inspire_song）/子守唄（lullaby）/魅了の旋律（charm）のBasePower=0。バフ/睡眠/魅了効果が全てゼロ | 高 | `SkillSystem.cs:141,143,144` | |
+| CN-1 | 挑発（provoke）のBasePower=0。「敵の注意を引き付ける」効果が数値的にゼロで機能しない | 高 | `SkillSystem.cs:97` | 修正済み |
+| CN-2 | 瞑想（meditation）のBasePower=0。「HP・MP・SP回復」と説明があるが回復量ゼロ | 高 | `SkillSystem.cs:114` | 修正済み |
+| CN-3 | 魔法障壁（arcane_shield）のBasePower=0。「魔法防御力上昇」バフだが上昇量ゼロ | 高 | `SkillSystem.cs:124` | 修正済み |
+| CN-4 | 浄化（purify）/祝福（blessing）のBasePower=0。状態異常解除力/全ステ微増がゼロ | 高 | `SkillSystem.cs:128,130` | 修正済み |
+| CN-5 | 死霊召喚（summon_undead）/呪詛（curse）のBasePower=0。召喚パワーとデバフ効果がゼロ | 高 | `SkillSystem.cs:133,135` | 修正済み |
+| CN-6 | 鼓舞の歌（inspire_song）/子守唄（lullaby）/魅了の旋律（charm）のBasePower=0。バフ/睡眠/魅了効果が全てゼロ | 高 | `SkillSystem.cs:141,143,144` | 修正済み |
 | CN-7 | 付与（enchant）/変成（transmute）のBasePower=0。属性付与と素材変換のパワーがゼロで実質効果なし | 中 | `SkillSystem.cs:149,150` | |
-| CN-8 | 解毒剤（potion_antidote）にEffectValueが未定義。解毒効果の数値が設定されていないため治癒が機能しない可能性 | 高 | `ItemFactory.cs:476` | |
+| CN-8 | 解毒剤（potion_antidote）にEffectValueが未定義。解毒効果の数値が設定されていないため治癒が機能しない可能性 | 高 | `ItemFactory.cs:476` | 修正済み |
 
 ### CO: マップ生成・階段配置致命的欠陥
 
@@ -1237,8 +1237,8 @@
 | CP-2 | CheckCritical(CriticalCheckParams)メソッド（DEX/LUK考慮版）が完全デッドコード。実際にはCheckCritical(double)のみ使用され、DEX/LUKがクリティカル率に影響しない | 致命的 | `DamageCalculator.cs:168-182` | 修正済み |
 | CP-3 | maxHpが0の場合にGetHpStatePenalty()で除算ゼロクラッシュ。キャラ生成バグやセーブ破損時に発生 | 致命的 | `DamageCalculator.cs:202`, `ResourceSystem.cs:54` | 修正済み |
 | CP-4 | AttackTypeが6種（Slash/Pierce/Blunt/Unarmed/Ranged/Magic）だがMagic以外は全て同一物理計算。武器タイプ別の差別化が存在しない | 高 | `DamageCalculator.cs:127-138` | |
-| CP-5 | CombatSystem.ExecuteAttack()がSP/MPコスト未消費で攻撃実行。リソース消費なしで無限攻撃可能 | 高 | `CombatSystem.cs:37-65` | |
-| CP-6 | 魔法攻撃でspellElement引数が渡されるがダメージ計算に未使用。属性弱点が魔法ダメージに反映されない | 高 | `CombatSystem.cs:215-270` | |
+| CP-5 | CombatSystem.ExecuteAttack()がSP/MPコスト未消費で攻撃実行。リソース消費なしで無限攻撃可能 | 高 | `CombatSystem.cs:37-65` | 修正済み |
+| CP-6 | 魔法攻撃でspellElement引数が渡されるがダメージ計算に未使用。属性弱点が魔法ダメージに反映されない | 高 | `CombatSystem.cs:215-270` | 修正済み |
 | CP-7 | TryApplyStatusEffect()がtrue/false判定のみ返し、実際にキャラクターへの状態異常適用を行わない。戦闘中の状態異常が一切機能しない | 致命的 | `CombatSystem.cs:307-370` | 修正済み |
 
 ### CQ: クエスト報酬・宗教スキル欠落
