@@ -208,6 +208,9 @@ public class SaveData
     public int GameTimeStartDay { get; set; } = 15;
     public int GameTimeStartHour { get; set; } = 8;
     public int GameTimeStartMinute { get; set; }
+
+    /// <summary>AS-3/CE-12: マップ探索状態（IsExplored=trueのタイル座標）</summary>
+    public List<string> ExploredTiles { get; set; } = new();
 }
 
 /// <summary>

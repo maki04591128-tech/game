@@ -8041,6 +8041,18 @@ public class GameController
         save.GameTimeStartHour = GameTime.StartHour;
         save.GameTimeStartMinute = GameTime.StartMinute;
 
+        // AS-3/CE-12: マップ探索状態の保存
+        for (int y = 0; y < Map.Height; y++)
+        {
+            for (int x = 0; x < Map.Width; x++)
+            {
+                if (Map.GetTile(new Position(x, y)).IsExplored)
+                {
+                    save.ExploredTiles.Add($"{x},{y}");
+                }
+            }
+        }
+
         return save;
     }
 
@@ -8542,6 +8554,23 @@ public class GameController
             GameTime.StartDay = save.GameTimeStartDay;
             GameTime.StartHour = save.GameTimeStartHour;
             GameTime.StartMinute = save.GameTimeStartMinute;
+        }
+
+        // AS-3/CE-12: マップ探索状態の復元
+        if (save.ExploredTiles.Count > 0)
+        {
+            foreach (var coord in save.ExploredTiles)
+            {
+                var parts = coord.Split(',');
+                if (parts.Length == 2 && int.TryParse(parts[0], out var ex) && int.TryParse(parts[1], out var ey))
+                {
+                    var pos = new Position(ex, ey);
+                    if (Map.IsInBounds(pos))
+                    {
+                        Map.GetTile(pos).IsExplored = true;
+                    }
+                }
+            }
         }
 
         // AS-5: スキルツリーボーナスプロバイダーを再設定（ロード後のステータス計算に必要）

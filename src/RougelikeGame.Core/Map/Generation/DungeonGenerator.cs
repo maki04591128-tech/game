@@ -65,6 +65,14 @@ public class DungeonGenerator : IMapGenerator
         // CG-2: 採集ノードを配置
         PlaceGatheringNodes(map, parameters);
 
+        // AE-5: 秘密部屋を配置（FeaturePlacer経由）
+        var featurePlacer = new FeaturePlacer(_random);
+        int secretRoomCount = parameters.Depth >= 3 ? 1 : 0; // 3階以降に秘密部屋
+        if (secretRoomCount > 0)
+        {
+            featurePlacer.PlaceSecretRooms(map, secretRoomCount);
+        }
+
         // ルーン碑文を配置（遺跡系ダンジョン）
         PlaceRuneInscriptions(map, parameters);
 
