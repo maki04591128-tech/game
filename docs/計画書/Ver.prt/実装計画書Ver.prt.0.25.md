@@ -1,6 +1,6 @@
 ﻿# 実装計画書 Ver.prt.0.25 — 満腹度・渇き度システム全面改修 ＆ 行動ターン消費システム改修
 
-**ステータス**: ⬜ 未着手
+**ステータス**: ✅ 完了
 **目的**: 満腹度・渇き度システムを全面改修し、段階的なペナルティ・行動コスト加算・過食/飲み過ぎ状態を含む10段階制に拡張する。また、行動ターン消費システムを全面改修し、シチュエーション別のターンコストを全キャラクターに適用する
 **前提バージョン**: Ver.prt.0.24（テスト5,539件全合格）
 
@@ -69,56 +69,56 @@
 
 | # | タスク | カテゴリ | 影響ファイル | ステータス |
 |---|--------|---------|-------------|-----------|
-| 1 | HungerStage enum 10段階化 | Enum定義 | Enums.cs | ⬜ 未着手 |
-| 2 | ThirstStage enum 10段階化 | Enum定義 | Enums.cs | ⬜ 未着手 |
-| 3 | GameConstants 満腹度・渇き度定数変更 | 定数 | GameConstants.cs | ⬜ 未着手 |
-| 4 | Player.cs Hunger プロパティ範囲拡張 | コアエンティティ | Player.cs | ⬜ 未着手 |
-| 5 | Player.cs GetHungerStage 閾値更新 | コアエンティティ | Player.cs | ⬜ 未着手 |
-| 6 | Player.cs Thirst プロパティ範囲拡張 | コアエンティティ | Player.cs | ⬜ 未着手 |
-| 7 | Player.cs GetThirstStage 閾値更新 | コアエンティティ | Player.cs | ⬜ 未着手 |
-| 8 | Player.cs 満腹度ペナルティ更新 | コアエンティティ | Player.cs | ⬜ 未着手 |
-| 9 | Player.cs 渇き度ペナルティ更新 | コアエンティティ | Player.cs | ⬜ 未着手 |
-| 10 | ResourceSystem.cs HungerState enum 更新 | エンジン層 | ResourceSystem.cs | ⬜ 未着手 |
-| 11 | ResourceSystem.cs GetHungerState/GetHungerEffect 更新 | エンジン層 | ResourceSystem.cs | ⬜ 未着手 |
-| 12 | ThirstSystem.cs 全面改修 | エンジン層 | ThirstSystem.cs | ⬜ 未着手 |
-| 13 | GameController.cs 満腹度消費ロジック（864ターン周期） | ゲームロジック | GameController.cs | ⬜ 未着手 |
-| 14 | GameController.cs 渇き度消費ロジック（432ターン周期） | ゲームロジック | GameController.cs | ⬜ 未着手 |
-| 15 | GameController.cs 0以下時の消費ターン切替（59,220 / 29,610） | ゲームロジック | GameController.cs | ⬜ 未着手 |
-| 16 | 飢餓・脱水ダメージ実装（毎ターン1HP） | ゲームロジック | GameController.cs | ⬜ 未着手 |
-| 17 | 餓死寸前・干死寸前の移動攻撃不能実装 | ゲームロジック | GameController.cs, TurnManager.cs | ⬜ 未着手 |
-| 18 | 吐き気状態の30%行動不可実装 | ゲームロジック | GameController.cs, TurnManager.cs | ⬜ 未着手 |
-| 19 | 空腹（小）・渇き（小）の30%行動コスト+1実装 | ゲームロジック | GameController.cs, TurnManager.cs | ⬜ 未着手 |
-| 20 | 餓死・干死判定（−10で即死） | ゲームロジック | GameController.cs | ⬜ 未着手 |
-| 21 | 餓死寸前・干死寸前ダメージ（毎ターン10HP） | ゲームロジック | GameController.cs | ⬜ 未着手 |
-| 22 | 行動コスト加算のTurnManager統合 | 行動コスト | TurnManager.cs | ⬜ 未着手 |
-| 23 | メッセージログ対応（各段階の警告メッセージ） | UI | GameController.cs | ⬜ 未着手 |
-| 24 | GUI ステータスバー表示更新 | UI | MainWindow.xaml.cs | ⬜ 未着手 |
-| 25 | 満腹度段階テスト | テスト | Core.Tests | ⬜ 未着手 |
-| 26 | 渇き度段階テスト | テスト | Core.Tests | ⬜ 未着手 |
-| 27 | 行動コスト統合テスト | テスト | Core.Tests / Gui.Tests | ⬜ 未着手 |
-| 28 | 飢餓・脱水ダメージテスト | テスト | Core.Tests | ⬜ 未着手 |
-| 29 | 餓死・干死判定テスト | テスト | Core.Tests | ⬜ 未着手 |
-| 30 | 既存テスト修正（旧段階・旧閾値の更新） | テスト | Core.Tests / Gui.Tests | ⬜ 未着手 |
+| 1 | HungerStage enum 10段階化 | Enum定義 | Enums.cs | ✅ 完了 |
+| 2 | ThirstStage enum 10段階化 | Enum定義 | Enums.cs | ✅ 完了 |
+| 3 | GameConstants 満腹度・渇き度定数変更 | 定数 | GameConstants.cs | ✅ 完了 |
+| 4 | Player.cs Hunger プロパティ範囲拡張 | コアエンティティ | Player.cs | ✅ 完了 |
+| 5 | Player.cs GetHungerStage 閾値更新 | コアエンティティ | Player.cs | ✅ 完了 |
+| 6 | Player.cs Thirst プロパティ範囲拡張 | コアエンティティ | Player.cs | ✅ 完了 |
+| 7 | Player.cs GetThirstStage 閾値更新 | コアエンティティ | Player.cs | ✅ 完了 |
+| 8 | Player.cs 満腹度ペナルティ更新 | コアエンティティ | Player.cs | ✅ 完了 |
+| 9 | Player.cs 渇き度ペナルティ更新 | コアエンティティ | Player.cs | ✅ 完了 |
+| 10 | ResourceSystem.cs HungerState enum 更新 | エンジン層 | ResourceSystem.cs | ✅ 完了 |
+| 11 | ResourceSystem.cs GetHungerState/GetHungerEffect 更新 | エンジン層 | ResourceSystem.cs | ✅ 完了 |
+| 12 | ThirstSystem.cs 全面改修 | エンジン層 | ThirstSystem.cs | ✅ 完了 |
+| 13 | GameController.cs 満腹度消費ロジック（864ターン周期） | ゲームロジック | GameController.cs | ✅ 完了 |
+| 14 | GameController.cs 渇き度消費ロジック（432ターン周期） | ゲームロジック | GameController.cs | ✅ 完了 |
+| 15 | GameController.cs 0以下時の消費ターン切替（59,220 / 29,610） | ゲームロジック | GameController.cs | ✅ 完了 |
+| 16 | 飢餓・脱水ダメージ実装（毎ターン1HP） | ゲームロジック | GameController.cs | ✅ 完了 |
+| 17 | 餓死寸前・干死寸前の移動攻撃不能実装 | ゲームロジック | GameController.cs, TurnManager.cs | ✅ 完了 |
+| 18 | 吐き気状態の30%行動不可実装 | ゲームロジック | GameController.cs, TurnManager.cs | ✅ 完了 |
+| 19 | 空腹（小）・渇き（小）の30%行動コスト+1実装 | ゲームロジック | GameController.cs, TurnManager.cs | ✅ 完了 |
+| 20 | 餓死・干死判定（−10で即死） | ゲームロジック | GameController.cs | ✅ 完了 |
+| 21 | 餓死寸前・干死寸前ダメージ（毎ターン10HP） | ゲームロジック | GameController.cs | ✅ 完了 |
+| 22 | 行動コスト加算のTurnManager統合 | 行動コスト | TurnManager.cs | ✅ 完了 |
+| 23 | メッセージログ対応（各段階の警告メッセージ） | UI | GameController.cs | ✅ 完了 |
+| 24 | GUI ステータスバー表示更新 | UI | MainWindow.xaml.cs | ✅ 完了 |
+| 25 | 満腹度段階テスト | テスト | Core.Tests | ✅ 完了 |
+| 26 | 渇き度段階テスト | テスト | Core.Tests | ✅ 完了 |
+| 27 | 行動コスト統合テスト | テスト | Core.Tests / Gui.Tests | ✅ 完了 |
+| 28 | 飢餓・脱水ダメージテスト | テスト | Core.Tests | ✅ 完了 |
+| 29 | 餓死・干死判定テスト | テスト | Core.Tests | ✅ 完了 |
+| 30 | 既存テスト修正（旧段階・旧閾値の更新） | テスト | Core.Tests / Gui.Tests | ✅ 完了 |
 | **行動ターン消費システム改修** | | | | |
-| 31 | 行動ターンコスト定数の全面改修 | 定数 | GameConstants.cs | ⬜ 未着手 |
-| 32 | 装備部位別ターンコスト定数追加 | 定数 | GameConstants.cs | ⬜ 未着手 |
-| 33 | シンボルマップ用ターンコスト定数追加 | 定数 | GameConstants.cs | ⬜ 未着手 |
-| 34 | GameController.cs ProcessInput ターンコスト改修 | ゲームロジック | GameController.cs | ⬜ 未着手 |
-| 35 | 階層移動・祈りのターンコスト改修 | ゲームロジック | GameController.cs | ⬜ 未着手 |
-| 36 | インベントリソートのターンコスト追加 | ゲームロジック | GameController.cs | ⬜ 未着手 |
-| 37 | シンボルマップ移動コスト300ターン実装 | ゲームロジック | GameController.cs | ⬜ 未着手 |
-| 38 | Tキー進入ターン消費なし実装 | ゲームロジック | GameController.cs | ⬜ 未着手 |
-| 39 | リアルタイムターン消費システム実装 | ゲームロジック | GameController.cs, TurnManager.cs | ⬜ 未着手 |
-| 40 | NPC・敵キャラクターへのターンコスト統一適用 | ゲームロジック | TurnManager.cs, AIController.cs | ⬜ 未着手 |
-| 41 | 変動ターンコスト（アイテム・スキル・呪文・領地）データ整備 | データ定義 | 各定義ファイル | ⬜ 未着手 |
-| 42 | 行動ターン消費テスト | テスト | Core.Tests / Gui.Tests | ⬜ 未着手 |
+| 31 | 行動ターンコスト定数の全面改修 | 定数 | GameConstants.cs | ✅ 完了 |
+| 32 | 装備部位別ターンコスト定数追加 | 定数 | GameConstants.cs | ✅ 完了 |
+| 33 | シンボルマップ用ターンコスト定数追加 | 定数 | GameConstants.cs | ✅ 完了 |
+| 34 | GameController.cs ProcessInput ターンコスト改修 | ゲームロジック | GameController.cs | ✅ 完了 |
+| 35 | 階層移動・祈りのターンコスト改修 | ゲームロジック | GameController.cs | ✅ 完了 |
+| 36 | インベントリソートのターンコスト追加 | ゲームロジック | GameController.cs | ✅ 完了 |
+| 37 | シンボルマップ移動コスト300ターン実装 | ゲームロジック | GameController.cs | ✅ 完了 |
+| 38 | Tキー進入ターン消費なし実装 | ゲームロジック | GameController.cs | ✅ 完了 |
+| 39 | リアルタイムターン消費システム実装 | ゲームロジック | GameController.cs, TurnManager.cs | ✅ 完了 |
+| 40 | NPC・敵キャラクターへのターンコスト統一適用 | ゲームロジック | TurnManager.cs, AIController.cs | ✅ 完了 |
+| 41 | 変動ターンコスト（アイテム・スキル・呪文・領地）データ整備 | データ定義 | 各定義ファイル | ✅ 完了 |
+| 42 | 行動ターン消費テスト | テスト | Core.Tests / Gui.Tests | ✅ 完了 |
 | **ゲーム内時間表示改修** | | | | |
-| 43 | ゲーム内時間表示に秒数を追加 | UI | GameTime.cs, MainWindow.xaml.cs | ⬜ 未着手 |
+| 43 | ゲーム内時間表示に秒数を追加 | UI | GameTime.cs, MainWindow.xaml.cs | ✅ 完了 |
 | **状態別ターンコスト** | | | | |
-| 44 | 接敵状態ターンコスト倍率実装 | ゲームロジック | TurnManager.cs, GameController.cs | ⬜ 未着手 |
-| 45 | 隠密状態ターンコスト倍率・強制解除実装 | ゲームロジック | TurnManager.cs, GameController.cs | ⬜ 未着手 |
-| 46 | デバフ状態行動コスト加算実装 | ゲームロジック | TurnManager.cs | ⬜ 未着手 |
-| 47 | 状態別ターンコストテスト | テスト | Core.Tests / Gui.Tests | ⬜ 未着手 |
+| 44 | 接敵状態ターンコスト倍率実装 | ゲームロジック | TurnManager.cs, GameController.cs | ✅ 完了 |
+| 45 | 隠密状態ターンコスト倍率・強制解除実装 | ゲームロジック | TurnManager.cs, GameController.cs | ✅ 完了 |
+| 46 | デバフ状態行動コスト加算実装 | ゲームロジック | TurnManager.cs | ✅ 完了 |
+| 47 | 状態別ターンコストテスト | テスト | Core.Tests / Gui.Tests | ✅ 完了 |
 
 ---
 
