@@ -1,6 +1,6 @@
 # 実装計画書 Ver.prt.0.24 — ゲームプレイ違和感・不整合の洗い出しと修正
 
-**ステータス**: 🔄 1205件中1160件修正済み・45件修正予定（テスト5,539件全合格）
+**ステータス**: ✅ 1205件中1205件修正済み（テスト5,539件全合格）
 **目的**: ゲーム内で各システムの要素に触れる際に違和感がある不整合を網羅的に調査し、修正対象を確定する
 **前提**: 全90システム統合済み（Ver.prt.0.23完了時点）、Core.Tests 5,539件全合格
 
@@ -144,7 +144,7 @@
 |---|------|--------|------|---------|
 | J-1 | 経験値カーブが指数関数`100×1.5^(Lv-1)`で急勾配すぎる。Lv25で168万exp必要、Lv30で1278万exp必要。最強ボスexp=2000なので Lv25到達にボス841体撃破が必要。**実質的な最大レベルがLv18-20** | 致命的 | `Player.cs:389-390`, `GameConstants.cs` | 修正済み |
 | J-2 | 推奨レベル関数`GetRecommendedLevel()`がフロア20でLv35、フロア30でLv45を返すが、J-1により到達不可能。フロア15以降の推奨レベルが全て非現実的 | 高 | `GameConstants.cs:208-216` | 修正済み |
-| J-3 | 敵の経験値が固定値でフロア深度によるスケーリングなし。ゴブリンはフロア1でもフロア30でも常に15exp。深層の敵を倒すインセンティブが低い | 中 | `EnemyFactory.cs:252-783` | 修正予定 |
+| J-3 | 敵の経験値が固定値でフロア深度によるスケーリングなし。ゴブリンはフロア1でもフロア30でも常に15exp。深層の敵を倒すインセンティブが低い | 中 | `EnemyFactory.cs:252-783` | 修正済み |
 
 ---
 
@@ -193,8 +193,8 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| O-1 | スキルポイントの付与・消費・追跡システムが存在しない。`SkillSystem`にはスキル使用とクールダウンの管理はあるが、スキル習得のためのポイント経済がない。レベルアップ時にスキルポイント付与もなし | 高 | `SkillSystem.cs`, `Player.cs:366-387` | 修正予定 |
-| O-2 | `MultiClassSystem.CanClassChange()`は転職可否の判定のみで、転職実行時のステータス再計算メソッドが存在しない。転職してもステータスが変化しない | 高 | `MultiClassSystem.cs:27-32` | 修正予定 |
+| O-1 | スキルポイントの付与・消費・追跡システムが存在しない。`SkillSystem`にはスキル使用とクールダウンの管理はあるが、スキル習得のためのポイント経済がない。レベルアップ時にスキルポイント付与もなし | 高 | `SkillSystem.cs`, `Player.cs:366-387` | 修正済み |
+| O-2 | `MultiClassSystem.CanClassChange()`は転職可否の判定のみで、転職実行時のステータス再計算メソッドが存在しない。転職してもステータスが変化しない | 高 | `MultiClassSystem.cs:27-32` | 修正済み |
 
 ---
 
@@ -297,7 +297,7 @@
 | Y-3 | 堕天使種族の「浮遊」能力（穴落下罠無効・水上移動可能）が定義済みだが、`IsLevitating()`が罠/移動システムから呼び出されない | 致命的 | `RacialTraitSystem.cs:91,143-144` | 修正済み |
 | Y-4 | スライム種族の「装備制限」（武器・防具の大部分が装備不可）が定義済みだが、`HasEquipmentRestriction()`が装備ロジックから呼び出されない。全装備可能 | 致命的 | `RacialTraitSystem.cs:98,147-148` | 修正済み |
 | Y-5 | 堕天使種族の「光闇両属性」特性が定義済みだが、スキルシステムに属性制限がなく全種族が全属性使用可能。特性の差別化がない | 中 | `RacialTraitSystem.cs:92` | 修正済み |
-| Y-6 | 種族の隠しペナルティ（オーク:INT-3/CHA-2、アンデッド:正気度消耗1.3倍、堕天使:LUK-4）が説明文に記載なし。プレイヤーが把握できない | 中 | `CharacterCreation.cs:6-82` | 修正予定 |
+| Y-6 | 種族の隠しペナルティ（オーク:INT-3/CHA-2、アンデッド:正気度消耗1.3倍、堕天使:LUK-4）が説明文に記載なし。プレイヤーが把握できない | 中 | `CharacterCreation.cs:6-82` | 修正済み |
 
 ---
 
@@ -361,11 +361,11 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| AE-1 | `TileType.DeepWater`/`Lava`/`Pit`/`Tree`の4種がプロパティ定義済みだがダンジョン生成で一切配置されない。遭遇不可能な地形 | 高 | `DungeonGenerator.cs`, `Tile.cs` | 修正予定 |
+| AE-1 | `TileType.DeepWater`/`Lava`/`Pit`/`Tree`の4種がプロパティ定義済みだがダンジョン生成で一切配置されない。遭遇不可能な地形 | 高 | `DungeonGenerator.cs`, `Tile.cs` | 修正済み |
 | AE-2 | `TileType.Altar`が祠部屋に配置されるが、GameControllerにインタラクションハンドラなし。踏んでも何も起こらない | 致命的 | `RoomCorridorGenerator.cs:487`, `GameController.cs:1406-1430` | 修正済み |
 | AE-3 | `TileType.Fountain`が通常部屋に50%確率で配置されるが、インタラクションハンドラなし。踏んでも何も起こらない | 致命的 | `RoomCorridorGenerator.cs:197`, `GameController.cs` | 修正済み |
-| AE-4 | `RoomType.Library`/`Prison`/`Storage`の3種が定義済みだが生成ロジックなし。ダンジョンに出現しない | 高 | `Tile.cs:531-577`, `DungeonGenerator.cs` | 修正予定 |
-| AE-5 | `FeaturePlacer.cs`（秘密部屋生成）がコードベース全体で一度もインスタンス化されない。`RoomType.Secret`の部屋が完全に無効化 | 高 | `FeaturePlacer.cs`, 全ソース | 修正予定 |
+| AE-4 | `RoomType.Library`/`Prison`/`Storage`の3種が定義済みだが生成ロジックなし。ダンジョンに出現しない | 高 | `Tile.cs:531-577`, `DungeonGenerator.cs` | 修正済み |
+| AE-5 | `FeaturePlacer.cs`（秘密部屋生成）がコードベース全体で一度もインスタンス化されない。`RoomType.Secret`の部屋が完全に無効化 | 高 | `FeaturePlacer.cs`, 全ソース | 修正済み |
 | AE-6 | `GameRenderer.TileColors`辞書に21種のTileType（DeepWater/Lava/Pit/Pillar/RuneInscription/SecretDoor/Grass/Tree/全SymbolMap10種/NpcTrainer/NpcLibrarian）のカラーマッピングがない | 高 | `GameRenderer.cs:35-65` | 修正済み |
 | AE-7 | `EnvironmentalCombatSystem`のSurfaceType（Water/Fire/Poison等）とTileType（Lava/Water/DeepWater）が未接続。溶岩タイルを踏んでも火炎ダメージが適用されない | 高 | `EnvironmentalCombatSystem.cs`, `GameController.cs` | 修正済み |
 
@@ -375,9 +375,9 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| AF-1 | `RandomEventType.NpcEncounter`（NPC遭遇）がイベントプールに登録済みだがResolveメソッドが存在しない。イベント発生時にハンドラなし | 致命的 | `WorldMapSystem.cs:729,749` | 修正予定 |
-| AF-2 | `RandomEventType.MerchantEncounter`（商人遭遇）が同様にResolveメソッドなし | 致命的 | `WorldMapSystem.cs:730,761` | 修正予定 |
-| AF-3 | `RandomEventType.AmbushEvent`（待ち伏せ）が同様にResolveメソッドなし。イベントタイプからハンドラへのディスパッチswitch文自体が存在しない | 致命的 | `WorldMapSystem.cs:733,771` | 修正予定 |
+| AF-1 | `RandomEventType.NpcEncounter`（NPC遭遇）がイベントプールに登録済みだがResolveメソッドが存在しない。イベント発生時にハンドラなし | 致命的 | `WorldMapSystem.cs:729,749` | 修正済み |
+| AF-2 | `RandomEventType.MerchantEncounter`（商人遭遇）が同様にResolveメソッドなし | 致命的 | `WorldMapSystem.cs:730,761` | 修正済み |
+| AF-3 | `RandomEventType.AmbushEvent`（待ち伏せ）が同様にResolveメソッドなし。イベントタイプからハンドラへのディスパッチswitch文自体が存在しない | 致命的 | `WorldMapSystem.cs:733,771` | 修正済み |
 
 ---
 
@@ -415,7 +415,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| AJ-1 | `MerchantGuildSystem`が完全なデッドコード。初期化（GC:59）とReset（GC:3153）のみで、JoinGuild()/EstablishRoute()/ExecuteTrade()が一度も呼ばれない。交易システムが完全に無機能 | 高 | `MerchantGuildSystem.cs`, `GameController.cs:59,3153` | 修正予定 |
+| AJ-1 | `MerchantGuildSystem`が完全なデッドコード。初期化（GC:59）とReset（GC:3153）のみで、JoinGuild()/EstablishRoute()/ExecuteTrade()が一度も呼ばれない。交易システムが完全に無機能 | 高 | `MerchantGuildSystem.cs`, `GameController.cs:59,3153` | 修正済み |
 | AJ-2 | `TerritoryInfluenceSystem`が完全なデッドコード。初期化（GC:62）とReset（GC:3147）のみで、Initialize()/ModifyInfluence()/GetDominantFaction()が一度も呼ばれない | 高 | `TerritoryInfluenceSystem.cs`, `GameController.cs:62,3147` | 修正済み |
 | AJ-3 | `ModLoaderSystem`が完全なデッドコード。初期化（GC:72）のみでLoadMod()/Validate()が呼ばれない。ファイルI/Oも未実装でモッド読み込みは機能しない | 中 | `ModLoaderSystem.cs`, `GameController.cs:72` | 修正済み |
 
@@ -435,7 +435,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| AL-1 | `WeatherSystem.GetElementDamageModifier()`/`GetRangedHitModifier()`が戦闘ダメージ計算から呼ばれない。雨天の雷+20%/火-20%、嵐の遠距離-30%等が全て無効 | 致命的 | `WeatherSystem.cs:102,105`, `GameController.cs:1874-1885` | 修正予定 |
+| AL-1 | `WeatherSystem.GetElementDamageModifier()`/`GetRangedHitModifier()`が戦闘ダメージ計算から呼ばれない。雨天の雷+20%/火-20%、嵐の遠距離-30%等が全て無効 | 致命的 | `WeatherSystem.cs:102,105`, `GameController.cs:1874-1885` | 修正済み |
 | AL-2 | `WeatherSystem.GetMovementCostModifier()`が移動処理から呼ばれない。吹雪の移動コスト+50%、雨の+10%等が全て無効 | 高 | `WeatherSystem.cs:105`, `GameController.cs` | 修正済み |
 | AL-3 | `WeatherSystem.GetSightModifier()`が視界計算から呼ばれない。霧の視界50%低下、嵐の40%低下が無効。視界は常にComputeFov(12)の固定値 | 高 | `WeatherSystem.cs:90`, `GameController.cs:2224,2718` | 修正済み |
 
@@ -513,7 +513,7 @@
 |---|------|--------|------|---------|
 | AS-1 | `Item.Grade`（アイテム品質）がItemSaveDataに未保存。ロード時に全アイテムがItemGrade.Standardにリセットされ、レア/レジェンダリー等の品質情報が消失 | 致命的 | `SaveData.cs:214-236`, `GameController.cs:6980-6989` | 修正済み |
 | AS-2 | 地面に置かれたアイテム（GroundItems）が一切セーブされない。CreateSaveDataにGroundItemsの保存処理なし。ロード時にマップが再生成され全アイテム消失 | 致命的 | `GameController.cs:189,6694-6801` | 修正済み |
-| AS-3 | マップ探索状態（Tile.IsExplored）がセーブされない。ロード時にマップ再生成で全タイルが未探索に戻り、霧の戦争（Fog of War）がリセットされる | 高 | `SaveData.cs`, `Tile.cs:262`, `GameController.cs:6886-6887` | 修正予定 |
+| AS-3 | マップ探索状態（Tile.IsExplored）がセーブされない。ロード時にマップ再生成で全タイルが未探索に戻り、霧の戦争（Fog of War）がリセットされる | 高 | `SaveData.cs`, `Tile.cs:262`, `GameController.cs:6886-6887` | 修正済み |
 | AS-4 | セーブデータのバージョン移行ロジックが存在しない。SaveData.Versionフィールド（=1）が定義済みだがLoadSaveDataでチェックされず、フォーマット変更時に旧セーブが破損するリスク | 中 | `SaveData.cs:11`, `GameController.cs:6806-6978` | 修正済み |
 | AS-5 | SkillTreeBonusProviderコールバックがセーブされない。ロード後にスキルツリーボーナスが未再計算のまま失われ、UIが再初期化するまでステータスが不正 | 中 | `Player.cs:251`, `SaveData.cs` | 修正済み |
 
@@ -546,8 +546,8 @@
 |---|------|--------|------|---------|
 | AV-1 | 時間帯の視界修正がFOV計算に適用されない。TimeOfDaySystem.GetSightRangeModifier()（夜間0.4倍等）を計算するがComputeFov()は常にDefaultViewRadius(8)を使用 | 高 | `GameController.cs:2223-2228,3347,4542` | 修正済み |
 | AV-2 | 時間帯が敵スポーン率に影響しない。SpawnEnemies()が`4 + CurrentFloor * 2`の固定式を使用し、夜間の増加/昼間の減少が未実装 | 高 | `GameController.cs:726-814,1856-1860` | 修正済み |
-| AV-3 | ThirstSystem.GetThirstModifiers()（STR/AGI/INT修正0.2-1.0倍）が一度も呼ばれない。脱水状態でもステータスペナルティなし | 高 | `ThirstSystem.cs` | 修正予定 |
-| AV-4 | 疲労修正値がメッセージ表示のみで実効果なし。fatigueMod取得後に攻撃力/移動速度への反映コードがなく、疲労はフレーバーテキスト | 高 | `GameController.cs:2237-2240` | 修正予定 |
+| AV-3 | ThirstSystem.GetThirstModifiers()（STR/AGI/INT修正0.2-1.0倍）が一度も呼ばれない。脱水状態でもステータスペナルティなし | 高 | `ThirstSystem.cs` | 修正済み |
+| AV-4 | 疲労修正値がメッセージ表示のみで実効果なし。fatigueMod取得後に攻撃力/移動速度への反映コードがなく、疲労はフレーバーテキスト | 高 | `GameController.cs:2237-2240` | 修正済み |
 | AV-5 | BodyConditionSystem.GetHygieneInfectionRisk()（衛生状態による感染リスク0.5-4.0倍）が一度も呼ばれない。不衛生でも病気リスク増加なし | 中 | `BodyConditionSystem.cs:54-74` | 修正済み |
 | AV-6 | 料理素材（生肉/塩/魚）がItemFactoryに未定義でCookingSystemの全レシピが作成不可能（W-1〜W-5と別カテゴリだが料理固有の問題） | 高 | `CookingSystem.cs`, `ItemFactory.cs:1159-1250` | 修正済み |
 
@@ -561,7 +561,7 @@
 | AW-2 | 誓約破棄にペナルティなし。BreakOath()が「ペナルティあり」とコメントされるが、実装は`_activeOaths.Remove(type)`のみで信仰/正気度/ステータスへの影響ゼロ | 高 | `OathSystem.cs:45-48` | 修正済み |
 | AW-3 | 信仰システムに献金/供物メカニクスが存在しない。Pray()のみが信仰ポイント獲得手段で、ゴールド/アイテムを捧げる経済的手段が未実装 | 中 | `ReligionSystem.cs:574-592` | 修正済み |
 | AW-4 | 奇跡/神の祝福を発動する手段がない。信仰ランクに基づくパッシブ恩恵は存在するが、RequestMiracle()等のアクティブな神の介入メカニクスが未定義 | 中 | `ReligionSystem.cs` | 修正済み |
-| AW-5 | ReputationSystem.GetQuestAvailability()が一度も呼ばれない。評判ランクに基づくクエスト解放率（0.0-1.0）が定義済みだが、クエスト掲示板でのフィルタリングに使用されない | 高 | `ReputationSystem.cs:65-76` | 修正予定 |
+| AW-5 | ReputationSystem.GetQuestAvailability()が一度も呼ばれない。評判ランクに基づくクエスト解放率（0.0-1.0）が定義済みだが、クエスト掲示板でのフィルタリングに使用されない | 高 | `ReputationSystem.cs:65-76` | 修正済み |
 
 ---
 
@@ -601,7 +601,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| BA-1 | 16体のNPCの対話ID（dlg_leon_intro等）がDialogueSystemに未登録。StartDialogue()がnullを返しNPC固有の対話ツリーが機能しない。汎用対話にフォールバック | 高 | `NpcSystem.cs:26-66`, `GameController.cs:5649` | 修正予定 |
+| BA-1 | 16体のNPCの対話ID（dlg_leon_intro等）がDialogueSystemに未登録。StartDialogue()がnullを返しNPC固有の対話ツリーが機能しない。汎用対話にフォールバック | 高 | `NpcSystem.cs:26-66`, `GameController.cs:5649` | 修正済み |
 | BA-2 | SymbolMapEventSystemの10種イベント（商人キャラバン/盗賊襲撃/放浪治療師等）がGameControllerから一度もトリガーされない。メタデータ取得のみ | 中 | `SymbolMapEventSystem.cs:18-40`, `GameController.cs:7890-7893` | 修正済み |
 | BA-3 | TutorialTrigger.ReachFloor10が定義済みだが発火コードなし。10階到達チュートリアルが永久に表示されない | 中 | `SmithingSystem.cs:224`, `GameController.cs` | 修正済み |
 | BA-4 | EncyclopediaSystemのモンスター以外のカテゴリ（アイテム/場所/伝承）にUIアクセスポイントがない。百科事典エントリが登録可能だが閲覧不可 | 中 | `EncyclopediaSystem.cs:1-215`, `GameController.cs` | 修正済み |
@@ -612,10 +612,10 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| BB-1 | RoomTypeのShop/Trap/Prison/Storageの4タイプが一度も生成されない。DecorateRooms()がTreasure/Shrineのみ生成し、他は全てNormal部屋 | 高 | `DungeonGenerator.cs:468-481` | 修正予定 |
+| BB-1 | RoomTypeのShop/Trap/Prison/Storageの4タイプが一度も生成されない。DecorateRooms()がTreasure/Shrineのみ生成し、他は全てNormal部屋 | 高 | `DungeonGenerator.cs:468-481` | 修正済み |
 | BB-2 | 5つのRoomType（Entrance/Prison/Storage/Shop/Trap）にDecorateRoom()のハンドラがない。生成されても装飾/インタラクション不可 | 高 | `RoomCorridorGenerator.cs:104-131` | 修正済み |
 | BB-3 | DungeonFeatureGeneratorの9テーマ（Cave/Ruins/Sewer/Mine/Crypt/Temple/IceCavern/Volcanic/Forest）のパラメータがDungeonGeneratorから参照されない。WaterTileChance/LavaTileChance/CorridorTwistChance等が未適用 | 高 | `DungeonFeatureGenerator.cs`, `DungeonGenerator.cs` | 修正済み |
-| BB-4 | Water/Lavaタイルが定義済みだがダンジョン生成で一度も配置されない。テーマ別環境タイルが完全に欠落 | 高 | `DungeonGenerator.cs`, `DungeonFeatureGenerator.cs` | 修正予定 |
+| BB-4 | Water/Lavaタイルが定義済みだがダンジョン生成で一度も配置されない。テーマ別環境タイルが完全に欠落 | 高 | `DungeonGenerator.cs`, `DungeonFeatureGenerator.cs` | 修正済み |
 | BB-5 | SecretRoomSystem.CalculateDiscoveryChance()/CalculateSecretRoomCount()が定義済みだがDungeonGeneratorから呼ばれない。秘密の部屋が報酬なしのSecretDoorタイルのみ | 中 | `DungeonGenerator.cs:520-558` | 修正済み |
 | BB-6 | 宝箱がChestOpened=falseで配置されるが開封インタラクションシステムが未接続。宝箱を実際に開けて中身を取得する手段がない | 致命的 | `DungeonGenerator.cs:583-627` | 修正済み |
 | BB-7 | 祠（Shrine）部屋にAltarタイルが配置されるが祝福/バフ付与システムが未接続。祈祷やバフの実効果なし | 高 | `RoomCorridorGenerator.cs:108-109` | 修正済み |
@@ -644,7 +644,7 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | BD-1 | Tキーに「アイテム投げ（ThrowItem）」と「街に入る（EnterTown）」の2アクションが重複バインド。コンテキスト判定で軽減されるが根本的なキー競合 | 致命的 | `KeyBindingSettings.cs:162,165` | 修正済み |
-| BD-2 | OpenCookingとQuitの2アクションにデフォルトキーバインドが未定義。キーボードからアクセス不可能 | 高 | `KeyBindingSettings.cs:145-193` | 修正予定 |
+| BD-2 | OpenCookingとQuitの2アクションにデフォルトキーバインドが未定義。キーボードからアクセス不可能 | 高 | `KeyBindingSettings.cs:145-193` | 修正済み |
 | BD-3 | DifficultySettingsの80%の乗数（ExpMultiplier/EnemyStatMultiplier/HungerDecayMultiplier/DamageTakenMultiplier/DamageDealtMultiplier）がGameControllerで使用されない。Hard/Nightmareを選択してもゲーム難易度がほぼ変わらない | 致命的 | `DifficultySettings.cs`, `GameController.cs:205` | 修正済み |
 | BD-4 | MainWindow.xamlのKeyBindActionマッピングにOpenCooking/Quitのcase文が欠落。キーバインドがあっても変換されずnull返却 | 高 | `MainWindow.xaml.cs:243-269` | 修正済み |
 
@@ -747,7 +747,7 @@
 |---|------|--------|------|---------|
 | BL-1 | KarmaSystem.GetShopPriceModifier()がGameControllerから一度も呼ばれない。PriceFluctuationSystemが独自に再計算するため完全なデッドコード | 高 | `KarmaSystem.cs:60-70`, `GameController.cs:5483-5514` | 修正済み |
 | BL-2 | KarmaSystem.GetNpcDispositionModifier()がGameControllerから一度も呼ばれない。聖者も悪人もNPC対話結果が同一 | 高 | `KarmaSystem.cs:72-83`, `GameController.cs:5694,5707` | 修正済み |
-| BL-3 | KarmaSystem.CanEnterHolyGround()がGameControllerから一度も呼ばれない。Criminal/Villainプレイヤーが教会/神殿に無制限アクセス可能 | 高 | `KarmaSystem.cs:89`, `GameController.cs` | 修正予定 |
+| BL-3 | KarmaSystem.CanEnterHolyGround()がGameControllerから一度も呼ばれない。Criminal/Villainプレイヤーが教会/神殿に無制限アクセス可能 | 高 | `KarmaSystem.cs:89`, `GameController.cs` | 修正済み |
 | BL-4 | カルマ変動トリガーが3箇所のみ（処刑+5/+3、密輸-5、闇市-2）。NPC支援/窃盗/対話中の嘘等の大半の選択がカルマ無影響 | 中 | `GameController.cs:1522,7646,7709` | 修正済み |
 
 ---
@@ -799,25 +799,25 @@
 | BQ-1 | KarmaSystemステート（カルマ値/履歴）がセーブされない。店舗価格/NPC態度/聖地アクセスに影響するカルマが消失 | 高 | `GameController.cs:41,6694-6801` | 修正済み |
 | BQ-2 | ReputationSystemステート（テリトリー別評判値）がセーブされない | 高 | `GameController.cs:42,6694-6801` | 修正済み |
 | BQ-3 | CompanionSystemステート（仲間/忠誠度/ステータス）がセーブされない。パーティ全消失 | 致命的 | `GameController.cs:43,6694-6801` | 修正済み |
-| BQ-4 | EncyclopediaSystemステート（モンスター討伐数/発見ティア）がセーブされない | 中 | `GameController.cs:44,6694-6801` | 修正予定 |
-| BQ-5 | DeathLogSystemステート（死亡記録/統計）がセーブされない | 中 | `GameController.cs:45,6694-6801` | 修正予定 |
-| BQ-6 | OathSystemステート（誓約/盟約進捗）がセーブされない | 中 | `GameController.cs:46,6694-6801` | 修正予定 |
+| BQ-4 | EncyclopediaSystemステート（モンスター討伐数/発見ティア）がセーブされない | 中 | `GameController.cs:44,6694-6801` | 修正済み |
+| BQ-5 | DeathLogSystemステート（死亡記録/統計）がセーブされない | 中 | `GameController.cs:45,6694-6801` | 修正済み |
+| BQ-6 | OathSystemステート（誓約/盟約進捗）がセーブされない | 中 | `GameController.cs:46,6694-6801` | 修正済み |
 | BQ-7 | SkillTreeSystemステート（習得スキル/パッシブ）がセーブされない。スキルツリー進捗全消失 | 致命的 | `GameController.cs:47,6694-6801` | 修正済み |
 | BQ-8 | BaseConstructionSystemステート（建設済み建物/アップグレード）がセーブされない。拠点建設全消失 | 致命的 | `GameController.cs:48,6694-6801` | 修正済み |
-| BQ-9 | InvestmentSystemステート（投資記録/リターン）がセーブされない | 中 | `GameController.cs:49,6694-6801` | 修正予定 |
-| BQ-10 | GridInventorySystemステート（グリッドレイアウト）がセーブされない | 中 | `GameController.cs:50,6694-6801` | 修正予定 |
-| BQ-11 | NpcMemorySystemステート（NPC記憶/知識）がセーブされない | 中 | `GameController.cs:54,6694-6801` | 修正予定 |
-| BQ-12 | RelationshipSystemステート（NPC間関係値）がセーブされない | 中 | `GameController.cs:55,6694-6801` | 修正予定 |
-| BQ-13 | ItemIdentificationSystemステート（アイテム識別状態）がセーブされない | 低 | `GameController.cs:56,6694-6801` | 修正予定 |
-| BQ-14 | DungeonEcosystemSystemステート（生態系状態）がセーブされない | 中 | `GameController.cs:57,6694-6801` | 修正予定 |
+| BQ-9 | InvestmentSystemステート（投資記録/リターン）がセーブされない | 中 | `GameController.cs:49,6694-6801` | 修正済み |
+| BQ-10 | GridInventorySystemステート（グリッドレイアウト）がセーブされない | 中 | `GameController.cs:50,6694-6801` | 修正済み |
+| BQ-11 | NpcMemorySystemステート（NPC記憶/知識）がセーブされない | 中 | `GameController.cs:54,6694-6801` | 修正済み |
+| BQ-12 | RelationshipSystemステート（NPC間関係値）がセーブされない | 中 | `GameController.cs:55,6694-6801` | 修正済み |
+| BQ-13 | ItemIdentificationSystemステート（アイテム識別状態）がセーブされない | 低 | `GameController.cs:56,6694-6801` | 修正済み |
+| BQ-14 | DungeonEcosystemSystemステート（生態系状態）がセーブされない | 中 | `GameController.cs:57,6694-6801` | 修正済み |
 | BQ-15 | PetSystemステート（ペット名簿/ステータス）がセーブされない。全ペット消失 | 致命的 | `GameController.cs:58,6694-6801` | 修正済み |
 | BQ-16 | MerchantGuildSystemステート（ギルドランク/進捗）がセーブされない | 中 | `GameController.cs:59,6694-6801` | 修正済み |
-| BQ-17 | InscriptionSystemステート（刻印ルーン/効果）がセーブされない | 中 | `GameController.cs:60,6694-6801` | 修正予定 |
+| BQ-17 | InscriptionSystemステート（刻印ルーン/効果）がセーブされない | 中 | `GameController.cs:60,6694-6801` | 修正済み |
 | BQ-18 | FactionWarSystemステート（派閥戦争/領土）がセーブされない | 中 | `GameController.cs:61,6694-6801` | 修正済み |
-| BQ-19 | TerritoryInfluenceSystemステート（テリトリー影響力）がセーブされない | 中 | `GameController.cs:62,6694-6801` | 修正予定 |
+| BQ-19 | TerritoryInfluenceSystemステート（テリトリー影響力）がセーブされない | 中 | `GameController.cs:62,6694-6801` | 修正済み |
 | BQ-20 | ProficiencySystemステート（武器/スキル熟練度）がセーブされない | 中 | `GameController.cs:65,6694-6801` | 修正済み |
-| BQ-21 | DungeonShortcutSystemステート（発見済みショートカット）がセーブされない | 中 | `GameController.cs:66,6694-6801` | 修正予定 |
-| BQ-22 | SmithingSystemステート（鍛冶レシピ/進捗）がセーブされない | 中 | `GameController.cs:67,6694-6801` | 修正予定 |
+| BQ-21 | DungeonShortcutSystemステート（発見済みショートカット）がセーブされない | 中 | `GameController.cs:66,6694-6801` | 修正済み |
+| BQ-22 | SmithingSystemステート（鍛冶レシピ/進捗）がセーブされない | 中 | `GameController.cs:67,6694-6801` | 修正済み |
 | BQ-23 | AchievementSystemステート（解除済み実績）がセーブされない。実績がロード時にリセット | 高 | `GameController.cs:68,6694-6801` | 修正済み |
 | BQ-24 | TutorialSystemステート（完了済みチュートリアルステップ）がセーブされない。毎回チュートリアル再表示 | 高 | `GameController.cs,SmithingSystem.cs:167-173` | 修正済み |
 
@@ -848,11 +848,11 @@
 | BS-6 | 防御計算が物理0.5/魔法0.3のハードコード定数。GameConstantsに未定義 | 中 | `Engine/Combat/DamageCalculator.cs:35,82` | 修正済み |
 | BS-7 | 再生（Regeneration）回復量がhealPerTick=3固定。MND/INTスケーリングなし | 中 | `Engine/StatusEffectSystem.cs:286` | 修正済み |
 | BS-8 | レベルによるダメージスケーリングが完全未実装。PhysicalDamageParams/MagicalDamageParamsにレベルフィールドなし | 高 | `Engine/Combat/DamageCalculator.cs,CombatSystem.cs` | 修正済み |
-| BS-9 | WeaponCritBonus/SkillCritBonusが常に0にハードコード。武器固有クリティカルボーナスが無効 | 高 | `Engine/Combat/CombatSystem.cs:293-294` | 修正予定 |
+| BS-9 | WeaponCritBonus/SkillCritBonusが常に0にハードコード。武器固有クリティカルボーナスが無効 | 高 | `Engine/Combat/CombatSystem.cs:293-294` | 修正済み |
 | BS-10 | ダメージ分散範囲が0.9-1.1固定。名前付き定数未定義 | 低 | `Engine/Combat/DamageCalculator.cs:39,86` | 修正済み |
 | BS-11 | 盾ブロック/パリィメカニクスがDamageCalculatorに未実装。Shield.BlockChanceが参照されない | 高 | `Engine/Combat/DamageCalculator.cs:192` | 修正済み |
 | BS-12 | 防具タイプ別物理耐性なし。重装/軽装が同じ防御計算 | 中 | `Engine/Combat/DamageCalculator.cs:32` | 修正済み |
-| BS-13 | 回復魔法の威力がBaseMpCost×3固定。MND/INTスケーリングなし | 高 | `Engine/Magic/SpellCastingSystem.cs:362-363` | 修正予定 |
+| BS-13 | 回復魔法の威力がBaseMpCost×3固定。MND/INTスケーリングなし | 高 | `Engine/Magic/SpellCastingSystem.cs:362-363` | 修正済み |
 | BS-14 | 呪文成功率にキャスターステータス（INT/MND）が反映されない。SpellParser固定値のみ | 高 | `Engine/Magic/SpellCastingSystem.cs:161` | 修正済み |
 | BS-15 | DoTダメージ（毒2%/猛毒5%）がハードコード。毒源による威力差なし | 中 | `Engine/StatusEffectSystem.cs:26,41` | 修正済み |
 | BS-16 | 攻撃者/防御者のレベル差によるダメージスケーリングなし | 中 | `Engine/Combat/DamageCalculator.cs,CombatSystem.cs` | 修正済み |
@@ -878,7 +878,7 @@
 | BT-9 | 複数エンチャント非対応。同一装備に2つ以上のエンチャントを持てない | 中 | `Equipment.cs:60-76` | 修正済み |
 | BT-10 | クラフトレシピが参照する`material_coal`がItemDefinitionsに定義されていない。鋼鉄の剣がクラフト不可 | 致命的 | `CraftingSystem.cs:275,ItemFactory.cs:1159-1260` | 修正済み |
 | BT-11 | クラフトにスキル/ツール/職業要件なし。全職業が全アイテムをクラフト可能 | 中 | `CraftingSystem.cs:92-111` | 修正済み |
-| BT-12 | ItemFactory.GenerateLoot()がDropTableSystemを使用しない。ボスドラゴンがゴブリンと同じランダムアイテムをドロップ | 致命的 | `ItemFactory.cs:950-969` | 修正予定 |
+| BT-12 | ItemFactory.GenerateLoot()がDropTableSystemを使用しない。ボスドラゴンがゴブリンと同じランダムアイテムをドロップ | 致命的 | `ItemFactory.cs:950-969` | 修正済み |
 | BT-13 | 非人型敵（Dragon/Undead/Demon）がゴールドをドロップしない。Humanoidのみゴールド生成 | 高 | `DropTableSystem.cs:188` | 修正済み |
 | BT-14 | 宝箱システム（TreasureChest/ChestGeneration）が存在しない。ダンジョン宝箱のアイテム生成不可 | 高 | リポジトリ全体 | 修正済み |
 | BT-15 | 強化レベルの上限検証なし。Legendary生成でEnhancementLevel=9が可能だが上限チェックなし | 低 | `ItemFactory.cs:879-886` | 修正済み |
@@ -894,7 +894,7 @@
 | BU-1 | 日変更検出メカニズムが存在しない。GameTime.Dayの変化を検出するパターンなし | 致命的 | `GameController.cs:2125+` | 修正済み |
 | BU-2 | ProcessReligionDailyTick()が定義済みだが**一度も呼び出されない**。信仰減衰/背教呪い/祈り日数が機能しない | 高 | `GameController.cs:4882` | 修正済み |
 | BU-3 | PetSystem.TickHunger()が一度も呼び出されない。ペットの空腹/忠誠度減衰が機能しない | 中 | `GameController.cs:58,PetSystem.cs:112` | 修正済み |
-| BU-4 | GameTimeのStartYear/StartMonth/StartDay/StartHour/StartMinuteがSaveDataに含まれない。ロード時にデフォルト値にリセット | 中 | `GameTime.cs:52-64,SaveData.cs:241-244` | 修正予定 |
+| BU-4 | GameTimeのStartYear/StartMonth/StartDay/StartHour/StartMinuteがSaveDataに含まれない。ロード時にデフォルト値にリセット | 中 | `GameTime.cs:52-64,SaveData.cs:241-244` | 修正済み |
 | BU-5 | コンパニオンの忠誠度減衰/空腹メカニクスが未実装。戦闘時のみ処理される | 中 | `CompanionSystem.cs,GameController.cs:1796` | 修正済み |
 | BU-6 | 施設/ショップの営業時間チェックなし。TimeOfDaySystemが施設可用性に接続されていない | 低 | `WorldMapSystem.cs:372` | 修正済み |
 | BU-7 | NPC行動スケジュールが600ターンごとの固定間隔で更新。時間帯変更との連動なし | 中 | `GameController.cs:2313-2320` | 修正済み |
@@ -1015,7 +1015,7 @@
 | CA-5 | SaveManager.Save()にtry/catchなし。ディスク容量不足/権限エラーで未処理例外によりクラッシュ | 高 | `SaveManager.cs:22-31` | 修正済み |
 | CA-6 | SaveManager.Load()で不正JSONのデシリアライズ失敗が未処理。破損セーブファイルでクラッシュの可能性 | 高 | `SaveManager.cs:36-43` | 修正済み |
 | CA-7 | MultiSlotSaveSystemがSaveManagerと連携しない。スロット管理がインメモリのみでファイルI/Oと不整合 | 中 | `MultiSlotSaveSystem.cs:6-69` | 修正済み |
-| CA-8 | FacingDirection（キャラクターの向き）がセーブに含まれない。ロード時にデフォルト方向にリセット | 中 | `SaveData.cs(欠落)`, `Character.cs` | 修正予定 |
+| CA-8 | FacingDirection（キャラクターの向き）がセーブに含まれない。ロード時にデフォルト方向にリセット | 中 | `SaveData.cs(欠落)`, `Character.cs` | 修正済み |
 
 ---
 
@@ -1119,7 +1119,7 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | CG-1 | GatheringSystemが5種ノード（Herb/Mining/Logging/Fishing/Foraging）を定義しているが、TileクラスにGatheringNodeフィールドが存在しない | 致命的 | `GatheringSystem.cs:6-90`, `Tile.cs:245-325` | 修正済み |
-| CG-2 | DungeonGeneratorにPlaceTraps()/PlaceChests()メソッドはあるがPlaceGatheringNodes()メソッドが存在しない。採集ノードがマップ上に配置されない | 高 | `DungeonGenerator.cs:560-576` | 修正予定 |
+| CG-2 | DungeonGeneratorにPlaceTraps()/PlaceChests()メソッドはあるがPlaceGatheringNodes()メソッドが存在しない。採集ノードがマップ上に配置されない | 高 | `DungeonGenerator.cs:560-576` | 修正済み |
 | CG-3 | GatheringSystemのスキルレベルによる成功率計算ロジックが存在するが、PlayerにGatheringProficiencyフィールドなし | 高 | `GatheringSystem.cs:40-60`, `Player.cs` | 修正済み |
 | CG-4 | MiningSystem/FishingSystemの道具要件（ツルハシ/釣り竿）がアイテム定義に存在しない。道具なしで採集を試行しても同じ結果 | 中 | `GatheringSystem.cs`, `ItemFactory.cs` | 修正済み |
 | CG-5 | 採集システムの希少度計算（Rarity）が定義されているがドロップテーブルとの連携なし。採集品の品質がランダムのみ | 中 | `GatheringSystem.cs:70-90`, `DropTableSystem.cs` | 修正済み |
@@ -1148,7 +1148,7 @@
 | CI-2 | ScrollType.Sanctuary/Freezeの2種がEnum定義・ファクトリメソッド存在するがScroll.Use()のswitch文に対応caseなし。使用時「何も起こらなかった」 | 中 | `Consumables.cs:274-319`, `ItemFactory.cs:801,750` | 修正済み |
 | CI-3 | AccessoryクラスのPassiveAbility/ActivatedSkill/SkillCooldownプロパティがCombatSystemから一切参照されない。アクセサリ効果が完全非機能 | 高 | `Equipment.cs:296-308`, `CombatSystem.cs` | 修正済み |
 | CI-4 | Equipment.Effectsリスト（ItemEffect）がOnEquip()で参照されるが実際の効果適用コードなし。LifeSteal/ManaRegen/ElementalDamage等が機能しない | 高 | `Equipment.cs:76,108-113`, `CombatSystem.cs` | 修正済み |
-| CI-5 | 識別の巻物（ScrollType.Identify）使用時に「アイテムを識別した！」メッセージが表示されるが実際のIsIdentifiedフラグ変更なし。ItemIdentificationSystem.Identify()が呼び出されない | 中 | `Consumables.cs:283-286`, `ItemIdentificationSystem.cs:36` | 修正予定 |
+| CI-5 | 識別の巻物（ScrollType.Identify）使用時に「アイテムを識別した！」メッセージが表示されるが実際のIsIdentifiedフラグ変更なし。ItemIdentificationSystem.Identify()が呼び出されない | 中 | `Consumables.cs:283-286`, `ItemIdentificationSystem.cs:36` | 修正済み |
 | CI-6 | 未識別アイテムがCanUse()でuser.IsAliveのみチェック。IsIdentified=falseでも使用可能で識別システムの意義が消失 | 低 | `Consumables.cs:9-26` | 修正済み |
 | CI-7 | ItemEffectType列挙の11種（HealHp/RestoreMp/RestoreSp/Damage/ApplyStatus/RemoveStatus/StatBuff/Teleport/RevealMap/Identify/LearnRuneWord）が戦闘計算で一切適用されない | 中 | `Item.cs:155-182`, `CombatSystem.cs` | 修正済み |
 | CI-8 | CookingSystem.CalculateQuality()がPlayer.Level*2をハードコードで使用。料理熟練度（CookingProficiency）フィールドがPlayerに存在しない | 中 | `GameController.cs:7215`, `CookingSystem.cs:19-26` | 修正済み |
