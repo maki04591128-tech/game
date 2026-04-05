@@ -75,6 +75,9 @@ public class BackgroundClearSystem
         _intFlags.Clear();
         _boolFlags.Clear();
 
+        // FZ-1: 破損セーブデータのnullチェック
+        if (data == null) return;
+
         foreach (var (key, value) in data.IntFlags)
             _intFlags[key] = value;
 

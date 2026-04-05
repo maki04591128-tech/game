@@ -29,8 +29,8 @@ public class Phase6Expansion_DifficultySettingsTests
     [Fact]
     public void Get_DefaultReturnsNormal()
     {
-        var s = DifficultySettings.Get((DifficultyLevel)999);
-        Assert.Equal(DifficultyLevel.Normal, s.Level);
+        // DM-3: 未定義の難易度はサイレントフォールバックせず例外をスロー
+        Assert.Throws<ArgumentOutOfRangeException>(() => DifficultySettings.Get((DifficultyLevel)999));
     }
 
     [Fact]

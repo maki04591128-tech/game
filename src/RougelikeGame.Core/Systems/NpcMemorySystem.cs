@@ -76,4 +76,11 @@ public class NpcMemorySystem
         RumorType.Unknown => "無名",
         _ => "不明"
     };
+
+    /// <summary>BQ-11: セーブデータから記憶を復元</summary>
+    public void RestoreMemories(IEnumerable<MemoryEntry> entries)
+    {
+        foreach (var entry in entries)
+            _memories.Add(entry);
+    }
 }

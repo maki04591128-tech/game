@@ -62,4 +62,22 @@ public class DungeonShortcutSystem
         var shortcuts = _unlockedShortcuts.Where(s => s.DungeonId == dungeonId).ToList();
         return shortcuts.Count > 0 ? shortcuts.Max(s => s.ToFloor) : 1;
     }
+
+
+    /// <summary>BQ-21: 訪問済みフロア一覧を取得</summary>
+    public IReadOnlyCollection<(string DungeonId, int Floor)> GetVisitedFloors() => _visitedFloors;
+
+    /// <summary>BQ-21: 解放済みショートカット一覧を取得</summary>
+    public IReadOnlyCollection<(string DungeonId, int FromFloor, int ToFloor)> GetUnlockedShortcuts() => _unlockedShortcuts;
+
+    /// <summary>BQ-21: セーブデータからショートカット状態を復元</summary>
+    public void RestoreState(
+        IEnumerable<(string DungeonId, int Floor)> visitedFloors,
+        IEnumerable<(string DungeonId, int FromFloor, int ToFloor)> shortcuts)
+    {
+        foreach (var vf in visitedFloors)
+            _visitedFloors.Add(vf);
+        foreach (var sc in shortcuts)
+            _unlockedShortcuts.Add(sc);
+    }
 }

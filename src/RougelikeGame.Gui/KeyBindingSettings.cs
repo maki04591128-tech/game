@@ -190,6 +190,10 @@ public class KeyBindingSettings
         [KeyBindAction.SkillSlot4] = new KeyBinding(Key.D4),
         [KeyBindAction.SkillSlot5] = new KeyBinding(Key.D5),
         [KeyBindAction.SkillSlot6] = new KeyBinding(Key.D6),
+
+        // BD-2: 料理・終了
+        [KeyBindAction.OpenCooking] = new KeyBinding(Key.H),
+        [KeyBindAction.Quit] = new KeyBinding(Key.Escape),
     };
 
     /// <summary>

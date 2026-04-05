@@ -97,4 +97,13 @@ public class GridInventorySystem
     {
         _items.Clear();
     }
+
+    /// <summary>BQ-10: セーブデータからグリッド配置を復元</summary>
+    public void RestoreGrid(IEnumerable<GridItem> items)
+    {
+        foreach (var item in items)
+        {
+            PlaceItem(item.ItemId, item.Name, item.Size, item.GridX, item.GridY, item.IsRotated);
+        }
+    }
 }

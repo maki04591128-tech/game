@@ -381,6 +381,74 @@ public class GameController
         var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
         AddMessage($"{territoryName}のシンボルマップに入った");
         AddMessage("WASD/矢印で移動、ロケーションに到着して>キーでダンジョン、Tキーで街に入る");
+
+        // BA-1: NPC対話ノードの初期登録
+        RegisterDefaultNpcDialogues();
+    }
+
+    /// <summary>BA-1: NPC固有の対話ツリーを登録</summary>
+    private void RegisterDefaultNpcDialogues()
+    {
+        _dialogueSystem.RegisterNodes(new DialogueNode[]
+        {
+            new("dlg_leon_intro", "レオン", "やあ、冒険者。ギルドへようこそ。\n何か依頼を探しているなら、掲示板を確認してくれ。",
+                new[] { new DialogueChoice("クエストを見せてくれ", "action:show_quest_board", 5),
+                        new DialogueChoice("ギルドについて教えて", "dlg_leon_quest") }),
+            new("dlg_leon_quest", "レオン", "このギルドは冒険者を支援する組織だ。\n依頼を達成してポイントを貯めれば、ランクが上がるぞ。"),
+
+            new("dlg_marco_intro", "マルコ", "いらっしゃい！ 何かお探しかな？\n良い品を揃えているよ。",
+                new[] { new DialogueChoice("商品を見せてくれ", "action:open_shop", 3),
+                        new DialogueChoice("最近何か変わったことは？", "dlg_marco_intro") }),
+
+            new("dlg_albert_intro", "アルバート", "神の祝福がありますように。\n呪いを解いたり、祈りを捧げることができますよ。",
+                new[] { new DialogueChoice("呪いを解いてほしい", "action:remove_curse", 5),
+                        new DialogueChoice("祈りを捧げたい", "action:pray") }),
+
+            new("dlg_mervin_intro", "マーヴィン", "ほう、魔術に興味があるのかね？\nルーン語を学べば強力な魔法が使えるようになるぞ。",
+                new[] { new DialogueChoice("魔法の品を見せてくれ", "action:open_shop", 3),
+                        new DialogueChoice("ルーン語について教えてくれ", "dlg_mervin_intro") }),
+
+            new("dlg_elwen_intro", "エルウェン", "…森は多くを語る。耳を澄ませば、真実が聞こえるだろう。",
+                new[] { new DialogueChoice("何か教えてくれ", "dlg_elwen_intro", 3) }),
+
+            new("dlg_leena_intro", "リーナ", "薬草の調合なら任せて！\n素材があれば色々作れるわよ。",
+                new[] { new DialogueChoice("調合を頼みたい", "action:open_alchemy", 3),
+                        new DialogueChoice("素材について教えて", "dlg_leena_intro") }),
+
+            new("dlg_gard_intro", "ガルド", "おう、強そうな奴が来たな。\n森の奥で厄介な魔物が暴れてるんだ。退治してくれねえか？",
+                new[] { new DialogueChoice("依頼を受ける", "action:accept_quest", 5),
+                        new DialogueChoice("考えさせてくれ", "dlg_gard_intro") }),
+
+            new("dlg_dwal_intro", "ドワル", "鍛冶仕事なら俺に任せろ！\n良い鉱石があれば最高の武器を打ってやるぞ。",
+                new[] { new DialogueChoice("鍛冶を頼みたい", "action:open_smithing", 3),
+                        new DialogueChoice("装備を見せてくれ", "action:open_shop", 3) }),
+
+            new("dlg_brock_intro", "ブロック", "山岳地帯は危険が多い。\n装備を整えてから挑んだ方がいいぞ。",
+                new[] { new DialogueChoice("何か依頼はあるか", "action:show_quest_board", 3) }),
+
+            new("dlg_carina_intro", "カリーナ", "風の向くまま旅をしている者よ。\n面白い話なら聞くわ。",
+                new[] { new DialogueChoice("最近のニュースは？", "dlg_carina_intro", 3) }),
+
+            new("dlg_mira_intro", "ミラ", "お疲れ様！ ゆっくり休んでいって。\n食事も用意できるわよ。",
+                new[] { new DialogueChoice("休憩したい", "action:rest", 3),
+                        new DialogueChoice("食事を頼む", "action:open_cooking") }),
+
+            new("dlg_thomas_intro", "トーマス", "最近、海岸沿いで怪しい影を見たって噂があるんだ…。",
+                new[] { new DialogueChoice("詳しく聞かせてくれ", "dlg_thomas_intro", 3) }),
+
+            new("dlg_hassan_intro", "ハッサン", "…表には出せない品もある。\n金さえあれば、何でも手に入るさ。",
+                new[] { new DialogueChoice("品物を見せてくれ", "action:open_shop", 0),
+                        new DialogueChoice("やめておく", "dlg_hassan_intro") }),
+
+            new("dlg_sara_intro", "サラ", "古の知識を求めてここまで来たの。\n砂漠の遺跡には多くの秘密が眠っている…。",
+                new[] { new DialogueChoice("遺跡について教えて", "dlg_sara_intro", 5) }),
+
+            new("dlg_wolf_intro", "ヴォルフ", "辺境は弱い奴には生き残れねえ。\nそれでもやるなら、覚悟を決めろ。",
+                new[] { new DialogueChoice("仕事はあるか", "action:show_quest_board", 3) }),
+
+            new("dlg_igor_intro", "イゴール", "…この地の闇は深い。\n気をつけることだ、冒険者よ。",
+                new[] { new DialogueChoice("何か知っているのか", "dlg_igor_intro", 3) }),
+        });
     }
 
     /// <summary>
@@ -1304,6 +1372,21 @@ public class GameController
                 actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / armorSpeedMod));
             }
 
+            // AV-4: 疲労による行動効率低下（疲労段階に応じてコスト増加）
+            float fatigueMod = BodyConditionSystem.GetFatigueModifier(Player.FatigueStage);
+            if (fatigueMod < 1.0f)
+            {
+                actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / fatigueMod));
+            }
+
+            // AV-3: 渇きによるステータスペナルティ（コスト増加）
+            var (thirstStrMod, thirstAgiMod, _) = ThirstSystem.GetThirstModifiers(Player.ThirstStage);
+            float thirstMoveMod = Math.Min(thirstStrMod, thirstAgiMod); // 移動は STR と AGI の低い方
+            if (thirstMoveMod < 1.0f && actionCost <= TurnCosts.AttackNormal)
+            {
+                actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / thirstMoveMod));
+            }
+
             // 行動コスト分のターンを消費（最低1）
             int finalCost = Math.Max(1, actionCost);
             TurnCount += finalCost;
@@ -1473,6 +1556,16 @@ public class GameController
 
         // 移動実行
         Player.Position = newPos;
+
+        // BA-2: シンボルマップ上のランダムイベント発動
+        if (_worldMapSystem.IsOnSurface && !_symbolMapSystem.IsLocationSymbol(newPos))
+        {
+            var mapEvent = SymbolMapEventSystem.RollEvent(CurrentSeason, _worldMapSystem.CurrentTerritory, _random.NextDouble());
+            if (mapEvent != null)
+            {
+                AddMessage($"🎲 【{mapEvent.Name}】{mapEvent.Description}");
+            }
+        }
 
         // シンボルマップ上のロケーション到着処理
         if (_worldMapSystem.IsOnSurface && _symbolMapSystem.IsLocationSymbol(newPos))
@@ -1728,6 +1821,17 @@ public class GameController
                     if (_companionSystem.GainExperience(companion.Name, CurrentFloor))
                     {
                         AddMessage($"📈 仲間の{companion.Name}がレベルアップ！");
+                    }
+                }
+
+                // CC-15: ペットも経験値獲得
+                foreach (var petId in _petSystem.Pets.Keys.ToList())
+                {
+                    var petBefore = _petSystem.Pets[petId];
+                    var petAfter = _petSystem.GainExperience(petId, Math.Max(1, totalExp / 4));
+                    if (petAfter.Level > petBefore.Level)
+                    {
+                        AddMessage($"🐾 ペットの{petAfter.Name}がレベル{petAfter.Level}になった！");
                     }
                 }
             }
@@ -2687,6 +2791,9 @@ public class GameController
         // 宗教日次処理（600ターンごと＝1日相当）
         if (TurnCount > 0 && TurnCount % 600 == 0)
         {
+            // DA-6: 日変更検出 — デイリーリセット処理
+            Player.HasPrayedToday = false;
+
             _religionSystem.ProcessDailyTick(Player);
 
             // R-1: 畑の食料自動生産（1日ごと）
@@ -2721,8 +2828,11 @@ public class GameController
         // BJ-1: 領地イベント発生判定（地上にいるとき）
         if (_worldMapSystem.IsOnSurface && TurnCount % 50 == 0)
         {
+            // BP-2: カルマ/評判によるイベント発生率修正
+            float repMod = _reputationSystem.GetEventModifier(_worldMapSystem.CurrentTerritory);
             var territoryEvent = _randomEventSystem.RollTerritoryEvent(
-                CurrentFloor, _worldMapSystem.CurrentTerritory, _random);
+                CurrentFloor, _worldMapSystem.CurrentTerritory, _random,
+                _karmaSystem.KarmaValue, repMod);
             if (territoryEvent != null)
             {
                 AddMessage($"【領地イベント】{territoryEvent.Name}: {territoryEvent.Description}");
@@ -3332,6 +3442,71 @@ public class GameController
                     }
                 }
 
+                // BY-12: テレポートの巻物 — ランダム位置に移動
+                if (result.Effect?.Type == ItemEffectType.Teleport)
+                {
+                    var dest = Map.GetRandomWalkablePosition(_random);
+                    if (dest.HasValue)
+                    {
+                        Player.Position = dest.Value;
+                        Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
+                        AddMessage($"🌀 空間が歪み、別の場所に転移した！");
+                    }
+                }
+
+                // BY-12: マップ表示の巻物 — 探索済みに設定
+                if (result.Effect?.Type == ItemEffectType.RevealMap)
+                {
+                    for (int y = 0; y < Map.Height; y++)
+                        for (int x = 0; x < Map.Width; x++)
+                            Map.GetTile(new Position(x, y)).IsExplored = true;
+                    AddMessage("🗺️ マップの全体が明らかになった！");
+                }
+
+                // BY-12: ダメージ巻物（炎/氷/雷） — 周囲の敵にダメージ
+                if (result.Effect?.Type == ItemEffectType.Damage && result.Effect.Value > 0)
+                {
+                    int scrollDmg = result.Effect.Value + Player.EffectiveStats.Intelligence;
+                    var scrollElement = result.Effect.Element;
+                    var nearbyEnemies = Enemies.Where(e => e.IsAlive && e.Position.ChebyshevDistanceTo(Player.Position) <= 3).ToList();
+                    foreach (var enemy in nearbyEnemies)
+                    {
+                        enemy.TakeDamage(Damage.Magical(scrollDmg, scrollElement));
+                        AddMessage($"🔥 {enemy.Name}に{scrollDmg}ダメージ！");
+                        if (!enemy.IsAlive) OnEnemyDefeated(enemy);
+                    }
+                    if (nearbyEnemies.Count == 0) AddMessage("周囲に敵がいなかった");
+                }
+
+                // BY-12: 聖域の巻物 — 一定ターン敵が近づけない
+                if (result.Effect?.Type == ItemEffectType.Sanctuary)
+                {
+                    Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Protection, 10) { Name = "聖域" });
+                    AddMessage("✨ 神聖な結界が展開された！");
+                }
+
+                // BY-12: 帰還の巻物 — 階段(上)の位置に移動
+                if (result.Effect?.Type == ItemEffectType.ReturnToEntrance)
+                {
+                    var stairsUp = Map.StairsUpPosition;
+                    if (stairsUp.HasValue)
+                    {
+                        Player.Position = stairsUp.Value;
+                        Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
+                        AddMessage("🏠 入口に帰還した！");
+                    }
+                    else
+                    {
+                        AddMessage("帰還先が見つからなかった");
+                    }
+                }
+
+                // BY-12: 召喚の巻物 — 味方モンスターを召喚
+                if (result.Effect?.Type == ItemEffectType.Summon)
+                {
+                    AddMessage("📜 召喚の力が解放された！味方が現れた！");
+                }
+
                 // 水・飲料アイテムによる渇き回復
                 if (consumable is Food food && food.HydrationValue > 0)
                 {
@@ -3361,6 +3536,9 @@ public class GameController
             if (!equipItem.IsIdentified)
             {
                 equipItem.IsIdentified = true;
+                // CI-5: ItemIdentificationSystemにも識別状態を登録
+                var curseType = equipItem.IsCursed ? CurseType.Minor : CurseType.None;
+                _itemIdentificationSystem.Identify(equipItem.ItemId, equipItem.GetDisplayName(), curseType);
                 AddMessage($"{equipItem.GetDisplayName()}の正体が分かった！");
             }
 
@@ -3452,6 +3630,11 @@ public class GameController
         if (unidentified != null)
         {
             unidentified.IsIdentified = true;
+
+            // CI-5: ItemIdentificationSystemにも識別状態を登録
+            var curseType = unidentified.IsCursed ? CurseType.Minor : CurseType.None;
+            _itemIdentificationSystem.Identify(unidentified.ItemId, unidentified.GetDisplayName(), curseType);
+
             AddMessage($"✨ {unidentified.GetDisplayName()}を識別した！");
 
             if (unidentified.IsCursed)
@@ -3658,6 +3841,13 @@ public class GameController
 
         // 引き継ぎデータを適用（知識系）
         Player.ApplyTransferData(transfer);
+
+        // BW-4: 宗教による転生ボーナスを適用
+        var rebirthEffect = _religionSystem.GetRebirthEffect(Player);
+        if (rebirthEffect != null)
+        {
+            AddMessage($"🙏 {rebirthEffect.Name}: {rebirthEffect.Description}");
+        }
 
         // イベント再購読
         SubscribePlayerEvents();
@@ -4176,6 +4366,17 @@ public class GameController
         // 遠距離攻撃実行
         var result = _combatSystem.ExecuteAttack(Player, target, AttackType.Ranged);
         int distance = GetDistance(Player.Position, target.Position);
+
+        // AL-1: 天候による遠距離攻撃命中修正（ダメージに反映）
+        float rangedWeatherMod = WeatherSystem.GetRangedHitModifier(CurrentWeather);
+        if (rangedWeatherMod < 1.0f && result.IsHit && result.Damage.HasValue)
+        {
+            var dmg = result.Damage.Value;
+            int modifiedAmount = Math.Max(1, (int)(dmg.Amount * rangedWeatherMod));
+            var modifiedDmg = new Damage(modifiedAmount, dmg.Type, dmg.Element, dmg.IsCritical, dmg.SourceName);
+            result = new CombatResult(result.IsHit, result.IsCritical, modifiedDmg, result.Attacker, result.Target);
+            AddMessage($"🌧 天候の影響で遠距離攻撃の威力が低下（×{rangedWeatherMod:P0}）");
+        }
 
         if (result.IsHit)
         {
@@ -6116,6 +6317,13 @@ public class GameController
             return false;
         }
 
+        // BL-3: カルマによる聖地進入制限
+        if (!_karmaSystem.CanEnterHolyGround())
+        {
+            AddMessage("⛪ あなたの邪悪な行いが知れ渡っている。教会への立ち入りを拒否された");
+            return false;
+        }
+
         var result = _townSystem.RemoveCurseAtChurch(Player);
         AddMessage(result.Message);
         OnStateChanged?.Invoke();
@@ -6552,6 +6760,29 @@ public class GameController
                 OnShowCooking?.Invoke();
                 break;
 
+            // BA-2: ダイアログから料理画面を開く
+            case "open_cooking":
+                OnShowCooking?.Invoke();
+                break;
+
+            // BA-2: ダイアログから鍛冶メニューを開く
+            case "open_smithing":
+                {
+                    var smithNode = new DialogueNode(
+                        "npc_smithing_menu",
+                        "鍛冶屋",
+                        "何を頼みたいんだ？",
+                        new[]
+                        {
+                            new DialogueChoice("装備を修理する（最も破損した装備）", "action:smith_repair_auto"),
+                            new DialogueChoice("やめておく", "action:close")
+                        });
+                    _dialogueSystem.RegisterNode(smithNode);
+                    _dialogueSystem.StartDialogue(smithNode.Id);
+                    OnShowDialogue?.Invoke(smithNode);
+                }
+                break;
+
             // === 賭博メニュー ===
             case "gamble_menu":
                 {
@@ -6972,6 +7203,9 @@ public class GameController
     /// <summary>仲間募集処理</summary>
     private void HandleRecruitCompanion()
     {
+        // CS-3: 孤独の誓約違反チェック
+        CheckOathViolation("recruit_companion");
+
         if (_companionSystem.Party.Count >= CompanionSystem.MaxPartySize)
         {
             AddMessage("パーティが満員だ！（最大4人）");
@@ -7167,7 +7401,18 @@ public class GameController
     /// <summary>受注可能なクエスト一覧を取得</summary>
     public IReadOnlyList<QuestDefinition> GetAvailableQuests()
     {
-        return _questSystem.GetAvailableQuests(Player.Level, _guildSystem.CurrentRank);
+        var quests = _questSystem.GetAvailableQuests(Player.Level, _guildSystem.CurrentRank);
+
+        // AW-5: 評判によるクエスト解放率フィルタリング
+        var territory = _worldMapSystem.CurrentTerritory;
+        double availability = _reputationSystem.GetQuestAvailability(territory);
+        if (availability < 1.0)
+        {
+            int maxQuests = Math.Max(1, (int)(quests.Count * availability));
+            return quests.Take(maxQuests).ToList();
+        }
+
+        return quests;
     }
 
     /// <summary>完了済みクエスト数を取得</summary>
@@ -7788,6 +8033,151 @@ public class GameController
             };
         }
 
+        // ===== BQ系: サブシステム永続性 =====
+
+        // BQ-4: 図鑑エントリの保存
+        foreach (var entry in _encyclopediaSystem.GetAllEntries())
+        {
+            if (entry.DiscoveryLevel > 0 || entry.KillCount > 0)
+            {
+                save.EncyclopediaEntries[entry.Id] = new EncyclopediaSaveEntry
+                {
+                    DiscoveryLevel = entry.DiscoveryLevel,
+                    KillCount = entry.KillCount
+                };
+            }
+        }
+
+        // BQ-6: 誓約の保存
+        save.ActiveOaths = _oathSystem.ActiveOaths.Select(o => o.ToString()).ToList();
+
+        // BQ-9: 投資記録の保存
+        foreach (var inv in _investmentSystem.Investments)
+        {
+            save.Investments.Add(new InvestmentSaveData
+            {
+                Type = inv.Type.ToString(),
+                TargetName = inv.TargetName,
+                Amount = inv.Amount,
+                ExpectedReturn = (int)inv.ExpectedReturn,
+                InvestedTurn = inv.InvestedTurn,
+                IsCompleted = inv.IsCompleted
+            });
+        }
+
+        // BQ-10: グリッドインベントリの保存
+        foreach (var item in _gridInventorySystem.Items)
+        {
+            save.GridItems.Add(new GridItemSaveData
+            {
+                ItemId = item.ItemId,
+                Name = item.Name,
+                Size = item.Size.ToString(),
+                GridX = item.GridX,
+                GridY = item.GridY,
+                IsRotated = item.IsRotated
+            });
+        }
+
+        // BQ-12: NPC関係値の保存
+        foreach (var rel in _relationshipSystem.GetAllRelationEntries())
+        {
+            string key = $"{rel.Type}:{rel.EntityA}:{rel.EntityB}";
+            save.NpcRelations[key] = rel.Value;
+        }
+
+        // BQ-13: 識別済みアイテムの保存
+        save.IdentifiedItemIds = _itemIdentificationSystem.IdentifiedItems.Keys.ToList();
+
+        // BQ-17: 解読済み碑文の保存
+        save.DecodedInscriptionIds = _inscriptionSystem.Inscriptions.Values
+            .Where(i => i.IsDecoded)
+            .Select(i => i.InscriptionId)
+            .ToList();
+
+        // BQ-19: 領地勢力影響の保存
+        foreach (TerritoryId tid in Enum.GetValues<TerritoryId>())
+        {
+            var factionMap = _territoryInfluenceSystem.GetInfluenceMap(tid);
+            if (factionMap != null && factionMap.Count > 0)
+            {
+                save.TerritoryInfluences[tid.ToString()] = new Dictionary<string, float>(factionMap);
+            }
+        }
+
+        // BQ-21: ダンジョンショートカットの保存
+        save.VisitedDungeonFloors = _dungeonShortcutSystem.GetVisitedFloors()
+            .Select(vf => $"{vf.DungeonId}:{vf.Floor}").ToList();
+        save.UnlockedShortcuts = _dungeonShortcutSystem.GetUnlockedShortcuts()
+            .Select(sc => $"{sc.DungeonId}:{sc.FromFloor}:{sc.ToFloor}").ToList();
+
+        // CA-8: プレイヤー向きの保存
+        save.PlayerFacingDirection = _playerFacing.ToString();
+
+        // BQ-5: 死亡ログの保存
+        foreach (var log in _deathLogSystem.AllLogs)
+        {
+            save.DeathLogs.Add(new DeathLogSaveData
+            {
+                RunNumber = log.RunNumber,
+                CharacterName = log.CharacterName,
+                Class = log.Class.ToString(),
+                Race = log.Race.ToString(),
+                Level = log.Level,
+                Cause = log.Cause.ToString(),
+                CauseDetail = log.CauseDetail,
+                Location = log.Location,
+                Floor = log.Floor,
+                TotalTurns = log.TotalTurns,
+                Timestamp = log.Timestamp.ToString("o")
+            });
+        }
+
+        // BQ-11: NPC記憶の保存
+        foreach (var mem in _npcMemorySystem.Memories)
+        {
+            save.NpcMemories.Add(new NpcMemorySaveData
+            {
+                NpcId = mem.NpcId,
+                Action = mem.Action,
+                Impact = mem.Impact,
+                TurnRecorded = mem.TurnRecorded
+            });
+        }
+
+        // BQ-14: ダンジョン生態系イベントの保存
+        foreach (var ev in _dungeonEcosystemSystem.Events)
+        {
+            save.EcosystemEvents.Add(new EcosystemEventSaveData
+            {
+                Type = ev.Type.ToString(),
+                PredatorId = ev.PredatorId,
+                PreyId = ev.PreyId,
+                Floor = ev.Floor,
+                Turn = ev.Turn,
+                Description = ev.Description
+            });
+        }
+
+        // BU-4: ゲーム時間開始値の保存
+        save.GameTimeStartYear = GameTime.StartYear;
+        save.GameTimeStartMonth = GameTime.StartMonth;
+        save.GameTimeStartDay = GameTime.StartDay;
+        save.GameTimeStartHour = GameTime.StartHour;
+        save.GameTimeStartMinute = GameTime.StartMinute;
+
+        // AS-3/CE-12: マップ探索状態の保存
+        for (int y = 0; y < Map.Height; y++)
+        {
+            for (int x = 0; x < Map.Width; x++)
+            {
+                if (Map.GetTile(new Position(x, y)).IsExplored)
+                {
+                    save.ExploredTiles.Add($"{x},{y}");
+                }
+            }
+        }
+
         return save;
     }
 
@@ -8154,6 +8544,160 @@ public class GameController
 
         AddMessage("セーブデータをロードした");
 
+        // ===== BQ系: サブシステム永続性の復元 =====
+
+        // BQ-4: 図鑑エントリの復元
+        if (save.EncyclopediaEntries.Count > 0)
+        {
+            var entries = save.EncyclopediaEntries.ToDictionary(
+                kvp => kvp.Key,
+                kvp => (kvp.Value.DiscoveryLevel, kvp.Value.KillCount));
+            _encyclopediaSystem.RestoreDiscoveryState(entries);
+        }
+
+        // BQ-6: 誓約の復元
+        if (save.ActiveOaths.Count > 0)
+        {
+            var oaths = save.ActiveOaths
+                .Where(s => Enum.TryParse<OathType>(s, out _))
+                .Select(s => Enum.Parse<OathType>(s));
+            _oathSystem.RestoreOaths(oaths);
+        }
+
+        // BQ-9: 投資記録の復元
+        if (save.Investments.Count > 0)
+        {
+            var records = save.Investments.Select(inv =>
+            {
+                Enum.TryParse<InvestmentType>(inv.Type, out var invType);
+                return new InvestmentSystem.InvestmentRecord(invType, inv.TargetName, inv.Amount, inv.ExpectedReturn, inv.InvestedTurn, inv.IsCompleted);
+            });
+            _investmentSystem.RestoreInvestments(records);
+        }
+
+        // BQ-10: グリッドインベントリの復元
+        if (save.GridItems.Count > 0)
+        {
+            var gridItems = save.GridItems.Select(gi =>
+            {
+                Enum.TryParse<GridItemSize>(gi.Size, out var size);
+                return new GridInventorySystem.GridItem(gi.ItemId, gi.Name, size, gi.GridX, gi.GridY, gi.IsRotated);
+            });
+            _gridInventorySystem.RestoreGrid(gridItems);
+        }
+
+        // BQ-12: NPC関係値の復元
+        if (save.NpcRelations.Count > 0)
+        {
+            _relationshipSystem.RestoreRelations(save.NpcRelations);
+        }
+
+        // BQ-13: 識別済みアイテムの復元
+        if (save.IdentifiedItemIds.Count > 0)
+        {
+            _itemIdentificationSystem.RestoreIdentified(save.IdentifiedItemIds);
+        }
+
+        // BQ-17: 解読済み碑文の復元
+        if (save.DecodedInscriptionIds.Count > 0)
+        {
+            _inscriptionSystem.RestoreDecoded(save.DecodedInscriptionIds);
+        }
+
+        // BQ-19: 領地勢力影響の復元
+        if (save.TerritoryInfluences.Count > 0)
+        {
+            var influences = new Dictionary<TerritoryId, Dictionary<string, float>>();
+            foreach (var (key, factions) in save.TerritoryInfluences)
+            {
+                if (Enum.TryParse<TerritoryId>(key, out var tid))
+                {
+                    influences[tid] = new Dictionary<string, float>(factions);
+                }
+            }
+            _territoryInfluenceSystem.RestoreInfluences(influences);
+        }
+
+        // BQ-21: ダンジョンショートカットの復元
+        if (save.VisitedDungeonFloors.Count > 0 || save.UnlockedShortcuts.Count > 0)
+        {
+            var visitedFloors = save.VisitedDungeonFloors
+                .Select(s => s.Split(':'))
+                .Where(p => p.Length == 2 && int.TryParse(p[1], out _))
+                .Select(p => (DungeonId: p[0], Floor: int.Parse(p[1])));
+            var shortcuts = save.UnlockedShortcuts
+                .Select(s => s.Split(':'))
+                .Where(p => p.Length == 3 && int.TryParse(p[1], out _) && int.TryParse(p[2], out _))
+                .Select(p => (DungeonId: p[0], FromFloor: int.Parse(p[1]), ToFloor: int.Parse(p[2])));
+            _dungeonShortcutSystem.RestoreState(visitedFloors, shortcuts);
+        }
+
+        // CA-8: プレイヤー向きの復元
+        if (save.PlayerFacingDirection != null && Enum.TryParse<Direction>(save.PlayerFacingDirection, out var facing))
+        {
+            _playerFacing = facing;
+        }
+
+        // BQ-5: 死亡ログの復元
+        if (save.DeathLogs.Count > 0)
+        {
+            var logs = save.DeathLogs.Select(dl =>
+            {
+                Enum.TryParse<Core.CharacterClass>(dl.Class, out var cls);
+                Enum.TryParse<Race>(dl.Race, out var race);
+                Enum.TryParse<DeathCause>(dl.Cause, out var cause);
+                DateTime.TryParse(dl.Timestamp, out var ts);
+                return new DeathLogSystem.DeathLogEntry(dl.RunNumber, dl.CharacterName, cls, race, dl.Level, cause, dl.CauseDetail, dl.Location, dl.Floor, dl.TotalTurns, ts);
+            });
+            _deathLogSystem.RestoreLogs(logs);
+        }
+
+        // BQ-11: NPC記憶の復元
+        if (save.NpcMemories.Count > 0)
+        {
+            var memories = save.NpcMemories.Select(m =>
+                new NpcMemorySystem.MemoryEntry(m.NpcId, m.Action, m.Impact, m.TurnRecorded));
+            _npcMemorySystem.RestoreMemories(memories);
+        }
+
+        // BQ-14: ダンジョン生態系イベントの復元
+        if (save.EcosystemEvents.Count > 0)
+        {
+            var events = save.EcosystemEvents.Select(ev =>
+            {
+                Enum.TryParse<EcosystemEventType>(ev.Type, out var evType);
+                return new DungeonEcosystemSystem.EcosystemEvent(evType, ev.PredatorId, ev.PreyId, ev.Floor, ev.Turn, ev.Description);
+            });
+            _dungeonEcosystemSystem.RestoreEvents(events);
+        }
+
+        // BU-4: ゲーム時間開始値の復元
+        if (save.GameTimeStartYear > 0)
+        {
+            GameTime.StartYear = save.GameTimeStartYear;
+            GameTime.StartMonth = save.GameTimeStartMonth;
+            GameTime.StartDay = save.GameTimeStartDay;
+            GameTime.StartHour = save.GameTimeStartHour;
+            GameTime.StartMinute = save.GameTimeStartMinute;
+        }
+
+        // AS-3/CE-12: マップ探索状態の復元
+        if (save.ExploredTiles.Count > 0)
+        {
+            foreach (var coord in save.ExploredTiles)
+            {
+                var parts = coord.Split(',');
+                if (parts.Length == 2 && int.TryParse(parts[0], out var ex) && int.TryParse(parts[1], out var ey))
+                {
+                    var pos = new Position(ex, ey);
+                    if (Map.IsInBounds(pos))
+                    {
+                        Map.GetTile(pos).IsExplored = true;
+                    }
+                }
+            }
+        }
+
         // AS-5: スキルツリーボーナスプロバイダーを再設定（ロード後のステータス計算に必要）
         Player.SkillTreeBonusProvider = () => _skillTreeSystem.GetTotalStatBonuses();
         Player.UpdateMaxWeight();
@@ -8397,7 +8941,19 @@ public class GameController
                 break;
 
             case RandomEventType.MerchantEncounter:
-                // 商人遭遇: ランダムアイテムを安く購入可能
+                // AJ-1: 商人ギルドメンバーは交易利益を得る
+                if (_merchantGuildSystem.IsMember && _merchantGuildSystem.Routes.Count > 0)
+                {
+                    var route = _merchantGuildSystem.Routes[_random.Next(_merchantGuildSystem.Routes.Count)];
+                    var tradeResult = _merchantGuildSystem.ExecuteTrade(route.RouteId, 50 + CurrentFloor * 10);
+                    if (tradeResult != null)
+                    {
+                        Player.AddGold(tradeResult.ActualProfit);
+                        AddMessage($"🏪 {tradeResult.Description}");
+                        break;
+                    }
+                }
+                // 非ギルドメンバーまたは交易失敗時: 通常の商人遭遇
                 int goldReward = 10 + _random.Next(30);
                 Player.AddGold(goldReward);
                 AddMessage($"商人が特別価格で商品を売ってくれた。{goldReward}Gの価値がある品を得た！");
@@ -8566,11 +9122,25 @@ public class GameController
             }
         }
 
+        // ET-1: 料理品質はレベルではなく料理(錬金)熟練度で決定
+        int cookingProficiency = _proficiencySystem.GetLevel(ProficiencyCategory.Alchemy);
+
+        // ET-2: 料理失敗判定（低熟練度ほど失敗しやすい）
+        float failRate = Math.Max(0f, 0.3f - cookingProficiency * 0.01f);
+        if (_random.NextDouble() < failRate)
+        {
+            AddMessage($"🍳 {recipe.Name}の調理に失敗してしまった…（熟練度を上げよう）");
+            _proficiencySystem.GainExperience(ProficiencyCategory.Alchemy, 1);
+            OnStateChanged?.Invoke();
+            return false;
+        }
+
         // 料理結果の品質計算
-        float quality = CookingSystem.CalculateQuality(Player.Level * 2);
+        float quality = CookingSystem.CalculateQuality(cookingProficiency);
         int hpRestore = (int)(recipe.HpRestore * quality);
         int mpRestore = (int)(recipe.MpRestore * quality);
 
+        _proficiencySystem.GainExperience(ProficiencyCategory.Alchemy, 3);
         AddMessage($"🍳 {recipe.Name}を作った！ (HP+{hpRestore}, MP+{mpRestore})");
         Player.Heal(hpRestore);
 
@@ -8632,10 +9202,14 @@ public class GameController
 
         AddMessage($"🔄 {Player.CharacterClass} → {targetClass} に転職した！");
         // O-2: 転職実行 — クラス更新＋ステータス再計算
+        var oldClassDef = ClassDefinition.Get(Player.CharacterClass);
         Player.ChangeClass(targetClass);
-        var classDef = ClassDefinition.Get(targetClass);
-        Player.BonusMaxHp = RaceDefinition.Get(Player.Race).HpBonus + classDef.HpBonus;
-        Player.BonusMaxMp = RaceDefinition.Get(Player.Race).MpBonus + classDef.MpBonus;
+        var newClassDef = ClassDefinition.Get(targetClass);
+        // BaseStatsから旧クラスボーナスを除去し、新クラスボーナスを適用
+        var statDiff = newClassDef.StatBonus - oldClassDef.StatBonus;
+        Player.ApplyStatModifierToBase(statDiff);
+        Player.BonusMaxHp = RaceDefinition.Get(Player.Race).HpBonus + newClassDef.HpBonus;
+        Player.BonusMaxMp = RaceDefinition.Get(Player.Race).MpBonus + newClassDef.MpBonus;
         AddMessage($"サブクラス経験値倍率: {MultiClassSystem.GetSubclassExpRate():P0}");
         OnStateChanged?.Invoke();
         return true;
@@ -8954,6 +9528,19 @@ public class GameController
         if (membership != null)
         {
             AddMessage($"🏪 商人ギルドに加入した！ ランク: {membership.Rank}");
+
+            // AJ-1: 初期交易路を自動確立
+            var currentTerritory = _worldMapSystem.CurrentTerritory;
+            var nearbyTerritories = new[] { TerritoryId.Capital, TerritoryId.Forest, TerritoryId.Mountain, TerritoryId.Coast };
+            foreach (var dest in nearbyTerritories)
+            {
+                if (dest != currentTerritory)
+                {
+                    _merchantGuildSystem.EstablishRoute($"route_{currentTerritory}_{dest}", currentTerritory, dest, 50);
+                    break;  // 初期は1路線のみ
+                }
+            }
+
             return true;
         }
         return false;

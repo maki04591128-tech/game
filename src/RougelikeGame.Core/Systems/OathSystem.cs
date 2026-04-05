@@ -89,4 +89,11 @@ public class OathSystem
     {
         _activeOaths.Clear();
     }
+
+    /// <summary>BQ-6: セーブデータから誓約を復元</summary>
+    public void RestoreOaths(IEnumerable<OathType> oaths)
+    {
+        foreach (var oath in oaths)
+            _activeOaths.Add(oath);
+    }
 }

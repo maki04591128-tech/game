@@ -580,7 +580,17 @@ public enum RoomType
     /// <summary>
     /// 隠し部屋
     /// </summary>
-    Secret
+    Secret,
+
+    /// <summary>
+    /// BB-1: 店
+    /// </summary>
+    Shop,
+
+    /// <summary>
+    /// BB-1: 罠部屋
+    /// </summary>
+    TrapRoom
 }
 
 /// <summary>

@@ -59,6 +59,19 @@ public class DungeonGenerator : IMapGenerator
         // 宝箱を配置
         PlaceChests(map, parameters);
 
+        // AE-1/BB-4: 特殊タイル（Water/Lava）を配置
+        PlaceEnvironmentTiles(map, parameters);
+
+        // CG-2: 採集ノードを配置
+        PlaceGatheringNodes(map, parameters);
+
+        // AE-5: 秘密部屋を配置（3階以降、FeaturePlacer経由）
+        if (parameters.Depth >= 3)
+        {
+            var featurePlacer = new FeaturePlacer(_random);
+            featurePlacer.PlaceSecretRooms(map, 1);
+        }
+
         // ルーン碑文を配置（遺跡系ダンジョン）
         PlaceRuneInscriptions(map, parameters);
 
@@ -541,6 +554,42 @@ public class DungeonGenerator : IMapGenerator
             normalRooms.Remove(shrineRoom);
         }
 
+        // AE-4/BB-1: 追加の特殊部屋タイプを割り当て
+        if (normalRooms.Count > 2 && parameters.Depth >= 3)
+        {
+            var shopRoom = normalRooms[_random.Next(normalRooms.Count)];
+            shopRoom.Type = RoomType.Shop;
+            normalRooms.Remove(shopRoom);
+        }
+
+        if (normalRooms.Count > 2 && parameters.Depth >= 5)
+        {
+            var trapRoom = normalRooms[_random.Next(normalRooms.Count)];
+            trapRoom.Type = RoomType.TrapRoom;
+            normalRooms.Remove(trapRoom);
+        }
+
+        if (normalRooms.Count > 2 && parameters.Depth >= 7)
+        {
+            var libraryRoom = normalRooms[_random.Next(normalRooms.Count)];
+            libraryRoom.Type = RoomType.Library;
+            normalRooms.Remove(libraryRoom);
+        }
+
+        if (normalRooms.Count > 2 && parameters.Depth >= 10)
+        {
+            var prisonRoom = normalRooms[_random.Next(normalRooms.Count)];
+            prisonRoom.Type = RoomType.Prison;
+            normalRooms.Remove(prisonRoom);
+        }
+
+        if (normalRooms.Count > 2 && parameters.Depth >= 4)
+        {
+            var storageRoom = normalRooms[_random.Next(normalRooms.Count)];
+            storageRoom.Type = RoomType.Storage;
+            normalRooms.Remove(storageRoom);
+        }
+
         // 各部屋を装飾
         foreach (var room in rooms)
         {
@@ -804,6 +853,61 @@ public class DungeonGenerator : IMapGenerator
 
             _ => (defaultCommon, defaultUncommon, defaultRare)
         };
+    }
+
+    /// <summary>AE-1/BB-4: 環境タイル（Water/Lava/DeepWater/Tree）を配置する</summary>
+    private void PlaceEnvironmentTiles(DungeonMap map, DungeonGenerationParameters parameters)
+    {
+        int floorTiles = map.CountFloorTiles();
+        // 階層が深いほど環境タイルが増加
+        int envTileCount = Math.Max(0, (int)(floorTiles * 0.02f * (1 + parameters.Depth * 0.1f)));
+
+        for (int i = 0; i < envTileCount; i++)
+        {
+            var pos = map.GetRandomWalkablePosition(_random);
+            if (!pos.HasValue || map.GetTileType(pos.Value) != TileType.Floor) continue;
+
+            // 階層に応じたタイルタイプを選択
+            TileType envType = parameters.Depth switch
+            {
+                < 5 => _random.Next(2) == 0 ? TileType.Water : TileType.Tree,
+                < 15 => (_random.Next(3)) switch
+                {
+                    0 => TileType.Water,
+                    1 => TileType.DeepWater,
+                    _ => TileType.Pit
+                },
+                _ => (_random.Next(4)) switch
+                {
+                    0 => TileType.Lava,
+                    1 => TileType.DeepWater,
+                    2 => TileType.Pit,
+                    _ => TileType.Water
+                }
+            };
+
+            map.SetTile(pos.Value, envType);
+        }
+    }
+
+    /// <summary>CG-2: 採集ノード（鉱石・薬草等）を配置する</summary>
+    private void PlaceGatheringNodes(DungeonMap map, DungeonGenerationParameters parameters)
+    {
+        int nodeCount = 1 + parameters.Depth / 3; // 3階ごとに+1ノード
+
+        for (int i = 0; i < nodeCount; i++)
+        {
+            var pos = map.GetRandomWalkablePosition(_random);
+            if (!pos.HasValue || map.GetTileType(pos.Value) != TileType.Floor) continue;
+
+            var tile = map[pos.Value];
+            tile.GatheringNodeType = _random.Next(3) switch
+            {
+                0 => GatheringType.Mining,    // 鉱石
+                1 => GatheringType.Herb,      // 薬草
+                _ => GatheringType.Foraging   // 採集
+            };
+        }
     }
 
     /// <summary>遺跡・魔法系ダンジョンにルーン碑文を配置する</summary>
