@@ -359,7 +359,7 @@ public class SymbolMapSystemTests
     public void SymbolMountain_IsPassableWithHighMovementCost()
     {
         var tile = Tile.FromType(TileType.SymbolMountain);
-        Assert.False(tile.BlocksMovement);
+        Assert.True(tile.BlocksMovement); // FD-1: 山岳は通行不可
         Assert.True(tile.MovementCost >= 2.0f);
     }
 
@@ -367,7 +367,7 @@ public class SymbolMapSystemTests
     public void SymbolWater_IsPassableWithHighMovementCost()
     {
         var tile = Tile.FromType(TileType.SymbolWater);
-        Assert.False(tile.BlocksMovement);
+        Assert.True(tile.BlocksMovement); // FD-2: 水域は通行不可
         Assert.True(tile.MovementCost >= 1.5f);
     }
 

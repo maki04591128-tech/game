@@ -24,7 +24,7 @@ public static class WeaponProficiencySystem
 {
     private static readonly Dictionary<WeaponType, WeaponTypeProfile> _profiles = new()
     {
-        [WeaponType.Unarmed] = new(WeaponType.Unarmed, AttackType.Blunt, null,
+        [WeaponType.Unarmed] = new(WeaponType.Unarmed, AttackType.Unarmed, null,  // DT-3: Blunt→Unarmedに統一
             "STR", 1.0f, 0.05f),
         [WeaponType.Dagger] = new(WeaponType.Dagger, AttackType.Pierce, null,
             "DEX", 1.5f, 0.0f, CanParry: true),
@@ -50,7 +50,7 @@ public static class WeaponProficiencySystem
             "DEX", 1.2f, 0.05f),
         [WeaponType.Whip] = new(WeaponType.Whip, AttackType.Slash, null,
             "DEX", 1.0f, 0.1f),
-        [WeaponType.Fist] = new(WeaponType.Fist, AttackType.Blunt, null,
+        [WeaponType.Fist] = new(WeaponType.Fist, AttackType.Unarmed, null,  // DT-3: Blunt→Unarmedに統一
             "STR/DEX", 1.1f, 0.1f),
     };
 

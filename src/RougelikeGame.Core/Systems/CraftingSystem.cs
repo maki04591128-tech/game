@@ -121,22 +121,24 @@ public class CraftingSystem
         if (!CanCraft(recipeId, player, inventory))
             return new CraftingResult(false, "合成条件を満たしていない");
 
-        // 素材を消費
-        foreach (var material in recipe.Materials)
-        {
-            inventory.RemoveItem(material.ItemId, material.Quantity);
-        }
-
-        // ゴールドを消費
-        if (recipe.CraftingCost > 0)
-        {
-            player.SpendGold(recipe.CraftingCost);
-        }
-
-        // 結果アイテムを作成
+        // EL-1/EL-3: アイテム生成を先に確認（素材消費前にロールバック不要に）
         var resultItem = ItemDefinitions.Create(recipe.ResultItemId);
         if (resultItem == null)
             return new CraftingResult(false, "結果アイテムの生成に失敗した");
+
+        // EL-3: ゴールドを先に消費チェック
+        if (recipe.CraftingCost > 0)
+        {
+            if (!player.SpendGold(recipe.CraftingCost))
+                return new CraftingResult(false, "ゴールドが足りない");
+        }
+
+        // CY-1/EL-2: 素材を消費（戻り値チェック）
+        foreach (var material in recipe.Materials)
+        {
+            if (!inventory.RemoveItem(material.ItemId, material.Quantity))
+                return new CraftingResult(false, $"素材{material.ItemId}が不足している");
+        }
 
         return new CraftingResult(true, $"{recipe.Name}に成功！{resultItem.Name}を入手した！", resultItem);
     }

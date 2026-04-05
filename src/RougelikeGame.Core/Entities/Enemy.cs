@@ -101,6 +101,9 @@ public class Enemy : Character
     /// AIビヘイビア
     /// </summary>
     public IAIBehavior? Behavior { get; set; }
+
+    /// <summary>CC-10: 召喚クリーチャーの残りターン数（-1=非召喚/無限）</summary>
+    public int SummonRemainingTurns { get; set; } = -1;
     #endregion
 
     #region Perception
@@ -380,7 +383,26 @@ public class Enemy : Character
                 break;
 
             case TurnActionType.Search:
-                // 周囲を見回す（特に何もしない）
+            case TurnActionType.Wait:
+            case TurnActionType.Rest:
+                // 待機/探索/休憩 - 何もしない
+                break;
+
+            case TurnActionType.UseSkill:
+            case TurnActionType.CastSpell:
+                // HH-1: スキル/呪文は攻撃として処理
+                if (action.Target != null)
+                {
+                    state.CombatSystem.ExecuteAttack(this, action.Target, AttackType.Slash);
+                }
+                break;
+
+            case TurnActionType.UseItem:
+                // HH-1: アイテム使用（敵はHP回復を試みる）
+                if (CurrentHp < MaxHp / 2)
+                {
+                    Heal(MaxHp / 10);
+                }
                 break;
         }
 
@@ -412,6 +434,42 @@ public class Enemy : Character
 
     #region Events
     public event EventHandler<AIStateChangedEventArgs>? OnAIStateChanged;
+    #endregion
+
+    #region Resistance
+    /// <summary>BY-10: 種族に基づく属性耐性</summary>
+    protected override float GetResistanceAgainst(Element element)
+    {
+        // 状態効果による耐性（基底クラスからのバフ等）
+        float baseResist = base.GetResistanceAgainst(element);
+
+        // 種族固有耐性
+        float racialResist = (Race, element) switch
+        {
+            // 不死: 闇耐性+50%, 聖弱点-50%
+            (MonsterRace.Undead, Element.Dark) => 0.50f,
+            (MonsterRace.Undead, Element.Holy) => -0.50f,
+            // 悪魔: 闇耐性+30%, 聖弱点-30%
+            (MonsterRace.Demon, Element.Dark) => 0.30f,
+            (MonsterRace.Demon, Element.Holy) => -0.30f,
+            // 竜: 炎耐性+50%
+            (MonsterRace.Dragon, Element.Fire) => 0.50f,
+            // 精霊: 物理系は別処理。全魔法耐性+20%
+            (MonsterRace.Spirit, _) when element != Element.None => 0.20f,
+            // 植物: 炎弱点-30%, 氷耐性+20%
+            (MonsterRace.Plant, Element.Fire) => -0.30f,
+            (MonsterRace.Plant, Element.Ice) => 0.20f,
+            // 昆虫: 炎弱点-20%
+            (MonsterRace.Insect, Element.Fire) => -0.20f,
+            // 構造体: 雷弱点-30%
+            (MonsterRace.Construct, Element.Lightning) => -0.30f,
+            // 不定形: 物理耐性は別処理、魔法全般に小耐性
+            (MonsterRace.Amorphous, _) when element != Element.None => 0.10f,
+            _ => 0f
+        };
+
+        return Math.Min(baseResist + racialResist, 0.9f);  // 最大90%耐性
+    }
     #endregion
 }
 

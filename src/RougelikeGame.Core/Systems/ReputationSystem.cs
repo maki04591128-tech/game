@@ -115,4 +115,34 @@ public class ReputationSystem
             _reputations[territory] = 0;
         }
     }
+
+    /// <summary>
+    /// DA-4: 評判の時間減衰。極端な評判値は0に向かって緩やかに収束する。
+    /// ProcessTurnEffectsから定期呼び出しされる。
+    /// </summary>
+    public void DecayReputations()
+    {
+        foreach (var territory in _reputations.Keys.ToList())
+        {
+            int value = _reputations[territory];
+            if (Math.Abs(value) > 10)
+            {
+                // 1ポイントずつ中立方向に減衰
+                int decay = value > 0 ? -1 : 1;
+                _reputations[territory] = value + decay;
+            }
+        }
+    }
+
+    /// <summary>BQ-2: セーブデータから評判値を復元する</summary>
+    public void RestoreReputations(Dictionary<string, int> saved)
+    {
+        foreach (var (key, value) in saved)
+        {
+            if (Enum.TryParse<TerritoryId>(key, out var territory))
+            {
+                _reputations[territory] = Math.Clamp(value, -100, 100);
+            }
+        }
+    }
 }

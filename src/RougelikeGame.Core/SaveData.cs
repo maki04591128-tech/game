@@ -108,6 +108,57 @@ public class SaveData
 
     /// <summary>現在の季節</summary>
     public string? SeasonState { get; set; }
+
+    /// <summary>CM-1: NG+ティア</summary>
+    public int? NgPlusTier { get; set; }
+
+    /// <summary>CM-2: クリア済みフラグ</summary>
+    public bool HasCleared { get; set; }
+
+    /// <summary>CM-2: クリアランク</summary>
+    public string? ClearRank { get; set; }
+
+    /// <summary>CM-3: 無限ダンジョンモード</summary>
+    public bool InfiniteDungeonMode { get; set; }
+
+    /// <summary>CM-3: 無限ダンジョン撃破数</summary>
+    public int InfiniteDungeonKills { get; set; }
+
+    /// <summary>累計死亡回数</summary>
+    public int TotalDeaths { get; set; }
+
+    /// <summary>AS-2: 地面のアイテム</summary>
+    public List<GroundItemSaveData> GroundItems { get; set; } = new();
+
+    /// <summary>戦闘スタンス</summary>
+    public string? CombatStance { get; set; }
+
+    /// <summary>コンパニオンデータ</summary>
+    public List<CompanionSaveData> Companions { get; set; } = new();
+
+    /// <summary>BQ-7: スキルツリー習得済みスキルID</summary>
+    public List<string> SkillTreeLearnedSkills { get; set; } = new();
+
+    /// <summary>BQ-8: 建設済み施設カテゴリ</summary>
+    public List<string> BuiltFacilities { get; set; } = new();
+
+    /// <summary>BQ-2: 領地別評判値</summary>
+    public Dictionary<string, int> ReputationValues { get; set; } = new();
+
+    /// <summary>BQ-24/BU-12: チュートリアル完了済みステップ</summary>
+    public List<string> CompletedTutorialSteps { get; set; } = new();
+
+    /// <summary>BU-11: 解除済み実績ID</summary>
+    public List<string> UnlockedAchievements { get; set; } = new();
+
+    /// <summary>BR-5: 現在のダンジョン特性</summary>
+    public string? CurrentDungeonFeature { get; set; }
+
+    /// <summary>BZ-5: 商人ギルドデータ</summary>
+    public MerchantGuildSaveData? MerchantGuild { get; set; }
+
+    /// <summary>BZ-6: 派閥戦争データ</summary>
+    public FactionWarSaveData? FactionWar { get; set; }
 }
 
 /// <summary>
@@ -136,7 +187,7 @@ public class PlayerSaveData
     /// <summary>渇き</summary>
     public int Thirst { get; set; } = 100;
     /// <summary>疲労</summary>
-    public int Fatigue { get; set; } = 100;
+    public int Fatigue { get; set; } = 100;  // デフォルト値100（疲労なし）
     /// <summary>衛生</summary>
     public int Hygiene { get; set; } = 100;
 
@@ -181,6 +232,9 @@ public class PlayerSaveData
 
     /// <summary>最終祈祷からの経過日数</summary>
     public int DaysSinceLastPrayer { get; set; }
+
+    /// <summary>AB-7/M-3: 今日祈ったかフラグ</summary>
+    public bool HasPrayedToday { get; set; }
 
     /// <summary>信仰度上限</summary>
     public int FaithCap { get; set; } = 100;
@@ -275,6 +329,12 @@ public class ItemSaveData
 
     /// <summary>スタック数（スタック可能アイテムの場合）</summary>
     public int StackCount { get; set; } = 1;
+
+    /// <summary>AS-1: アイテム品質</summary>
+    public string Grade { get; set; } = nameof(ItemGrade.Standard);
+
+    /// <summary>AN-3: 適用済みエンチャントIDリスト</summary>
+    public List<string> AppliedEnchantments { get; set; } = new();
 }
 
 /// <summary>
@@ -299,6 +359,10 @@ public class TransferDataSaveData
     public int TotalDeaths { get; set; }
     public int RescueCountRemaining { get; set; } = GameConstants.MaxRescueCount;
     public int Sanity { get; set; } = GameConstants.InitialSanity;
+    /// <summary>BW-5: 引き継ぎレベル</summary>
+    public int Level { get; set; }
+    /// <summary>BW-6: 引き継ぎゴールド</summary>
+    public int Gold { get; set; }
 }
 
 /// <summary>
@@ -347,4 +411,81 @@ public class PetSaveData
 
     /// <summary>騎乗中か</summary>
     public bool IsRiding { get; set; }
+}
+
+/// <summary>
+/// AS-2: 地面アイテムのセーブデータ
+/// </summary>
+public class GroundItemSaveData
+{
+    public ItemSaveData Item { get; set; } = new();
+    public int X { get; set; }
+    public int Y { get; set; }
+}
+
+/// <summary>
+/// コンパニオンのセーブデータ
+/// </summary>
+public class CompanionSaveData
+{
+    public string Name { get; set; } = string.Empty;
+    public string? CompanionType { get; set; }
+    public int Level { get; set; }
+    public int Hp { get; set; }
+    public int MaxHp { get; set; }
+    public int Attack { get; set; }
+    public int Defense { get; set; }
+    public bool IsAlive { get; set; }
+}
+
+/// <summary>BZ-5: 商人ギルドのセーブデータ</summary>
+public class MerchantGuildSaveData
+{
+    public bool IsMember { get; set; }
+    public string Rank { get; set; } = nameof(GuildRank.None);
+    public int GuildPoints { get; set; }
+    public int TradeCount { get; set; }
+    public int TotalProfit { get; set; }
+    public List<TradeRouteSaveData> Routes { get; set; } = new();
+}
+
+/// <summary>BZ-5: 交易路セーブデータ</summary>
+public class TradeRouteSaveData
+{
+    public string RouteId { get; set; } = string.Empty;
+    public string Origin { get; set; } = string.Empty;
+    public string Destination { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public int ProfitMultiplier { get; set; }
+    public int EstablishmentCost { get; set; }
+}
+
+/// <summary>BZ-6: 派閥戦争のセーブデータ</summary>
+public class FactionWarSaveData
+{
+    public List<WarEventSaveData> ActiveWars { get; set; } = new();
+    public List<WarOutcomeSaveData> WarHistory { get; set; } = new();
+}
+
+/// <summary>BZ-6: 戦争イベントセーブデータ</summary>
+public class WarEventSaveData
+{
+    public string WarId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Attacker { get; set; } = string.Empty;
+    public string Defender { get; set; } = string.Empty;
+    public string Phase { get; set; } = string.Empty;
+    public int TurnStarted { get; set; }
+    public int Duration { get; set; }
+    public string PlayerAlignment { get; set; } = string.Empty;
+}
+
+/// <summary>BZ-6: 戦争結果セーブデータ</summary>
+public class WarOutcomeSaveData
+{
+    public string WarId { get; set; } = string.Empty;
+    public string Winner { get; set; } = string.Empty;
+    public string Loser { get; set; } = string.Empty;
+    public int TerritoryInfluenceChange { get; set; }
+    public string Description { get; set; } = string.Empty;
 }

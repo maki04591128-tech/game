@@ -16,7 +16,7 @@ public class WeaponProficiencySystemTests
     #region GetWeaponProfile Tests
 
     [Theory]
-    [InlineData(WeaponType.Unarmed, AttackType.Blunt, "STR")]
+    [InlineData(WeaponType.Unarmed, AttackType.Unarmed, "STR")]
     [InlineData(WeaponType.Dagger, AttackType.Pierce, "DEX")]
     [InlineData(WeaponType.Sword, AttackType.Slash, "STR/DEX")]
     [InlineData(WeaponType.Greatsword, AttackType.Slash, "STR")]
@@ -29,7 +29,7 @@ public class WeaponProficiencySystemTests
     [InlineData(WeaponType.Crossbow, AttackType.Ranged, "DEX")]
     [InlineData(WeaponType.Thrown, AttackType.Ranged, "DEX")]
     [InlineData(WeaponType.Whip, AttackType.Slash, "DEX")]
-    [InlineData(WeaponType.Fist, AttackType.Blunt, "STR/DEX")]
+    [InlineData(WeaponType.Fist, AttackType.Unarmed, "STR/DEX")]
     public void GetWeaponProfile_ReturnsCorrectAttackTypeAndScaling(WeaponType type, AttackType expectedAttack, string expectedScaling)
     {
         var profile = WeaponProficiencySystem.GetWeaponProfile(type);

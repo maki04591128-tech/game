@@ -85,7 +85,18 @@ public static class DropTableSystem
                 {
                     var item = ItemDefinitions.Create(entry.ItemId);
                     if (item != null)
+                    {
+                        // DY-1: MinGradeを適用（MinGrade以上のランダムグレード）
+                        if (entry.MinGrade > ItemGrade.Standard)
+                        {
+                            var possibleGrades = Enum.GetValues<ItemGrade>()
+                                .Where(g => g >= entry.MinGrade)
+                                .ToArray();
+                            if (possibleGrades.Length > 0)
+                                item.Grade = possibleGrades[random.Next(0, possibleGrades.Length)];
+                        }
                         items.Add(item);
+                    }
                 }
             }
         }
@@ -184,8 +195,12 @@ public static class DropTableSystem
     {
         var baseResult = GenerateLoot(tableId, depth, rank, random);
 
-        // 人型以外の敵はゴールドをドロップしない
-        int gold = (race == null || race == MonsterRace.Humanoid) ? baseResult.Gold : 0;
+        // IH-2: 非人型でも少量のゴールドをドロップ（宝物等の概念）
+        int gold = baseResult.Gold;
+        if (race != null && race != MonsterRace.Humanoid)
+        {
+            gold = (int)(gold * 0.3); // 非人型は30%のゴールド
+        }
 
         if (race == null || !_raceBonusDrops.TryGetValue(race.Value, out var bonusEntries))
             return new DropResult(baseResult.Items, gold);

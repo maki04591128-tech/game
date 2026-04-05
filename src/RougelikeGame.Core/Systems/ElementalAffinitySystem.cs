@@ -60,8 +60,8 @@ public static class ElementalAffinitySystem
         // Insect: Fire弱点
         [(MonsterRace.Insect, Element.Fire)] = ElementalResistanceLevel.Weakness,
 
-        // Spirit: 対属性（Light→Dark弱点等）
-        [(MonsterRace.Spirit, Element.Light)] = ElementalResistanceLevel.Weakness,
+        // Spirit: 闇属性に弱く、光属性に強い（DQ-5: Light/Dark両方弱点の矛盾を修正）
+        [(MonsterRace.Spirit, Element.Light)] = ElementalResistanceLevel.Resistant,
         [(MonsterRace.Spirit, Element.Dark)] = ElementalResistanceLevel.Weakness,
 
         // Construct: Lightning弱点、Poison無効
@@ -149,7 +149,9 @@ public static class ElementalAffinitySystem
     {
         var resistanceLevel = GetResistanceLevel(targetRace, attackElement);
         var multiplier = GetDamageMultiplier(resistanceLevel);
-        return (int)(baseDamage * multiplier);
+        int damage = (int)(baseDamage * multiplier);
+        // FK-1: Absorb（-1.0f）で負ダメージ＝回復にならないよう最低0にクランプ
+        return Math.Max(0, damage);
     }
 
     /// <summary>

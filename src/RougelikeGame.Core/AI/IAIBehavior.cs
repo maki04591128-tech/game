@@ -82,6 +82,10 @@ public abstract class AIBehaviorBase : IAIBehavior
     /// </summary>
     protected TurnAction MoveTowards(Enemy enemy, Position target, IGameState state)
     {
+        // IM-1: CurrentMapがnullの場合は待機
+        if (state.CurrentMap == null)
+            return TurnAction.Wait;
+
         var direction = enemy.Position.GetDirectionTo(target);
         var nextPos = enemy.Position.Move(direction);
 
@@ -109,6 +113,10 @@ public abstract class AIBehaviorBase : IAIBehavior
     /// </summary>
     protected TurnAction MoveAwayFrom(Enemy enemy, Position threat, IGameState state)
     {
+        // IM-1: CurrentMapがnullの場合は待機
+        if (state.CurrentMap == null)
+            return TurnAction.Wait;
+
         var awayDirection = threat.GetDirectionTo(enemy.Position);
         var nextPos = enemy.Position.Move(awayDirection);
 
@@ -196,7 +204,12 @@ public enum EnemyType
     /// <summary>
     /// ボス（特殊行動パターン）
     /// </summary>
-    Boss
+    Boss,
+
+    /// <summary>
+    /// AZ-2: 召喚者型（仲間を召喚）
+    /// </summary>
+    Summoner
 }
 
 /// <summary>

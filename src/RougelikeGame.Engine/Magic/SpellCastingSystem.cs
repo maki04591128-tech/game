@@ -158,7 +158,13 @@ public class SpellCastingSystem
         }
 
         // 成功判定
-        bool success = random.NextDouble() < result.SuccessRate;
+        // BS-14: キャスターのINT/MNDで成功率を修正
+        double adjustedSuccessRate = result.SuccessRate;
+        int casterInt = player.EffectiveStats.Intelligence;
+        int casterMnd = player.EffectiveStats.Mind;
+        adjustedSuccessRate += (casterInt - 10) * 0.005 + (casterMnd - 10) * 0.003;
+        adjustedSuccessRate = Math.Clamp(adjustedSuccessRate, 0.05, 0.99);
+        bool success = random.NextDouble() < adjustedSuccessRate;
 
         // MP消費（失敗しても消費）
         player.ConsumeMp(result.MpCost);
@@ -359,17 +365,24 @@ public static class SpellEffectResolver
         var elementWord = castResult.ElementWord;
 
         // 基本ダメージ/回復量
-        int basePower = effectWord.BaseMpCost * 3;
+        // CV-2: 回復呪文はINT/MND依存の別計算
+        SpellEffectType effectType = CategorizeEffect(effectWord.Id);
+        int basePower;
+        if (effectType == SpellEffectType.Heal)
+        {
+            basePower = effectWord.BaseMpCost * 4;  // 回復呪文は基本回復量を高めに
+        }
+        else
+        {
+            basePower = effectWord.BaseMpCost * 3;
+        }
         int finalPower = (int)(basePower * castResult.PowerMultiplier);
 
         // 属性決定
         Element element = DetermineElement(effectWord, elementWord);
 
         // ダメージタイプ決定
-        DamageType damageType = element == Element.None ? DamageType.Magical : DamageType.Magical;
-
-        // 効果タイプ決定
-        SpellEffectType effectType = CategorizeEffect(effectWord.Id);
+        DamageType damageType = element == Element.None ? DamageType.Magical : DamageType.Elemental;
 
         // ターゲットタイプ決定
         SpellTargetType targetType = DetermineTarget(targetWord, castResult.RangeWord);
@@ -414,6 +427,7 @@ public static class SpellEffectResolver
             "graeda" => Element.Light,
             "blessa" => Element.Holy,
             "eyda" => Element.Curse,
+            "granda" => Element.Poison,
             _ => Element.None
         };
     }
@@ -428,7 +442,7 @@ public static class SpellEffectResolver
         "hrada" => SpellEffectType.Speed,
         "hylja" => SpellEffectType.Stealth,
         "blessa" => SpellEffectType.Blessing,
-        "binda" or "sofa" or "villa" or "hraeda" or "styra" => SpellEffectType.Control,
+        "binda" or "sofa" or "villa" or "hraeda" or "styra" or "loka" => SpellEffectType.Control,
         "kalla" => SpellEffectType.Summon,
         "senda" => SpellEffectType.Teleport,
         "sja" or "vita" => SpellEffectType.Detect,
@@ -486,7 +500,7 @@ public static class SpellEffectResolver
             "eilifr" => 100,
             "sidar" => 5,
             "endalauss" => 999,
-            _ => 0
+            _ => 1  // 不明なルーン: 最小持続時間
         };
     }
 }
@@ -522,6 +536,7 @@ public enum SpellTargetType
     Self,
     SingleEnemy,
     AllEnemies,
+    SingleAlly,
     AllAllies,
     All,
     Object,

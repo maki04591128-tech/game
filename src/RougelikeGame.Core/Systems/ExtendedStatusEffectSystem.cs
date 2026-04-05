@@ -39,7 +39,7 @@ public static class ExtendedStatusEffectSystem
             new() { ["DotDamage"] = 3, ["LeechAmount"] = 3 }),
 
         ["berserk"] = new("berserk", "狂戦士", "攻撃力+50%、被ダメージ+30%、対象選択不可", 6, false, null,
-            new() { ["AttackMultiplier"] = 0.5f, ["DamageTaken"] = 0.3f }),
+            new() { ["AttackMultiplier"] = 1.5f, ["DamageTaken"] = 0.3f }),  // V-6: 攻撃力+50%
 
         ["corrosion"] = new("corrosion", "腐食", "防御力-20%、装備耐久値減少2倍", 12, false, null,
             new() { ["DefenseMultiplier"] = -0.2f, ["DurabilityWearMultiplier"] = 2.0f }),

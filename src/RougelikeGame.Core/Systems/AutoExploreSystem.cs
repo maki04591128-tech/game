@@ -68,4 +68,70 @@ public static class AutoExploreSystem
     {
         return nearbyUndiscoveredCount * 2.0f - distanceToTile;
     }
+
+    /// <summary>DD-1: BFS（幅優先探索）で最短経路を計算</summary>
+    public static List<Position>? FindPath(Position start, Position goal, Func<Position, bool> isWalkable, int maxDistance = 100)
+    {
+        if (start == goal) return new List<Position>();
+        if (!isWalkable(goal)) return null;
+
+        var queue = new Queue<Position>();
+        var cameFrom = new Dictionary<Position, Position>();
+        queue.Enqueue(start);
+        cameFrom[start] = start;
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            if (current == goal)
+            {
+                // 経路を復元
+                var path = new List<Position>();
+                var step = goal;
+                while (step != start)
+                {
+                    path.Add(step);
+                    step = cameFrom[step];
+                }
+                path.Reverse();
+                return path;
+            }
+
+            foreach (var dir in new[] { Direction.North, Direction.South, Direction.East, Direction.West })
+            {
+                var next = current.Move(dir);
+                if (!cameFrom.ContainsKey(next) && isWalkable(next))
+                {
+                    int distance = Math.Abs(next.X - start.X) + Math.Abs(next.Y - start.Y);
+                    if (distance <= maxDistance)
+                    {
+                        queue.Enqueue(next);
+                        cameFrom[next] = current;
+                    }
+                }
+            }
+        }
+
+        return null; // 経路なし
+    }
+
+    /// <summary>DD-1: 次に移動すべき方向を取得（自動探索用）</summary>
+    public static Direction? GetNextStep(Position playerPos, Position targetPos, Func<Position, bool> isWalkable)
+    {
+        var path = FindPath(playerPos, targetPos, isWalkable);
+        if (path == null || path.Count == 0) return null;
+
+        var nextPos = path[0];
+        int dx = nextPos.X - playerPos.X;
+        int dy = nextPos.Y - playerPos.Y;
+
+        return (dx, dy) switch
+        {
+            (0, -1) => Direction.North,
+            (0, 1) => Direction.South,
+            (1, 0) => Direction.East,
+            (-1, 0) => Direction.West,
+            _ => null
+        };
+    }
 }

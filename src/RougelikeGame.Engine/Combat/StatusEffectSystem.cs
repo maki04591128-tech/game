@@ -82,7 +82,7 @@ public class StatusEffectSystem
         return new StatusEffect(StatusEffectType.Freeze, duration)
         {
             Name = "凍結",
-            TurnCostModifier = float.MaxValue  // 行動不能
+            TurnCostModifier = 999f  // 行動不能（オーバーフロー回避）
         };
     }
 
@@ -107,7 +107,7 @@ public class StatusEffectSystem
         return new StatusEffect(StatusEffectType.Stun, duration)
         {
             Name = "スタン",
-            TurnCostModifier = float.MaxValue  // 行動不能
+            TurnCostModifier = 999f  // 行動不能（オーバーフロー回避）
         };
     }
 
@@ -164,7 +164,7 @@ public class StatusEffectSystem
         return new StatusEffect(StatusEffectType.Sleep, duration)
         {
             Name = "睡眠",
-            TurnCostModifier = float.MaxValue  // 行動不能
+            TurnCostModifier = 999f  // 行動不能（オーバーフロー回避）
         };
     }
 
@@ -173,7 +173,8 @@ public class StatusEffectSystem
     /// </summary>
     public StatusEffect CreateCurse()
     {
-        return new StatusEffect(StatusEffectType.Curse, int.MaxValue)
+        // EO-1: 呪い持続を有限化（200ターン）。scroll_remove_curseで解除可能
+        return new StatusEffect(StatusEffectType.Curse, 200)
         {
             Name = "呪い",
             AllStatsMultiplier = 0.80f  // 全ステータス-20%
@@ -219,11 +220,12 @@ public class StatusEffectSystem
     /// </summary>
     public StatusEffect CreatePetrification()
     {
-        return new StatusEffect(StatusEffectType.Petrification, int.MaxValue)
+        // EO-2: 石化持続を有限化（50ターン）。TurnCostModifierも安全な値に
+        return new StatusEffect(StatusEffectType.Petrification, 50)
         {
             Name = "石化",
-            TurnCostModifier = float.MaxValue,  // 行動不能
-            DefenseMultiplier = 3.0f             // 防御力大幅上昇
+            TurnCostModifier = 999f,  // 実質行動不能だがオーバーフロー回避
+            DefenseMultiplier = 3.0f  // 防御力大幅上昇
         };
     }
 
@@ -235,7 +237,7 @@ public class StatusEffectSystem
         return new StatusEffect(StatusEffectType.InstantDeath, 1)
         {
             Name = "即死",
-            DamagePerTick = int.MaxValue,
+            DamagePerTick = 999999,  // EO-3: int.MaxValueのオーバーフロー回避
             DamageElement = Element.Dark
         };
     }
@@ -289,6 +291,78 @@ public class StatusEffectSystem
         {
             Name = "再生",
             DamagePerTick = -healPerTick  // 負のダメージ = 回復
+        };
+    }
+
+    /// <summary>CB-1: 鈍足 - 行動速度低下</summary>
+    public StatusEffect CreateSlow(int duration = 15)
+    {
+        return new StatusEffect(StatusEffectType.Slow, duration)
+        {
+            Name = "鈍足",
+            TurnCostModifier = 1.5f  // 行動コスト1.5倍
+        };
+    }
+
+    /// <summary>CB-1/CB-9: 脆弱 - 被ダメージ増加</summary>
+    public StatusEffect CreateVulnerability(int duration = 15)
+    {
+        return new StatusEffect(StatusEffectType.Vulnerability, duration)
+        {
+            Name = "脆弱",
+            DefenseMultiplier = 0.5f  // 防御力半減
+        };
+    }
+
+    /// <summary>CB-1/CB-10: 透明化 - 命中率/回避率修正</summary>
+    public StatusEffect CreateInvisibility(int duration = 20)
+    {
+        return new StatusEffect(StatusEffectType.Invisibility, duration)
+        {
+            Name = "透明",
+            EvasionRateModifier = 0.5f,  // 回避率+50%
+            HitRateModifier = -0.1f      // 視界不良で命中率微減
+        };
+    }
+
+    /// <summary>CB-1: 祝福 - 全ステータス微増</summary>
+    public StatusEffect CreateBlessing(int duration = 30)
+    {
+        return new StatusEffect(StatusEffectType.Blessing, duration)
+        {
+            Name = "祝福",
+            AttackMultiplier = 1.1f,
+            DefenseMultiplier = 1.1f
+        };
+    }
+
+    /// <summary>CB-1: 背教 - 信仰喪失デバフ</summary>
+    public StatusEffect CreateApostasy(int duration = 50)
+    {
+        return new StatusEffect(StatusEffectType.Apostasy, duration)
+        {
+            Name = "背教",
+            AllStatsMultiplier = 0.9f  // 全ステータス10%減
+        };
+    }
+
+    /// <summary>耐火状態（火属性ダメージ-50%）</summary>
+    public StatusEffect CreateFireResistance(int duration = 30)
+    {
+        return new StatusEffect(StatusEffectType.FireResistance, duration)
+        {
+            Name = "耐火",
+            DefenseMultiplier = 1.0f  // 火属性耐性は別途ElementalAffinitySystemで処理
+        };
+    }
+
+    /// <summary>耐寒状態（氷属性ダメージ-50%）</summary>
+    public StatusEffect CreateColdResistance(int duration = 30)
+    {
+        return new StatusEffect(StatusEffectType.ColdResistance, duration)
+        {
+            Name = "耐寒",
+            DefenseMultiplier = 1.0f  // 氷属性耐性は別途ElementalAffinitySystemで処理
         };
     }
 

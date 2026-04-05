@@ -648,7 +648,7 @@ public class GameCompletionFlowTests
 
     [Theory]
     [InlineData(5, 3.0)]
-    [InlineData(30, 6.0)]
+    [InlineData(30, 5.5)]
     public void FloorBossHpMultiplier_ScalesWithFloor(int floor, double expected)
     {
         Assert.Equal(expected, BalanceConfig.GetFloorBossHpMultiplier(floor));

@@ -160,15 +160,15 @@ public class DifficultySettings
         level: DifficultyLevel.Ironman,
         displayName: "鉄人",
         description: "永久死亡。死はすべての終わり。セーブデータは削除される。",
-        enemyStatMultiplier: 1.3,
-        expMultiplier: 1.0,
-        hungerDecayMultiplier: 1.2,
-        turnLimitMultiplier: 0.8,
+        enemyStatMultiplier: 1.5,
+        expMultiplier: 0.8,
+        hungerDecayMultiplier: 1.4,
+        turnLimitMultiplier: 0.7,
         rescueCount: 0,
-        itemDropMultiplier: 0.8,
-        goldMultiplier: 0.8,
-        damageTakenMultiplier: 1.2,
-        damageDealtMultiplier: 1.0,
+        itemDropMultiplier: 0.6,
+        goldMultiplier: 0.6,
+        damageTakenMultiplier: 1.8,
+        damageDealtMultiplier: 0.9,
         permaDeath: true
     );
 }

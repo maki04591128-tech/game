@@ -311,7 +311,8 @@ public class EnemyItemExpansionTests
     public void CreateSuperHealingPotion_HasCorrectEffect()
     {
         var potion = ItemFactory.CreateSuperHealingPotion();
-        Assert.Equal(150, potion.EffectValue);
+        Assert.Equal(0, potion.EffectValue);  // L-2: EffectPercentageベースに変更
+        Assert.Equal(0.80f, potion.EffectPercentage);  // MaxHP80%回復
         Assert.Equal(PotionType.HealingSuper, potion.PotionType);
         Assert.Equal(ItemRarity.Rare, potion.Rarity);
     }
@@ -380,8 +381,8 @@ public class EnemyItemExpansionTests
     public void ItemDefinitions_TotalItemCount()
     {
         var ids = ItemDefinitions.GetAllItemIds().ToList();
-        // 武器12 + 防具9 + アクセサリ3 + ポーション12 + 食料8 + 巻物11 + 素材27 + 追加素材14 = 96
-        Assert.Equal(96, ids.Count);
+        // 武器13 + 防具9 + アクセサリ3 + ポーション12 + 食料8 + 巻物12 + 素材27 + 追加素材20 + 追加4 = 108
+        Assert.Equal(108, ids.Count);
     }
 
     [Fact]

@@ -31,7 +31,7 @@ public class ElementalAffinitySystemTests
     [InlineData(MonsterRace.Plant, Element.Earth, ElementalResistanceLevel.Resistant)]
     [InlineData(MonsterRace.Plant, Element.Water, ElementalResistanceLevel.Resistant)]
     [InlineData(MonsterRace.Insect, Element.Fire, ElementalResistanceLevel.Weakness)]
-    [InlineData(MonsterRace.Spirit, Element.Light, ElementalResistanceLevel.Weakness)]
+    [InlineData(MonsterRace.Spirit, Element.Light, ElementalResistanceLevel.Resistant)]
     [InlineData(MonsterRace.Spirit, Element.Dark, ElementalResistanceLevel.Weakness)]
     [InlineData(MonsterRace.Construct, Element.Lightning, ElementalResistanceLevel.Weakness)]
     [InlineData(MonsterRace.Construct, Element.Poison, ElementalResistanceLevel.Immune)]

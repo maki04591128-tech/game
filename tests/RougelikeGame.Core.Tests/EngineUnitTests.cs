@@ -215,7 +215,7 @@ public class EngineUnitTests
         var system = new StatusEffectSystem(new FixedRandom());
         var effect = system.CreateFreeze();
         Assert.Equal(StatusEffectType.Freeze, effect.Type);
-        Assert.Equal(float.MaxValue, effect.TurnCostModifier);
+        Assert.Equal(999f, effect.TurnCostModifier);  // 行動不能（オーバーフロー回避）
     }
 
     [Fact]
@@ -224,7 +224,7 @@ public class EngineUnitTests
         var system = new StatusEffectSystem(new FixedRandom());
         var effect = system.CreateCurse();
         Assert.Equal(StatusEffectType.Curse, effect.Type);
-        Assert.Equal(int.MaxValue, effect.Duration);
+        Assert.Equal(200, effect.Duration);  // EO-1: 呪い持続を有限化（200ターン）
     }
 
     [Fact]

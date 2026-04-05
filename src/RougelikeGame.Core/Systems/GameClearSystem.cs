@@ -67,7 +67,7 @@ public static class GameClearSystem
     public static ClearScore CalculateScore(int totalTurns, int totalDeaths, int highestLevel, int maxFloor)
     {
         // ターンボーナス（少ないほど高得点）
-        int turnBonus = Math.Max(0, 10000 - totalTurns / 5);
+        int turnBonus = Math.Max(0, 10000 - (int)((double)totalTurns / 5.0));
         // 死亡ペナルティ
         int deathPenalty = totalDeaths * 500;
         // レベルボーナス
@@ -84,7 +84,7 @@ public static class GameClearSystem
     /// <summary>30階ボス撃破がゲームクリア条件か判定</summary>
     public static bool IsFinalBossDefeated(int currentFloor, string defeatedEnemyTypeId)
     {
-        return currentFloor >= 30 && defeatedEnemyTypeId == "floor_boss_30";
+        return currentFloor == 30 && defeatedEnemyTypeId == "floor_boss_30";
     }
 
     /// <summary>素性別クリアテキストを取得</summary>

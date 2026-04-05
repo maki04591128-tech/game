@@ -77,7 +77,8 @@ public record RaceDefinition(
             ExpMultiplier: 0.75, SanityLossMultiplier: 1.6)
     };
 
-    public static RaceDefinition Get(Race race) => All[race];
+    public static RaceDefinition Get(Race race) =>
+        All.TryGetValue(race, out var def) ? def : All[Race.Human];  // ID-3: 未登録種族はHumanにフォールバック
     public static IReadOnlyDictionary<Race, RaceDefinition> GetAll() => All;
 }
 

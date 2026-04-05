@@ -40,7 +40,7 @@ public partial class DifficultySelectWindow : Window
                 "敵ダメージ: 1.6倍 | 経験値: 0.6倍 | ターン制限: 0.6倍"),
             new(DifficultyLevel.Ironman, "\u26D3\uFE0F", "Ironman",
                 "最高難易度。死亡時セーブデータ削除。やり直し不可。",
-                "敵ダメージ: 1.5倍 | 経験値: 0.7倍 | 死亡時セーブ削除")
+                "敵ダメージ: 1.2倍 | 経験値: 1.0倍 | 死亡時セーブ削除")
         };
 
         DifficultyList.ItemsSource = items;

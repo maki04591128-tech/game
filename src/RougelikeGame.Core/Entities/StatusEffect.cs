@@ -29,11 +29,30 @@ public class StatusEffect
     // ターン修正
     public float TurnCostModifier { get; init; } = 1.0f;
 
+    // IJ-2: 持続時間上限（スタック時のリフレッシュ制限）
+    public int MaxDuration { get; init; } = 100;
+
     public StatusEffect(StatusEffectType type, int duration)
     {
         Type = type;
         Duration = duration;
+        MaxDuration = Math.Max(duration * 2, 100);  // 初期値の2倍、最低100
         Name = type.ToString();
+
+        // BG-1: 状態異常ごとのデフォルト倍率を設定
+        (AttackMultiplier, DefenseMultiplier, DamagePerTick) = type switch
+        {
+            StatusEffectType.Poison => (1.0f, 1.0f, 3),
+            StatusEffectType.Bleeding => (1.0f, 1.0f, 2),
+            StatusEffectType.Burn => (0.85f, 1.0f, 4),
+            StatusEffectType.Paralysis => (0.7f, 0.8f, 0),
+            StatusEffectType.Weakness => (0.7f, 0.7f, 0),
+            StatusEffectType.Vulnerability => (1.0f, 0.6f, 0),
+            StatusEffectType.Strength => (1.3f, 1.0f, 0),
+            StatusEffectType.Blessing => (1.15f, 1.15f, 0),
+            StatusEffectType.Slow => (0.8f, 1.0f, 0),
+            _ => (1.0f, 1.0f, 0)
+        };
     }
 
     /// <summary>
@@ -41,10 +60,11 @@ public class StatusEffect
     /// </summary>
     public void Stack(StatusEffect other)
     {
-        if (other.Type != Type) return;
+        if (other.Type != Type || other.StackCount <= 0) return;  // IJ-1: 負値/ゼロスタック防止
 
         StackCount = Math.Min(StackCount + other.StackCount, MaxStack);
-        Duration = Math.Max(Duration, other.Duration);
+        // IJ-2: 持続時間の上限を設ける（初期値の2倍まで）
+        Duration = Math.Min(Math.Max(Duration, other.Duration), MaxDuration);
     }
 
     /// <summary>

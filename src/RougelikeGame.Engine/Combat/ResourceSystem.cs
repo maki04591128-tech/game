@@ -32,12 +32,15 @@ public class ResourceSystem
         int hpPerLevel = characterClass switch
         {
             CharacterClass.Warrior => 15,
-            CharacterClass.Berserker => 12,
+            CharacterClass.Knight => 12,
             CharacterClass.Monk => 10,
             CharacterClass.Cleric => 8,
             CharacterClass.Mage => 5,
-            CharacterClass.Summoner => 6,
             CharacterClass.Necromancer => 5,
+            CharacterClass.Thief => 8,
+            CharacterClass.Ranger => 10,
+            CharacterClass.Bard => 7,
+            CharacterClass.Alchemist => 6,
             _ => 8
         };
 
@@ -50,6 +53,7 @@ public class ResourceSystem
     public HpState GetHpState(int currentHp, int maxHp)
     {
         if (currentHp <= 0) return HpState.Dead;
+        if (maxHp <= 0) return HpState.Dead;
 
         double ratio = (double)currentHp / maxHp;
 
@@ -89,12 +93,15 @@ public class ResourceSystem
         int mpPerLevel = characterClass switch
         {
             CharacterClass.Warrior => 2,
-            CharacterClass.Berserker => 0,
+            CharacterClass.Knight => 3,
             CharacterClass.Monk => 4,
             CharacterClass.Cleric => 6,
             CharacterClass.Mage => 8,
-            CharacterClass.Summoner => 7,
             CharacterClass.Necromancer => 8,
+            CharacterClass.Thief => 3,
+            CharacterClass.Ranger => 4,
+            CharacterClass.Bard => 5,
+            CharacterClass.Alchemist => 7,
             _ => 4
         };
 
@@ -284,7 +291,8 @@ public class ResourceSystem
         double multiplier = 1.5;
 
         double required = baseExp * Math.Pow(multiplier, level - 1);
-        return (int)required;
+        // AI-2: 高レベルでint.MaxValueを超えないようにクランプ
+        return (int)Math.Min(required, int.MaxValue - 1);
     }
 
     /// <summary>
@@ -306,7 +314,8 @@ public class ResourceSystem
     /// </summary>
     public int CalculateExpGain(ExpGainParams param)
     {
-        double levelRatio = (double)param.EnemyLevel / param.PlayerLevel;
+        int playerLevel = Math.Max(1, param.PlayerLevel);
+        double levelRatio = (double)param.EnemyLevel / playerLevel;
         levelRatio = Math.Clamp(levelRatio, 0.1, 3.0);  // 最低10%、最大300%
 
         double exp = param.BaseExp * levelRatio * param.DifficultyModifier * param.BackgroundModifier;
@@ -401,16 +410,14 @@ public enum CharacterClass
 {
     /// <summary>戦士</summary>
     Warrior,
-    /// <summary>狂戦士</summary>
-    Berserker,
+    /// <summary>騎士</summary>
+    Knight,
     /// <summary>武闘家</summary>
     Monk,
     /// <summary>聖職者</summary>
     Cleric,
     /// <summary>魔術師</summary>
     Mage,
-    /// <summary>召喚士</summary>
-    Summoner,
     /// <summary>死霊術師</summary>
     Necromancer,
     /// <summary>盗賊</summary>
@@ -418,7 +425,9 @@ public enum CharacterClass
     /// <summary>レンジャー</summary>
     Ranger,
     /// <summary>吟遊詩人</summary>
-    Bard
+    Bard,
+    /// <summary>錬金術師</summary>
+    Alchemist
 }
 
 /// <summary>

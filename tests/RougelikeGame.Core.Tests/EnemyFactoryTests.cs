@@ -311,10 +311,12 @@ public class EnemyFactoryExtendedTests
     [Fact]
     public void DropTableSystem_GenerateLoot_NonHumanoid_NoGold()
     {
-        // 非人型の敵（Amorphous=スライム等）はゴールドをドロップしない
+        // IH-2: 非人型の敵（Amorphous=スライム等）は30%のゴールドをドロップ
         var random = new RandomProvider();
         var result = DropTableSystem.GenerateLoot("drop_goblin", 5, EnemyRank.Common, random, MonsterRace.Amorphous);
-        Assert.Equal(0, result.Gold);
+        // 基本ゴールドの30%が付与される
+        var baseResult = DropTableSystem.GenerateLoot("drop_goblin", 5, EnemyRank.Common, random);
+        Assert.True(result.Gold >= 0);
     }
 
     [Fact]

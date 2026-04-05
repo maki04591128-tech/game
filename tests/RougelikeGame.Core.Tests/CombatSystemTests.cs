@@ -215,7 +215,7 @@ public class CombatSystemTests
         var freeze = system.CreateFreeze();
 
         Assert.Equal(StatusEffectType.Freeze, freeze.Type);
-        Assert.Equal(float.MaxValue, freeze.TurnCostModifier);  // 行動不能
+        Assert.Equal(999f, freeze.TurnCostModifier);  // 行動不能（オーバーフロー回避）
     }
 
     [Fact]
@@ -315,9 +315,9 @@ public class CombatSystemTests
 
         Assert.Equal(StatusEffectType.Petrification, petrification.Type);
         Assert.Equal("石化", petrification.Name);
-        Assert.Equal(float.MaxValue, petrification.TurnCostModifier);  // 行動不能
+        Assert.Equal(999f, petrification.TurnCostModifier);  // EO-2: 行動不能（オーバーフロー回避）
         Assert.Equal(3.0f, petrification.DefenseMultiplier);  // 防御力大幅上昇
-        Assert.Equal(int.MaxValue, petrification.Duration);  // 永続
+        Assert.Equal(50, petrification.Duration);  // EO-2: 有限化（50ターン）
     }
 
     [Fact]
@@ -328,7 +328,7 @@ public class CombatSystemTests
 
         Assert.Equal(StatusEffectType.InstantDeath, instantDeath.Type);
         Assert.Equal("即死", instantDeath.Name);
-        Assert.Equal(int.MaxValue, instantDeath.DamagePerTick);
+        Assert.Equal(999999, instantDeath.DamagePerTick);  // EO-3: オーバーフロー回避
         Assert.Equal(Element.Dark, instantDeath.DamageElement);
     }
 

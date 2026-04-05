@@ -56,6 +56,6 @@ public static class CombatStanceSystem
         CombatStance.Aggressive => "攻撃力+25%、防御-20%、回避-10%、クリ率+10%",
         CombatStance.Defensive => "防御+30%、回避+15%、攻撃力-25%、クリ率-5%",
         CombatStance.Balanced => "全パラメータ標準",
-        _ => ""
+        _ => "スタンスが不明です"
     };
 }

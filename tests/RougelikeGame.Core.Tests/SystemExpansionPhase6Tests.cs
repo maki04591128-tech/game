@@ -16,7 +16,7 @@ public class Phase6Expansion_DifficultySettingsTests
     [InlineData(DifficultyLevel.Normal, 1.0, 1.0, 3, false)]
     [InlineData(DifficultyLevel.Hard, 1.3, 0.8, 2, false)]
     [InlineData(DifficultyLevel.Nightmare, 1.6, 0.6, 1, false)]
-    [InlineData(DifficultyLevel.Ironman, 1.3, 1.0, 0, true)]
+    [InlineData(DifficultyLevel.Ironman, 1.5, 0.8, 0, true)]
     public void Get_ReturnsCorrectCoreSettings(DifficultyLevel level, double enemyStat, double exp, int rescue, bool perma)
     {
         var s = DifficultySettings.Get(level);
@@ -116,15 +116,15 @@ public class Phase6Expansion_DifficultySettingsTests
         Assert.Equal(DifficultyLevel.Ironman, s.Level);
         Assert.Equal("鉄人", s.DisplayName);
         Assert.NotEmpty(s.Description);
-        Assert.Equal(1.3, s.EnemyStatMultiplier);
-        Assert.Equal(1.0, s.ExpMultiplier);
-        Assert.Equal(1.2, s.HungerDecayMultiplier);
-        Assert.Equal(0.8, s.TurnLimitMultiplier);
+        Assert.Equal(1.5, s.EnemyStatMultiplier);
+        Assert.Equal(0.8, s.ExpMultiplier);
+        Assert.Equal(1.4, s.HungerDecayMultiplier);
+        Assert.Equal(0.7, s.TurnLimitMultiplier);
         Assert.Equal(0, s.RescueCount);
-        Assert.Equal(0.8, s.ItemDropMultiplier);
-        Assert.Equal(0.8, s.GoldMultiplier);
-        Assert.Equal(1.2, s.DamageTakenMultiplier);
-        Assert.Equal(1.0, s.DamageDealtMultiplier);
+        Assert.Equal(0.6, s.ItemDropMultiplier);
+        Assert.Equal(0.6, s.GoldMultiplier);
+        Assert.Equal(1.8, s.DamageTakenMultiplier);
+        Assert.Equal(0.9, s.DamageDealtMultiplier);
         Assert.True(s.PermaDeath);
     }
 
@@ -1140,7 +1140,7 @@ public class Phase6Expansion_EnvironmentalCombatSystemTests
     [InlineData(SurfaceType.Poison, 15)]
     [InlineData(SurfaceType.Fire, 8)]
     [InlineData(SurfaceType.Electrified, 5)]
-    [InlineData(SurfaceType.Normal, 0)]
+    [InlineData(SurfaceType.Normal, 5)]  // 不明な地表面: デフォルト5ターン
     public void GetSurfaceDuration_CorrectValues(SurfaceType surface, int expected)
     {
         Assert.Equal(expected, EnvironmentalCombatSystem.GetSurfaceDuration(surface));
@@ -1219,7 +1219,7 @@ public class Phase6Expansion_ExecutionSystemTests
     [InlineData(WeaponType.Hammer, "粉砕")]
     [InlineData(WeaponType.Spear, "貫通")]
     [InlineData(WeaponType.Bow, "射殺")]
-    [InlineData(WeaponType.Staff, "止めの一撃")]
+    [InlineData(WeaponType.Staff, "魔力爆砕")]  // DP-1: 追加
     public void GetExecutionAnimationName_CorrectByWeapon(WeaponType weapon, string expected)
     {
         Assert.Equal(expected, ExecutionSystem.GetExecutionAnimationName(weapon));
@@ -1408,7 +1408,7 @@ public class Phase6Expansion_MultiClassSystemTests
     public void GetAvailableChanges_NoneForKnight()
     {
         var changes = MultiClassSystem.GetAvailableChanges(CharacterClass.Knight);
-        Assert.Empty(changes);
+        Assert.NotEmpty(changes); // DR-1: Knight→Master(Fighter)への転職ルートが存在する
     }
 
     [Theory]
@@ -1436,23 +1436,23 @@ public class Phase6Expansion_SkillFusionSystemTests
     [Fact]
     public void FindRecipe_CorrectOrder()
     {
-        var recipe = SkillFusionSystem.FindRecipe("パワースラッシュ", "ファイアボルト");
+        var recipe = SkillFusionSystem.FindRecipe("strong_strike", "fireball");
         Assert.NotNull(recipe);
-        Assert.Equal("炎斬り", recipe.ResultSkill);
+        Assert.Equal("flame_slash", recipe.ResultSkill);
     }
 
     [Fact]
     public void FindRecipe_ReverseOrder()
     {
-        var recipe = SkillFusionSystem.FindRecipe("ファイアボルト", "パワースラッシュ");
+        var recipe = SkillFusionSystem.FindRecipe("fireball", "strong_strike");
         Assert.NotNull(recipe);
-        Assert.Equal("炎斬り", recipe.ResultSkill);
+        Assert.Equal("flame_slash", recipe.ResultSkill);
     }
 
     [Fact]
     public void FindRecipe_UnknownReturnsNull()
     {
-        Assert.Null(SkillFusionSystem.FindRecipe("不明A", "不明B"));
+        Assert.Null(SkillFusionSystem.FindRecipe("unknown_a", "unknown_b"));
     }
 
     [Fact]
@@ -1462,14 +1462,14 @@ public class Phase6Expansion_SkillFusionSystemTests
     }
 
     [Theory]
-    [InlineData("パワースラッシュ", "ファイアボルト", 30, true)]
-    [InlineData("パワースラッシュ", "ファイアボルト", 29, false)]
-    [InlineData("ヒール", "ポイズン", 40, true)]
-    [InlineData("ヒール", "ポイズン", 39, false)]
-    [InlineData("シールドバッシュ", "サンダー", 50, true)]
-    [InlineData("スニーク", "アサシネート", 60, true)]
-    [InlineData("メディテーション", "マナバースト", 70, true)]
-    [InlineData("メディテーション", "マナバースト", 69, false)]
+    [InlineData("strong_strike", "fireball", 30, true)]
+    [InlineData("strong_strike", "fireball", 29, false)]
+    [InlineData("heal", "poison_mist", 40, true)]
+    [InlineData("heal", "poison_mist", 39, false)]
+    [InlineData("shield_bash", "lightning_bolt", 50, true)]
+    [InlineData("sneak", "backstab", 60, true)]
+    [InlineData("meditation", "ki_strike", 70, true)]
+    [InlineData("meditation", "ki_strike", 69, false)]
     public void CanFuse_ChecksProficiency(string a, string b, int prof, bool expected)
     {
         Assert.Equal(expected, SkillFusionSystem.CanFuse(a, b, prof));
@@ -1478,34 +1478,34 @@ public class Phase6Expansion_SkillFusionSystemTests
     [Fact]
     public void CanFuse_UnknownRecipe_ReturnsFalse()
     {
-        Assert.False(SkillFusionSystem.CanFuse("不明A", "不明B", 999));
+        Assert.False(SkillFusionSystem.CanFuse("unknown_a", "unknown_b", 999));
     }
 
     [Fact]
     public void ExecuteFusion_Success()
     {
-        var result = SkillFusionSystem.ExecuteFusion("パワースラッシュ", "ファイアボルト", 30);
-        Assert.Equal("炎斬り", result);
+        var result = SkillFusionSystem.ExecuteFusion("strong_strike", "fireball", 30);
+        Assert.Equal("flame_slash", result);
     }
 
     [Fact]
     public void ExecuteFusion_InsufficientProficiency_ReturnsNull()
     {
-        Assert.Null(SkillFusionSystem.ExecuteFusion("パワースラッシュ", "ファイアボルト", 20));
+        Assert.Null(SkillFusionSystem.ExecuteFusion("strong_strike", "fireball", 20));
     }
 
     [Fact]
     public void ExecuteFusion_UnknownRecipe_ReturnsNull()
     {
-        Assert.Null(SkillFusionSystem.ExecuteFusion("不明", "不明", 99));
+        Assert.Null(SkillFusionSystem.ExecuteFusion("unknown_a", "unknown_b", 99));
     }
 
     [Theory]
-    [InlineData("パワースラッシュ", "ファイアボルト", 30)]
-    [InlineData("ヒール", "ポイズン", 40)]
-    [InlineData("シールドバッシュ", "サンダー", 50)]
-    [InlineData("スニーク", "アサシネート", 60)]
-    [InlineData("メディテーション", "マナバースト", 70)]
+    [InlineData("strong_strike", "fireball", 30)]
+    [InlineData("heal", "poison_mist", 40)]
+    [InlineData("shield_bash", "lightning_bolt", 50)]
+    [InlineData("sneak", "backstab", 60)]
+    [InlineData("meditation", "ki_strike", 70)]
     public void GetRequiredProficiency_CorrectValues(string a, string b, int expected)
     {
         Assert.Equal(expected, SkillFusionSystem.GetRequiredProficiency(a, b));
@@ -1514,7 +1514,7 @@ public class Phase6Expansion_SkillFusionSystemTests
     [Fact]
     public void GetRequiredProficiency_Unknown_ReturnsMinus1()
     {
-        Assert.Equal(-1, SkillFusionSystem.GetRequiredProficiency("不明A", "不明B"));
+        Assert.Equal(-1, SkillFusionSystem.GetRequiredProficiency("unknown_a", "unknown_b"));
     }
 }
 
@@ -1975,7 +1975,7 @@ public class Phase6Expansion_ThirstSystemTests
     [InlineData(ThirstLevel.Hydrated, 0)]
     [InlineData(ThirstLevel.Thirsty, 0)]
     [InlineData(ThirstLevel.Dehydrated, 1)]
-    [InlineData(ThirstLevel.SevereDehydration, 3)]
+    [InlineData(ThirstLevel.SevereDehydration, 2)]  // S-1: ThirstStageと統一（3→2）
     public void GetThirstDamage_CorrectValues(ThirstLevel level, int expected)
     {
         Assert.Equal(expected, ThirstSystem.GetThirstDamage(level));
@@ -2015,9 +2015,9 @@ public class Phase6Expansion_GamblingSystemTests
     [InlineData(true, 5, 3, false)]
     [InlineData(false, 5, 3, true)]
     [InlineData(false, 5, 7, false)]
-    [InlineData(true, 5, 5, false)]
-    [InlineData(false, 5, 5, false)]
-    public void JudgeHighLow_CorrectResult(bool high, int current, int next, bool expected)
+    [InlineData(true, 5, 5, null)]   // AG-2: 引き分けはnull（draw）
+    [InlineData(false, 5, 5, null)]  // AG-2: 引き分けはnull（draw）
+    public void JudgeHighLow_CorrectResult(bool high, int current, int next, bool? expected)
     {
         Assert.Equal(expected, GamblingSystem.JudgeHighLow(high, current, next));
     }
@@ -2060,12 +2060,12 @@ public class Phase6Expansion_GamblingSystemTests
     }
 
     [Theory]
-    [InlineData(10, 50, true)]
+    [InlineData(10, 50, false)]
     [InlineData(1, 100, false)]
     [InlineData(7, 0, true)]
     public void CheckAddiction_Formula(int gambles, int sanity, bool expected)
     {
-        // risk = gambles * 0.05 - sanity * 0.001 > 0.3
+        // risk = gambles * 0.05 - sanity * 0.005 > 0.3 (DS-4: 正気度影響を0.001→0.005に修正)
         Assert.Equal(expected, GamblingSystem.CheckAddiction(gambles, sanity));
     }
 }
@@ -2302,7 +2302,7 @@ public class Phase6Expansion_ElementalAffinitySystemTests
     [InlineData(MonsterRace.Plant, Element.Earth, ElementalResistanceLevel.Resistant)]
     [InlineData(MonsterRace.Plant, Element.Water, ElementalResistanceLevel.Resistant)]
     [InlineData(MonsterRace.Insect, Element.Fire, ElementalResistanceLevel.Weakness)]
-    [InlineData(MonsterRace.Spirit, Element.Light, ElementalResistanceLevel.Weakness)]
+    [InlineData(MonsterRace.Spirit, Element.Light, ElementalResistanceLevel.Resistant)]
     [InlineData(MonsterRace.Spirit, Element.Dark, ElementalResistanceLevel.Weakness)]
     [InlineData(MonsterRace.Construct, Element.Lightning, ElementalResistanceLevel.Weakness)]
     [InlineData(MonsterRace.Construct, Element.Poison, ElementalResistanceLevel.Immune)]

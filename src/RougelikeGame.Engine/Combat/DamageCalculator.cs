@@ -31,8 +31,15 @@ public class DamageCalculator
         // 防御力 = 防具防御力 + (VIT × 1.5) + バフ補正
         int defensePower = param.ArmorDefense + (int)(param.Vitality * 1.5) + param.DefenseBuff;
 
-        // 基礎ダメージ
-        int baseDamage = (int)(attackPower * param.SkillMultiplier) - (int)(defensePower * 0.5);
+        // BS-4: 防御貫通を適用（防御力からArmorPenetration分を差し引く）
+        int effectiveDefense = Math.Max(0, defensePower - param.ArmorPenetration);
+
+        // 基礎ダメージ (K-4: 防御係数0.5→0.65に引上げ、VIT投資価値向上)
+        int baseDamage = (int)(attackPower * param.SkillMultiplier) - (int)(effectiveDefense * 0.65);
+
+        // BS-8: レベルベースのダメージスケーリング（レベル10ごとに5%ボーナス）
+        float levelScaling = 1.0f + (param.AttackerLevel - 1) * 0.005f;
+        baseDamage = (int)(baseDamage * levelScaling);
         baseDamage = Math.Max(GameConstants.MinimumDamage, baseDamage);
 
         // 乱数幅 (0.9~1.1)
@@ -79,7 +86,7 @@ public class DamageCalculator
         int magicDefense = param.MagicDefense + (param.Mind * 2) + param.MagicDefenseBuff;
 
         // 基礎ダメージ（魔法言語補正含む）
-        int baseDamage = (int)(magicAttack * param.SkillMultiplier * param.LanguageBonus) - (int)(magicDefense * 0.3);
+        int baseDamage = (int)(magicAttack * param.SkillMultiplier * param.LanguageBonus) - (int)(magicDefense * 0.5);  // K-1: 魔法防御係数を物理と統一
         baseDamage = Math.Max(GameConstants.MinimumDamage, baseDamage);
 
         // 乱数幅 (0.9~1.1)
@@ -168,7 +175,7 @@ public class DamageCalculator
     public bool CheckCritical(CriticalCheckParams param)
     {
         double critRate = GameConstants.BaseCriticalRate 
-            + (param.Dexterity * 0.003) 
+            + (param.Dexterity * 0.005)   // K-3: DEXのクリティカル率寄与をLUKと統一
             + (param.Luck * 0.005) 
             + param.WeaponCritBonus 
             + param.SkillCritBonus;
@@ -195,10 +202,26 @@ public class DamageCalculator
     }
 
     /// <summary>
+    /// BS-11: 盾ブロック判定。盾のBlockChanceに基づきブロック成功/失敗を判定する。
+    /// ブロック成功時はBlockReduction分だけダメージを軽減する。
+    /// </summary>
+    public (bool Blocked, int ReducedDamage) CalculateShieldBlock(int originalDamage, float blockChance, float blockReduction)
+    {
+        if (blockChance <= 0) return (false, originalDamage);
+        bool blocked = _random.NextDouble() < blockChance;
+        if (!blocked) return (false, originalDamage);
+        int reducedDamage = Math.Max(GameConstants.MinimumDamage, (int)(originalDamage * (1.0f - blockReduction)));
+        return (true, reducedDamage);
+    }
+
+    /// <summary>
     /// HP状態によるペナルティを取得
     /// </summary>
     public HpStatePenalty GetHpStatePenalty(int currentHp, int maxHp)
     {
+        if (maxHp <= 0)
+            return new HpStatePenalty(HpState.Dead, 1.0, 1.0);
+
         double ratio = (double)currentHp / maxHp;
 
         return ratio switch
@@ -232,6 +255,10 @@ public record struct PhysicalDamageParams
     public Element TargetElement { get; init; }
     public double CriticalRate { get; init; }
     public float CriticalDamageMultiplier { get; init; }
+    /// <summary>BS-4: 防御貫通値（防御力をこの値分だけ無視する）</summary>
+    public int ArmorPenetration { get; init; }
+    /// <summary>BS-8: レベルベースのダメージスケーリング（攻撃側レベル）</summary>
+    public int AttackerLevel { get; init; }
 
     public PhysicalDamageParams()
     {
@@ -239,6 +266,7 @@ public record struct PhysicalDamageParams
         CriticalDamageMultiplier = 1.5f;
         AttackElement = Element.None;
         TargetElement = Element.None;
+        AttackerLevel = 1;
     }
 }
 

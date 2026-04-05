@@ -22,9 +22,9 @@ public static class GamblingSystem
     }
 
     /// <summary>カード（ハイ&amp;ロー）の結果を判定</summary>
-    public static bool JudgeHighLow(bool playerChoseHigh, int currentCard, int nextCard)
+    public static bool? JudgeHighLow(bool playerChoseHigh, int currentCard, int nextCard)
     {
-        if (currentCard == nextCard) return false; // 引き分けは負け
+        if (currentCard == nextCard) return null; // AG-2: 引き分けは賭け金返却（nullで表現）
         return playerChoseHigh ? nextCard > currentCard : nextCard < currentCard;
     }
 
@@ -64,7 +64,7 @@ public static class GamblingSystem
     /// <summary>賭博中毒チェック（正気度連動）</summary>
     public static bool CheckAddiction(int consecutiveGambles, int sanity)
     {
-        float risk = consecutiveGambles * 0.05f - sanity * 0.001f;
+        float risk = consecutiveGambles * 0.05f - sanity * 0.005f;  // DS-4: 正気度影響を有意な値に修正（0.001f→0.005f）
         return risk > 0.3f;
     }
 }

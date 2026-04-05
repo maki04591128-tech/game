@@ -67,7 +67,8 @@ public readonly record struct Damage(
             return Amount;
 
         int afterDefense = Math.Max(GameConstants.MinimumDamage, Amount - defense);
-        int afterResistance = (int)(afterDefense * (1f - Math.Clamp(resistance, -1f, 0.9f)));
+        // EH-1: 耐性下限を-0.5に修正（最大1.5倍ダメージまで。-1.0だと2倍で過剰）
+        int afterResistance = (int)(afterDefense * (1f - Math.Clamp(resistance, -0.5f, 0.9f)));
 
         return Math.Max(GameConstants.MinimumDamage, afterResistance);
     }

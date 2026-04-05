@@ -85,6 +85,19 @@ public abstract class EquipmentItem : Item, IEquippable
         if (player.Level < RequiredLevel)
             return false;
 
+        // BX-7: 耐久度0以下の装備は装備不可（耐久度システム有効時のみ）
+        if (MaxDurability > 0 && Durability <= 0)
+            return false;
+
+        // Y-4: スライム種族の装備制限（指輪・首飾り以外装備不可）
+        if (Systems.RacialTraitSystem.HasEquipmentRestriction(player.Race)
+            && Slot != EquipmentSlot.Ring1
+            && Slot != EquipmentSlot.Ring2
+            && Slot != EquipmentSlot.Neck)
+        {
+            return false;
+        }
+
         if (RequiredStats.HasValue)
         {
             var stats = player.EffectiveStats;
@@ -170,8 +183,8 @@ public class Weapon : EquipmentItem
         WeaponType.Bow or WeaponType.Crossbow or WeaponType.Thrown => EquipmentCategory.Bow,
         WeaponType.Staff => EquipmentCategory.Staff,
         WeaponType.Fist => EquipmentCategory.Fist,
-        WeaponType.Spear => EquipmentCategory.Sword,
-        WeaponType.Whip => EquipmentCategory.Sword,
+        WeaponType.Spear => EquipmentCategory.Spear,
+        WeaponType.Whip => EquipmentCategory.Whip,
         _ => EquipmentCategory.Sword
     };
 
@@ -196,6 +209,9 @@ public class Weapon : EquipmentItem
     /// <summary>攻撃タイプ</summary>
     public AttackType AttackType { get; init; } = AttackType.Slash;
 
+    /// <summary>BS-9: 武器固有クリティカルボーナス（0.0～0.15程度）</summary>
+    public double CriticalBonus { get; init; }
+
     public Weapon()
     {
         Slot = EquipmentSlot.MainHand;
@@ -208,7 +224,11 @@ public class Weapon : EquipmentItem
         int max = DamageRange.Max;
         if (min > max) (min, max) = (max, min);
         int baseDmg = random.Next(min, max + 1);
-        return baseDmg + (EnhancementLevel * 2);
+        int enhanceBonus = EnhancementLevel * 2;
+        int totalDmg = baseDmg + enhanceBonus;
+        // 両手武器はダメージ25%ボーナス
+        if (IsTwoHanded) totalDmg = (int)(totalDmg * 1.25f);
+        return totalDmg;
     }
 
     /// <summary>攻撃に必要なターン数</summary>
@@ -343,15 +363,21 @@ public class Equipment
         if (!item.CanEquip(player))
             return null;
 
+        // BX-2: 両手武器装備中は盾/オフハンド装備不可
+        if (item.Slot == EquipmentSlot.OffHand && MainHand is Weapon mainWeapon && mainWeapon.IsTwoHanded)
+            return null;
+
         var previousItem = _slots[item.Slot];
 
         // 両手武器の場合、オフハンドも外す
         if (item is Weapon weapon && weapon.IsTwoHanded)
         {
-            if (_slots[EquipmentSlot.OffHand] != null)
+            var offHandItem = _slots[EquipmentSlot.OffHand];
+            if (offHandItem != null)
             {
-                _slots[EquipmentSlot.OffHand]?.OnUnequip(player);
-                // オフハンドアイテムをインベントリに戻す処理が必要
+                offHandItem.OnUnequip(player);
+                // オフハンドアイテムをインベントリに戻す
+                ((Entities.Inventory)player.Inventory).Add(offHandItem);
             }
             _slots[EquipmentSlot.OffHand] = null;
         }

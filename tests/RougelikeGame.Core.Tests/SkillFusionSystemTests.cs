@@ -9,34 +9,34 @@ public class SkillFusionSystemTests
     [Fact]
     public void FindRecipe_ValidCombination_ReturnsRecipe()
     {
-        var recipe = SkillFusionSystem.FindRecipe("パワースラッシュ", "ファイアボルト");
+        var recipe = SkillFusionSystem.FindRecipe("strong_strike", "fireball");
         Assert.NotNull(recipe);
-        Assert.Equal("炎斬り", recipe.ResultSkill);
+        Assert.Equal("flame_slash", recipe.ResultSkill);
     }
 
     [Fact]
     public void FindRecipe_ReversedOrder_StillFinds()
     {
-        var recipe = SkillFusionSystem.FindRecipe("ファイアボルト", "パワースラッシュ");
+        var recipe = SkillFusionSystem.FindRecipe("fireball", "strong_strike");
         Assert.NotNull(recipe);
     }
 
     [Fact]
     public void FindRecipe_Invalid_ReturnsNull()
     {
-        Assert.Null(SkillFusionSystem.FindRecipe("不明A", "不明B"));
+        Assert.Null(SkillFusionSystem.FindRecipe("unknown_a", "unknown_b"));
     }
 
     [Fact]
     public void CanFuse_SufficientProficiency_True()
     {
-        Assert.True(SkillFusionSystem.CanFuse("パワースラッシュ", "ファイアボルト", 30));
+        Assert.True(SkillFusionSystem.CanFuse("strong_strike", "fireball", 30));
     }
 
     [Fact]
     public void CanFuse_InsufficientProficiency_False()
     {
-        Assert.False(SkillFusionSystem.CanFuse("パワースラッシュ", "ファイアボルト", 10));
+        Assert.False(SkillFusionSystem.CanFuse("strong_strike", "fireball", 10));
     }
 
     [Fact]

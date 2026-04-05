@@ -74,4 +74,27 @@ public class RelationshipSystem
     {
         return string.Compare(a, b, StringComparison.Ordinal) <= 0 ? (type, a, b) : (type, b, a);
     }
+
+    /// <summary>時間経過による関係値の自然減衰（中立方向に戻る）</summary>
+    public void DecayRelationships(int turnsElapsed)
+    {
+        int decayAmount = Math.Max(1, turnsElapsed / 100);
+        var keys = _relations.Keys.ToList();
+        foreach (var key in keys)
+        {
+            int current = _relations[key];
+            if (Math.Abs(current) <= decayAmount)
+            {
+                _relations[key] = 0;
+            }
+            else if (current > 0)
+            {
+                _relations[key] = current - decayAmount;
+            }
+            else
+            {
+                _relations[key] = current + decayAmount;
+            }
+        }
+    }
 }

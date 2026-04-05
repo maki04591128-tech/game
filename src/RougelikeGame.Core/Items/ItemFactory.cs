@@ -84,6 +84,22 @@ public class ItemFactory
         StatModifier = new StatModifier(Agility: 2)
     };
 
+    public static Weapon CreateMithrilDagger() => new()
+    {
+        ItemId = "weapon_mithril_dagger",
+        Name = "ミスリルダガー",
+        Description = "ミスリル鍛造の短剣。軽量ながら鋭い切れ味を持つ。",
+        WeaponType = WeaponType.Dagger,
+        BaseDamage = 14,
+        DamageRange = (11, 17),
+        AttackSpeed = 1.6f,
+        Range = 1,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 800,
+        Weight = 0.8f,
+        StatModifier = new StatModifier(Agility: 4, Dexterity: 2)
+    };
+
     public static Weapon CreateBattleAxe() => new()
     {
         ItemId = "weapon_battle_axe",
@@ -443,7 +459,8 @@ public class ItemFactory
         Name = "小回復薬",
         Description = "傷を癒す赤い薬。",
         PotionType = PotionType.HealingMinor,
-        EffectValue = 30,
+        EffectValue = 0,
+        EffectPercentage = 0.25f,  // L-2: MaxHP25%回復（スケーリング対応）
         Rarity = ItemRarity.Common,
         BasePrice = 25,
         Weight = 0.5f
@@ -455,7 +472,8 @@ public class ItemFactory
         Name = "回復薬",
         Description = "効果の高い回復薬。",
         PotionType = PotionType.HealingMajor,
-        EffectValue = 75,
+        EffectValue = 0,
+        EffectPercentage = 0.50f,  // L-2: MaxHP50%回復
         Rarity = ItemRarity.Uncommon,
         BasePrice = 80,
         Weight = 0.5f
@@ -479,6 +497,7 @@ public class ItemFactory
         Name = "解毒剤",
         Description = "毒を中和する薬。",
         PotionType = PotionType.Antidote,
+        EffectValue = 100,  // CN-8: 解毒効果（100%毒解除）
         Rarity = ItemRarity.Common,
         BasePrice = 40,
         Weight = 0.3f
@@ -490,7 +509,8 @@ public class ItemFactory
         Name = "超回復薬",
         Description = "非常に効果の高い回復薬。",
         PotionType = PotionType.HealingSuper,
-        EffectValue = 150,
+        EffectValue = 0,
+        EffectPercentage = 0.80f,  // L-2: MaxHP80%回復
         Rarity = ItemRarity.Rare,
         BasePrice = 200,
         Weight = 0.5f
@@ -540,6 +560,7 @@ public class ItemFactory
         Name = "透明化薬",
         Description = "一時的に透明になれる薬。",
         PotionType = PotionType.Invisibility,
+        EffectValue = 1,  // X-1: 透明化フラグ（1=有効）
         Duration = 20,
         Rarity = ItemRarity.Rare,
         BasePrice = 200,
@@ -550,8 +571,9 @@ public class ItemFactory
     {
         ItemId = "potion_fire_resist",
         Name = "耐火薬",
-        Description = "火のダメージを軽減する薬。",
+        Description = "火のダメージを50%軽減する薬。",
         PotionType = PotionType.FireResistance,
+        EffectValue = 50,  // X-3: 耐性50%
         Duration = 50,
         Rarity = ItemRarity.Uncommon,
         BasePrice = 80,
@@ -562,8 +584,9 @@ public class ItemFactory
     {
         ItemId = "potion_cold_resist",
         Name = "耐冷薬",
-        Description = "冷気のダメージを軽減する薬。",
+        Description = "冷気のダメージを50%軽減する薬。",
         PotionType = PotionType.ColdResistance,
+        EffectValue = 50,  // X-4: 耐性50%
         Duration = 50,
         Rarity = ItemRarity.Uncommon,
         BasePrice = 80,
@@ -576,8 +599,51 @@ public class ItemFactory
         Name = "万能薬",
         Description = "全ての状態異常を治す奇跡の薬。",
         PotionType = PotionType.CureAll,
+        EffectValue = 100,  // X-2: 全状態異常解除（100%効果）
         Rarity = ItemRarity.Rare,
         BasePrice = 300,
+        Weight = 0.5f
+    };
+
+    // B-7: 知力増強薬ファクトリ追加
+    public static Potion CreateIntelligenceBoostPotion() => new()
+    {
+        ItemId = "potion_intelligence_boost",
+        Name = "知力増強薬",
+        Description = "一時的に知力を上昇させる薬。",
+        PotionType = PotionType.IntelligenceBoost,
+        EffectValue = 5,
+        Duration = 30,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 100,
+        Weight = 0.5f
+    };
+
+    // B-11: 毒薬ファクトリ追加
+    public static Potion CreatePoisonPotion() => new()
+    {
+        ItemId = "potion_poison",
+        Name = "毒薬",
+        Description = "飲むと毒に侵される危険な薬。武器に塗ることも可能。",
+        PotionType = PotionType.Poison,
+        EffectValue = 10,
+        Duration = 10,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 50,
+        Weight = 0.5f
+    };
+
+    // B-12: 混乱薬ファクトリ追加
+    public static Potion CreateConfusionPotion() => new()
+    {
+        ItemId = "potion_confusion",
+        Name = "混乱薬",
+        Description = "飲むと方向感覚を失い混乱する薬。",
+        PotionType = PotionType.Confusion,
+        EffectValue = 1,
+        Duration = 10,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 40,
         Weight = 0.5f
     };
 
@@ -811,6 +877,34 @@ public class ItemFactory
         Weight = 0.1f
     };
 
+    // B-3: 召喚の巻物ファクトリ追加
+    public static Scroll CreateScrollOfSummon() => new()
+    {
+        ItemId = "scroll_summon",
+        Name = "召喚の巻物",
+        Description = "味方のクリーチャーを一体召喚する。",
+        ScrollType = ScrollType.Summon,
+        TargetType = TargetType.Self,
+        EffectValue = 1,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 250,
+        Weight = 0.1f
+    };
+
+    // B-4: 混乱の巻物
+    public static Scroll CreateScrollOfConfusion() => new()
+    {
+        ItemId = "scroll_confusion",
+        Name = "混乱の巻物",
+        Description = "読むと周囲の敵を混乱させる霧を発生させる。",
+        ScrollType = ScrollType.Confusion,
+        TargetType = TargetType.Area,
+        EffectValue = 10,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 120,
+        Weight = 0.1f
+    };
+
     public static Scroll CreateAncientBook() => new()
     {
         ItemId = "ancient_book",
@@ -834,14 +928,15 @@ public class ItemFactory
     public Item GenerateRandomItem(int depth)
     {
         var rarity = DetermineRarity(depth);
-        var itemType = (ItemType)_random.Next(3); // Equipment, Consumable, Food
-
-        return itemType switch
+        // HW-1/HZ-5: 全アイテムタイプを生成対象に
+        int roll = _random.Next(100);
+        return roll switch
         {
-            ItemType.Equipment => GenerateRandomEquipment(depth, rarity),
-            ItemType.Consumable => GenerateRandomConsumable(rarity),
-            ItemType.Food => GenerateRandomFood(),
-            _ => CreateBread()
+            < 35 => GenerateRandomEquipment(depth, rarity),
+            < 60 => GenerateRandomConsumable(rarity),
+            < 75 => GenerateRandomFood(),
+            < 90 => GenerateRandomScroll(rarity),
+            _ => CreateBread() // Material等はドロップテーブルから生成
         };
     }
 
@@ -862,16 +957,20 @@ public class ItemFactory
 
     private Item GenerateRandomEquipment(int depth, ItemRarity rarity)
     {
-        int equipType = _random.Next(4);
+        // BT-1: 全装備種から深さに応じてランダム生成
+        var shallowWeapons = new Func<Item>[] { CreateRustySword, CreateDagger, CreateWoodenStaff, CreateShortBow, CreateWoodenShield };
+        var midWeapons = new Func<Item>[] { CreateIronSword, CreateBattleAxe, CreateSpear, CreateLeatherArmor, CreateIronShield, CreateCrossbow };
+        var deepWeapons = new Func<Item>[] { CreateSteelSword, CreateGreatsword, CreateWarHammer, CreateMithrilDagger, CreatePlateArmor, CreateWhip, CreateIronHelm };
 
-        Item baseItem = equipType switch
-        {
-            0 => CreateIronSword(),
-            1 => CreateDagger(),
-            2 => CreateLeatherArmor(),
-            3 => CreateWoodenShield(),
-            _ => CreateIronSword()
-        };
+        Func<Item>[] pool;
+        if (depth <= 5)
+            pool = shallowWeapons;
+        else if (depth <= 15)
+            pool = shallowWeapons.Concat(midWeapons).ToArray();
+        else
+            pool = shallowWeapons.Concat(midWeapons).Concat(deepWeapons).ToArray();
+
+        Item baseItem = pool[_random.Next(pool.Length)]();
 
         // レアリティに応じて強化
         if (baseItem is EquipmentItem equip)
@@ -907,16 +1006,45 @@ public class ItemFactory
 
     private Item GenerateRandomConsumable(ItemRarity rarity)
     {
-        int consumableType = _random.Next(4);
-
-        var item = consumableType switch
-        {
-            0 => (Item)(rarity >= ItemRarity.Uncommon ? CreateHealingPotion() : CreateMinorHealingPotion()),
-            1 => CreateMinorManaPotion(),
-            2 => CreateAntidote(),
-            3 => CreateScrollOfIdentify(),
-            _ => CreateMinorHealingPotion()
+        // BT-2: レアリティに応じて消耗品プールを拡張
+        var commonPool = new Func<Item>[] {
+            () => rarity >= ItemRarity.Uncommon ? CreateHealingPotion() : CreateMinorHealingPotion(),
+            CreateMinorManaPotion,
+            CreateAntidote,
+            CreateScrollOfIdentify
         };
+        var uncommonPool = new Func<Item>[] {
+            CreateManaPotion,
+            CreateScrollOfTeleport,
+            CreateScrollOfMagicMapping,
+            CreateCureAllPotion,
+            CreateScrollOfRemoveCurse,
+            CreateIntelligenceBoostPotion,  // B-7
+            CreatePoisonPotion,  // B-11
+            CreateConfusionPotion  // B-12
+        };
+        var rarePool = new Func<Item>[] {
+            CreateStrengthPotion,
+            CreateAgilityPotion,
+            CreateInvisibilityPotion,
+            CreateFireResistPotion,
+            CreateColdResistPotion,
+            CreateSuperHealingPotion,
+            CreateScrollOfFireball,
+            CreateScrollOfLightning,
+            CreateScrollOfFreeze,
+            CreateScrollOfEnchant
+        };
+
+        Func<Item>[] pool;
+        if (rarity >= ItemRarity.Rare)
+            pool = commonPool.Concat(uncommonPool).Concat(rarePool).ToArray();
+        else if (rarity >= ItemRarity.Uncommon)
+            pool = commonPool.Concat(uncommonPool).ToArray();
+        else
+            pool = commonPool;
+
+        var item = pool[_random.Next(pool.Length)]();
 
         // 巻物は未鑑定で生成
         if (item is Scroll scroll)
@@ -929,14 +1057,35 @@ public class ItemFactory
 
     private Item GenerateRandomFood()
     {
-        int foodType = _random.Next(3);
+        // U-1: 全食品タイプから生成
+        int foodType = _random.Next(8);
 
         return foodType switch
         {
             0 => CreateBread(),
             1 => CreateRation(),
             2 => CreateCookedMeat(),
+            3 => CreateEmergencyRation(),
+            4 => CreateFruit(),
+            5 => CreateWater(),
+            6 => CreateCleanWater(),
+            7 => CreateLembas(),
             _ => CreateBread()
+        };
+    }
+
+    private Item GenerateRandomScroll(ItemRarity rarity)
+    {
+        var scrollTypes = new[] { ScrollType.Teleport, ScrollType.Identify, ScrollType.MagicMapping,
+            ScrollType.Enchant, ScrollType.Freeze, ScrollType.Sanctuary, ScrollType.Return, ScrollType.Summon };
+        var type = scrollTypes[_random.Next(scrollTypes.Length)];
+        return new Scroll
+        {
+            ItemId = $"scroll_{type}",
+            Name = $"{type}の巻物",
+            Description = $"{type}の効果を発揮する巻物",
+            ScrollType = type,
+            EffectValue = rarity >= ItemRarity.Rare ? 30 : 15
         };
     }
 
@@ -1050,6 +1199,16 @@ public class ItemFactory
     public static Item CreateFishCommon1() => CreateMaterialItem("fish_common_1", "小魚", "どこでも釣れる一般的な小魚", MaterialCategory.Monster, 10);
     public static Item CreateFishCommon2() => CreateMaterialItem("fish_common_2", "川魚", "川に棲む一般的な魚", MaterialCategory.Monster, 15);
     public static Item CreateFishMedium1() => CreateMaterialItem("fish_medium_1", "鯛", "美味な中型の魚", MaterialCategory.Monster, 30, ItemRarity.Uncommon);
+    public static Item CreateFishMedium2() => CreateMaterialItem("fish_medium_2", "ウナギ", "夏に旬を迎える滋養のある魚", MaterialCategory.Monster, 35, ItemRarity.Uncommon);
+    public static Item CreateFishRare1() => CreateMaterialItem("fish_rare_1", "ニジマス", "美しい虹色の鱗を持つ希少魚", MaterialCategory.Monster, 80, ItemRarity.Rare);
+    public static Item CreateFishRare2() => CreateMaterialItem("fish_rare_2", "古代魚", "太古から生き続ける神秘的な魚", MaterialCategory.Monster, 150, ItemRarity.Rare, 70);
+    public static Item CreateFishLegendary() => CreateMaterialItem("fish_legendary", "幻の大魚", "伝説に語られる巨大な魚", MaterialCategory.Monster, 500, ItemRarity.Legendary, 90);
+    public static Item CreateFishTreasure() => new KeyItem
+    {
+        ItemId = "fish_treasure", Name = "水底の宝箱", Description = "水底に沈んでいた宝箱",
+        BasePrice = 200, Rarity = ItemRarity.Rare, Weight = 2.0f
+    };
+    public static Item CreateFishJunk() => CreateMaterialItem("fish_junk", "ガラクタ", "水中から引き揚げたガラクタ", MaterialCategory.Monster, 1);
 
     // 採掘用鉱石・宝石
     public static Item CreateOreIron() => CreateMaterialItem("ore_iron", "鉄鉱石", "鉄を含む鉱石。鍛冶の基本素材", MaterialCategory.Metal, 20);
@@ -1183,6 +1342,7 @@ public static class ItemDefinitions
         ["weapon_iron_sword"] = ItemFactory.CreateIronSword,
         ["weapon_steel_sword"] = ItemFactory.CreateSteelSword,
         ["weapon_dagger"] = ItemFactory.CreateDagger,
+        ["weapon_mithril_dagger"] = ItemFactory.CreateMithrilDagger,
         ["weapon_battle_axe"] = ItemFactory.CreateBattleAxe,
         ["weapon_wooden_staff"] = ItemFactory.CreateWoodenStaff,
         ["weapon_short_bow"] = ItemFactory.CreateShortBow,
@@ -1221,6 +1381,9 @@ public static class ItemDefinitions
         ["potion_fire_resist"] = ItemFactory.CreateFireResistPotion,
         ["potion_cold_resist"] = ItemFactory.CreateColdResistPotion,
         ["potion_cure_all"] = ItemFactory.CreateCureAllPotion,
+        ["potion_intelligence_boost"] = ItemFactory.CreateIntelligenceBoostPotion,  // B-7
+        ["potion_poison"] = ItemFactory.CreatePoisonPotion,  // B-11
+        ["potion_confusion"] = ItemFactory.CreateConfusionPotion,  // B-12
 
         // 食料
         ["food_bread"] = ItemFactory.CreateBread,
@@ -1243,6 +1406,8 @@ public static class ItemDefinitions
         ["scroll_enchant"] = ItemFactory.CreateScrollOfEnchant,
         ["scroll_return"] = ItemFactory.CreateScrollOfReturn,
         ["scroll_sanctuary"] = ItemFactory.CreateScrollOfSanctuary,
+        ["scroll_summon"] = ItemFactory.CreateScrollOfSummon,  // B-3
+        ["scroll_confusion"] = ItemFactory.CreateScrollOfConfusion,  // B-4
         ["ancient_book"] = ItemFactory.CreateAncientBook,
 
         // 素材 - 魔物素材
@@ -1290,6 +1455,12 @@ public static class ItemDefinitions
         ["fish_common_1"] = ItemFactory.CreateFishCommon1,
         ["fish_common_2"] = ItemFactory.CreateFishCommon2,
         ["fish_medium_1"] = ItemFactory.CreateFishMedium1,
+        ["fish_medium_2"] = ItemFactory.CreateFishMedium2,
+        ["fish_rare_1"] = ItemFactory.CreateFishRare1,
+        ["fish_rare_2"] = ItemFactory.CreateFishRare2,
+        ["fish_legendary"] = ItemFactory.CreateFishLegendary,
+        ["fish_treasure"] = ItemFactory.CreateFishTreasure,
+        ["fish_junk"] = ItemFactory.CreateFishJunk,
 
         // 採掘用鉱石・宝石
         ["ore_iron"] = ItemFactory.CreateOreIron,

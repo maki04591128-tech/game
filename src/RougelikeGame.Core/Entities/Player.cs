@@ -16,7 +16,7 @@ public class Player : Character, IPlayer, IInventoryHolder
     /// <summary>種族</summary>
     public Race Race { get; private set; } = Race.Human;
     /// <summary>職業</summary>
-    public CharacterClass CharacterClass { get; private set; } = CharacterClass.Fighter;
+    public CharacterClass CharacterClass { get; internal set; } = CharacterClass.Fighter;  // BH-1: 転職用にinternal set
     /// <summary>素性</summary>
     public Background Background { get; private set; } = Background.Adventurer;
     public int ExperienceToNextLevel => CalculateExpRequired(Level);
@@ -139,7 +139,9 @@ public class Player : Character, IPlayer, IInventoryHolder
     /// <summary>ゴールドを直接設定する（セーブ復元用）</summary>
     public void SetGold(int amount)
     {
+        int diff = Math.Max(0, amount) - Gold;
         Gold = Math.Max(0, amount);
+        OnGoldChanged?.Invoke(this, new GoldChangedEventArgs(diff, Gold));  // IG-1: イベント発火
     }
     #endregion
 
@@ -174,25 +176,28 @@ public class Player : Character, IPlayer, IInventoryHolder
     // IInventoryHolder implementation
     public bool CanPickUp(Interfaces.IItem item)
     {
+        // IF-3: 非Items.Item型は拾えない
+        if (item is not Items.Item concreteItem)
+            return false;
+
         if (Inventory.UsedSlots >= Inventory.MaxSlots)
             return false;
 
         // 重量チェック
-        if (item is Items.Item concreteItem)
-        {
-            float itemWeight = concreteItem.Weight;
-            if (concreteItem is IStackable stackable)
-                itemWeight *= stackable.StackCount;
-            if (((Inventory)Inventory).TotalWeight + itemWeight > CalculateMaxWeight())
-                return false;
-        }
+        float itemWeight = concreteItem.Weight;
+        if (concreteItem is IStackable stackable)
+            itemWeight *= stackable.StackCount;
+        if (((Inventory)Inventory).TotalWeight + itemWeight > CalculateMaxWeight())
+            return false;
 
         return true;
     }
-    public void PickUp(Interfaces.IItem item)
+    public bool PickUp(Interfaces.IItem item)
     {
         if (item is Items.Item concreteItem)
-            ((Inventory)Inventory).Add(concreteItem);
+            return ((Inventory)Inventory).Add(concreteItem);
+        // IF-1: 非Items.Item型は拾えない（呼び出し側でワールドから除去しないようにfalse返却）
+        return false;
     }
     public void Drop(Interfaces.IItem item)
     {
@@ -203,6 +208,12 @@ public class Player : Character, IPlayer, IInventoryHolder
 
     #region Magic Language
     public Dictionary<string, int> LearnedWords { get; } = new();  // ルーン語ID -> 理解度
+
+    /// <summary>O-2: 転職実行（外部プロジェクトからCharacterClass変更用）</summary>
+    public void ChangeClass(CharacterClass newClass)
+    {
+        CharacterClass = newClass;
+    }
 
     public void LearnWord(string wordId)
     {
@@ -237,15 +248,43 @@ public class Player : Character, IPlayer, IInventoryHolder
     }
 
     public bool HasSkill(string skillId) => LearnedSkills.Contains(skillId);
+
+    /// <summary>AN-1: 習得済みルーン</summary>
+    public HashSet<string> KnownRunes { get; } = new();
+
+    /// <summary>ルーンを習得する</summary>
+    public bool LearnRune(string runeId)
+    {
+        return KnownRunes.Add(runeId);
+    }
     #endregion
 
     #region Stat Overrides
     /// <summary>種族・職業由来のHP/MPボーナス</summary>
     public int BonusMaxHp { get; set; }
     public int BonusMaxMp { get; set; }
+    /// <summary>BH-2: パッシブスキル由来のクリティカル率ボーナス</summary>
+    public double BonusCriticalRate { get; set; }
 
     public override int MaxHp => base.MaxHp + BonusMaxHp + GetSkillTreeResourceBonus("MaxHp");
     public override int MaxMp => base.MaxMp + BonusMaxMp + GetSkillTreeResourceBonus("MaxMp");
+
+    /// <summary>AH-4: 属性耐性（StatusEffectベース: FireResistance/ColdResistance等）</summary>
+    protected override float GetResistanceAgainst(Element element)
+    {
+        float resistance = 0f;
+        foreach (var eff in StatusEffects)
+        {
+            if (element == Element.Fire && eff.Type == StatusEffectType.FireResistance)
+                resistance += 0.5f;
+            if (element == Element.Ice && eff.Type == StatusEffectType.ColdResistance)
+                resistance += 0.5f;
+        }
+        // 種族特性: 毒耐性（半減）
+        if (element == Element.Poison && RacialTraitSystem.GetTraitValue(Race, RacialTraitType.PoisonResistance) > 0)
+            resistance += 0.5f;
+        return Math.Min(0.9f, resistance);
+    }
 
     /// <summary>スキルツリーのパッシブボーナスを提供するコールバック（GameControllerから設定）</summary>
     public Func<Dictionary<string, int>>? SkillTreeBonusProvider { get; set; }
@@ -274,6 +313,31 @@ public class Player : Character, IPlayer, IInventoryHolder
             var bonuses = SkillTreeBonusProvider();
             yield return ConvertSkillBonusesToStatModifier(bonuses);
         }
+
+        // D-1/D-2/D-3: 飢餓・渇き・疲労ペナルティ
+        var hungerPenalty = HungerStage switch
+        {
+            HungerStage.Starving => new StatModifier(Strength: -3, Agility: -3, Dexterity: -2),
+            HungerStage.Hungry => new StatModifier(Strength: -1, Agility: -1),
+            _ => (StatModifier?)null
+        };
+        if (hungerPenalty.HasValue) yield return hungerPenalty.Value;
+
+        var thirstPenalty = ThirstStage switch
+        {
+            ThirstStage.Dehydrated => new StatModifier(Intelligence: -3, Mind: -3, Agility: -2),
+            ThirstStage.Thirsty => new StatModifier(Intelligence: -1, Mind: -1),
+            _ => (StatModifier?)null
+        };
+        if (thirstPenalty.HasValue) yield return thirstPenalty.Value;
+
+        var fatiguePenalty = FatigueStage switch
+        {
+            FatigueStage.Exhausted => new StatModifier(Strength: -2, Agility: -2, Dexterity: -2, Intelligence: -2),
+            FatigueStage.Tired => new StatModifier(Agility: -1, Dexterity: -1),
+            _ => (StatModifier?)null
+        };
+        if (fatiguePenalty.HasValue) yield return fatiguePenalty.Value;
     }
 
     /// <summary>スキルツリーボーナス辞書をStatModifierに変換（ステータス系のみ）</summary>
@@ -312,14 +376,15 @@ public class Player : Character, IPlayer, IInventoryHolder
         }
 
         CurrentReligion = religionId;
-        FaithPoints = 0;
+        FaithPoints = GameConstants.InitialFaithOnJoin;  // IT-1: 入信時に初期信仰値を設定
         DaysSinceLastPrayer = 0;
         HasPrayedToday = false;
 
-        // 再入信の場合、信仰度上限を下げる
+        // S-2: 再入信ペナルティ累積（同じ宗教への再加入回数分）
         if (PreviousReligions.Contains(religionId))
         {
-            FaithCap = Math.Max(0, GameConstants.MaxFaithPoints - GameConstants.MaxFaithCapReductionOnRejoin);
+            int rejoinCount = PreviousReligions.Count(r => r == religionId);
+            FaithCap = Math.Max(0, GameConstants.MaxFaithPoints - GameConstants.MaxFaithCapReductionOnRejoin * rejoinCount);
         }
         else
         {
@@ -351,6 +416,8 @@ public class Player : Character, IPlayer, IInventoryHolder
     #region Level System
     public void GainExperience(int amount)
     {
+        // ID-1: 負値の経験値は無視
+        if (amount <= 0) return;
         // 種族の経験値倍率を適用
         var raceDef = RaceDefinition.Get(Race);
         int adjustedAmount = (int)(amount * raceDef.ExpMultiplier);
@@ -468,6 +535,7 @@ public class Player : Character, IPlayer, IInventoryHolder
         DeathCause.Combat => SanityLoss.Combat,
         DeathCause.Boss => SanityLoss.Boss,
         DeathCause.Starvation => SanityLoss.Starvation,
+        DeathCause.Dehydration => SanityLoss.Starvation,  // DC-1: 渇き死も飢餓と同等
         DeathCause.Trap => SanityLoss.Trap,
         DeathCause.TimeLimit => SanityLoss.TimeLimit,
         DeathCause.Curse => SanityLoss.Curse,
@@ -481,7 +549,7 @@ public class Player : Character, IPlayer, IInventoryHolder
     /// <summary>
     /// 引き継ぎデータを生成
     /// </summary>
-    public TransferData CreateTransferData()
+    public TransferData CreateTransferData(int totalDeaths = 0)
     {
         return new TransferData
         {
@@ -491,8 +559,10 @@ public class Player : Character, IPlayer, IInventoryHolder
             FaithPoints = FaithPoints,
             PreviousReligion = PreviousReligion,
             PreviousReligions = new HashSet<string>(PreviousReligions),
-            TotalDeaths = 0,  // 外部で管理
-            RescueCountRemaining = RescueCountRemaining
+            TotalDeaths = totalDeaths,  // IG-4: 外部から渡す
+            RescueCountRemaining = RescueCountRemaining,
+            Level = Level,               // BW-5: レベル引き継ぎ
+            Gold = Gold / 4              // BW-6: ゴールドの25%を引き継ぎ
         };
     }
 
@@ -531,6 +601,22 @@ public class Player : Character, IPlayer, IInventoryHolder
         }
 
         RescueCountRemaining = data.RescueCountRemaining;
+
+        // BW-5: レベル引き継ぎ（半分のレベルから再開）
+        if (data.Level > 1)
+        {
+            int transferLevel = Math.Max(1, data.Level / 2);
+            for (int i = 1; i < transferLevel; i++)
+            {
+                LevelUp(); // レベルアップで基礎ステータスも上昇
+            }
+        }
+
+        // BW-6: ゴールド引き継ぎ
+        if (data.Gold > 0)
+        {
+            AddGold(data.Gold);
+        }
     }
     #endregion
 
@@ -602,6 +688,9 @@ public class Player : Character, IPlayer, IInventoryHolder
             BaseStats = baseStats,
             _sanity = GameConstants.InitialSanity,
             _hunger = GameConstants.InitialHunger,
+            _thirst = GameConstants.InitialThirst,       // EX-1: 渇き初期化
+            _fatigue = GameConstants.InitialFatigue,      // EX-1: 疲労初期化
+            _hygiene = GameConstants.InitialHygiene,      // EX-1: 衛生初期化
             Faction = Faction.Player
         };
 
@@ -670,6 +759,17 @@ public class Player : Character, IPlayer, IInventoryHolder
             player.LearnWord(wordId);
         }
 
+        // Z-1: 素性による初期装備品をインベントリに付与
+        var bgBonusData = BackgroundBonusData.Get(background);
+        foreach (var itemId in bgBonusData.InitialItemIds)
+        {
+            var item = Items.ItemDefinitions.Create(itemId);
+            if (item != null)
+            {
+                ((Inventory)player.Inventory).Add(item);
+            }
+        }
+
         return player;
     }
 
@@ -679,7 +779,7 @@ public class Player : Character, IPlayer, IInventoryHolder
         // 魔術師: 攻撃効果語+属性語+対象語（計5語）
         CharacterClass.Mage => ["brenna", "frysta", "fjandi", "eldr", "sjalfr"],
         // 僧侶: 回復・浄化+対象語（計4語）
-        CharacterClass.Cleric => ["graeda", "hreinsa", "sjalfr", "vinir"],
+        CharacterClass.Cleric => ["graeda", "hreinsa", "sjalfr", "ljos"],
         // 死霊術師: 闇系+召喚+対象語（計5語）
         CharacterClass.Necromancer => ["eyda", "kalla", "myrkr", "draugr", "fjandi"],
         // 吟遊詩人: 支援系+修飾語（計3語）
@@ -857,5 +957,9 @@ public class TransferData
     public int TotalDeaths { get; set; }
     public int RescueCountRemaining { get; set; } = GameConstants.MaxRescueCount;
     public int Sanity { get; set; } = GameConstants.InitialSanity;
+    /// <summary>BW-5: 転生時のレベル引き継ぎ</summary>
+    public int Level { get; set; }
+    /// <summary>BW-6: 転生時のゴールド引き継ぎ（一部）</summary>
+    public int Gold { get; set; }
 }
 #endregion

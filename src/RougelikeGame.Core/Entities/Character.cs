@@ -86,6 +86,8 @@ public abstract class Character : IEntity, ITurnActor, IDamageable
         {
             DamageType.Physical => EffectiveStats.PhysicalDefense,
             DamageType.Magical => EffectiveStats.MagicalDefense,
+            DamageType.Pure => 0,      // AI-1: 貫通ダメージ（防御無視）
+            DamageType.Healing => 0,   // AI-1: 回復は防御不要
             _ => 0
         };
 
@@ -106,6 +108,7 @@ public abstract class Character : IEntity, ITurnActor, IDamageable
 
     public virtual void Heal(int amount)
     {
+        amount = Math.Max(0, amount);  // AH-5b: 負値ガード
         int oldHp = CurrentHp;
         CurrentHp += amount;
         int actualHeal = CurrentHp - oldHp;
@@ -113,16 +116,23 @@ public abstract class Character : IEntity, ITurnActor, IDamageable
         OnHealed?.Invoke(this, new HealEventArgs(actualHeal, CurrentHp));
     }
 
-    public virtual void RestoreMp(int amount) => CurrentMp += amount;
-    public virtual void RestoreSp(int amount) => CurrentSp += amount;
+    public virtual void RestoreMp(int amount) => CurrentMp += Math.Max(0, amount);
+    public virtual void RestoreSp(int amount) => CurrentSp += Math.Max(0, amount);
 
-    public virtual void ConsumeMp(int amount) => CurrentMp -= amount;
-    public virtual void ConsumeSp(int amount) => CurrentSp -= amount;
+    public virtual void ConsumeMp(int amount) => CurrentMp -= Math.Max(0, amount);  // AH-5: 負値ガード
+    public virtual void ConsumeSp(int amount) => CurrentSp -= Math.Max(0, amount);
     #endregion
 
     #region Status Effects
     public void ApplyStatusEffect(StatusEffect effect)
     {
+        // AR-6: 相反するバフ/デバフの共存チェック（新しい効果で古い効果を上書き）
+        var conflicting = GetConflictingEffectType(effect.Type);
+        if (conflicting.HasValue)
+        {
+            RemoveStatusEffect(conflicting.Value);
+        }
+
         var existing = StatusEffects.FirstOrDefault(e => e.Type == effect.Type);
 
         if (existing != null)
@@ -157,6 +167,24 @@ public abstract class Character : IEntity, ITurnActor, IDamageable
 
     public bool HasStatusEffect(StatusEffectType type) =>
         StatusEffects.Any(e => e.Type == type);
+
+    /// <summary>AR-6: 相反する状態異常の対応を取得</summary>
+    private static StatusEffectType? GetConflictingEffectType(StatusEffectType type) => type switch
+    {
+        StatusEffectType.Strength => StatusEffectType.Weakness,
+        StatusEffectType.Weakness => StatusEffectType.Strength,
+        StatusEffectType.Haste => StatusEffectType.Slow,
+        StatusEffectType.Slow => StatusEffectType.Haste,
+        StatusEffectType.Protection => StatusEffectType.Vulnerability,
+        StatusEffectType.Vulnerability => StatusEffectType.Protection,
+        StatusEffectType.Regeneration => StatusEffectType.Poison,
+        StatusEffectType.Poison => StatusEffectType.Regeneration,
+        StatusEffectType.FireResistance => StatusEffectType.Burn,
+        StatusEffectType.Burn => StatusEffectType.FireResistance,
+        StatusEffectType.ColdResistance => StatusEffectType.Freeze,
+        StatusEffectType.Freeze => StatusEffectType.ColdResistance,
+        _ => null
+    };
 
     public void TickStatusEffects()
     {

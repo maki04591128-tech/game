@@ -22,12 +22,21 @@ public static class SaveManager
     /// <summary>
     /// セーブデータをJSON形式でファイルに保存する
     /// </summary>
-    public static void Save(SaveData data, int slot = 0)
+    public static bool Save(SaveData data, int slot = 0)
     {
-        Directory.CreateDirectory(SaveDirectory);
-        var path = GetSavePath(slot);
-        var json = JsonSerializer.Serialize(data, JsonOptions);
-        File.WriteAllText(path, json);
+        try
+        {
+            Directory.CreateDirectory(SaveDirectory);
+            var path = GetSavePath(slot);
+            var json = JsonSerializer.Serialize(data, JsonOptions);
+            File.WriteAllText(path, json);
+            return true;
+        }
+        catch (Exception)
+        {
+            // CA-5: ディスク容量不足/権限エラー等を安全に処理
+            return false;
+        }
     }
 
     /// <summary>
@@ -35,12 +44,32 @@ public static class SaveManager
     /// </summary>
     public static SaveData? Load(int slot = 0)
     {
-        var path = GetSavePath(slot);
-        if (!File.Exists(path)) return null;
+        try
+        {
+            var path = GetSavePath(slot);
+            if (!File.Exists(path)) return null;
 
-        var json = File.ReadAllText(path);
-        return JsonSerializer.Deserialize<SaveData>(json, JsonOptions);
+            var json = File.ReadAllText(path);
+            var data = JsonSerializer.Deserialize<SaveData>(json, JsonOptions);
+
+            // CA-3: セーブデータバージョン検証
+            if (data != null && data.Version > CurrentSaveVersion)
+            {
+                // 未来のバージョンのセーブデータは読み込み不可
+                return null;
+            }
+
+            return data;
+        }
+        catch (Exception)
+        {
+            // CA-6: 破損JSONやI/Oエラーを安全に処理
+            return null;
+        }
     }
+
+    /// <summary>CA-3: 現在のセーブデータバージョン</summary>
+    public const int CurrentSaveVersion = 1;
 
     /// <summary>
     /// 指定スロットにセーブデータが存在するか

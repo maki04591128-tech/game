@@ -33,12 +33,12 @@ public record NpcDefinition(
         new("npc_capital_priest", "大司祭アルベール", "王都大聖堂の主。信仰に篤い老人",
             NpcType.Priest, TerritoryId.Capital, new[] { "dlg_albert_intro" }, 50),
         new("npc_capital_sage", "宮廷魔術師メルヴィン", "王に仕える魔術師。魔法言語に詳しい",
-            NpcType.Sage, TerritoryId.Capital, new[] { "dlg_mervin_intro" }, 40),
+            NpcType.MagicShopkeeper, TerritoryId.Capital, new[] { "dlg_mervin_intro" }, 40),  // A-2
         // 森林領
         new("npc_forest_elder", "長老エルウェン", "エルフの集落の長老。森の知恵を持つ",
             NpcType.Sage, TerritoryId.Forest, new[] { "dlg_elwen_intro" }, 40),
         new("npc_forest_herbalist", "薬草師リーナ", "森の薬草に詳しい若い女性",
-            NpcType.Shopkeeper, TerritoryId.Forest, new[] { "dlg_leena_intro" }, 60),
+            NpcType.Alchemist, TerritoryId.Forest, new[] { "dlg_leena_intro" }, 60),
         new("npc_forest_ranger", "巡回士ガルド", "森林を守る巡回士。獣や魔物の情報に詳しい",
             NpcType.QuestGiver, TerritoryId.Forest, new[] { "dlg_gard_intro" }, 50),
         // 山岳領
@@ -55,7 +55,7 @@ public record NpcDefinition(
             NpcType.Villager, TerritoryId.Coast, new[] { "dlg_thomas_intro" }, 50),
         // 南部領
         new("npc_southern_merchant", "行商人ハッサン", "砂漠を渡る行商人。珍しい品物を扱う",
-            NpcType.Shopkeeper, TerritoryId.Southern, new[] { "dlg_hassan_intro" }, 50),
+            NpcType.BlackMarketDealer, TerritoryId.Southern, new[] { "dlg_hassan_intro" }, 50),  // A-3
         new("npc_southern_mystic", "占い師サーラ", "砂漠の神殿に住む神秘的な女性",
             NpcType.Sage, TerritoryId.Southern, new[] { "dlg_sara_intro" }, 30),
         // 辺境領
@@ -446,6 +446,16 @@ public class QuestSystem
         if (quest.Reward.Gold > 0) player.AddGold(quest.Reward.Gold);
         if (quest.Reward.Experience > 0) player.GainExperience(quest.Reward.Experience);
 
+        // CQ-1: アイテム報酬の付与
+        if (quest.Reward.ItemIds != null)
+        {
+            foreach (var itemId in quest.Reward.ItemIds)
+            {
+                var item = Items.ItemDefinitions.Create(itemId);
+                if (item != null) ((Entities.Inventory)player.Inventory).Add(item);
+            }
+        }
+
         progress.State = QuestState.TurnedIn;
         _completedQuests.Add(questId);
         _activeQuests.Remove(questId);
@@ -536,7 +546,7 @@ public class QuestSystem
             Name: "深淵の探索",
             Description: "ダンジョン最深部に潜む深淵の王を討伐せよ",
             Type: QuestType.Main,
-            GiverNpcId: "guild_master",
+            GiverNpcId: "npc_guild_master",
             RequiredLevel: 1,
             RequiredGuildRank: GuildRank.None,
             Objectives: new[]

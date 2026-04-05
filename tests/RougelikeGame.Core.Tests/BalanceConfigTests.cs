@@ -46,13 +46,13 @@ public class BalanceConfigTests
     [InlineData(1, 1)]
     [InlineData(3, 3)]
     [InlineData(5, 5)]
-    [InlineData(7, 9)]
-    [InlineData(10, 15)]
-    [InlineData(15, 25)]
-    [InlineData(20, 35)]
-    [InlineData(25, 40)]
-    [InlineData(30, 45)]
-    [InlineData(35, 45)]
+    [InlineData(7, 7)]
+    [InlineData(10, 10)]
+    [InlineData(15, 15)]
+    [InlineData(20, 20)]
+    [InlineData(25, 25)]
+    [InlineData(30, 30)]
+    [InlineData(35, 35)]
     public void GetRecommendedLevel_ForDepth_ReturnsExpected(int depth, int expected)
     {
         Assert.Equal(expected, BalanceConfig.GetRecommendedLevel(depth));
@@ -68,7 +68,7 @@ public class BalanceConfigTests
     [InlineData(15, 4.0)]
     [InlineData(20, 4.5)]
     [InlineData(25, 5.0)]
-    [InlineData(30, 6.0)]
+    [InlineData(30, 5.5)]
     public void GetFloorBossHpMultiplier_ForFloor_ReturnsExpected(int floor, double expected)
     {
         Assert.Equal(expected, BalanceConfig.GetFloorBossHpMultiplier(floor));
@@ -220,8 +220,8 @@ public class BalanceConfigTests
     [Fact]
     public void ShopConstants_HaveExpectedValues()
     {
-        Assert.Equal(1.5, BalanceConfig.ShopBuyMultiplier);
-        Assert.Equal(0.3, BalanceConfig.ShopSellMultiplier);
+        Assert.Equal(1.2, BalanceConfig.ShopBuyMultiplier);  // L-1: 購入倍率を1.5→1.2に修正
+        Assert.Equal(0.5, BalanceConfig.ShopSellMultiplier);
         Assert.Equal(1.2, BalanceConfig.IdentifiedSellBonus);
     }
 

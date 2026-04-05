@@ -540,10 +540,9 @@ public class VersionPrt06SystemTests
     public void ModLoader_Validate_DetectsErrors()
     {
         var system = new ModLoaderSystem();
+        // DI-3/DI-4: ParseManifestは空modIdでnullを返す仕様に変更
         var manifest = system.ParseManifest("", "テスト", "Author", "1.0.0", "テスト");
-        var result = system.Validate(manifest!);
-        Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.Contains("MOD ID"));
+        Assert.Null(manifest);
     }
 
     [Fact]

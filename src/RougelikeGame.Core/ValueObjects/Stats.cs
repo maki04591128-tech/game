@@ -35,15 +35,15 @@ public readonly record struct Stats(
     /// ステータス修正を適用
     /// </summary>
     public Stats Apply(StatModifier modifier) => new(
-        Strength + modifier.Strength,
-        Vitality + modifier.Vitality,
-        Agility + modifier.Agility,
-        Dexterity + modifier.Dexterity,
-        Intelligence + modifier.Intelligence,
-        Mind + modifier.Mind,
-        Perception + modifier.Perception,
-        Charisma + modifier.Charisma,
-        Luck + modifier.Luck
+        Math.Max(0, Strength + modifier.Strength),
+        Math.Max(0, Vitality + modifier.Vitality),
+        Math.Max(0, Agility + modifier.Agility),
+        Math.Max(0, Dexterity + modifier.Dexterity),
+        Math.Max(0, Intelligence + modifier.Intelligence),
+        Math.Max(0, Mind + modifier.Mind),
+        Math.Max(0, Perception + modifier.Perception),
+        Math.Max(0, Charisma + modifier.Charisma),
+        Math.Max(0, Luck + modifier.Luck)
     );
 
     /// <summary>

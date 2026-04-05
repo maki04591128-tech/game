@@ -67,12 +67,18 @@ public class GameTime
     {
     }
 
+    /// <summary>DA-6: 日変更イベント</summary>
+    public event Action<int>? OnDayChanged;
+
     /// <summary>
     /// 1ターン進める
     /// </summary>
     public void AdvanceTurn(int turns = 1)
     {
+        int prevDay = Day;
         TotalTurns += turns;
+        if (Day != prevDay)
+            OnDayChanged?.Invoke(Day);
     }
 
     /// <summary>

@@ -128,12 +128,12 @@ public enum TileType
     SymbolForest,
 
     /// <summary>
-    /// シンボルマップ: 山岳（通行不可）
+    /// シンボルマップ: 山岳（通行可、移動コスト2.0）
     /// </summary>
     SymbolMountain,
 
     /// <summary>
-    /// シンボルマップ: 水域（通行不可）
+    /// シンボルマップ: 水域（通行可、移動コスト1.8）
     /// </summary>
     SymbolWater,
 
@@ -327,6 +327,11 @@ public class Tile
     public bool InscriptionRead { get; set; }
 
     /// <summary>
+    /// CG-1: 採取ポイントの種類（null=採取不可）
+    /// </summary>
+    public GatheringType? GatheringNodeType { get; set; }
+
+    /// <summary>
     /// 表示文字
     /// </summary>
     public char DisplayChar => GetDisplayChar();
@@ -431,13 +436,13 @@ public class Tile
 
             case TileType.SymbolMountain:
                 tile.BlocksSight = false;
-                tile.BlocksMovement = false;
+                tile.BlocksMovement = true;
                 tile.MovementCost = 2.0f;
                 break;
 
             case TileType.SymbolWater:
                 tile.BlocksSight = false;
-                tile.BlocksMovement = false;
+                tile.BlocksMovement = true;
                 tile.MovementCost = 1.8f;
                 break;
 
@@ -518,6 +523,8 @@ public class Tile
             TileType.NpcShopkeeper => 'S',
             TileType.NpcBlacksmith => 'B',
             TileType.NpcInnkeeper => 'I',
+            TileType.NpcTrainer => 'T',      // P-1
+            TileType.NpcLibrarian => 'L',     // P-2
             TileType.BuildingEntrance => '⌂',
             TileType.BuildingExit => '<',
             _ => '?'

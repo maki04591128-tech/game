@@ -1,3 +1,5 @@
+using RougelikeGame.Core.Interfaces;
+
 namespace RougelikeGame.Core.Systems;
 
 /// <summary>
@@ -64,7 +66,7 @@ public class PetSystem
     /// <summary>餌をやる（空腹度回復＋忠誠度上昇）</summary>
     public PetState Feed(string petId, int hungerRecovery = 30, int loyaltyBonus = 5)
     {
-        if (!_pets.TryGetValue(petId, out var pet)) return pet!;
+        if (!_pets.TryGetValue(petId, out var pet)) return new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
         var updated = pet with
         {
             Hunger = Math.Min(100, pet.Hunger + hungerRecovery),
@@ -77,7 +79,7 @@ public class PetSystem
     /// <summary>しつけ（忠誠度上昇、レベルに応じて変動）</summary>
     public PetState Train(string petId, int loyaltyChange = 10)
     {
-        if (!_pets.TryGetValue(petId, out var pet)) return pet!;
+        if (!_pets.TryGetValue(petId, out var pet)) return new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
         var updated = pet with { Loyalty = Math.Clamp(pet.Loyalty + loyaltyChange, 0, 100) };
         _pets[petId] = updated;
         return updated;
@@ -86,13 +88,50 @@ public class PetSystem
     /// <summary>騎乗状態を切り替え</summary>
     public PetState ToggleRide(string petId)
     {
-        if (!_pets.TryGetValue(petId, out var pet)) return pet!;
+        if (!_pets.TryGetValue(petId, out var pet)) return new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
+        // EM-2: 死亡ペットには騎乗不可
+        if (pet.CurrentHp <= 0) return pet;
         bool canRide = pet.Type == PetType.Horse || pet.Type == PetType.Bear || pet.Type == PetType.Dragon;
         if (!canRide) return pet;
         var updated = pet with { IsRiding = !pet.IsRiding };
         _pets[petId] = updated;
         return updated;
     }
+
+    /// <summary>CC-3/CC-15: ペットに経験値を付与しレベルアップを判定</summary>
+    public PetState GainExperience(string petId, int amount)
+    {
+        if (!_pets.TryGetValue(petId, out var pet) || amount <= 0) return pet ?? new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
+        if (pet.CurrentHp <= 0) return pet; // 戦闘不能ペットは経験値獲得不可
+
+        int newExp = pet.Experience + amount;
+        int newLevel = pet.Level;
+        int newMaxHp = pet.MaxHp;
+
+        // レベルアップ判定（必要経験値 = Level * 50）
+        while (newExp >= GetRequiredExperience(newLevel) && newLevel < 50)
+        {
+            newExp -= GetRequiredExperience(newLevel);
+            newLevel++;
+            // レベルアップでHP上昇
+            var def = _definitions.GetValueOrDefault(pet.Type);
+            int hpGain = def != null ? Math.Max(3, def.BaseHp / 5) : 5;
+            newMaxHp += hpGain;
+        }
+
+        var updated = pet with
+        {
+            Experience = newExp,
+            Level = newLevel,
+            MaxHp = newMaxHp,
+            CurrentHp = newLevel > pet.Level ? newMaxHp : pet.CurrentHp // レベルアップ時HP全回復
+        };
+        _pets[petId] = updated;
+        return updated;
+    }
+
+    /// <summary>レベルアップに必要な経験値</summary>
+    public static int GetRequiredExperience(int level) => level * 50;
 
     /// <summary>騎乗中の移動速度倍率を取得</summary>
     public float GetMoveSpeedMultiplier(string petId)
@@ -111,12 +150,51 @@ public class PetSystem
     /// <summary>ペットの空腹度を減少（ターン経過）</summary>
     public PetState TickHunger(string petId, int amount = 1)
     {
-        if (!_pets.TryGetValue(petId, out var pet)) return pet!;
+        if (!_pets.TryGetValue(petId, out var pet)) return new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
         var updated = pet with { Hunger = Math.Max(0, pet.Hunger - amount) };
         if (updated.Hunger == 0)
             updated = updated with { Loyalty = Math.Max(0, updated.Loyalty - 2) };
         _pets[petId] = updated;
         return updated;
+    }
+
+    /// <summary>CW-2: ペットにダメージを適用（HP減少・死亡処理）</summary>
+    public (PetState State, bool Died) ApplyDamage(string petId, int damage)
+    {
+        if (!_pets.TryGetValue(petId, out var pet))
+            return (new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 0, false), false);
+        int newHp = Math.Max(0, pet.CurrentHp - Math.Max(0, damage));
+        bool died = newHp <= 0 && pet.CurrentHp > 0;
+        var updated = pet with { CurrentHp = newHp, IsRiding = newHp > 0 && pet.IsRiding };
+        _pets[petId] = updated;
+        return (updated, died);
+    }
+
+    /// <summary>CW-2: ペットを回復</summary>
+    public PetState HealPet(string petId, int amount)
+    {
+        if (!_pets.TryGetValue(petId, out var pet))
+            return new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
+        var updated = pet with { CurrentHp = Math.Min(pet.MaxHp, pet.CurrentHp + Math.Max(0, amount)) };
+        _pets[petId] = updated;
+        return updated;
+    }
+
+    /// <summary>CW-2: 死亡ペットを除去</summary>
+    public bool RemoveDeadPet(string petId)
+    {
+        if (_pets.TryGetValue(petId, out var pet) && pet.CurrentHp <= 0)
+        {
+            _pets.Remove(petId);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>CC-2: ペットを解散（逃亡/解放）</summary>
+    public bool DismissPet(string petId)
+    {
+        return _pets.Remove(petId);
     }
 
     /// <summary>
@@ -129,10 +207,85 @@ public class PetSystem
         _pets.Clear();
     }
 
+    /// <summary>AB-1: セーブデータからペット状態を復元</summary>
+    public void RestorePetState(string petId, int level, int experience, int hunger, int loyalty, int currentHp)
+    {
+        if (_pets.TryGetValue(petId, out var pet))
+        {
+            _pets[petId] = pet with
+            {
+                Level = level,
+                Experience = experience,
+                Hunger = hunger,
+                Loyalty = loyalty,
+                CurrentHp = Math.Min(currentHp, pet.MaxHp)
+            };
+        }
+    }
+
     /// <summary>忠誠度に基づく命令成功率を取得</summary>
     public int GetObedienceRate(string petId)
     {
         if (!_pets.TryGetValue(petId, out var pet)) return 0;
         return Math.Clamp(pet.Loyalty, 0, 100);
     }
+
+    /// <summary>AY-2: ペットの特殊能力ボーナスを取得</summary>
+    public (float DropBonus, int ViewRadiusBonus, float DamageReduction, float AttackDebuff) GetPetAbilityBonuses()
+    {
+        float dropBonus = 0;
+        int viewBonus = 0;
+        float dmgReduction = 0;
+        float atkDebuff = 0;
+
+        foreach (var pet in _pets.Values.Where(p => p.CurrentHp > 0))
+        {
+            switch (pet.Type)
+            {
+                case PetType.Cat: dropBonus += 0.15f; break;     // 幸運: ドロップ率+15%
+                case PetType.Hawk: viewBonus += 3; break;         // 偵察: 視野+3
+                case PetType.Bear: dmgReduction += 0.10f; break;  // 防壁: 被ダメージ-10%
+                case PetType.Wolf: atkDebuff += 0.10f; break;     // 威嚇: 敵攻撃力-10%
+            }
+        }
+        return (dropBonus, viewBonus, dmgReduction, atkDebuff);
+    }
+
+    /// <summary>CC-1: ペットの戦闘アクションを実行（ターン毎に呼ばれる）</summary>
+    public PetCombatResult ExecutePetCombatAction(string petId, int enemyDefense, IRandomProvider? random = null)
+    {
+        if (!_pets.TryGetValue(petId, out var pet) || pet.CurrentHp <= 0)
+            return new PetCombatResult(false, 0, "ペットが行動不能");
+
+        var def = _definitions.GetValueOrDefault(pet.Type);
+        if (def == null) return new PetCombatResult(false, 0, "未知のペット種別");
+
+        // 忠誠度ベースの命令成功率
+        int obedience = GetObedienceRate(petId);
+        int roll = random?.Next(100) ?? new Random().Next(100);
+        if (roll >= obedience)
+            return new PetCombatResult(false, 0, $"{pet.Name}は言うことを聞かない！");
+
+        // ダメージ計算: 基本攻撃力 + レベルボーナス - 敵防御
+        int attack = def.BaseAttack + pet.Level * 2;
+        int damage = Math.Max(1, attack - enemyDefense);
+        return new PetCombatResult(true, damage, $"{pet.Name}の攻撃！{damage}ダメージ！");
+    }
+
+    /// <summary>CC-1: ペットがダメージを受ける</summary>
+    public (bool Survived, string Message) ApplyDamageToPet(string petId, int damage)
+    {
+        if (!_pets.TryGetValue(petId, out var pet)) return (false, "ペットが見つからない");
+
+        int newHp = Math.Max(0, pet.CurrentHp - damage);
+        _pets[petId] = pet with { CurrentHp = newHp };
+
+        if (newHp <= 0)
+            return (false, $"{pet.Name}は倒れた…");
+
+        return (true, $"{pet.Name}は{damage}ダメージを受けた（HP: {newHp}/{pet.MaxHp}）");
+    }
 }
+
+/// <summary>CC-1: ペット戦闘結果</summary>
+public record PetCombatResult(bool Success, int Damage, string Message);

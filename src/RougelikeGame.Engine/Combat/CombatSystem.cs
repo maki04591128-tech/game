@@ -1,6 +1,7 @@
 using RougelikeGame.Core;
 using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Interfaces;
+using RougelikeGame.Core.Items;
 using RougelikeGame.Core.Systems;
 
 namespace RougelikeGame.Engine.Combat;
@@ -93,22 +94,38 @@ public class CombatSystem : ICombatSystem
         int targetAgility = 10;
         int targetLuck = 10;
         ArmorClass armorClass = ArmorClass.Light;
+        float attackerHitBonus = 0f;
+        float targetEvasionBonus = 0f;
 
         if (target is Core.Entities.Character targetChar)
         {
             targetAgility = targetChar.EffectiveStats.Agility;
             targetLuck = targetChar.EffectiveStats.Luck;
+            // CB-10: 状態異常による回避率修正
+            foreach (var eff in targetChar.StatusEffects)
+            {
+                targetEvasionBonus += eff.EvasionRateModifier;
+            }
+        }
+
+        // CB-10: 攻撃者の状態異常による命中率修正
+        if (attacker is Core.Entities.Character attackerChar2)
+        {
+            foreach (var eff in attackerChar2.StatusEffects)
+            {
+                attackerHitBonus += eff.HitRateModifier;
+            }
         }
 
         return new HitCheckParams
         {
             AttackType = attackType,
             Dexterity = dexterity,
-            HitRateBonus = 0,
+            HitRateBonus = attackerHitBonus,
             TargetArmorClass = armorClass,
             TargetAgility = targetAgility,
             TargetLuck = targetLuck,
-            TargetEvasionBonus = 0
+            TargetEvasionBonus = targetEvasionBonus
         };
     }
 
@@ -129,7 +146,8 @@ public class CombatSystem : ICombatSystem
     {
         if (attackType == AttackType.Magic)
         {
-            return CalculateMagicalDamage(attacker, target, attackElement, targetElement);
+            // K-2: 魔法攻撃もクリティカル可能に
+            return CalculateMagicalDamage(attacker, target, attackElement, targetElement, isCritical);
         }
         else
         {
@@ -148,6 +166,10 @@ public class CombatSystem : ICombatSystem
         double attackerRacialBonus = 0.0;
         double targetRacialResistance = 0.0;
         double proficiencyMultiplier = 1.0;
+        int attackerLevel = 1;          // BS-8
+        bool hasShield = false;          // BS-11
+        float shieldBlockChance = 0f;    // BS-11
+        float shieldBlockReduction = 0.5f; // BS-11
 
         if (attacker is Character attackerChar)
         {
@@ -162,13 +184,38 @@ public class CombatSystem : ICombatSystem
                     attackerPlayer.Race, attackerPlayer.CurrentHp, attackerPlayer.MaxHp);
                 // 種族特性: 幸運体質（クリティカル率ボーナス）
                 critRate += RacialTraitSystem.GetTraitValue(attackerPlayer.Race, RacialTraitType.LuckyBody);
+                // BH-2: パッシブスキル由来のクリティカル率ボーナス
+                critRate += attackerPlayer.BonusCriticalRate;
                 // 装備適性倍率
                 var weapon = attackerPlayer.Equipment.MainHand;
                 if (weapon != null)
                 {
                     proficiencyMultiplier = ClassEquipmentSystem.GetProficiencyMultiplier(
                         attackerPlayer.CharacterClass, weapon.Category);
+                    // BS-1: 武器ダメージレンジを物理ダメージに反映
+                    if (weapon.DamageRange.Max > 0)
+                    {
+                        int weaponRangeDmg = _random.Next(weapon.DamageRange.Min, weapon.DamageRange.Max + 1);
+                        weaponAttack += weaponRangeDmg;
+                    }
+                    // BS-9: 武器固有クリティカルボーナスを適用
+                    critRate += weapon.CriticalBonus;
                 }
+
+                // BS-19: オフハンド武器ダメージ（二刀流時）
+                var offHand = attackerPlayer.Equipment.OffHand;
+                if (offHand is Weapon offHandWeapon)
+                {
+                    int offHandDmg = offHandWeapon.BaseDamage / 2; // オフハンドは50%の攻撃力
+                    if (offHandWeapon.DamageRange.Max > 0)
+                    {
+                        offHandDmg += _random.Next(offHandWeapon.DamageRange.Min, offHandWeapon.DamageRange.Max + 1) / 2;
+                    }
+                    weaponAttack += offHandDmg;
+                }
+
+                // BS-8: レベルスケーリング用
+                attackerLevel = attackerPlayer.Level;
             }
         }
 
@@ -182,6 +229,26 @@ public class CombatSystem : ICombatSystem
             {
                 targetRacialResistance = RacialTraitSystem.CalculatePhysicalResistance(targetPlayer.Race);
             }
+
+            // BS-11: 盾ブロック判定
+            if (target is Player shieldTarget)
+            {
+                var shield = shieldTarget.Equipment.OffHand as Shield;
+                if (shield != null && shield.BlockChance > 0)
+                {
+                    hasShield = true;
+                    shieldBlockChance = shield.BlockChance;
+                    shieldBlockReduction = shield.BlockReduction;
+                }
+            }
+        }
+
+        // BS-5: クリティカル倍率は武器・スキル特化で最大2.5倍に設定可能
+        float critDamageMultiplier = 1.5f;
+        if (attacker is Player critPlayer)
+        {
+            // 基本1.5倍 + パッシブスキルや装備による追加（最大2.5倍）
+            critDamageMultiplier = Math.Min(2.5f, 1.5f + (float)critPlayer.BonusCriticalRate * 2.0f);
         }
 
         var param = new PhysicalDamageParams
@@ -196,7 +263,8 @@ public class CombatSystem : ICombatSystem
             AttackElement = attackElement,
             TargetElement = targetElement,
             CriticalRate = critRate,
-            CriticalDamageMultiplier = 1.5f
+            CriticalDamageMultiplier = critDamageMultiplier,
+            AttackerLevel = attackerLevel
         };
 
         var result = _damageCalculator.CalculatePhysicalDamage(param);
@@ -209,11 +277,18 @@ public class CombatSystem : ICombatSystem
             finalDamage = Math.Max(GameConstants.MinimumDamage, finalDamage);
         }
 
+        // BS-11: 盾ブロック適用
+        if (hasShield)
+        {
+            var (blocked, reducedDmg) = _damageCalculator.CalculateShieldBlock(finalDamage, shieldBlockChance, shieldBlockReduction);
+            if (blocked) finalDamage = reducedDmg;
+        }
+
         return new Damage(finalDamage, DamageType.Physical, attackElement, result.IsCritical);
     }
 
     private Damage CalculateMagicalDamage(IDamageable attacker, IDamageable target,
-        Element spellElement, Element targetElement)
+        Element spellElement, Element targetElement, bool isCritical = false)
     {
         int staffAttack = 10;
         int intelligence = 10;
@@ -266,7 +341,10 @@ public class CombatSystem : ICombatSystem
             }
         }
 
-        return new Damage(result.FinalDamage, DamageType.Magical, spellElement, false);
+        // K-2: 魔法クリティカル対応（1.3倍）
+        int finalDmg = isCritical ? (int)(result.FinalDamage * 1.3) : result.FinalDamage;
+
+        return new Damage(finalDmg, DamageType.Magical, spellElement, isCritical);
     }
 
     #endregion
@@ -306,6 +384,13 @@ public class CombatSystem : ICombatSystem
     /// </summary>
     public bool TryApplyStatusEffect(IDamageable target, StatusEffectType effectType)
     {
+        // CB-5: ボス/種族免疫チェック
+        if (target is Core.Entities.Enemy enemy &&
+            Core.Systems.MonsterRaceSystem.IsStatusEffectImmune(enemy.Race, effectType))
+        {
+            return false;
+        }
+
         int vitality = 10;
         int mind = 10;
         int luck = 10;
@@ -333,7 +418,12 @@ public class CombatSystem : ICombatSystem
             return false;
         }
 
-        // 状態異常を適用（実際の適用はCharacter側で行う）
+        // 状態異常を適用（CP-7: 実際にターゲットに適用する）
+        var effect = CreateStatusEffect(effectType, target is Core.Entities.Character c ? c.MaxHp : 100);
+        if (effect != null && target is Core.Entities.Character targetCharApply)
+        {
+            targetCharApply.ApplyStatusEffect(effect);
+        }
         return true;
     }
 
@@ -365,6 +455,13 @@ public class CombatSystem : ICombatSystem
             StatusEffectType.Strength => _statusEffectSystem.CreateStrengthBuff(),
             StatusEffectType.Protection => _statusEffectSystem.CreateProtection(),
             StatusEffectType.Regeneration => _statusEffectSystem.CreateRegeneration(),
+            StatusEffectType.Slow => _statusEffectSystem.CreateSlow(),
+            StatusEffectType.Vulnerability => _statusEffectSystem.CreateVulnerability(),
+            StatusEffectType.Invisibility => _statusEffectSystem.CreateInvisibility(),
+            StatusEffectType.Blessing => _statusEffectSystem.CreateBlessing(),
+            StatusEffectType.Apostasy => _statusEffectSystem.CreateApostasy(),
+            StatusEffectType.FireResistance => _statusEffectSystem.CreateFireResistance(),
+            StatusEffectType.ColdResistance => _statusEffectSystem.CreateColdResistance(),
             _ => null
         };
     }

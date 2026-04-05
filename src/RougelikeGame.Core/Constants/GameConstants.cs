@@ -93,6 +93,7 @@ public static class GameConstants
     public const int InitialSanity = 100;
     public const int MaxSanity = 100;
     public const int SanityRecoveryOnRescue = 20;
+    public const int RebirthSanityCost = 20;
     public const int MaxRescueCount = 3;
 
     // 満腹度
@@ -206,26 +207,20 @@ public static class BalanceConfig
     };
 
     /// <summary>階層別推奨レベル</summary>
+    // J-2: ExpGrowthRate=1.15に合わせた現実的な推奨レベル
     public static int GetRecommendedLevel(int depth) => depth switch
     {
-        <= 5 => 1 + (depth - 1),
-        <= 10 => 5 + (depth - 5) * 2,
-        <= 20 => 15 + (depth - 10) * 2,
-        <= 30 => 35 + (depth - 20),
-        _ => 45
+        <= 5 => 1 + (depth - 1),        // F1=1, F5=5
+        <= 10 => 5 + (depth - 5),       // F6=6, F10=10
+        <= 20 => 10 + (depth - 10),     // F11=11, F20=20
+        <= 30 => 20 + (depth - 20),     // F21=21, F30=30
+        _ => 30 + (depth - 30)          // F31+=31+
     };
 
     /// <summary>フロアボスのHP倍率（通常敵比）</summary>
-    public static double GetFloorBossHpMultiplier(int floor) => floor switch
-    {
-        5 => 3.0,    // 初ボスは控えめ
-        10 => 3.5,
-        15 => 4.0,
-        20 => 4.5,
-        25 => 5.0,
-        30 => 6.0,   // 最終ボスは特に硬い
-        _ => 3.0
-    };
+    // K-5: ボスHP倍率を計算式ベースに（フロア深度連動）
+    public static double GetFloorBossHpMultiplier(int floor) =>
+        Math.Min(6.0, 2.5 + (floor * 0.1));
 
     /// <summary>フロアボスの攻撃力倍率（通常敵比）</summary>
     public static double GetFloorBossAttackMultiplier(int floor) => floor switch
@@ -329,10 +324,10 @@ public static class BalanceConfig
     #region ショップバランス
 
     /// <summary>ショップ買値倍率（基本価格 × この倍率）</summary>
-    public const double ShopBuyMultiplier = 1.5;
+    public const double ShopBuyMultiplier = 1.2;  // L-1: 往復80%損失を56%損失に緩和
 
     /// <summary>ショップ売値倍率（基本価格 × この倍率）</summary>
-    public const double ShopSellMultiplier = 0.3;
+    public const double ShopSellMultiplier = 0.5;  // L-1: 往復損失を40%に緩和（買1.2×売0.5=0.6）
 
     /// <summary>識別済みアイテムの売値ボーナス倍率</summary>
     public const double IdentifiedSellBonus = 1.2;

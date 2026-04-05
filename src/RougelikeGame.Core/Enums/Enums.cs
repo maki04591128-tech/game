@@ -98,7 +98,8 @@ public enum DamageType
     Physical,
     Magical,
     Pure,
-    Healing
+    Healing,
+    Elemental
 }
 
 /// <summary>
@@ -128,6 +129,7 @@ public enum DeathCause
     Combat,
     Boss,
     Starvation,
+    Dehydration,  // DC-1: 渇き死を飢餓と区別
     Trap,
     TimeLimit,
     Curse,
@@ -383,7 +385,9 @@ public enum EquipmentCategory
     MediumArmor,
     LightArmor,
     Robe,
-    Fist
+    Fist,
+    Spear,
+    Whip
 }
 
 /// <summary>

@@ -25,7 +25,7 @@ public class GamblingSystemTests
     [Fact]
     public void JudgeHighLow_Equal_Loses()
     {
-        Assert.False(GamblingSystem.JudgeHighLow(true, 5, 5));
+        Assert.Null(GamblingSystem.JudgeHighLow(true, 5, 5)); // AG-2: 引き分けはnull
     }
 
     [Theory]

@@ -21,7 +21,7 @@ public static class GatheringSystem
     private static readonly Dictionary<GatheringType, GatheringNode> Nodes = new()
     {
         [GatheringType.Herb] = new(GatheringType.Herb, "薬草採取",
-            new[] { "herb_heal", "herb_cure", "herb_mana", "herb_rare", "herb_poison" },
+            new[] { "material_herb", "material_moss", "material_mushroom" },
             1, ProficiencyCategory.Alchemy, 3,
             new[] { Season.Spring, Season.Summer }),
 
@@ -31,17 +31,17 @@ public static class GatheringSystem
             Array.Empty<Season>()),
 
         [GatheringType.Logging] = new(GatheringType.Logging, "木材伐採",
-            new[] { "wood_common", "wood_hard", "wood_magic", "sap_tree" },
+            new[] { "material_wood", "material_coal" },
             2, ProficiencyCategory.Smithing, 4,
             new[] { Season.Autumn }),
 
         [GatheringType.Fishing] = new(GatheringType.Fishing, "釣り",
-            new[] { "fish_common", "fish_rare", "fish_treasure", "fish_junk" },
+            new[] { "material_fish" },
             1, ProficiencyCategory.Exploration, 6,
             new[] { Season.Spring, Season.Summer }),
 
         [GatheringType.Foraging] = new(GatheringType.Foraging, "採集",
-            new[] { "mushroom_edible", "mushroom_poison", "berry", "nut", "insect_material" },
+            new[] { "material_mushroom", "material_moss", "material_herb" },
             1, ProficiencyCategory.Exploration, 2,
             new[] { Season.Autumn })
     };

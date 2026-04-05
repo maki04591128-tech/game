@@ -20,13 +20,14 @@ public static class MultiEndingSystem
         bool allTerritoriesVisited,
         string clearRank)
     {
-        // 闇エンディング: カルマが極端に低い
-        if (hasClearedFinalBoss && karmaValue <= -50)
+        // DG-1: 真エンディング（高ランク）を闇エンディングより優先
+        // 真エンディング: 高ランク（S/A）でクリア
+        if (hasClearedFinalBoss && clearRank is "S" or "A")
         {
             return new EndingResult(
-                EndingType.Dark,
-                "闇の支配者",
-                "深淵の王を倒したが、その力に呑まれた。あなた自身が新たな脅威となった。"
+                EndingType.True,
+                "真の英雄",
+                "深淵の王を完全に打ち倒し、世界に真の平和をもたらした。あなたの伝説は永遠に語り継がれる。"
             );
         }
 
@@ -40,13 +41,13 @@ public static class MultiEndingSystem
             );
         }
 
-        // 真エンディング: 高ランク（S/A）でクリア
-        if (hasClearedFinalBoss && clearRank is "S" or "A")
+        // 闇エンディング: カルマが極端に低い
+        if (hasClearedFinalBoss && karmaValue <= -50)
         {
             return new EndingResult(
-                EndingType.True,
-                "伝説の英雄",
-                "最も優れた冒険者として、永遠にその名が語り継がれることとなった。"
+                EndingType.Dark,
+                "闇の支配者",
+                "深淵の王を倒したが、その力に呑まれた。あなた自身が新たな脅威となった。"
             );
         }
 

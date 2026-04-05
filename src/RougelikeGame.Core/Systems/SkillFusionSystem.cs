@@ -16,11 +16,11 @@ public static class SkillFusionSystem
 
     private static readonly List<FusionRecipe> Recipes = new()
     {
-        new("パワースラッシュ", "ファイアボルト", "炎斬り", "炎属性の近接攻撃", 30),
-        new("ヒール", "ポイズン", "浄化の手", "毒を回復に変換", 40),
-        new("シールドバッシュ", "サンダー", "雷盾打ち", "雷属性の盾攻撃＋麻痺", 50),
-        new("スニーク", "アサシネート", "影縫い", "確定クリティカル＋移動封じ", 60),
-        new("メディテーション", "マナバースト", "精神爆破", "MP消費で大ダメージ", 70),
+        new("strong_strike", "fireball", "flame_slash", "炎属性の近接攻撃", 30),
+        new("heal", "poison_mist", "purify", "毒を回復に変換", 40),
+        new("shield_bash", "lightning_bolt", "thunder_shield", "雷属性の盾攻撃＋麻痺", 50),
+        new("sneak", "backstab", "shadow_stitch", "確定クリティカル＋移動封じ", 60),
+        new("meditation", "ki_strike", "spirit_blast", "MP消費で大ダメージ", 70),
     };
 
     /// <summary>合成可能なレシピを検索</summary>

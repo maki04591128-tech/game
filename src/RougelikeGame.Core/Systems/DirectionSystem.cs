@@ -52,7 +52,7 @@ public static class DirectionSystem
         return diff switch
         {
             > 0 => new ElevationBonus(0.15f, 0.10f),   // 高所→低所
-            < 0 => new ElevationBonus(-0.10f, -0.15f),  // 低所→高所
+            < 0 => new ElevationBonus(-0.15f, -0.10f),  // DT-2: 低所→高所（対称ペナルティに修正）
             _ => new ElevationBonus(0f, 0f)             // 同高度
         };
     }

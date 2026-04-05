@@ -11,7 +11,10 @@ public static class RenderOptimizationSystem
     {
         int halfW = viewportWidth / 2;
         int halfH = viewportHeight / 2;
-        return (playerX - halfW, playerY - halfH, playerX + halfW, playerY + halfH);
+        // DH-1/DH-2: 奇数サイズビューポートで切断されないよう余り分を加算
+        return (playerX - halfW, playerY - halfH,
+                playerX + halfW + (viewportWidth % 2),
+                playerY + halfH + (viewportHeight % 2));
     }
 
     /// <summary>座標が描画領域内かどうか判定</summary>
