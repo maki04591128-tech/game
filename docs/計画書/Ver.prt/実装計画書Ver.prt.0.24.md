@@ -1297,7 +1297,7 @@
 | CV-2 | 回復呪文（graeda/blessa）がダメージ呪文と同じ`basePower = effectWord.BaseMpCost * 3`計算を使用。SpellEffectType.Healの分岐がなく回復量が不適切 | 致命的 | `SpellCastingSystem.cs:361-363` | 修正済み |
 | CV-3 | 呪文のSpellEffectType（Damage/Heal/Buff/Debuff/Summon/Teleport）のうち、Summon/Teleportの実効果が空。キャストしてもログ出力のみ | 高 | `SpellCastingSystem.cs` | |
 | CV-4 | 呪文詠唱成功率(CastResult.PowerMultiplier)が0.0～2.0の範囲だが、0.0の場合でもキャスト成功として処理。威力ゼロの呪文が「成功」として発動 | 中 | `SpellCastingSystem.cs` | |
-| CV-5 | SpellCastingSystemにMP消費チェックが不十分。CastSpell()内でMP不足判定後もキャスト処理が続行する経路がある | 高 | `SpellCastingSystem.cs` | |
+| CV-5 | SpellCastingSystemにMP消費チェックが不十分。CastSpell()内でMP不足判定後もキャスト処理が続行する経路がある | 高 | `SpellCastingSystem.cs` | 修正済み |
 | CV-6 | Element属性（Fire/Ice/Lightning/Earth/Wind/Water/Light/Dark）のうちEarth/Wind/Waterの属性相性テーブルがSpellCastingSystemに未定義 | 中 | `SpellCastingSystem.cs` | |
 
 ---
@@ -1434,7 +1434,7 @@
 | DG-1 | MultiEndingSystem.DetermineEnding()でDarkエンディング(karma<=-50)がTrueエンディング(clearRank S/A)より先にチェックされる。高ランククリア+低カルマプレイヤーが常にDarkエンディングになりTrueエンディング不可 | 高 | `MultiEndingSystem.cs:24,44` | 修正済み |
 | DG-2 | Salvationエンディングの条件がtotalDeaths==0。ローグライクゲームで死亡0回は極端に制限的であり実質到達不能。条件は`totalDeaths <= 3`等が適切 | 中 | `MultiEndingSystem.cs:34` | |
 | DG-3 | Wandererエンディング(!hasClearedFinalBoss && allTerritoriesVisited)が、Dark/Salvation/Trueの条件と重なりDarkエンディングに吸収される。karma<=-50かつ全テリトリー訪問済みプレイヤーはWandererにならない | 中 | `MultiEndingSystem.cs:54-61` | |
-| DG-4 | GameOverSystem.CanRebirth()がsanity>0のみチェック。転生のSanityコスト消費処理が未実装で、転生し放題の可能性 | 高 | `GameOverSystem.cs:29-31` | |
+| DG-4 | GameOverSystem.CanRebirth()がsanity>0のみチェック。転生のSanityコスト消費処理が未実装で、転生し放題の可能性 | 高 | `GameOverSystem.cs:29-31` | 修正済み |
 | DG-5 | GameOverSystem.GetAvailableChoices()とProcessChoice()でCanRebirth判定が二重実行。選択肢表示後にSanityが変化した場合に不整合が発生する可能性 | 中 | `GameOverSystem.cs:39,64-67` | |
 | DG-6 | InfiniteDungeonSystem.GetFloorConfig()の敵レベル計算`10 + floor * 2`とドロップ率`1.0f + floor * 0.05f`と経験値`1.0f + floor * 0.03f`に上限キャップなし。floor 1000で敵レベル2010、ドロップ51倍、経験値31倍となり経済破綻 | 中 | `InfiniteDungeonSystem.cs:28,36-37,56` | |
 
@@ -1446,7 +1446,7 @@
 |---|------|--------|------|---------|
 | DH-1 | RenderOptimizationSystem.CalculateViewport()のビューポート計算で`playerX + halfW`がMaxXに設定されるが、奇数幅ビューポートで最右列が切断される。halfW = viewportWidth/2（整数除算）で1ピクセル分不足 | 高 | `RenderOptimizationSystem.cs:14` | 修正済み |
 | DH-2 | 同様にMaxY計算でも奇数高さビューポートで最下行が切断される | 高 | `RenderOptimizationSystem.cs:14` | 修正済み |
-| DH-3 | IsInViewport()の境界チェックが`<=`演算子を使用。MaxX/MaxYの位置が隣接ビューポートと重複し、ビューポート境界上のエンティティが二重描画される可能性 | 高 | `RenderOptimizationSystem.cs:20` | |
+| DH-3 | IsInViewport()の境界チェックが`<=`演算子を使用。MaxX/MaxYの位置が隣接ビューポートと重複し、ビューポート境界上のエンティティが二重描画される可能性 | 高 | `RenderOptimizationSystem.cs:20` | 修正済み |
 | DH-4 | ShouldUpdate()が`updateFrequency <= 0`の場合trueを返却。負の更新頻度は論理的に無意味であり、falseを返却するか例外をスローすべき | 中 | `RenderOptimizationSystem.cs:45` | |
 | DH-5 | ModularHudSystem.SetElementScale()でスケール値が`[0.5f, 2.0f]`にサイレントクランプ。アクセシビリティ用途で2.5倍以上のスケールが必要な場合に無通知で制限される | 中 | `ModularHudSystem.cs:51-54` | |
 
@@ -1457,7 +1457,7 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | DI-1 | EncyclopediaSystem.RegisterMonsterEntry()で新規モンスターのDiscoveryLevelが1（名前・種族可視）で登録される。未遭遇モンスターの名前が初回から判明してしまう。初期値は0であるべき | 高 | `EncyclopediaSystem.cs:58` | 修正済み |
-| DI-2 | CalculateMonsterDiscoveryLevel(killCount=0)が0を返却するが、RegisterMonsterEntry()でDiscoveryLevel=1設定済み。レジストリと計算結果が矛盾し、初回遭遇で発見レベルが退化する | 高 | `EncyclopediaSystem.cs:82-86` | |
+| DI-2 | CalculateMonsterDiscoveryLevel(killCount=0)が0を返却するが、RegisterMonsterEntry()でDiscoveryLevel=1設定済み。レジストリと計算結果が矛盾し、初回遭遇で発見レベルが退化する | 高 | `EncyclopediaSystem.cs:82-86` | 修正済み |
 | DI-3 | ModLoaderSystem.ParseManifest()がIsValid=trueを常に返却。MOD IDが空文字/nullでもバリデーション通過。不正なMODがロードされるリスク | 高 | `ModLoaderSystem.cs:56` | 修正済み |
 | DI-4 | ModLoaderSystem.ParseManifest()のパラメータ(modId, name, author等)にnull/空白チェックなし。フィールド未定義のマニフェストから不正なMODオブジェクトが生成される | 中 | `ModLoaderSystem.cs:52-58` | 修正済み |
 | DI-5 | ContextHelpSystem.GetContextualHelp()がTake(5)でハードコード。コンテキストに関連するヘルプが6件以上あっても5件しか表示されず、残りが切り捨てられる通知なし | 低 | `ContextHelpSystem.cs:106` | |
@@ -1472,7 +1472,7 @@
 | DJ-1 | AccessibilitySystem.CalculateEffectiveFontSize()がフロート→int変換で切り捨て。FontSize 11 × 1.5 = 16.5 → 16に切り捨て。Math.Round()を使用すべき | 中 | `AccessibilitySystem.cs:113` | |
 | DJ-2 | AccessibilitySystem.TransformForColorBlindness()がRed/Green/Blue/Yellowの4色のみ対応。Orange/Brown/Cyan/Pink/Gray等の色が未変換で色覚障害者に視認困難 | 中 | `AccessibilitySystem.cs:142-161` | |
 | DJ-3 | Protanopia(赤色覚異常)の色変換でRed→DarkYellowに変換するが、医学的に赤色覚異常者にはDarkYellowも視認困難な場合がある。Tritanopia(青色覚異常)ではBlue→Cyanに変換するが同系色のため変換効果が不十分 | 低 | `AccessibilitySystem.cs:142-163` | |
-| DJ-4 | DifficultySettings.Nightmare: rescueCount=1とPermaDeath=falseが矛盾。PermaDeath=falseなら転生可能であり、rescueCountの意味が不明確。Nightmareは実質Hard+αになってしまう | 高 | `DifficultySettings.cs:150` | |
+| DJ-4 | DifficultySettings.Nightmare: rescueCount=1とPermaDeath=falseが矛盾。PermaDeath=falseなら転生可能であり、rescueCountの意味が不明確。Nightmareは実質Hard+αになってしまう | 高 | `DifficultySettings.cs:150` | 修正済み |
 | DJ-5 | DifficultySettings.Nightmare: hungerDecayMultiplier=1.5かつturnLimitMultiplier=0.6の組み合わせ。ターン制限315,360内に1.5倍速空腹でプレイヤーが餓死し、turnLimitが実質無意味なパラメータになる | 中 | `DifficultySettings.cs:148-149` | |
 
 ---
@@ -1505,7 +1505,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| DM-1 | DifficultySettings: Ironman難易度のdamageTakenMultiplier=1.2がNightmare(1.6)より低い。Ironman（永久死亡）がNightmare（復活1回）より被ダメージが少なく、難易度の階層が逆転 | 高 | `DifficultySettings.cs:159-162` | |
+| DM-1 | DifficultySettings: Ironman難易度のdamageTakenMultiplier=1.2がNightmare(1.6)より低い。Ironman（永久死亡）がNightmare（復活1回）より被ダメージが少なく、難易度の階層が逆転 | 高 | `DifficultySettings.cs:159-162` | 修正済み |
 | DM-2 | DifficultySettings: NightmareのexpMultiplier=0.6が極端に低い。レベルキャップに到達できずダメージ乗数(1.6倍被弾)と組み合わせると実質クリア不可能な難易度になる | 中 | `DifficultySettings.cs` | |
 | DM-3 | DifficultySettings: 難易度enum拡張時にdefault => Normalへのサイレントフォールバック。新難易度追加時にIronmanプレイヤーがNormal設定でプレイしてしまう致命的バグのリスク | 中 | `DifficultySettings.cs:86` | 修正済み |
 | DM-4 | BackgroundClearSystem.GetFlagValue()が未設定フラグに対し0を返却。0が「未設定」なのか「値が0」なのか区別不能。"has_boss_defeated"フラグが初期値0と未設定で同一扱い | 中 | `BackgroundClearSystem.cs:37` | |
@@ -1529,7 +1529,7 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | DO-1 | InfiniteDungeonSystem.GetScoreRank()のランク境界: floor 0-4がD評価だがfloor=0（未挑戦）もD。未挑戦とfloor 4到達が同一評価で区別不能 | 低 | `InfiniteDungeonSystem.cs:62-71` | |
-| DO-2 | MultiSlotSaveSystem: セーブスロットのSaveTime比較でnull SafeTimeを含むスロットのソートが非決定的。異なる実行でスロット選択結果が変わる可能性 | 高 | `MultiSlotSaveSystem.cs` | |
+| DO-2 | MultiSlotSaveSystem: セーブスロットのSaveTime比較でnull SafeTimeを含むスロットのソートが非決定的。異なる実行でスロット選択結果が変わる可能性 | 高 | `MultiSlotSaveSystem.cs` | 修正済み |
 | DO-3 | GameClearSystem.CalculateScore()でMath.Max(0, 10000 - totalTurns/5)のTurnBonus計算。totalTurns=50000以上でTurnBonus=0固定となり、50000ターン以上のプレイでターン効率の差がスコアに反映されない | 中 | `GameClearSystem.cs:70` | |
 | DO-4 | NewGamePlusSystem: GetCarryOverItems()のPlus2で「装備品」、Plus3で「ゴールド」のキャリーオーバーが記載されるが、実際の引き継ぎ処理(TransferToNewGame)がGameControllerに未実装 | 高 | `NewGamePlusSystem.cs`, `GameController.cs` | |
 | DO-5 | MultiEndingSystem: TrueエンディングとNormalエンディングが両方hasClearedFinalBoss==trueを条件としており、文の順序のみで分岐。コードリファクタリング時にelse if構造が崩れるとNormalがTrueを上書きするリスク | 中 | `MultiEndingSystem.cs:44-70` | |
@@ -1541,7 +1541,7 @@
 | DP-1 | ExecutionSystem.GetExecutionAnimationName()が全15武器種のうちSword/Dagger/Axe/Hammer/Spear/Bowの6種のみ対応。Greatsword/Greataxe/Staff/Crossbow/Thrown/Whip/Fist/Unarmedの8種がデフォルト「止めの一撃」で武器固有の処刑演出がない | 致命的 | `ExecutionSystem.cs:41-50` | 修正済み |
 | DP-2 | ExecutionSystem.GetExecutionKarmaPenalty()が10種族中Beast/Humanoid/Undead/Demon/Dragonの5種のみ対応。Plant/Insect/Spirit/Constructの処刑時にカルマペナルティが0で倫理的影響なし | 中 | `ExecutionSystem.cs:30-38` | |
 | DP-3 | GameOverSystem.GetDeathCauseDetail()がSuicide/SanityDeath/Fall/Unknown死因に未対応。デフォルト「不明な原因」が表示されプレイヤーに死因が伝わらない | 低 | `GameOverSystem.cs:77-87` | |
-| DP-4 | GameClearSystem.IsFinalBossDefeated()で`currentFloor >= 30`判定。フロア31以上でも最終ボス撃破条件が成立し、フロア30以外でのクリアフラグが不正に立つ | 高 | `GameClearSystem.cs:85-88` | |
+| DP-4 | GameClearSystem.IsFinalBossDefeated()で`currentFloor >= 30`判定。フロア31以上でも最終ボス撃破条件が成立し、フロア30以外でのクリアフラグが不正に立つ | 高 | `GameClearSystem.cs:85-88` | 修正済み |
 | DP-5 | GameClearSystem.CalculateScore()のターンボーナス計算`10000 - totalTurns/5`で整数除算。小数部分が切り捨てられスコア精度が低下 | 中 | `GameClearSystem.cs:70` | |
 
 ### DQ: ミミック・モンスター種族・属性矛盾

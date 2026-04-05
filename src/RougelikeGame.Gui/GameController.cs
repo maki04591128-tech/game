@@ -8951,7 +8951,10 @@ public class GameController
     /// <summary>NPC関係値を更新</summary>
     public void ModifyNpcRelation(string npcId, int delta)
     {
-        _relationshipSystem.ModifyRelation(RelationshipType.Personal, "player", npcId, delta);
+        // DB-2: カルマランクによるNPC態度修飾子を適用
+        double dispositionMod = _karmaSystem.GetNpcDispositionModifier();
+        int adjustedDelta = (int)(delta * dispositionMod);
+        _relationshipSystem.ModifyRelation(RelationshipType.Personal, "player", npcId, adjustedDelta);
     }
 
     /// <summary>GridInventorySystem: グリッドインベントリの空き率を取得</summary>

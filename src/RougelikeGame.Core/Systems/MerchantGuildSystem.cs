@@ -127,9 +127,11 @@ public class MerchantGuildSystem
     };
 
     /// <summary>ランクアップ判定</summary>
-    private void CheckRankUp()
+    /// <returns>ランクアップ報酬ゴールド（0ならランクアップなし）</returns>
+    private int CheckRankUp()
     {
-        if (_membership == null) return;
+        if (_membership == null) return 0;
+        var oldRank = _membership.Rank;
         var newRank = _membership.GuildPoints switch
         {
             >= 10000 => GuildRank.Adamantine,
@@ -141,9 +143,31 @@ public class MerchantGuildSystem
             >= 50 => GuildRank.Copper,
             _ => GuildRank.None
         };
-        if (newRank != _membership.Rank)
+        if (newRank != oldRank)
+        {
             _membership = _membership with { Rank = newRank };
+            // CX-1: ランクアップ報酬（ランクに応じたゴールドボーナス）
+            LastRankUpReward = GetRankUpReward(newRank);
+            return LastRankUpReward;
+        }
+        return 0;
     }
+
+    /// <summary>CX-1: 最後のランクアップ報酬額</summary>
+    public int LastRankUpReward { get; private set; }
+
+    /// <summary>CX-1: ランクアップ報酬額を取得</summary>
+    private static int GetRankUpReward(GuildRank rank) => rank switch
+    {
+        GuildRank.Copper => 50,
+        GuildRank.Iron => 100,
+        GuildRank.Silver => 200,
+        GuildRank.Gold => 500,
+        GuildRank.Platinum => 1000,
+        GuildRank.Mythril => 2000,
+        GuildRank.Adamantine => 5000,
+        _ => 0
+    };
 
     /// <summary>交易路の状態に基づく価格修正率を取得</summary>
     public float GetPriceModifier(string routeId)
