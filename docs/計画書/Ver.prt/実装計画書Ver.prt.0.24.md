@@ -351,7 +351,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| AD-1 | `AchievementSystem`に実績が**1件も登録されていない**。`Register()`が一度も呼ばれず、インフラだけが存在。Unlock()は動作するが実績一覧が空 | 致命的 | `AchievementSystem.cs:42-46`, `GameController.cs:68` | 修正予定 |
+| AD-1 | `AchievementSystem`に実績が**1件も登録されていない**。`Register()`が一度も呼ばれず、インフラだけが存在。Unlock()は動作するが実績一覧が空 | 致命的 | `AchievementSystem.cs:42-46`, `GameController.cs:68` | 修正済み |
 | AD-2 | `DetermineEnding()`の`allTerritoriesVisited`パラメータが**常にfalse**でハードコード。放浪者エンディング（Wanderer）が達成不可能 | 致命的 | `GameController.cs:7792-7795`, `MultiEndingSystem.cs:54` | 修正済み |
 | AD-3 | 実績ボーナス効果（`"stat_boost_small"=1`/`"gold_bonus"=50`/`"exp_multiplier"=10`等）が定義済みだが、実績未登録のためCalculateNextPlayBonus()が常に0を返す到達不能コード | 中 | `AchievementSystem.cs:86-95` | 修正済み |
 
@@ -396,7 +396,7 @@
 |---|------|--------|------|---------|
 | AH-1 | `ResourceSystem.GetClassHpBonus()`/`GetClassMpBonus()`がCore層と異なるクラス名（Warrior/Berserker/Summoner）を使用。Fighter/Knight/Thief/Ranger/Bard/Alchemistの6クラスがデフォルト値にフォールスルーし不正なHP/MP成長率 | 致命的 | `ResourceSystem.cs:30-102` | 修正済み |
 | AH-2 | `CalculateExpGain()`で`param.PlayerLevel`のゼロチェックがない。PlayerLevel=0時に`DivideByZeroException`でクラッシュ | 致命的 | `ResourceSystem.cs:309` | 修正済み |
-| AH-3 | `SpellCastingSystem`の三項演算子が常にMagicalを返す: `element == Element.None ? DamageType.Magical : DamageType.Magical`。純粋/物理ダメージ呪文が作成不可 | 高 | `SpellCastingSystem.cs:369` | 修正予定 |
+| AH-3 | `SpellCastingSystem`の三項演算子が常にMagicalを返す: `element == Element.None ? DamageType.Magical : DamageType.Magical`。純粋/物理ダメージ呪文が作成不可 | 高 | `SpellCastingSystem.cs:369` | 修正済み |
 | AH-4 | `Character.GetResistanceAgainst()`が常に0fを返す。種族の属性耐性（火耐性/毒耐性等）がダメージ計算に反映されない | 高 | `Character.cs:105` | 修正済み |
 | AH-5 | `Character.ConsumeMp()`に入力検証なし。負の値を渡すとMPが増加する（`ConsumeMp(-50)`でMP+50）。セキュリティリスク | 高 | `Character.cs:119` | 修正済み |
 
@@ -446,7 +446,7 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | AM-1 | `FishingSystem`の全9種の魚ID（fish_common_1/fish_common_2/fish_medium_1等）がItemFactoryに未定義。釣り成功時にItemFactory.Create()が失敗しアイテム生成不可 | 致命的 | `FishingSystem.cs:22-42`, `ItemFactory.cs` | 修正済み |
-| AM-2 | `GatheringSystem`の鉱石ID（ore_iron/ore_silver/ore_gold/ore_mithril/gem_rough）がItemFactoryに未定義。採掘成功時にアイテム生成不可。唯一存在する`material_iron_ore`とも異なるID | 致命的 | `GatheringSystem.cs:28-31`, `ItemFactory.cs` | 修正予定 |
+| AM-2 | `GatheringSystem`の鉱石ID（ore_iron/ore_silver/ore_gold/ore_mithril/gem_rough）がItemFactoryに未定義。採掘成功時にアイテム生成不可。唯一存在する`material_iron_ore`とも異なるID | 致命的 | `GatheringSystem.cs:28-31`, `ItemFactory.cs` | 修正済み |
 | AM-3 | `FishingSystem`の魚IDとGatheringSystemの魚IDが不一致。FishingSystemは`fish_common_1`、GatheringSystemは`fish_common`を使用 | 高 | `FishingSystem.cs:22-42`, `GatheringSystem.cs:38-41` | 修正済み |
 | AM-4 | マップ上に釣りスポットが配置されない。DungeonFeatureGeneratorにWaterTileChanceが存在するが、水タイルへのインタラクション（釣り開始）がGameControllerに未実装 | 高 | `DungeonFeatureGenerator.cs`, `GameController.cs` | 修正済み |
 
@@ -629,7 +629,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| BC-1 | Ironmanモード（PermaDeath=true）でもセーブファイルが削除されない。SaveManager.DeleteSave()がGameOver時に呼ばれず、永久死がセーブ削除を伴わない | 致命的 | `GameController.cs:3061-3074`, `DifficultySettings.cs:45,172` | 修正予定 |
+| BC-1 | Ironmanモード（PermaDeath=true）でもセーブファイルが削除されない。SaveManager.DeleteSave()がGameOver時に呼ばれず、永久死がセーブ削除を伴わない | 致命的 | `GameController.cs:3061-3074`, `DifficultySettings.cs:45,172` | 修正済み |
 | BC-2 | DeathCauseに火傷/溺死/環境ダメージ/即死の4種が未定義。StatusEffect由来の死亡が全て「不明な原因」と表示される | 高 | `Enums.cs:126-139` | 修正済み |
 | BC-3 | GameOverSystem.GetDeathCauseDetail()にPoison/Fall/Suicide/SanityDeathのメッセージが未定義。これらの死因で「不明な原因」が表示される | 高 | `GameOverSystem.cs:76-88` | 修正済み |
 | BC-4 | TickStatusEffects()後にHP0チェックがない。状態異常ダメージで死亡した場合、死因追跡が不正確（後段の処理で別の原因に上書きされる可能性） | 高 | `GameController.cs:2184,2361-2366` | 修正済み |

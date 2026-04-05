@@ -972,6 +972,55 @@ public class RandomEventSystem
         return new EventResult(true, $"{material}を{quantity}個採取した！");
     }
 
+    /// <summary>AF-1: NPC遭遇イベントの結果</summary>
+    public EventResult ResolveNpcEncounter(int depth, IRandomProvider random)
+    {
+        int roll = random.Next(100);
+        if (roll < 40)
+            return new EventResult(true, "旅の冒険者と情報を交換した。周囲の地形が明らかになった！");
+        if (roll < 70)
+        {
+            int gold = 20 + depth * 10 + random.Next(depth * 5 + 1);
+            return new EventResult(true, $"親切なNPCから{gold}ゴールドの報酬を得た", GoldAmount: gold);
+        }
+        if (roll < 90)
+            return new EventResult(true, "賢者から助言を受けた。経験値を獲得した");
+        return new EventResult(false, "不審な人物だった…何も起こらなかった");
+    }
+
+    /// <summary>AF-2: 商人遭遇イベントの結果</summary>
+    public EventResult ResolveMerchantEncounter(int depth, IRandomProvider random)
+    {
+        int roll = random.Next(100);
+        if (roll < 50)
+            return new EventResult(true, "旅の商人から珍しいアイテムを購入できた！");
+        if (roll < 80)
+        {
+            int gold = 30 + depth * 15 + random.Next(depth * 10 + 1);
+            return new EventResult(true, $"商人と取引して{gold}ゴールドの利益を得た", GoldAmount: gold);
+        }
+        return new EventResult(true, "商人は特に良い品物を持っていなかった");
+    }
+
+    /// <summary>AF-3: 待ち伏せイベントの結果</summary>
+    public EventResult ResolveAmbushEvent(int depth, IRandomProvider random)
+    {
+        int roll = random.Next(100);
+        if (roll < 50)
+        {
+            int damage = 10 + depth * 3 + random.Next(depth * 2 + 1);
+            return new EventResult(false, $"待ち伏せされた！{damage}ダメージを受けた！", DamageAmount: damage);
+        }
+        if (roll < 75)
+        {
+            int damage = 5 + depth;
+            int gold = 40 + depth * 20 + random.Next(depth * 15 + 1);
+            return new EventResult(true, $"待ち伏せを返り討ちにした！{gold}ゴールドを奪った（{damage}ダメージ）",
+                DamageAmount: damage, GoldAmount: gold);
+        }
+        return new EventResult(true, "気配を察知して待ち伏せを回避した！");
+    }
+
     /// <summary>全イベント定義を取得</summary>
     public static IReadOnlyList<RandomEvent> GetAllEvents() => _events;
 

@@ -364,11 +364,18 @@ public class CombatSystem : ICombatSystem
             luck = attackerChar.EffectiveStats.Luck;
         }
 
+        // BS-9: 武器固有クリティカルボーナスを取得
+        double weaponCritBonus = 0;
+        if (attacker is Core.Entities.Player attackerPlayer && attackerPlayer.Equipment.MainHand != null)
+        {
+            weaponCritBonus = attackerPlayer.Equipment.MainHand.CriticalBonus;
+        }
+
         var param = new CriticalCheckParams
         {
             Dexterity = dexterity,
             Luck = luck,
-            WeaponCritBonus = 0,
+            WeaponCritBonus = weaponCritBonus,
             SkillCritBonus = 0
         };
 

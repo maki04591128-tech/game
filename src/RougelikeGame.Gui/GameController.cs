@@ -4177,6 +4177,17 @@ public class GameController
         var result = _combatSystem.ExecuteAttack(Player, target, AttackType.Ranged);
         int distance = GetDistance(Player.Position, target.Position);
 
+        // AL-1: 天候による遠距離攻撃命中修正（ダメージに反映）
+        float rangedWeatherMod = WeatherSystem.GetRangedHitModifier(CurrentWeather);
+        if (rangedWeatherMod < 1.0f && result.IsHit && result.Damage.HasValue)
+        {
+            var dmg = result.Damage.Value;
+            int modifiedAmount = Math.Max(1, (int)(dmg.Amount * rangedWeatherMod));
+            var modifiedDmg = new Damage(modifiedAmount, dmg.Type, dmg.Element, dmg.IsCritical, dmg.SourceName);
+            result = new CombatResult(result.IsHit, result.IsCritical, modifiedDmg, result.Attacker, result.Target);
+            AddMessage($"🌧 天候の影響で遠距離攻撃の威力が低下（×{rangedWeatherMod:P0}）");
+        }
+
         if (result.IsHit)
         {
             var critStr = result.IsCritical ? " クリティカル！" : "";
