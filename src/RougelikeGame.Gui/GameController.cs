@@ -1255,7 +1255,8 @@ public class GameController
             // 斜め移動補正（攻撃・ドア以外の純粋な移動時のみ）
             if (isDiagonal && actionCost == TurnCosts.MoveNormal)
             {
-                actionCost = TurnCosts.MoveNormal * TurnCosts.DiagonalNumerator / TurnCosts.DiagonalDenominator;
+                // AU-2: 斜め移動コスト（整数切り上げで直進と差別化）
+                actionCost = (int)Math.Ceiling((double)TurnCosts.MoveNormal * TurnCosts.DiagonalNumerator / TurnCosts.DiagonalDenominator);
             }
 
             // 重量超過ペナルティ: 移動コストが1.5倍

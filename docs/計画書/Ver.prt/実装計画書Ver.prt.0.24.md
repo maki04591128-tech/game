@@ -535,8 +535,8 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | AU-1 | 地形別移動コスト（Water=2.0/Forest=1.5/Mountain=2.0等）がTile.MovementCostに定義済みだが、移動計算で参照されない。全地形が一律1ターンコスト | 高 | `Tile.cs:272,384,429,435`, `GameController.cs:1200-1209` | 修正済み |
-| AU-2 | 斜め移動コスト計算がint切り捨てで正規コストと同一になる。`(int)(1 * 14/10) = (int)(1.4) = 1`となり、斜めも直進も1ターンで斜め移動が常に有利 | 中 | `GameController.cs:1202`, `GameConstants.cs:22-24` | |
-| AU-3 | 重量超過ペナルティ（1.5倍移動コスト）がint切り捨てで無効化。`(int)(1 * 1.5) = (int)(1.5) = 1`となり、過重状態でも移動速度に変化なし | 中 | `GameController.cs:1200-1209` | |
+| AU-2 | 斜め移動コスト計算がint切り捨てで正規コストと同一になる。`(int)(1 * 14/10) = (int)(1.4) = 1`となり、斜めも直進も1ターンで斜め移動が常に有利 | 中 | `GameController.cs:1202`, `GameConstants.cs:22-24` | 修正済み |
+| AU-3 | 重量超過ペナルティ（1.5倍移動コスト）がint切り捨てで無効化。`(int)(1 * 1.5) = (int)(1.5) = 1`となり、過重状態でも移動速度に変化なし | 中 | `GameController.cs:1200-1209` | 修正済み |
 
 ---
 
@@ -593,7 +593,7 @@
 |---|------|--------|------|---------|
 | AZ-1 | ボス敵にBerserkerBehaviorが割り当てられるが、バーサーク状態（HP30%以下でダメージ増加）の実効果なし。ボスの特殊行動パターンが非機能 | 中 | `EnemyFactory.cs:114-120` | |
 | AZ-2 | SummonerBehavior（敵が仲間を召喚）が定義済みだがEnemyFactoryで一度も割り当てられない。召喚者タイプの敵が存在しない完全なデッドコード | 高 | `BasicBehaviors.cs:438-495`, `EnemyFactory.cs:65-128` | 修正済み |
-| AZ-3 | 敵の逃走ロジック（ShouldFlee() HP20%以下で撤退）が定義済みだが、戦闘メッセージに「敵が逃げた」が表示されず逃走行動が確認不能 | 中 | `Enemy.cs:169-174`, `GameController.cs:1796-1810` | |
+| AZ-3 | 敵の逃走ロジック（ShouldFlee() HP20%以下で撤退）が定義済みだが、戦闘メッセージに「敵が逃げた」が表示されず逃走行動が確認不能 | 中 | `Enemy.cs:169-174`, `GameController.cs:1796-1810` | 修正済み |
 
 ---
 
@@ -680,7 +680,7 @@
 | BG-7 | PotionType.CureAllがStun/Freeze/Sleep/Petrification/Curseを除去対象に含まない。重篤なデバフの治療手段がない | 中 | `Consumables.cs:85-96` | |
 | BG-8 | 食品アイテムがバフ効果を一切付与しない。Food.Use()がModifyHunger()/Heal()のみ呼び出し、戦術的な食事バフが存在しない | 中 | `Consumables.cs:150-218` | |
 | BG-9 | アクティブバフ数に上限がない。無制限のバフスタックが可能で、パフォーマンス劣化やバランス崩壊の原因となりうる | 中 | `Character.cs:124-146` | |
-| BG-10 | 環境デバフ（寒冷/灼熱/湿潤）のStatusEffectTypeが未定義。環境ハザードが状態異常を付与しない | 中 | `StatusEffectSystem.cs`, `Enums.cs` | |
+| BG-10 | 環境デバフ（寒冷/灼熱/湿潤）のStatusEffectTypeが未定義。環境ハザードが状態異常を付与しない | 中 | `StatusEffectSystem.cs`, `Enums.cs` | 修正済み |
 | BG-11 | 状態異常メッセージの一部がenum名（英語）をそのまま表示。ローカライズされた日本語名でなく「Vulnerability」等と表示される | 低 | `GameController.cs` | |
 
 ---
@@ -748,7 +748,7 @@
 | BL-1 | KarmaSystem.GetShopPriceModifier()がGameControllerから一度も呼ばれない。PriceFluctuationSystemが独自に再計算するため完全なデッドコード | 高 | `KarmaSystem.cs:60-70`, `GameController.cs:5483-5514` | 修正済み |
 | BL-2 | KarmaSystem.GetNpcDispositionModifier()がGameControllerから一度も呼ばれない。聖者も悪人もNPC対話結果が同一 | 高 | `KarmaSystem.cs:72-83`, `GameController.cs:5694,5707` | 修正済み |
 | BL-3 | KarmaSystem.CanEnterHolyGround()がGameControllerから一度も呼ばれない。Criminal/Villainプレイヤーが教会/神殿に無制限アクセス可能 | 高 | `KarmaSystem.cs:89`, `GameController.cs` | 修正済み |
-| BL-4 | カルマ変動トリガーが3箇所のみ（処刑+5/+3、密輸-5、闇市-2）。NPC支援/窃盗/対話中の嘘等の大半の選択がカルマ無影響 | 中 | `GameController.cs:1522,7646,7709` | |
+| BL-4 | カルマ変動トリガーが3箇所のみ（処刑+5/+3、密輸-5、闇市-2）。NPC支援/窃盗/対話中の嘘等の大半の選択がカルマ無影響 | 中 | `GameController.cs:1522,7646,7709` | 修正済み |
 
 ---
 
@@ -832,7 +832,7 @@
 | BR-3 | NG+ティア（_ngPlusTier）とゲームクリア状態（_hasCleared）がセーブされない。NG+進行が追跡不可 | 致命的 | `GameController.cs:155-158,6694-6801` | 修正済み |
 | BR-4 | 無限ダンジョンモード（_infiniteDungeonMode）とキル数（_infiniteDungeonKills）がセーブされない。100キル実績進捗消失 | 高 | `GameController.cs:164-167,6694-6801` | 修正済み |
 | BR-5 | ダンジョン特性（_currentDungeonFeature）がセーブされない。敵密度/ルート倍率/罠確率がリセット | 高 | `GameController.cs:78,6694-6801` | 修正済み |
-| BR-6 | Player.HasPrayedTodayがセーブされない。毎日の祈りフラグがリセット | 中 | `Player.cs:303,GameController.cs:6694-6801` | |
+| BR-6 | Player.HasPrayedTodayがセーブされない。毎日の祈りフラグがリセット | 中 | `Player.cs:303,GameController.cs:6694-6801` | 修正済み |
 
 ---
 
