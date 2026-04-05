@@ -7,7 +7,7 @@ using Xunit;
 namespace RougelikeGame.Core.Tests;
 
 /// <summary>
-/// Ver.prt.0.25 テスト — 満腹度・渇き度10段階システム＆行動ターン消費システム
+/// Ver.prt.0.25 テスト — 満腹度・渇き度9段階システム＆行動ターン消費システム
 /// </summary>
 public class VersionPrt025SystemTests
 {
@@ -280,7 +280,7 @@ public class VersionPrt025SystemTests
 
     #endregion
 
-    #region ResourceSystem 10段階テスト
+    #region ResourceSystem 9段階テスト
 
     [Theory]
     [InlineData(130, HungerState.Nausea)]
@@ -334,7 +334,7 @@ public class VersionPrt025SystemTests
 
     #endregion
 
-    #region ThirstSystem 10段階テスト
+    #region ThirstSystem 9段階テスト
 
     [Theory]
     [InlineData(ThirstStage.Nausea, "吐き気")]

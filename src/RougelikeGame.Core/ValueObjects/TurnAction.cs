@@ -35,12 +35,12 @@ public readonly struct TurnAction
         }
 
         // 接敵状態（Combat/Engaged）の倍率適用
+        // ※ Move行動は除外: 移動は上のGetMovementMultiplierで戦闘時移動コストを適用済み
         if (combatState.HasFlag(CombatState.Combat))
         {
             if (!IsCombatAction(Type))
             {
-                // 非戦闘行動は×2（移動は上のGetMovementMultiplierで処理済みの場合があるが、
-                // 移動以外のドア開閉等にも適用する）
+                // 非戦闘行動かつ移動以外（ドア開閉・探索・休息等）に×2を適用
                 if (Type != TurnActionType.Move)
                 {
                     modifier *= TurnCosts.EngagedNonCombatMultiplier;
