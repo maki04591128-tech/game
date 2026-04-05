@@ -1557,6 +1557,16 @@ public class GameController
         // 移動実行
         Player.Position = newPos;
 
+        // BA-2: シンボルマップ上のランダムイベント発動
+        if (_worldMapSystem.IsOnSurface && !_symbolMapSystem.IsLocationSymbol(newPos))
+        {
+            var mapEvent = SymbolMapEventSystem.RollEvent(CurrentSeason, _worldMapSystem.CurrentTerritory, _random.NextDouble());
+            if (mapEvent != null)
+            {
+                AddMessage($"🎲 【{mapEvent.Name}】{mapEvent.Description}");
+            }
+        }
+
         // シンボルマップ上のロケーション到着処理
         if (_worldMapSystem.IsOnSurface && _symbolMapSystem.IsLocationSymbol(newPos))
         {
@@ -2770,6 +2780,9 @@ public class GameController
         // 宗教日次処理（600ターンごと＝1日相当）
         if (TurnCount > 0 && TurnCount % 600 == 0)
         {
+            // DA-6: 日変更検出 — デイリーリセット処理
+            Player.HasPrayedToday = false;
+
             _religionSystem.ProcessDailyTick(Player);
 
             // R-1: 畑の食料自動生産（1日ごと）

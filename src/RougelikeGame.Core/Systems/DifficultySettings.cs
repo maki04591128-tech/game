@@ -84,7 +84,7 @@ public class DifficultySettings
         DifficultyLevel.Hard => Hard,
         DifficultyLevel.Nightmare => Nightmare,
         DifficultyLevel.Ironman => IronmanSettings,
-        _ => Normal
+        _ => throw new ArgumentOutOfRangeException(nameof(level), level, "未定義の難易度レベル")  // DM-3: サイレントフォールバック防止
     };
 
     /// <summary>Easy: 初心者向け、緩い制限</summary>
