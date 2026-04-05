@@ -119,4 +119,14 @@ public class ItemIdentificationSystem
         CurseType.Deadly => "致死の呪い - 装備者の生命力を蝕む",
         _ => "不明"
     };
+
+    /// <summary>BQ-13: セーブデータから識別済み状態を復元</summary>
+    public void RestoreIdentified(IEnumerable<string> itemIds)
+    {
+        foreach (var id in itemIds)
+        {
+            if (!_identifiedItems.ContainsKey(id))
+                _identifiedItems[id] = new IdentificationResult(id, id, IdentificationState.Identified, CurseType.None, "");
+        }
+    }
 }

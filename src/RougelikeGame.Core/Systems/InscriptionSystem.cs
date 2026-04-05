@@ -118,4 +118,16 @@ public class InscriptionSystem
     {
         return _inscriptions.Values.Where(i => i.Type == type).ToList();
     }
+
+    /// <summary>BQ-17: セーブデータから解読済み碑文を復元</summary>
+    public void RestoreDecoded(IEnumerable<string> decodedIds)
+    {
+        foreach (var id in decodedIds)
+        {
+            if (_inscriptions.TryGetValue(id, out var ins))
+            {
+                _inscriptions[id] = ins with { IsDecoded = true };
+            }
+        }
+    }
 }

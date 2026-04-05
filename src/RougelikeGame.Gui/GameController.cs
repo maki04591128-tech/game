@@ -7890,6 +7890,87 @@ public class GameController
             };
         }
 
+        // ===== BQ系: サブシステム永続性 =====
+
+        // BQ-4: 図鑑エントリの保存
+        foreach (var entry in _encyclopediaSystem.GetAllEntries())
+        {
+            if (entry.DiscoveryLevel > 0 || entry.KillCount > 0)
+            {
+                save.EncyclopediaEntries[entry.Id] = new EncyclopediaSaveEntry
+                {
+                    DiscoveryLevel = entry.DiscoveryLevel,
+                    KillCount = entry.KillCount
+                };
+            }
+        }
+
+        // BQ-6: 誓約の保存
+        save.ActiveOaths = _oathSystem.ActiveOaths.Select(o => o.ToString()).ToList();
+
+        // BQ-9: 投資記録の保存
+        foreach (var inv in _investmentSystem.Investments)
+        {
+            save.Investments.Add(new InvestmentSaveData
+            {
+                Type = inv.Type.ToString(),
+                TargetName = inv.TargetName,
+                Amount = inv.Amount,
+                ExpectedReturn = (int)inv.ExpectedReturn,
+                InvestedTurn = inv.InvestedTurn,
+                IsCompleted = inv.IsCompleted
+            });
+        }
+
+        // BQ-10: グリッドインベントリの保存
+        foreach (var item in _gridInventorySystem.Items)
+        {
+            save.GridItems.Add(new GridItemSaveData
+            {
+                ItemId = item.ItemId,
+                Name = item.Name,
+                Size = item.Size.ToString(),
+                GridX = item.GridX,
+                GridY = item.GridY,
+                IsRotated = item.IsRotated
+            });
+        }
+
+        // BQ-12: NPC関係値の保存
+        foreach (var rel in _relationshipSystem.GetAllRelationEntries())
+        {
+            string key = $"{rel.Type}:{rel.EntityA}:{rel.EntityB}";
+            save.NpcRelations[key] = rel.Value;
+        }
+
+        // BQ-13: 識別済みアイテムの保存
+        save.IdentifiedItemIds = _itemIdentificationSystem.IdentifiedItems.Keys.ToList();
+
+        // BQ-17: 解読済み碑文の保存
+        save.DecodedInscriptionIds = _inscriptionSystem.Inscriptions.Values
+            .Where(i => i.IsDecoded)
+            .Select(i => i.InscriptionId)
+            .ToList();
+
+        // BQ-19: 領地勢力影響の保存
+        foreach (TerritoryId tid in Enum.GetValues<TerritoryId>())
+        {
+            var factionMap = _territoryInfluenceSystem.GetInfluenceMap(tid);
+            if (factionMap != null && factionMap.Count > 0)
+            {
+                save.TerritoryInfluences[tid.ToString()] = new Dictionary<string, float>(factionMap);
+            }
+        }
+
+        // BQ-21: ダンジョンショートカットの保存
+        save.VisitedDungeonFloors = _dungeonShortcutSystem.GetVisitedFloors()
+            .Select(vf => $"{vf.DungeonId}:{vf.Floor}").ToList();
+        save.UnlockedShortcuts = _dungeonShortcutSystem.GetUnlockedShortcuts()
+            .Select(sc => $"{sc.DungeonId}:{sc.FromFloor}:{sc.ToFloor}").ToList();
+
+        // CA-8: プレイヤー向きの保存
+        save.PlayerFacingDirection = _playerFacing.ToString();
+
         return save;
     }
 
@@ -8255,6 +8336,100 @@ public class GameController
         }
 
         AddMessage("セーブデータをロードした");
+
+        // ===== BQ系: サブシステム永続性の復元 =====
+
+        // BQ-4: 図鑑エントリの復元
+        if (save.EncyclopediaEntries.Count > 0)
+        {
+            var entries = save.EncyclopediaEntries.ToDictionary(
+                kvp => kvp.Key,
+                kvp => (kvp.Value.DiscoveryLevel, kvp.Value.KillCount));
+            _encyclopediaSystem.RestoreDiscoveryState(entries);
+        }
+
+        // BQ-6: 誓約の復元
+        if (save.ActiveOaths.Count > 0)
+        {
+            var oaths = save.ActiveOaths
+                .Where(s => Enum.TryParse<OathType>(s, out _))
+                .Select(s => Enum.Parse<OathType>(s));
+            _oathSystem.RestoreOaths(oaths);
+        }
+
+        // BQ-9: 投資記録の復元
+        if (save.Investments.Count > 0)
+        {
+            var records = save.Investments.Select(inv =>
+            {
+                Enum.TryParse<InvestmentType>(inv.Type, out var invType);
+                return new InvestmentSystem.InvestmentRecord(invType, inv.TargetName, inv.Amount, inv.ExpectedReturn, inv.InvestedTurn, inv.IsCompleted);
+            });
+            _investmentSystem.RestoreInvestments(records);
+        }
+
+        // BQ-10: グリッドインベントリの復元
+        if (save.GridItems.Count > 0)
+        {
+            var gridItems = save.GridItems.Select(gi =>
+            {
+                Enum.TryParse<GridItemSize>(gi.Size, out var size);
+                return new GridInventorySystem.GridItem(gi.ItemId, gi.Name, size, gi.GridX, gi.GridY, gi.IsRotated);
+            });
+            _gridInventorySystem.RestoreGrid(gridItems);
+        }
+
+        // BQ-12: NPC関係値の復元
+        if (save.NpcRelations.Count > 0)
+        {
+            _relationshipSystem.RestoreRelations(save.NpcRelations);
+        }
+
+        // BQ-13: 識別済みアイテムの復元
+        if (save.IdentifiedItemIds.Count > 0)
+        {
+            _itemIdentificationSystem.RestoreIdentified(save.IdentifiedItemIds);
+        }
+
+        // BQ-17: 解読済み碑文の復元
+        if (save.DecodedInscriptionIds.Count > 0)
+        {
+            _inscriptionSystem.RestoreDecoded(save.DecodedInscriptionIds);
+        }
+
+        // BQ-19: 領地勢力影響の復元
+        if (save.TerritoryInfluences.Count > 0)
+        {
+            var influences = new Dictionary<TerritoryId, Dictionary<string, float>>();
+            foreach (var (key, factions) in save.TerritoryInfluences)
+            {
+                if (Enum.TryParse<TerritoryId>(key, out var tid))
+                {
+                    influences[tid] = new Dictionary<string, float>(factions);
+                }
+            }
+            _territoryInfluenceSystem.RestoreInfluences(influences);
+        }
+
+        // BQ-21: ダンジョンショートカットの復元
+        if (save.VisitedDungeonFloors.Count > 0 || save.UnlockedShortcuts.Count > 0)
+        {
+            var visitedFloors = save.VisitedDungeonFloors
+                .Select(s => s.Split(':'))
+                .Where(p => p.Length == 2 && int.TryParse(p[1], out _))
+                .Select(p => (DungeonId: p[0], Floor: int.Parse(p[1])));
+            var shortcuts = save.UnlockedShortcuts
+                .Select(s => s.Split(':'))
+                .Where(p => p.Length == 3 && int.TryParse(p[1], out _) && int.TryParse(p[2], out _))
+                .Select(p => (DungeonId: p[0], FromFloor: int.Parse(p[1]), ToFloor: int.Parse(p[2])));
+            _dungeonShortcutSystem.RestoreState(visitedFloors, shortcuts);
+        }
+
+        // CA-8: プレイヤー向きの復元
+        if (save.PlayerFacingDirection != null && Enum.TryParse<Direction>(save.PlayerFacingDirection, out var facing))
+        {
+            _playerFacing = facing;
+        }
 
         // AS-5: スキルツリーボーナスプロバイダーを再設定（ロード後のステータス計算に必要）
         Player.SkillTreeBonusProvider = () => _skillTreeSystem.GetTotalStatBonuses();

@@ -94,4 +94,11 @@ public class InvestmentSystem
     {
         _investments.Clear();
     }
+
+    /// <summary>BQ-9: セーブデータから投資記録を復元</summary>
+    public void RestoreInvestments(IEnumerable<InvestmentRecord> records)
+    {
+        foreach (var r in records)
+            _investments.Add(r);
+    }
 }

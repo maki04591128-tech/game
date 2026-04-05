@@ -211,4 +211,20 @@ public class EncyclopediaSystem
             _entries[id] = _entries[id] with { DiscoveryLevel = 0, KillCount = 0 };
         }
     }
+
+
+    /// <summary>全エントリを取得</summary>
+    public IReadOnlyCollection<EncyclopediaEntry> GetAllEntries() => _entries.Values;
+
+    /// <summary>BQ-4: セーブデータから発見状態を復元</summary>
+    public void RestoreDiscoveryState(Dictionary<string, (int DiscoveryLevel, int KillCount)> savedEntries)
+    {
+        foreach (var (id, state) in savedEntries)
+        {
+            if (_entries.TryGetValue(id, out var entry))
+            {
+                _entries[id] = entry with { DiscoveryLevel = state.DiscoveryLevel, KillCount = state.KillCount };
+            }
+        }
+    }
 }

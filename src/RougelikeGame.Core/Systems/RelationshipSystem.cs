@@ -97,4 +97,25 @@ public class RelationshipSystem
             }
         }
     }
+
+
+    /// <summary>全関係値をRelationEntry形式で取得</summary>
+    public IReadOnlyList<RelationEntry> GetAllRelationEntries()
+    {
+        return _relations.Select(kvp => new RelationEntry(kvp.Key.Item1, kvp.Key.Item2, kvp.Key.Item3, kvp.Value)).ToList();
+    }
+
+    /// <summary>BQ-12: セーブデータから関係値を復元</summary>
+    public void RestoreRelations(Dictionary<string, int> savedRelations)
+    {
+        foreach (var (key, value) in savedRelations)
+        {
+            // key format: "type:entityA:entityB"
+            var parts = key.Split(':');
+            if (parts.Length == 3 && Enum.TryParse<RelationshipType>(parts[0], out var relType))
+            {
+                _relations[(relType, parts[1], parts[2])] = value;
+            }
+        }
+    }
 }

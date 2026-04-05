@@ -159,6 +159,39 @@ public class SaveData
 
     /// <summary>BZ-6: 派閥戦争データ</summary>
     public FactionWarSaveData? FactionWar { get; set; }
+
+    // ===== BQ系: サブシステム永続性 =====
+
+    /// <summary>BQ-4: 図鑑エントリ発見レベル・討伐数</summary>
+    public Dictionary<string, EncyclopediaSaveEntry> EncyclopediaEntries { get; set; } = new();
+
+    /// <summary>BQ-6: アクティブ誓約</summary>
+    public List<string> ActiveOaths { get; set; } = new();
+
+    /// <summary>BQ-9: 投資記録</summary>
+    public List<InvestmentSaveData> Investments { get; set; } = new();
+
+    /// <summary>BQ-10: グリッドインベントリ配置</summary>
+    public List<GridItemSaveData> GridItems { get; set; } = new();
+
+    /// <summary>BQ-12: NPC関係値</summary>
+    public Dictionary<string, int> NpcRelations { get; set; } = new();
+
+    /// <summary>BQ-13: 識別済みアイテムID</summary>
+    public List<string> IdentifiedItemIds { get; set; } = new();
+
+    /// <summary>BQ-17: 解読済み碑文ID</summary>
+    public List<string> DecodedInscriptionIds { get; set; } = new();
+
+    /// <summary>BQ-19: 領地勢力影響</summary>
+    public Dictionary<string, Dictionary<string, float>> TerritoryInfluences { get; set; } = new();
+
+    /// <summary>BQ-21: 訪問済みフロア・解放済みショートカット</summary>
+    public List<string> VisitedDungeonFloors { get; set; } = new();
+    public List<string> UnlockedShortcuts { get; set; } = new();
+
+    /// <summary>CA-8: プレイヤー向き</summary>
+    public string? PlayerFacingDirection { get; set; }
 }
 
 /// <summary>
@@ -488,4 +521,33 @@ public class WarOutcomeSaveData
     public string Loser { get; set; } = string.Empty;
     public int TerritoryInfluenceChange { get; set; }
     public string Description { get; set; } = string.Empty;
+}
+
+/// <summary>BQ-4: 図鑑エントリのセーブデータ</summary>
+public class EncyclopediaSaveEntry
+{
+    public int DiscoveryLevel { get; set; }
+    public int KillCount { get; set; }
+}
+
+/// <summary>BQ-9: 投資記録のセーブデータ</summary>
+public class InvestmentSaveData
+{
+    public string Type { get; set; } = string.Empty;
+    public string TargetName { get; set; } = string.Empty;
+    public int Amount { get; set; }
+    public int ExpectedReturn { get; set; }
+    public int InvestedTurn { get; set; }
+    public bool IsCompleted { get; set; }
+}
+
+/// <summary>BQ-10: グリッドアイテムのセーブデータ</summary>
+public class GridItemSaveData
+{
+    public string ItemId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Size { get; set; } = string.Empty;
+    public int GridX { get; set; }
+    public int GridY { get; set; }
+    public bool IsRotated { get; set; }
 }

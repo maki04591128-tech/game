@@ -92,4 +92,13 @@ public class TerritoryInfluenceSystem
             NormalizeInfluence(territory);
         }
     }
+
+    /// <summary>BQ-19: セーブデータから勢力影響を復元</summary>
+    public void RestoreInfluences(Dictionary<TerritoryId, Dictionary<string, float>> influences)
+    {
+        foreach (var (territory, factions) in influences)
+        {
+            _influence[territory] = new Dictionary<string, float>(factions);
+        }
+    }
 }
