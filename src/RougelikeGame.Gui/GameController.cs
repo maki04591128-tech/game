@@ -1372,6 +1372,21 @@ public class GameController
                 actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / armorSpeedMod));
             }
 
+            // AV-4: 疲労による行動効率低下（疲労段階に応じてコスト増加）
+            float fatigueMod = BodyConditionSystem.GetFatigueModifier(Player.FatigueStage);
+            if (fatigueMod < 1.0f)
+            {
+                actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / fatigueMod));
+            }
+
+            // AV-3: 渇きによるステータスペナルティ（コスト増加）
+            var (thirstStrMod, thirstAgiMod, _) = ThirstSystem.GetThirstModifiers(Player.ThirstStage);
+            float thirstMoveMod = Math.Min(thirstStrMod, thirstAgiMod); // 移動は STR と AGI の低い方
+            if (thirstMoveMod < 1.0f && actionCost <= TurnCosts.AttackNormal)
+            {
+                actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / thirstMoveMod));
+            }
+
             // 行動コスト分のターンを消費（最低1）
             int finalCost = Math.Max(1, actionCost);
             TurnCount += finalCost;
@@ -3429,6 +3444,9 @@ public class GameController
             if (!equipItem.IsIdentified)
             {
                 equipItem.IsIdentified = true;
+                // CI-5: ItemIdentificationSystemにも識別状態を登録
+                var curseType = equipItem.IsCursed ? CurseType.Minor : CurseType.None;
+                _itemIdentificationSystem.Identify(equipItem.ItemId, equipItem.GetDisplayName(), curseType);
                 AddMessage($"{equipItem.GetDisplayName()}の正体が分かった！");
             }
 
@@ -7971,6 +7989,58 @@ public class GameController
         // CA-8: プレイヤー向きの保存
         save.PlayerFacingDirection = _playerFacing.ToString();
 
+        // BQ-5: 死亡ログの保存
+        foreach (var log in _deathLogSystem.AllLogs)
+        {
+            save.DeathLogs.Add(new DeathLogSaveData
+            {
+                RunNumber = log.RunNumber,
+                CharacterName = log.CharacterName,
+                Class = log.Class.ToString(),
+                Race = log.Race.ToString(),
+                Level = log.Level,
+                Cause = log.Cause.ToString(),
+                CauseDetail = log.CauseDetail,
+                Location = log.Location,
+                Floor = log.Floor,
+                TotalTurns = log.TotalTurns,
+                Timestamp = log.Timestamp.ToString("o")
+            });
+        }
+
+        // BQ-11: NPC記憶の保存
+        foreach (var mem in _npcMemorySystem.Memories)
+        {
+            save.NpcMemories.Add(new NpcMemorySaveData
+            {
+                NpcId = mem.NpcId,
+                Action = mem.Action,
+                Impact = mem.Impact,
+                TurnRecorded = mem.TurnRecorded
+            });
+        }
+
+        // BQ-14: ダンジョン生態系イベントの保存
+        foreach (var ev in _dungeonEcosystemSystem.Events)
+        {
+            save.EcosystemEvents.Add(new EcosystemEventSaveData
+            {
+                Type = ev.Type.ToString(),
+                PredatorId = ev.PredatorId,
+                PreyId = ev.PreyId,
+                Floor = ev.Floor,
+                Turn = ev.Turn,
+                Description = ev.Description
+            });
+        }
+
+        // BU-4: ゲーム時間開始値の保存
+        save.GameTimeStartYear = GameTime.StartYear;
+        save.GameTimeStartMonth = GameTime.StartMonth;
+        save.GameTimeStartDay = GameTime.StartDay;
+        save.GameTimeStartHour = GameTime.StartHour;
+        save.GameTimeStartMinute = GameTime.StartMinute;
+
         return save;
     }
 
@@ -8429,6 +8499,49 @@ public class GameController
         if (save.PlayerFacingDirection != null && Enum.TryParse<Direction>(save.PlayerFacingDirection, out var facing))
         {
             _playerFacing = facing;
+        }
+
+        // BQ-5: 死亡ログの復元
+        if (save.DeathLogs.Count > 0)
+        {
+            var logs = save.DeathLogs.Select(dl =>
+            {
+                Enum.TryParse<Core.CharacterClass>(dl.Class, out var cls);
+                Enum.TryParse<Race>(dl.Race, out var race);
+                Enum.TryParse<DeathCause>(dl.Cause, out var cause);
+                DateTime.TryParse(dl.Timestamp, out var ts);
+                return new DeathLogSystem.DeathLogEntry(dl.RunNumber, dl.CharacterName, cls, race, dl.Level, cause, dl.CauseDetail, dl.Location, dl.Floor, dl.TotalTurns, ts);
+            });
+            _deathLogSystem.RestoreLogs(logs);
+        }
+
+        // BQ-11: NPC記憶の復元
+        if (save.NpcMemories.Count > 0)
+        {
+            var memories = save.NpcMemories.Select(m =>
+                new NpcMemorySystem.MemoryEntry(m.NpcId, m.Action, m.Impact, m.TurnRecorded));
+            _npcMemorySystem.RestoreMemories(memories);
+        }
+
+        // BQ-14: ダンジョン生態系イベントの復元
+        if (save.EcosystemEvents.Count > 0)
+        {
+            var events = save.EcosystemEvents.Select(ev =>
+            {
+                Enum.TryParse<EcosystemEventType>(ev.Type, out var evType);
+                return new DungeonEcosystemSystem.EcosystemEvent(evType, ev.PredatorId, ev.PreyId, ev.Floor, ev.Turn, ev.Description);
+            });
+            _dungeonEcosystemSystem.RestoreEvents(events);
+        }
+
+        // BU-4: ゲーム時間開始値の復元
+        if (save.GameTimeStartYear != 0)
+        {
+            GameTime.StartYear = save.GameTimeStartYear;
+            GameTime.StartMonth = save.GameTimeStartMonth;
+            GameTime.StartDay = save.GameTimeStartDay;
+            GameTime.StartHour = save.GameTimeStartHour;
+            GameTime.StartMinute = save.GameTimeStartMinute;
         }
 
         // AS-5: スキルツリーボーナスプロバイダーを再設定（ロード後のステータス計算に必要）
@@ -8921,10 +9034,14 @@ public class GameController
 
         AddMessage($"🔄 {Player.CharacterClass} → {targetClass} に転職した！");
         // O-2: 転職実行 — クラス更新＋ステータス再計算
+        var oldClassDef = ClassDefinition.Get(Player.CharacterClass);
         Player.ChangeClass(targetClass);
-        var classDef = ClassDefinition.Get(targetClass);
-        Player.BonusMaxHp = RaceDefinition.Get(Player.Race).HpBonus + classDef.HpBonus;
-        Player.BonusMaxMp = RaceDefinition.Get(Player.Race).MpBonus + classDef.MpBonus;
+        var newClassDef = ClassDefinition.Get(targetClass);
+        // BaseStatsから旧クラスボーナスを除去し、新クラスボーナスを適用
+        var statDiff = newClassDef.StatBonus - oldClassDef.StatBonus;
+        Player.ApplyStatModifierToBase(statDiff);
+        Player.BonusMaxHp = RaceDefinition.Get(Player.Race).HpBonus + newClassDef.HpBonus;
+        Player.BonusMaxMp = RaceDefinition.Get(Player.Race).MpBonus + newClassDef.MpBonus;
         AddMessage($"サブクラス経験値倍率: {MultiClassSystem.GetSubclassExpRate():P0}");
         OnStateChanged?.Invoke();
         return true;

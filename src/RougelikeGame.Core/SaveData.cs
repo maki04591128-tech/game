@@ -192,6 +192,22 @@ public class SaveData
 
     /// <summary>CA-8: プレイヤー向き</summary>
     public string? PlayerFacingDirection { get; set; }
+
+    /// <summary>BQ-5: 死亡ログ</summary>
+    public List<DeathLogSaveData> DeathLogs { get; set; } = new();
+
+    /// <summary>BQ-11: NPC記憶</summary>
+    public List<NpcMemorySaveData> NpcMemories { get; set; } = new();
+
+    /// <summary>BQ-14: ダンジョン生態系イベント</summary>
+    public List<EcosystemEventSaveData> EcosystemEvents { get; set; } = new();
+
+    /// <summary>BU-4: ゲーム時間開始値</summary>
+    public int GameTimeStartYear { get; set; } = 1024;
+    public int GameTimeStartMonth { get; set; } = 6;
+    public int GameTimeStartDay { get; set; } = 15;
+    public int GameTimeStartHour { get; set; } = 8;
+    public int GameTimeStartMinute { get; set; }
 }
 
 /// <summary>
@@ -550,4 +566,40 @@ public class GridItemSaveData
     public int GridX { get; set; }
     public int GridY { get; set; }
     public bool IsRotated { get; set; }
+}
+
+/// <summary>BQ-5: 死亡ログのセーブデータ</summary>
+public class DeathLogSaveData
+{
+    public int RunNumber { get; set; }
+    public string CharacterName { get; set; } = string.Empty;
+    public string Class { get; set; } = string.Empty;
+    public string Race { get; set; } = string.Empty;
+    public int Level { get; set; }
+    public string Cause { get; set; } = string.Empty;
+    public string CauseDetail { get; set; } = string.Empty;
+    public string Location { get; set; } = string.Empty;
+    public int Floor { get; set; }
+    public int TotalTurns { get; set; }
+    public string Timestamp { get; set; } = string.Empty;
+}
+
+/// <summary>BQ-11: NPC記憶のセーブデータ</summary>
+public class NpcMemorySaveData
+{
+    public string NpcId { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public int Impact { get; set; }
+    public int TurnRecorded { get; set; }
+}
+
+/// <summary>BQ-14: 生態系イベントのセーブデータ</summary>
+public class EcosystemEventSaveData
+{
+    public string Type { get; set; } = string.Empty;
+    public string PredatorId { get; set; } = string.Empty;
+    public string PreyId { get; set; } = string.Empty;
+    public int Floor { get; set; }
+    public int Turn { get; set; }
+    public string Description { get; set; } = string.Empty;
 }

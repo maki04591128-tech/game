@@ -215,6 +215,12 @@ public class Player : Character, IPlayer, IInventoryHolder
         CharacterClass = newClass;
     }
 
+    /// <summary>O-2: BaseStatsに差分StatModifierを適用（転職時のステータス再計算用）</summary>
+    public void ApplyStatModifierToBase(StatModifier modifier)
+    {
+        BaseStats = BaseStats.Apply(modifier);
+    }
+
     public void LearnWord(string wordId)
     {
         if (!LearnedWords.ContainsKey(wordId))

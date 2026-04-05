@@ -123,4 +123,11 @@ public class DungeonEcosystemSystem
         EcosystemEventType.Scavenging => "漁り",
         _ => "不明"
     };
+
+    /// <summary>BQ-14: セーブデータからイベントを復元</summary>
+    public void RestoreEvents(IEnumerable<EcosystemEvent> events)
+    {
+        foreach (var ev in events)
+            _events.Add(ev);
+    }
 }

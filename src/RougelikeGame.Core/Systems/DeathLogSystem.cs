@@ -77,4 +77,12 @@ public class DeathLogSystem
     {
         return _logs.OrderByDescending(l => l.Timestamp).Take(count).ToList();
     }
+
+    /// <summary>BQ-5: セーブデータからログを復元</summary>
+    public void RestoreLogs(IEnumerable<DeathLogEntry> entries)
+    {
+        _logs.Clear();
+        foreach (var entry in entries)
+            _logs.Add(entry);
+    }
 }
