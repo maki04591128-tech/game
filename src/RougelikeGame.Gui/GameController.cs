@@ -3002,6 +3002,8 @@ public class GameController
     private bool TryInteractAltar()
     {
         AddMessage("⛪ 祭壇に祈りを捧げた…");
+        // DB-4: 祈りはカルマ微上昇
+        _karmaSystem.ModifyKarma(1, "祈り");
         double roll = _random.NextDouble();
 
         if (roll < 0.4)
@@ -6075,7 +6077,11 @@ public class GameController
             return false;
         }
 
-        var result = _townSystem.RestAtInn(Player);
+        // CZ-4: 建設ボーナスによる宿泊費割引
+        float recoveryBonus = _baseConstructionSystem.GetRestHpRecoveryMultiplier();
+        int innCost = recoveryBonus > 1.0f ? Math.Max(10, (int)(50 / recoveryBonus)) : 50;
+
+        var result = _townSystem.RestAtInn(Player, innCost);
         AddMessage(result.Message);
 
         if (result.Success && result.TurnCost > 0)
@@ -7129,6 +7135,9 @@ public class GameController
             {
                 Player.AddFaithPoints(result.Reward.FaithPoints);
             }
+
+            // DB-4: クエスト完了時にカルマ上昇
+            _karmaSystem.ModifyKarma(3, "クエスト完了");
 
             OnQuestUpdated?.Invoke(questId);
         }

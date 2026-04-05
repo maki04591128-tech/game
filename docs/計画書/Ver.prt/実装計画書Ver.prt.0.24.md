@@ -1187,8 +1187,8 @@
 | ID | 不整合の内容 | 深刻度 | 参照コード | 修正判断 |
 |----|------------|--------|-----------|---------|
 | CL-1 | GameCommand列挙型（25値）が完全未使用デッドコード。Move/Attack/Skill/Magic/Item等25値全てがコードベースで一切参照されていない | 中 | `Enums.cs:160-187` | |
-| CL-2 | ItemType列挙型がEnums.csとItem.csで重複定義。Enums.cs版（6値: Weapon/Armor/Accessory/KeyItem/Scroll/Book）は完全にシャドウされItem.cs版のみ使用 | 高 | `Enums.cs:192-202`, `Item.cs:9-21` | |
-| CL-3 | CharacterClass列挙型がEnums.csとResourceSystem.csで重複定義。値が異なる（Fighter/Knight vs Warrior/Berserker）。Enums.cs版はシャドウ | 高 | `Enums.cs:286-308`, `ResourceSystem.cs:400-421` | |
+| CL-2 | ItemType列挙型がEnums.csとItem.csで重複定義。Enums.cs版（6値: Weapon/Armor/Accessory/KeyItem/Scroll/Book）は完全にシャドウされItem.cs版のみ使用 | 高 | `Enums.cs:192-202`, `Item.cs:9-21` | 修正済み |
+| CL-3 | CharacterClass列挙型がEnums.csとResourceSystem.csで重複定義。値が異なる（Fighter/Knight vs Warrior/Berserker）。Enums.cs版はシャドウ | 高 | `Enums.cs:286-308`, `ResourceSystem.cs:400-421` | 修正済み |
 | CL-4 | Item.csのItemType.Miscellaneousが定義されているが一切参照なし。アイテム分類として使用されていない | 低 | `Item.cs:9-21` | |
 | CL-5 | SkillTarget.SingleAllyとSkillTarget.AllAlliesが定義済みだが使用されていない。味方対象スキルのターゲティングが機能しない | 高 | `Enums.cs:442-450` | 修正済み |
 | CL-6 | NpcType列挙型の7値（Bard/MagicShopkeeper/BlackMarketDealer/Trainer/Alchemist/Guardian等）が未使用。対応NPCが生成されない | 中 | `Enums.cs:455-479` | |
@@ -1344,9 +1344,9 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | CZ-1 | ClearShopInventory()がテリトリー変更時に呼ばれるが、直後にInitializeShop()が呼ばれない。新テリトリーのショップが空のまま | 高 | `WorldMapSystem.cs:476-479`, `GameController.cs:4969` | 修正済み |
-| CZ-2 | GetTerritoryPriceMultiplier()の領地別価格倍率（山岳1.2x/南部1.3x/辺境1.5x）がBuy()/Sell()の価格計算に未適用 | 高 | `WorldMapSystem.cs:516-525` | |
-| CZ-3 | BaseConstructionSystem.GetDailyFoodProduction()が値を返すがGameControllerから一度も呼ばれない。建設した農場/畑の食料生産が無効 | 高 | `BaseConstructionSystem.cs:120` | |
-| CZ-4 | GetRestHpRecoveryMultiplier()の建物ボーナスがTownSystem.RestAtInn()に未適用。宿屋は常にplayer.Heal(player.MaxHp)固定 | 高 | `BaseConstructionSystem.cs:102`, `TownSystem.cs:379` | |
+| CZ-2 | GetTerritoryPriceMultiplier()の領地別価格倍率（山岳1.2x/南部1.3x/辺境1.5x）がBuy()/Sell()の価格計算に未適用 | 高 | `WorldMapSystem.cs:516-525` | 修正済み |
+| CZ-3 | BaseConstructionSystem.GetDailyFoodProduction()が値を返すがGameControllerから一度も呼ばれない。建設した農場/畑の食料生産が無効 | 高 | `BaseConstructionSystem.cs:120` | 修正済み |
+| CZ-4 | GetRestHpRecoveryMultiplier()の建物ボーナスがTownSystem.RestAtInn()に未適用。宿屋は常にplayer.Heal(player.MaxHp)固定 | 高 | `BaseConstructionSystem.cs:102`, `TownSystem.cs:379` | 修正済み |
 | CZ-5 | ReputationSystemのGetShopDiscount()がBuy()メソッド内の価格計算に未接続。評判による値引きが機能しない | 中 | `ReputationSystem.cs:53-63` | |
 | CZ-6 | ショップ在庫にランダム性がない。同じテリトリーで常に同じアイテムリストが表示される | 中 | `WorldMapSystem.cs` | |
 
@@ -1369,10 +1369,10 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| DB-1 | KarmaSystem.GetShopPriceModifier()がカルマランクに応じた価格修飾子を返すが、ShopSystem/TownSystemのBuy()/Sell()から呼ばれない | 高 | `KarmaSystem.cs:60-70` | |
+| DB-1 | KarmaSystem.GetShopPriceModifier()がカルマランクに応じた価格修飾子を返すが、ShopSystem/TownSystemのBuy()/Sell()から呼ばれない | 高 | `KarmaSystem.cs:60-70` | 修正済み |
 | DB-2 | KarmaSystem.GetNpcDispositionModifier()がNPC態度修飾子を返すが、NpcSystem/DialogueSystemから参照されない | 高 | `KarmaSystem.cs:72-83` | |
 | DB-3 | カルマ閾値（Saint≥80/Criminal≤-49等）を跨いだ際のイベント通知がない。プレイヤーがカルマ変動に気づけない | 中 | `KarmaSystem.cs:37-46` | |
-| DB-4 | ModifyKarma()のトリガーがGameController内にわずか3箇所（処刑-5/密輸-5/闇市場-2）のみ。NPC殺害/窃盗/善行/寄付等の主要アクションにカルマ変動がない | 高 | `GameController.cs:1522,7646,7709` | |
+| DB-4 | ModifyKarma()のトリガーがGameController内にわずか3箇所（処刑-5/密輸-5/闇市場-2）のみ。NPC殺害/窃盗/善行/寄付等の主要アクションにカルマ変動がない | 高 | `GameController.cs:1522,7646,7709` | 修正済み |
 | DB-5 | ReputationSystem.IsWelcome()がテリトリー入場可否を返すが、WorldMapSystem.TravelTo()で未チェック。評判最低でもどの領地にも入れる | 中 | `ReputationSystem.cs`, `WorldMapSystem.cs` | |
 
 ---
