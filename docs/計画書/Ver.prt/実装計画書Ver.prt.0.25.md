@@ -1239,3 +1239,36 @@ Tキー押下によるシンボルマップへの進入時にターン消費を0
 - **効果**: 指定スキルのクールダウンを3ターン短縮
 - **制約**: 精神集中中は他の行動不可（5ターン分が経過する）
 - **目的**: 強力なスキルの再使用のためにターンを「投資」する選択肢を提供
+
+---
+
+## ブラッシュアップ記録
+
+### 実施日: Ver.prt.0.25完了後
+
+以下のドキュメントをVer.prt.0.25の実装内容に基づき更新した。
+
+| # | 対象ドキュメント | 更新内容 |
+|---|----------------|---------|
+| 1 | 12_ターン消費システム設計書 | 実装状況テーブル全面更新、攻撃コスト(3→1/5)・ポーション(2→1)・装備部位別コスト追加、満腹度消費(600→864)・渇き度消費(432)追加、TurnAction構造体を実装版に更新、TurnCosts/TimeConstants定数を最新コードに同期、セクション11追加（満腹度・渇き度によるターンコスト修正） |
+| 2 | 11_クラス設計書 | Player.HungerStage 5段階→9段階更新、Thirstセクション追加、HungerStageChanged/ThirstStageChangedイベント追記、ThirstSystem実装状況更新、TimeConstants定数更新(HungerDecay864/ThirstDecay432) |
+| 3 | 06_戦闘システム設計書 | 実装状況テーブルの行動コスト・満腹度減少・渇き度減少更新、セクション4.4満腹度を10段階テーブルに全面書換え、セクション4.5渇き度追加、セクション6行動コストテーブルを近接1T/遠距離5T/階段10T/SymbolMap300Tに更新 |
+| 4 | 00_ドキュメント概要 | Ver.prt.0.25の行をドキュメント一覧・フォルダ構成に追加 |
+| 5 | 実装計画書Ver.prt.0.25 | 本ブラッシュアップ記録セクションを追加 |
+
+### 確認済み数値
+
+| 項目 | 旧値 | 新値 | ソース |
+|------|------|------|--------|
+| AttackNormal | 3 | 1 | GameConstants.cs TurnCosts |
+| AttackBow | 4 | 5 | GameConstants.cs TurnCosts |
+| AttackThrow | 2 | 5 | GameConstants.cs TurnCosts |
+| UsePotion | 2 | 1 | GameConstants.cs TurnCosts |
+| EquipChange | 5 | 部位別(1/1/10/10/20) | GameConstants.cs TurnCosts |
+| HungerDecayInterval | 600 | 864 | GameConstants.cs TimeConstants |
+| ThirstDecayInterval | (未設定) | 432 | GameConstants.cs TimeConstants |
+| InitialHunger | 100 | 70 | GameConstants.cs |
+| MaxHunger | 100 | 150 | GameConstants.cs |
+| MinHunger | 0 | -10 | GameConstants.cs |
+| HungerStage段階数 | 5 | 9 | Enums.cs |
+| ThirstStage段階数 | (未設定) | 9 | Enums.cs |
