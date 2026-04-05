@@ -9111,11 +9111,25 @@ public class GameController
             }
         }
 
+        // ET-1: 料理品質はレベルではなく料理(錬金)熟練度で決定
+        int cookingProficiency = _proficiencySystem.GetLevel(ProficiencyCategory.Alchemy);
+
+        // ET-2: 料理失敗判定（低熟練度ほど失敗しやすい）
+        float failRate = Math.Max(0f, 0.3f - cookingProficiency * 0.01f);
+        if (_random.NextDouble() < failRate)
+        {
+            AddMessage($"🍳 {recipe.Name}の調理に失敗してしまった…（熟練度を上げよう）");
+            _proficiencySystem.GainExperience(ProficiencyCategory.Alchemy, 1);
+            OnStateChanged?.Invoke();
+            return false;
+        }
+
         // 料理結果の品質計算
-        float quality = CookingSystem.CalculateQuality(Player.Level * 2);
+        float quality = CookingSystem.CalculateQuality(cookingProficiency);
         int hpRestore = (int)(recipe.HpRestore * quality);
         int mpRestore = (int)(recipe.MpRestore * quality);
 
+        _proficiencySystem.GainExperience(ProficiencyCategory.Alchemy, 3);
         AddMessage($"🍳 {recipe.Name}を作った！ (HP+{hpRestore}, MP+{mpRestore})");
         Player.Heal(hpRestore);
 
