@@ -955,7 +955,7 @@
 | BX-7 | 耐久度0以下の装備が装備可能。CanEquip()にDurability <= 0チェックなし | 高 | `Item.cs:246-249,Equipment.cs:83` | 修正済み |
 | BX-8 | IsOverweightプロパティが存在するが効果なし。移動速度低下/スタミナ消費増/行動コスト増なし | 中 | `Player.cs:172` | |
 | BX-9 | アクセサリスロット（Neck/Ring1/Ring2/Back/Waist）5箇所が未テスト。全スロット動作確認なし | 低 | `Item.cs:7-11` | |
-| BX-10 | 両手武器装備時OffHandアイテムのOnUnequip()は呼ばれるが、返却処理のTODOコメントが放置 | 高 | `Equipment.cs:349-356` | |
+| BX-10 | 両手武器装備時OffHandアイテムのOnUnequip()は呼ばれるが、返却処理のTODOコメントが放置 | 高 | `Equipment.cs:349-356` | 修正済み |
 
 ---
 
@@ -974,7 +974,7 @@
 | BY-9 | ApplySpellResurrectがTargetType未チェック。コンパニオン蘇生不可、プレイヤーのみ | 高 | `GameController.cs:4682-4702` | |
 | BY-10 | 敵の魔法耐性が未実装。全敵が全属性に0%耐性。炎敵も炎呪文で通常ダメージ | 高 | `Enemy.cs (GetResistanceAgainst未オーバーライド)` | 修正済み |
 | BY-11 | 聖職者の初期単語に`vinir`（ターゲット修飾子）が含まれるが、単体では無効な呪文。効果語なしエラー | 高 | `Player.cs:682` | 修正済み |
-| BY-12 | 巻物アイテム（scroll_fireball/scroll_teleport等）がダンジョンに配置されるが使用メカニズムなし | 高 | `DungeonGenerator.cs:687,742` | |
+| BY-12 | 巻物アイテム（scroll_fireball/scroll_teleport等）がダンジョンに配置されるが使用メカニズムなし | 高 | `DungeonGenerator.cs:687,742` | 修正済み |
 | BY-13 | テレポート呪文が射程語を無視。`senda beinn`（5マス）も`senda heimr`（99マス）も同じランダム移動 | 中 | `GameController.cs:4536-4549` | |
 | BY-14 | 呪文熟練度が上限100に到達してもフィードバックなし。プレイヤーが上限認識不可 | 低 | `Player.cs:216-220` | |
 | BY-15 | SpellEffect.IsNoneの判定がPower==0 AND Range==0のみ。Power>0/Range=0の無効呪文が通過 | 中 | `SpellCastingSystem.cs:545-546` | |
@@ -1072,7 +1072,7 @@
 | CD-4 | DifficultyConfig.ItemDropMultiplierがDropTableSystem呼び出しに未適用。全難易度でドロップ率同一 | 高 | `GameController.cs:1577-1593` | 修正済み |
 | CD-5 | DifficultyConfig.EnemyStatMultiplierが敵生成に未適用。深度スケーリングのみで難易度スケーリングなし | 高 | `DropTableSystem.cs:99-110` | 修正済み |
 | CD-6 | RestSystem.GetRecovery()に難易度乗数なし。Easy+高回復で戦闘が些末化する | 中 | `RestSystem.cs:9-16` | |
-| CD-7 | AudioManager.ApplyVolumeSettings()がGameSettings.EffectiveVolume系プロパティを使用しない。設定UIとオーディオシステムが未接続 | 高 | `AudioManager.cs:129-138`, `GameSettings.cs:53-58` | |
+| CD-7 | AudioManager.ApplyVolumeSettings()がGameSettings.EffectiveVolume系プロパティを使用しない。設定UIとオーディオシステムが未接続 | 高 | `AudioManager.cs:129-138`, `GameSettings.cs:53-58` | 修正済み |
 | CD-8 | レベル50キャップ到達後の報酬/称号/特殊ボーナスなし。エンドゲームコンテンツが欠如 | 中 | `Player.cs:359` | |
 | CD-9 | Ironman難易度のUI説明「敵ダメージ1.5倍」が実コード値1.2倍と不一致 | 高 | `DifficultySettings.cs:158-173`, `DifficultySelectWindow.xaml.cs` | 修正済み |
 
@@ -1106,7 +1106,7 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | CF-1 | WeatherSystemが天候別戦闘修飾子（SightModifier/FireDamageModifier/RangedHitModifier/MovementCostModifier）を定義しているが、DamageCalculator/CombatSystemで一切使用されない。天候が純粋に装飾的 | 高 | `WeatherSystem.cs:24-80`, `DamageCalculator.cs:28-93` | 修正済み |
-| CF-2 | GameState.csの移動コスト計算がWeatherSystem.MovementCostModifier（吹雪1.5倍等）を参照しない。全天候で同一移動コスト | 高 | `GameState.cs:36-51`, `WeatherSystem.cs:65` | |
+| CF-2 | GameState.csの移動コスト計算がWeatherSystem.MovementCostModifier（吹雪1.5倍等）を参照しない。全天候で同一移動コスト | 高 | `GameState.cs:36-51`, `WeatherSystem.cs:65` | 修正済み |
 | CF-3 | ComputeFov()がIsVisibleフラグを設定するが、敵AIのHasLineOfSight()はFOV結果を使用せず独立計算。FOV外の敵が攻撃可能 | 中 | `DungeonMap.cs:247-267`, `BasicBehaviors.cs:212,318,370` | |
 | CF-4 | 室内/室外の天候区別なし。ダンジョン内でも吹雪/雷雨の天候効果が適用される設計上の矛盾 | 中 | `WeatherSystem.cs`, `GameController.cs:7021` | |
 | CF-5 | LightingSystemの光源（松明/ランタン）がFOV半径に影響しない。光源アイテムを持っても暗闇の視界範囲が同一 | 中 | `LightingSystem.cs`, `DungeonMap.cs:247-267` | |
@@ -1249,7 +1249,7 @@
 | CQ-2 | 宗教スキル23個中21個が未実装。LightTemple(divine_protection/divine_miracle)、DarkCult(3個)、NatureWorship(4個全て)、DeathFaith(4個全て)、ChaosCult(4個全て)がSkillSystem未定義 | 致命的 | `ReligionSystem.cs:238-345`, `SkillSystem.cs` | 修正済み |
 | CQ-3 | ReligionBenefit（HealingBonus/DamageBonus/DefenseBonus等）のApplyBenefit()メソッドが見当たらない。宗教特典が定義のみで適用されない | 高 | `ReligionSystem.cs:223-345` | |
 | CQ-4 | 宗教タブー（ReligionTaboo）のCheckViolation()が未実装。プレイヤーがタブーを破っても一切のペナルティなし | 高 | `ReligionSystem.cs:232-343` | |
-| CQ-5 | 棄教呪い（Apostasy Curse）のDurationDaysが設定されるがデクリメントするコードなし。一時呪いが永続化 | 高 | `ReligionSystem.cs:395-414,529-530` | |
+| CQ-5 | 棄教呪い（Apostasy Curse）のDurationDaysが設定されるがデクリメントするコードなし。一時呪いが永続化 | 高 | `ReligionSystem.cs:395-414,529-530` | 修正済み |
 | CQ-6 | DialogueSystem.CurrentNodeがセーブ/ロード対応していない。対話途中でセーブ→ロードすると対話進行状態消失 | 中 | `NpcSystem.cs:201-313` | |
 
 ### CR: ランダムイベント・ワールドマップ欠落
@@ -1259,7 +1259,7 @@
 | CR-1 | NpcEncounterイベントの解決ハンドラ（ResolveNpcEncounter）が未実装。NPC遭遇イベント発生時にクラッシュまたは無動作 | 致命的 | `WorldMapSystem.cs:729` | 修正済み |
 | CR-2 | MerchantEncounterイベントの解決ハンドラ（ResolveMerchantEncounter）が未実装。商人遭遇イベント発生時に無動作 | 致命的 | `WorldMapSystem.cs:730` | 修正済み |
 | CR-3 | AmbushEventの解決ハンドラ（ResolveAmbushEvent）が未実装。待ち伏せイベント発生時に無動作 | 致命的 | `WorldMapSystem.cs:733` | 修正済み |
-| CR-4 | 人型種族以外の敵がゴールドをドロップしない。CalculateGoldReward()がRace!=Humanoidで即return 0。ドラゴン/アンデッド/ビースト等は報酬ゼロ | 高 | `GameController.cs:1558-1567` | |
+| CR-4 | 人型種族以外の敵がゴールドをドロップしない。CalculateGoldReward()がRace!=Humanoidで即return 0。ドラゴン/アンデッド/ビースト等は報酬ゼロ | 高 | `GameController.cs:1558-1567` | 修正済み |
 
 ### CS: 誓約・タブー・実効果未実装
 

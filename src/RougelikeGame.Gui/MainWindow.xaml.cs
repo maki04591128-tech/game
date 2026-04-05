@@ -1048,6 +1048,11 @@ public partial class MainWindow : Window
                     break;
             }
         }
+
+        // CD-7: 設定変更後にオーディオボリュームを反映
+        var settings = GameSettings.Load();
+        _audioManager.ApplyVolumeSettings(settings.MasterVolume, settings.BgmVolume, settings.SeVolume);
+
         UpdateDisplay();
         Focus();
     }

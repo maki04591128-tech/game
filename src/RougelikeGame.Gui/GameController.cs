@@ -1537,6 +1537,13 @@ public class GameController
             HandleDebugTile(tile, newPos);
         }
 
+        // CF-2: 天候による移動コスト補正
+        float weatherMoveMod = WeatherSystem.GetMovementCostModifier(CurrentWeather);
+        if (weatherMoveMod > 1.0f)
+        {
+            _lastMoveActionCost = (int)(_lastMoveActionCost * weatherMoveMod);
+        }
+
         // 地表面による移動コスト補正（EnvironmentalCombatSystem）
         if (_surfaceMap.TryGetValue(newPos, out var moveSurface))
         {
@@ -1731,10 +1738,20 @@ public class GameController
     /// </summary>
     private int CalculateGoldReward(Enemy enemy, float additionalBonus = 0f)
     {
-        if (enemy.Race != MonsterRace.Humanoid) return 0;
         int baseGold = (CurrentFloor * 5) + _random.Next(CurrentFloor * 10 + 1);
         double rankMultiplier = BalanceConfig.GetRankGoldMultiplier(enemy.Rank);
-        int gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier * rankMultiplier));
+
+        // CR-4: 非人型種族もゴールドをドロップ（人型の50%）
+        double raceMultiplier = enemy.Race switch
+        {
+            MonsterRace.Humanoid => 1.0,
+            MonsterRace.Demon => 0.7,
+            MonsterRace.Dragon => 0.8,
+            MonsterRace.Undead => 0.3,
+            _ => 0.5
+        };
+
+        int gold = Math.Max(1, (int)(baseGold * DifficultyConfig.GoldMultiplier * rankMultiplier * raceMultiplier));
         if (additionalBonus > 0f)
             gold = (int)(gold * (1.0f + additionalBonus));
         return gold;
