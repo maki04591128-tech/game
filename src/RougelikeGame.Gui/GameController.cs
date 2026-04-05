@@ -1707,9 +1707,13 @@ public class GameController
                 }
                 // J-3: フロア深度による経験値スケーリング（+10%/フロア）
                 float depthExpBonus = 1.0f + (CurrentFloor - 1) * 0.1f;
-                int totalExp = (int)(enemy.ExperienceReward * depthExpBonus
+                double rawExp = enemy.ExperienceReward * depthExpBonus
                     * (1.0f + executionExpBonus + oathExpBonus + religionExpBonus + enchantExpBonus)
-                    * DifficultyConfig.ExpMultiplier * ngPlusExpMult);
+                    * DifficultyConfig.ExpMultiplier * ngPlusExpMult;
+                // CT-3: オーバーフロー/NaN/Infinity対策
+                int totalExp = double.IsNaN(rawExp) || double.IsInfinity(rawExp)
+                    ? enemy.ExperienceReward
+                    : Math.Clamp((int)rawExp, 0, 999999);
 
                 string goldStr = gold > 0 ? $" 💰+{gold}G" : "";
                 AddMessage($"{enemy.Name}を倒した！経験値+{totalExp}{goldStr}");
@@ -7278,6 +7282,10 @@ public class GameController
 
         // CJ-3: 渇きが低い（25%以下）
         if (Player.Thirst < GameConstants.MaxThirst / 4)
+            return true;
+
+        // DD-5: ボスフロアでは自動探索を停止
+        if (CurrentFloor % GameConstants.BossFloorInterval == 0)
             return true;
 
         return false;

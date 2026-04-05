@@ -592,7 +592,7 @@
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
 | AZ-1 | ボス敵にBerserkerBehaviorが割り当てられるが、バーサーク状態（HP30%以下でダメージ増加）の実効果なし。ボスの特殊行動パターンが非機能 | 中 | `EnemyFactory.cs:114-120` | |
-| AZ-2 | SummonerBehavior（敵が仲間を召喚）が定義済みだがEnemyFactoryで一度も割り当てられない。召喚者タイプの敵が存在しない完全なデッドコード | 高 | `BasicBehaviors.cs:438-495`, `EnemyFactory.cs:65-128` | |
+| AZ-2 | SummonerBehavior（敵が仲間を召喚）が定義済みだがEnemyFactoryで一度も割り当てられない。召喚者タイプの敵が存在しない完全なデッドコード | 高 | `BasicBehaviors.cs:438-495`, `EnemyFactory.cs:65-128` | 修正済み |
 | AZ-3 | 敵の逃走ロジック（ShouldFlee() HP20%以下で撤退）が定義済みだが、戦闘メッセージに「敵が逃げた」が表示されず逃走行動が確認不能 | 中 | `Enemy.cs:169-174`, `GameController.cs:1796-1810` | |
 
 ---
@@ -969,9 +969,9 @@
 | BY-4 | ApplySpellSealがAllAlliesターゲットを無視。`banna vinir`が失敗 | 致命的 | `GameController.cs:4648-4679` | 修正済み |
 | BY-5 | Object(hlutr)/Ground(jord)ターゲットタイプが全呪文適用で未処理。`opna hlutr`（解錠）が機能しない | 致命的 | `GameController.cs:4255-4314` | 修正済み |
 | BY-6 | ApplySpellDetectがトラップのみ検出。オブジェクト検出(`sja hlutr`)と地面透視(`sja jord`)が未実装 | 高 | `GameController.cs:4485-4511` | 修正済み |
-| BY-7 | ApplySpellUnlockがTargetTypeを未チェック。環境オブジェクトとの連携なし | 高 | `GameController.cs:4512-4535` | |
+| BY-7 | ApplySpellUnlockがTargetTypeを未チェック。環境オブジェクトとの連携なし | 高 | `GameController.cs:4512-4535` | 修正済み |
 | BY-8 | 回復呪文にSingleAlly/AllAllies/SingleEnemyのケースなし。Selfのみ処理 | 致命的 | `GameController.cs:4362-4377` | 修正済み |
-| BY-9 | ApplySpellResurrectがTargetType未チェック。コンパニオン蘇生不可、プレイヤーのみ | 高 | `GameController.cs:4682-4702` | |
+| BY-9 | ApplySpellResurrectがTargetType未チェック。コンパニオン蘇生不可、プレイヤーのみ | 高 | `GameController.cs:4682-4702` | 修正済み |
 | BY-10 | 敵の魔法耐性が未実装。全敵が全属性に0%耐性。炎敵も炎呪文で通常ダメージ | 高 | `Enemy.cs (GetResistanceAgainst未オーバーライド)` | 修正済み |
 | BY-11 | 聖職者の初期単語に`vinir`（ターゲット修飾子）が含まれるが、単体では無効な呪文。効果語なしエラー | 高 | `Player.cs:682` | 修正済み |
 | BY-12 | 巻物アイテム（scroll_fireball/scroll_teleport等）がダンジョンに配置されるが使用メカニズムなし | 高 | `DungeonGenerator.cs:687,742` | 修正済み |
@@ -1190,7 +1190,7 @@
 | CL-2 | ItemType列挙型がEnums.csとItem.csで重複定義。Enums.cs版（6値: Weapon/Armor/Accessory/KeyItem/Scroll/Book）は完全にシャドウされItem.cs版のみ使用 | 高 | `Enums.cs:192-202`, `Item.cs:9-21` | |
 | CL-3 | CharacterClass列挙型がEnums.csとResourceSystem.csで重複定義。値が異なる（Fighter/Knight vs Warrior/Berserker）。Enums.cs版はシャドウ | 高 | `Enums.cs:286-308`, `ResourceSystem.cs:400-421` | |
 | CL-4 | Item.csのItemType.Miscellaneousが定義されているが一切参照なし。アイテム分類として使用されていない | 低 | `Item.cs:9-21` | |
-| CL-5 | SkillTarget.SingleAllyとSkillTarget.AllAlliesが定義済みだが使用されていない。味方対象スキルのターゲティングが機能しない | 高 | `Enums.cs:442-450` | |
+| CL-5 | SkillTarget.SingleAllyとSkillTarget.AllAlliesが定義済みだが使用されていない。味方対象スキルのターゲティングが機能しない | 高 | `Enums.cs:442-450` | 修正済み |
 | CL-6 | NpcType列挙型の7値（Bard/MagicShopkeeper/BlackMarketDealer/Trainer/Alchemist/Guardian等）が未使用。対応NPCが生成されない | 中 | `Enums.cs:455-479` | |
 
 ### CM: セーブデータ永続性（追加33システム未保存）
@@ -1276,7 +1276,7 @@
 |----|------------|--------|-----------|---------|
 | CT-1 | HungerState.StarvingがDamagePerTurn=0でHP回復無効のみ。飢餓状態でダメージがないのは設計意図と矛盾する可能性 | 中 | `ResourceSystem.cs:226` | |
 | CT-2 | HungerState.StarvationがDamagePerTurn=999で即死級ダメージ。段階的な餓死ではなく突然死 | 中 | `ResourceSystem.cs:228` | |
-| CT-3 | XP計算にオーバーフロー/負数チェックなし。float→intキャストでNaN/Infinityの場合クラッシュ。NG+倍率が上限なし | 高 | `GameController.cs:1544,1653-1676` | |
+| CT-3 | XP計算にオーバーフロー/負数チェックなし。float→intキャストでNaN/Infinityの場合クラッシュ。NG+倍率が上限なし | 高 | `GameController.cs:1544,1653-1676` | 修正済み |
 | CT-4 | レベルアップ時のHP/MP最大値更新・EffectiveStatsキャッシュ再計算が明示的に行われない。サイレントレベルアップで即時ステータス反映なし | 高 | `GameController.cs` | |
 
 ### CU: アイテム生成・Create()null返却
@@ -1343,7 +1343,7 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| CZ-1 | ClearShopInventory()がテリトリー変更時に呼ばれるが、直後にInitializeShop()が呼ばれない。新テリトリーのショップが空のまま | 高 | `WorldMapSystem.cs:476-479`, `GameController.cs:4969` | |
+| CZ-1 | ClearShopInventory()がテリトリー変更時に呼ばれるが、直後にInitializeShop()が呼ばれない。新テリトリーのショップが空のまま | 高 | `WorldMapSystem.cs:476-479`, `GameController.cs:4969` | 修正済み |
 | CZ-2 | GetTerritoryPriceMultiplier()の領地別価格倍率（山岳1.2x/南部1.3x/辺境1.5x）がBuy()/Sell()の価格計算に未適用 | 高 | `WorldMapSystem.cs:516-525` | |
 | CZ-3 | BaseConstructionSystem.GetDailyFoodProduction()が値を返すがGameControllerから一度も呼ばれない。建設した農場/畑の食料生産が無効 | 高 | `BaseConstructionSystem.cs:120` | |
 | CZ-4 | GetRestHpRecoveryMultiplier()の建物ボーナスがTownSystem.RestAtInn()に未適用。宿屋は常にplayer.Heal(player.MaxHp)固定 | 高 | `BaseConstructionSystem.cs:102`, `TownSystem.cs:379` | |
@@ -1360,7 +1360,7 @@
 | DA-2 | StatusEffectsのTickが ProcessTurnEffects()内のみで実行。ProcessTurnEffects()がスキップされるとバフ/デバフの残りターン数が減少せず永続化する | 致命的 | `GameController.cs:2184` | 修正済み |
 | DA-3 | KarmaSystem.SetCurrentTurn()の呼び出しがGameController内に不在。カルマのターン連動機能（時間減衰等）が動作しない | 高 | `KarmaSystem.cs`, `GameController.cs` | 修正済み |
 | DA-4 | ReputationSystemにターン経過による評判減衰メソッドが存在しない。一度上げた評判が永久に維持される | 高 | `ReputationSystem.cs:31-41` | 修正済み |
-| DA-5 | ペットの空腹ティック(PetSystem.TickHunger)がProcessTurnEffects()内に含まれていない。ペットの空腹が進行しない | 高 | `PetSystem.cs`, `GameController.cs` | |
+| DA-5 | ペットの空腹ティック(PetSystem.TickHunger)がProcessTurnEffects()内に含まれていない。ペットの空腹が進行しない | 高 | `PetSystem.cs`, `GameController.cs` | 修正済み |
 | DA-6 | 日変更検出(DayChanged)がGameTimeシステムに未実装。デイリーリセット（ショップ在庫/宗教祈り/イベント制限）が発動しない | 致命的 | `GameController.cs` | 修正済み |
 
 ---
@@ -1398,7 +1398,7 @@
 | DD-2 | 自動探索停止条件にHunger/Thirst/Fatigueの危険閾値チェックがない。体力危険状態でも探索を続行する | 高 | `AutoExploreSystem.cs` | 修正済み |
 | DD-3 | DungeonGenerator内のBFS経路探索(Lines 412-456)にイテレーション上限がない。理論上は有界だが、大マップでのパフォーマンス保証がない | 中 | `DungeonGenerator.cs:412-456` | |
 | DD-4 | _autoExploring/_autoExploreTargetStairsUpの状態がSaveDataに未保存。セーブ→ロード時に自動探索が中断される | 中 | `GameController.cs:102-105` | |
-| DD-5 | 自動探索中にボスフロアに到達した場合の強制停止条件がない。ボス戦に意図せず突入するリスク | 高 | `AutoExploreSystem.cs`, `GameController.cs` | |
+| DD-5 | 自動探索中にボスフロアに到達した場合の強制停止条件がない。ボス戦に意図せず突入するリスク | 高 | `AutoExploreSystem.cs`, `GameController.cs` | 修正済み |
 
 ---
 
@@ -1406,8 +1406,8 @@
 
 | # | 問題 | 重要度 | 場所 | 修正判断 |
 |---|------|--------|------|---------|
-| DE-1 | Tile.GetDisplayChar()のswitchにTileType.NpcTrainerが欠落。トレーナーNPCのマップ表示が'?'になる | 高 | `Tile.cs:476-525` | |
-| DE-2 | Tile.GetDisplayChar()のswitchにTileType.NpcLibrarianが欠落。図書館NPCのマップ表示が'?'になる | 高 | `Tile.cs:476-525` | |
+| DE-1 | Tile.GetDisplayChar()のswitchにTileType.NpcTrainerが欠落。トレーナーNPCのマップ表示が'?'になる | 高 | `Tile.cs:476-525` | 修正済み |
+| DE-2 | Tile.GetDisplayChar()のswitchにTileType.NpcLibrarianが欠落。図書館NPCのマップ表示が'?'になる | 高 | `Tile.cs:476-525` | 修正済み |
 | DE-3 | DungeonGenerator.GenerateDungeon()でrooms.Count==1の場合、ボス部屋タイプが未設定。ボスフロアで単一部屋生成時にボス未配置 | 致命的 | `DungeonGenerator.cs:127-135` | 修正済み |
 | DE-4 | ボス部屋配置が最遠部屋選択のみ。部屋サイズ（小部屋にボス）や接続数（袋小路）の検証がなく不適切な部屋がボス部屋になる | 中 | `DungeonGenerator.cs` | |
 | DE-5 | マップ内のWater/Lavaタイルが定義(TileType enum)されているがDungeonGeneratorの通常フロア生成で配置されない。テーマダンジョン以外で環境タイルが不在 | 中 | `DungeonGenerator.cs`, `Tile.cs` | |
@@ -1915,7 +1915,7 @@
 | FD-1 | TileType.SymbolMountainがBlocksMovement=falseで山岳地形を通行可能。ワールドマップの移動制限が機能せずゲームマップの地形概念が崩壊 | 致命的 | `Tile.cs:432-437` | 修正済み |
 | FD-2 | TileType.SymbolWaterがBlocksMovement=falseで水域を通行可能。船/橋なしでの水上移動が可能になりマップ探索の障壁設計が無効化 | 致命的 | `Tile.cs:438-442` | 修正済み |
 | FD-3 | StairsDown('>')とBuildingExit('<')で異なる機能のタイルが視覚的に似た表示文字を使用。プレイヤーが上り階段と建物出口を混同する視覚的UX問題 | 中 | `Tile.cs:486, 522` | |
-| FD-4 | NpcTrainer/NpcLibrarianのGetDisplayChar()ケース欠落（DE-1と関連だが直接的なタイル定義レベルの問題）。タイル生成時のデフォルト表示文字が'?'でマップ上の未知NPCとの区別不可 | 高 | `Tile.cs:516-522` | |
+| FD-4 | NpcTrainer/NpcLibrarianのGetDisplayChar()ケース欠落（DE-1と関連だが直接的なタイル定義レベルの問題）。タイル生成時のデフォルト表示文字が'?'でマップ上の未知NPCとの区別不可 | 高 | `Tile.cs:516-522` | 修正済み |
 
 ### FE: AIビヘイビア・CompositeBehavior常時適用
 

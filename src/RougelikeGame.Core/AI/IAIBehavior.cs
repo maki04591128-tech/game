@@ -204,7 +204,12 @@ public enum EnemyType
     /// <summary>
     /// ボス（特殊行動パターン）
     /// </summary>
-    Boss
+    Boss,
+
+    /// <summary>
+    /// AZ-2: 召喚者型（仲間を召喚）
+    /// </summary>
+    Summoner
 }
 
 /// <summary>

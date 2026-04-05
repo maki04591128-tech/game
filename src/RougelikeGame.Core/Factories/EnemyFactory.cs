@@ -139,6 +139,15 @@ public class EnemyFactory
                 composite.AddBehavior(new IdleBehavior(0.0f));
                 break;
 
+            // AZ-2: 召喚者型（SummonerBehaviorを使用）
+            case EnemyType.Summoner:
+                composite.AddBehavior(new SummonerBehavior());
+                composite.AddBehavior(new ChaseBehavior());
+                composite.AddBehavior(new AlertBehavior());
+                composite.AddBehavior(new PatrolBehavior());
+                composite.AddBehavior(new IdleBehavior(0.1f));
+                break;
+
             default:
                 composite.AddBehavior(new IdleBehavior());
                 break;
@@ -379,7 +388,7 @@ public static class EnemyDefinitions
         Name: "ダークエルフ",
         Description: "地下に住む邪悪なエルフ。魔法を操る。",
         BaseStats: new Stats(7, 6, 10, 10, 12, 10, 10, 5, 7),
-        EnemyType: EnemyType.Defensive,
+        EnemyType: EnemyType.Summoner,  // AZ-2: 召喚者型を使用
         Rank: EnemyRank.Elite,
         ExperienceReward: 50,
         DropTableId: "drop_dark_elf",
