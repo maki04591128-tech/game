@@ -67,7 +67,10 @@ public static class TimeConstants
     public const int TurnsPerDay = 86400;
 
     // イベント周期
-    public const int HungerDecayInterval = 600;         // 10分
+    public const int HungerDecayInterval = 864;             // 満腹度通常消費間隔（14.4分）
+    public const int HungerDecayIntervalStarving = 59220;   // 満腹度0以下消費間隔
+    public const int ThirstDecayInterval = 432;             // 渇き度通常消費間隔（7.2分）
+    public const int ThirstDecayIntervalStarving = 29610;   // 渇き度0以下消費間隔
     public const int StatusEffectTickInterval = 10;     // 10秒
     public const int NpcScheduleUpdateInterval = 60;    // 1分
     public const int DayNightCycleHalf = 43200;         // 12時間
@@ -97,12 +100,14 @@ public static class GameConstants
     public const int MaxRescueCount = 3;
 
     // 満腹度
-    public const int InitialHunger = 100;
-    public const int MaxHunger = 100;
+    public const int InitialHunger = 70;
+    public const int MaxHunger = 150;
+    public const int MinHunger = -10;
 
     // 渇き
-    public const int InitialThirst = 100;
-    public const int MaxThirst = 100;
+    public const int InitialThirst = 70;
+    public const int MaxThirst = 150;
+    public const int MinThirst = -10;
 
     // 疲労
     public const int InitialFatigue = 100;

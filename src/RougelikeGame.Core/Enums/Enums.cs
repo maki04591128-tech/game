@@ -44,11 +44,24 @@ public enum SanityStage
 /// </summary>
 public enum HungerStage
 {
-    Full,       // 80-100
-    Normal,     // 50-79
-    Hungry,     // 25-49
-    Starving,   // 1-24
-    Famished    // 0
+    /// <summary>吐き気（120以上）</summary>
+    Nausea,
+    /// <summary>過食（100以上120未満）</summary>
+    Overeating,
+    /// <summary>満腹（80以上100未満）</summary>
+    Full,
+    /// <summary>通常（50以上80未満）</summary>
+    Normal,
+    /// <summary>空腹・小（40以上50未満）</summary>
+    SlightlyHungry,
+    /// <summary>空腹・大（0以上40未満）</summary>
+    VeryHungry,
+    /// <summary>飢餓（−1以上−8以下）</summary>
+    Starving,
+    /// <summary>餓死寸前（−9）</summary>
+    NearStarvation,
+    /// <summary>餓死（−10）</summary>
+    Starvation
 }
 
 /// <summary>
@@ -1146,16 +1159,24 @@ public enum HygieneLevel
 /// </summary>
 public enum ThirstStage
 {
-    /// <summary>潤い（80-100）</summary>
-    Hydrated,
-    /// <summary>軽い渇き（50-79）</summary>
-    Thirsty,
-    /// <summary>脱水（25-49）</summary>
+    /// <summary>吐き気（120以上）</summary>
+    Nausea,
+    /// <summary>過飲（100以上120未満）</summary>
+    Overdrinking,
+    /// <summary>満腹（80以上100未満）</summary>
+    Full,
+    /// <summary>通常（50以上80未満）</summary>
+    Normal,
+    /// <summary>渇き・小（40以上50未満）</summary>
+    SlightlyThirsty,
+    /// <summary>渇き・大（0以上40未満）</summary>
+    VeryThirsty,
+    /// <summary>脱水（−1以上−8以下）</summary>
     Dehydrated,
-    /// <summary>重度脱水（1-24）</summary>
-    SevereDehydration,
-    /// <summary>致命的脱水（0）</summary>
-    CriticalDehydration
+    /// <summary>干死寸前（−9）</summary>
+    NearDesiccation,
+    /// <summary>干死（−10）</summary>
+    Desiccation
 }
 
 /// <summary>

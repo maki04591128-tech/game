@@ -198,9 +198,9 @@ public class ResourceSystem
     #region 満腹度計算
 
     /// <summary>
-    /// 最大満腹度（固定値100）
+    /// 最大満腹度
     /// </summary>
-    public const int MaxHunger = 100;
+    public const int MaxHunger = 150;
 
     /// <summary>
     /// 満腹度状態を取得
@@ -209,11 +209,14 @@ public class ResourceSystem
     {
         return currentHunger switch
         {
-            >= 81 => HungerState.Satiated,
-            >= 51 => HungerState.Normal,
-            >= 26 => HungerState.Hungry,
-            >= 11 => HungerState.Starving,
-            >= 1 => HungerState.Famished,
+            >= 120 => HungerState.Nausea,
+            >= 100 => HungerState.Overeating,
+            >= 80 => HungerState.Satiated,
+            >= 50 => HungerState.Normal,
+            >= 40 => HungerState.SlightlyHungry,
+            >= 0 => HungerState.VeryHungry,
+            >= -8 => HungerState.Starving,
+            >= -9 => HungerState.NearStarvation,
             _ => HungerState.Starvation
         };
     }
@@ -227,12 +230,15 @@ public class ResourceSystem
 
         return state switch
         {
-            HungerState.Satiated => new HungerEffect(1.2f, true, true, 0),
+            HungerState.Nausea => new HungerEffect(0.7f, true, true, 0, ActionCostBonus: 3, ActionBlockChance: 0.3f),
+            HungerState.Overeating => new HungerEffect(0.9f, true, true, 0, ActionCostBonus: 2),
+            HungerState.Satiated => new HungerEffect(1.0f, true, true, 0, ActionCostBonus: 1),
             HungerState.Normal => new HungerEffect(1.0f, true, true, 0),
-            HungerState.Hungry => new HungerEffect(0.8f, true, true, 0),
-            HungerState.Starving => new HungerEffect(0f, false, false, 0),
-            HungerState.Famished => new HungerEffect(0f, false, false, 1),  // ターンごとにダメージ
-            HungerState.Starvation => new HungerEffect(0f, false, false, 999),  // 死亡
+            HungerState.SlightlyHungry => new HungerEffect(0.95f, true, true, 0),
+            HungerState.VeryHungry => new HungerEffect(0.9f, true, true, 0, ActionCostBonus: 1),
+            HungerState.Starving => new HungerEffect(0.7f, true, true, 1, ActionCostBonus: 2),
+            HungerState.NearStarvation => new HungerEffect(0f, false, false, 10),
+            HungerState.Starvation => new HungerEffect(0f, false, false, 999),
             _ => new HungerEffect(1.0f, true, true, 0)
         };
     }
@@ -396,7 +402,9 @@ public record struct HungerEffect(
     float StaminaRecoveryModifier,
     bool AllowHpRecovery,
     bool AllowSpRecovery,
-    int DamagePerTurn
+    int DamagePerTurn,
+    int ActionCostBonus = 0,
+    float ActionBlockChance = 0f
 );
 
 #endregion
@@ -463,21 +471,27 @@ public enum StaminaState
 }
 
 /// <summary>
-/// 満腹度状態
+/// 満腹度状態（Core層のHungerStageに対応）
 /// </summary>
 public enum HungerState
 {
-    /// <summary>満腹 (81-100) - スタミナ回復+20%</summary>
+    /// <summary>吐き気 (120+) - 行動コスト+3、30%行動不可</summary>
+    Nausea,
+    /// <summary>過食 (100-119) - 行動コスト+2</summary>
+    Overeating,
+    /// <summary>満腹 (80-99) - 行動コスト+1</summary>
     Satiated,
-    /// <summary>普通 (51-80) - 通常状態</summary>
+    /// <summary>通常 (50-79) - 通常状態</summary>
     Normal,
-    /// <summary>空腹 (26-50) - スタミナ回復-20%</summary>
-    Hungry,
-    /// <summary>飢餓 (11-25) - HP/SP自然回復停止</summary>
+    /// <summary>空腹・小 (40-49) - 30%確率で行動コスト+1</summary>
+    SlightlyHungry,
+    /// <summary>空腹・大 (0-39) - 行動コスト+1</summary>
+    VeryHungry,
+    /// <summary>飢餓 (-1〜-8) - 行動コスト+2、毎ターン1ダメージ</summary>
     Starving,
-    /// <summary>餓死寸前 (1-10) - ターンごとにHPダメージ</summary>
-    Famished,
-    /// <summary>餓死 (0) - 死に戻り発動</summary>
+    /// <summary>餓死寸前 (-9) - 移動攻撃不能、毎ターン10ダメージ</summary>
+    NearStarvation,
+    /// <summary>餓死 (-10) - 即死</summary>
     Starvation
 }
 

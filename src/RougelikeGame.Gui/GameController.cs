@@ -635,9 +635,12 @@ public class GameController
         {
             string msg = e.NewStage switch
             {
-                HungerStage.Hungry => "⚠ お腹が空いてきた...",
-                HungerStage.Starving => "⚠ 空腹で力が入らない！",
-                HungerStage.Famished => "⚠ 餓死寸前！何か食べないと危険！",
+                HungerStage.SlightlyHungry => "🍖 少し空腹を感じる…",
+                HungerStage.VeryHungry => "🍖 空腹だ！何か食べたい…",
+                HungerStage.Starving => "🍖 飢えが身体を蝕む…（毎ターン1ダメージ）",
+                HungerStage.NearStarvation => "🍖 もう動けない…食料がなければ死ぬ…（毎ターン10ダメージ・移動攻撃不能）",
+                HungerStage.Overeating => "🍖 食べ過ぎだ…動きが鈍い",
+                HungerStage.Nausea => "🤢 食べ過ぎて吐き気がする…（30%行動不可）",
                 HungerStage.Normal when e.OldStage > HungerStage.Normal => "お腹が満たされた",
                 HungerStage.Full => "お腹いっぱいだ",
                 _ => ""
@@ -2567,7 +2570,7 @@ public class GameController
             }
         }
 
-        // HP自然回復（満腹度がHungry以上、かつ戦闘中でない場合）
+        // HP自然回復（満腹度がNormal以上、かつ戦闘中でない場合）
         if (Player.HungerStage <= HungerStage.Normal && !IsInCombat())
         {
             if (TurnCount % 120 == 0) // 120ターン（2分）ごとにHP回復
@@ -2813,7 +2816,7 @@ public class GameController
         {
             // 満腹度の1.2倍速で渇きが減少
             Player.ModifyThirst(-3);  // 満腹度は-2想定、渇きは-3で約1.5倍
-            if (Player.ThirstStage >= ThirstStage.Thirsty)
+            if (Player.ThirstStage >= ThirstStage.SlightlyThirsty)
             {
                 AddMessage($"💧 渇き: {ThirstSystem.GetThirstName(Player.ThirstStage)}({Player.Thirst})");
             }
@@ -2821,7 +2824,7 @@ public class GameController
             if (thirstDamage > 0)
             {
                 Player.TakeDamage(Damage.Pure((int)Math.Max(1, thirstDamage * DifficultyConfig.DamageTakenMultiplier)));
-                _lastDamageCause = DeathCause.Starvation;
+                _lastDamageCause = DeathCause.Dehydration;
             }
         }
 

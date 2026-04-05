@@ -144,15 +144,22 @@ public class EntityCoreTests
     }
 
     [Theory]
-    [InlineData(100, HungerStage.Full)]
+    [InlineData(150, HungerStage.Nausea)]
+    [InlineData(120, HungerStage.Nausea)]
+    [InlineData(119, HungerStage.Overeating)]
+    [InlineData(100, HungerStage.Overeating)]
+    [InlineData(99, HungerStage.Full)]
     [InlineData(80, HungerStage.Full)]
     [InlineData(79, HungerStage.Normal)]
     [InlineData(50, HungerStage.Normal)]
-    [InlineData(49, HungerStage.Hungry)]
-    [InlineData(25, HungerStage.Hungry)]
-    [InlineData(24, HungerStage.Starving)]
-    [InlineData(1, HungerStage.Starving)]
-    [InlineData(0, HungerStage.Famished)]
+    [InlineData(49, HungerStage.SlightlyHungry)]
+    [InlineData(40, HungerStage.SlightlyHungry)]
+    [InlineData(39, HungerStage.VeryHungry)]
+    [InlineData(0, HungerStage.VeryHungry)]
+    [InlineData(-1, HungerStage.Starving)]
+    [InlineData(-8, HungerStage.Starving)]
+    [InlineData(-9, HungerStage.NearStarvation)]
+    [InlineData(-10, HungerStage.Starvation)]
     public void Player_HungerStage_ReturnsCorrectStage(int hungerValue, HungerStage expected)
     {
         var player = CreateDefaultPlayer();

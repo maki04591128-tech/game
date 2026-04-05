@@ -388,8 +388,10 @@ public partial class MainWindow : Window
         {
             RougelikeGame.Core.HungerStage.Full => System.Windows.Media.Brushes.LimeGreen,
             RougelikeGame.Core.HungerStage.Normal => System.Windows.Media.Brushes.Yellow,
-            RougelikeGame.Core.HungerStage.Hungry => System.Windows.Media.Brushes.Orange,
-            RougelikeGame.Core.HungerStage.Starving => System.Windows.Media.Brushes.OrangeRed,
+            RougelikeGame.Core.HungerStage.SlightlyHungry => System.Windows.Media.Brushes.Orange,
+            RougelikeGame.Core.HungerStage.VeryHungry => System.Windows.Media.Brushes.OrangeRed,
+            RougelikeGame.Core.HungerStage.Overeating => System.Windows.Media.Brushes.Gold,
+            RougelikeGame.Core.HungerStage.Nausea => System.Windows.Media.Brushes.Gold,
             _ => System.Windows.Media.Brushes.Red
         };
 
@@ -469,10 +471,13 @@ public partial class MainWindow : Window
         ThirstText.Text = $"{_gameController.PlayerThirst}({_gameController.PlayerThirstName})";
         ThirstText.Foreground = _gameController.PlayerThirstStage switch
         {
-            ThirstStage.Hydrated => System.Windows.Media.Brushes.DeepSkyBlue,
-            ThirstStage.Thirsty => System.Windows.Media.Brushes.Yellow,
-            ThirstStage.Dehydrated => System.Windows.Media.Brushes.Orange,
-            ThirstStage.SevereDehydration => System.Windows.Media.Brushes.Red,
+            ThirstStage.Full => System.Windows.Media.Brushes.DeepSkyBlue,
+            ThirstStage.Normal => System.Windows.Media.Brushes.DeepSkyBlue,
+            ThirstStage.SlightlyThirsty => System.Windows.Media.Brushes.Yellow,
+            ThirstStage.VeryThirsty => System.Windows.Media.Brushes.Orange,
+            ThirstStage.Dehydrated => System.Windows.Media.Brushes.Red,
+            ThirstStage.Overdrinking => System.Windows.Media.Brushes.Gold,
+            ThirstStage.Nausea => System.Windows.Media.Brushes.Gold,
             _ => System.Windows.Media.Brushes.DarkRed
         };
 

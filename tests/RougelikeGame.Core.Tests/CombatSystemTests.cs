@@ -495,12 +495,15 @@ public class CombatSystemTests
     {
         var system = new ResourceSystem();
 
+        Assert.Equal(HungerState.Nausea, system.GetHungerState(130));
+        Assert.Equal(HungerState.Overeating, system.GetHungerState(110));
         Assert.Equal(HungerState.Satiated, system.GetHungerState(90));
         Assert.Equal(HungerState.Normal, system.GetHungerState(60));
-        Assert.Equal(HungerState.Hungry, system.GetHungerState(30));
-        Assert.Equal(HungerState.Starving, system.GetHungerState(15));
-        Assert.Equal(HungerState.Famished, system.GetHungerState(5));
-        Assert.Equal(HungerState.Starvation, system.GetHungerState(0));
+        Assert.Equal(HungerState.SlightlyHungry, system.GetHungerState(45));
+        Assert.Equal(HungerState.VeryHungry, system.GetHungerState(30));
+        Assert.Equal(HungerState.Starving, system.GetHungerState(-3));
+        Assert.Equal(HungerState.NearStarvation, system.GetHungerState(-9));
+        Assert.Equal(HungerState.Starvation, system.GetHungerState(-10));
     }
 
     [Fact]
@@ -509,7 +512,7 @@ public class CombatSystemTests
         var system = new ResourceSystem();
         var effect = system.GetHungerEffect(90);
 
-        Assert.Equal(1.2f, effect.StaminaRecoveryModifier);
+        Assert.Equal(1.0f, effect.StaminaRecoveryModifier);
         Assert.True(effect.AllowHpRecovery);
         Assert.True(effect.AllowSpRecovery);
     }
@@ -518,7 +521,7 @@ public class CombatSystemTests
     public void GetHungerEffect_StarvingStopsRecovery()
     {
         var system = new ResourceSystem();
-        var effect = system.GetHungerEffect(15);
+        var effect = system.GetHungerEffect(-9);  // NearStarvation
 
         Assert.False(effect.AllowHpRecovery);
         Assert.False(effect.AllowSpRecovery);

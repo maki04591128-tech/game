@@ -46,7 +46,7 @@ public class Player : Character, IPlayer, IInventoryHolder
         private set
         {
             var oldStage = GetHungerStage(_hunger);
-            _hunger = Math.Clamp(value, 0, GameConstants.MaxHunger);
+            _hunger = Math.Clamp(value, GameConstants.MinHunger, GameConstants.MaxHunger);
             var newStage = GetHungerStage(_hunger);
 
             if (oldStage != newStage)
@@ -64,7 +64,7 @@ public class Player : Character, IPlayer, IInventoryHolder
         private set
         {
             var oldStage = GetThirstStage(_thirst);
-            _thirst = Math.Clamp(value, 0, GameConstants.MaxThirst);
+            _thirst = Math.Clamp(value, GameConstants.MinThirst, GameConstants.MaxThirst);
             var newStage = GetThirstStage(_thirst);
 
             if (oldStage != newStage)
@@ -323,16 +323,24 @@ public class Player : Character, IPlayer, IInventoryHolder
         // D-1/D-2/D-3: 飢餓・渇き・疲労ペナルティ
         var hungerPenalty = HungerStage switch
         {
-            HungerStage.Starving => new StatModifier(Strength: -3, Agility: -3, Dexterity: -2),
-            HungerStage.Hungry => new StatModifier(Strength: -1, Agility: -1),
+            HungerStage.Nausea => new StatModifier(Strength: -5, Agility: -5, Dexterity: -3, Intelligence: -3),
+            HungerStage.NearStarvation => new StatModifier(Strength: -8, Agility: -8, Dexterity: -5, Intelligence: -3),
+            HungerStage.Starving => new StatModifier(Strength: -5, Agility: -5, Dexterity: -3),
+            HungerStage.VeryHungry => new StatModifier(Strength: -2, Agility: -2, Dexterity: -1),
+            HungerStage.SlightlyHungry => new StatModifier(Strength: -1, Agility: -1),
+            HungerStage.Overeating => new StatModifier(Agility: -2, Dexterity: -1),
             _ => (StatModifier?)null
         };
         if (hungerPenalty.HasValue) yield return hungerPenalty.Value;
 
         var thirstPenalty = ThirstStage switch
         {
-            ThirstStage.Dehydrated => new StatModifier(Intelligence: -3, Mind: -3, Agility: -2),
-            ThirstStage.Thirsty => new StatModifier(Intelligence: -1, Mind: -1),
+            ThirstStage.Nausea => new StatModifier(Intelligence: -5, Mind: -5, Agility: -3, Strength: -3),
+            ThirstStage.NearDesiccation => new StatModifier(Intelligence: -8, Mind: -8, Agility: -5, Strength: -3),
+            ThirstStage.Dehydrated => new StatModifier(Intelligence: -5, Mind: -5, Agility: -3),
+            ThirstStage.VeryThirsty => new StatModifier(Intelligence: -2, Mind: -2, Agility: -1),
+            ThirstStage.SlightlyThirsty => new StatModifier(Intelligence: -1, Mind: -1),
+            ThirstStage.Overdrinking => new StatModifier(Agility: -2, Intelligence: -1),
             _ => (StatModifier?)null
         };
         if (thirstPenalty.HasValue) yield return thirstPenalty.Value;
@@ -482,20 +490,28 @@ public class Player : Character, IPlayer, IInventoryHolder
 
     private static HungerStage GetHungerStage(int hunger) => hunger switch
     {
+        >= 120 => HungerStage.Nausea,
+        >= 100 => HungerStage.Overeating,
         >= 80 => HungerStage.Full,
         >= 50 => HungerStage.Normal,
-        >= 25 => HungerStage.Hungry,
-        >= 1 => HungerStage.Starving,
-        _ => HungerStage.Famished
+        >= 40 => HungerStage.SlightlyHungry,
+        >= 0 => HungerStage.VeryHungry,
+        >= -8 => HungerStage.Starving,
+        >= -9 => HungerStage.NearStarvation,
+        _ => HungerStage.Starvation
     };
 
     private static ThirstStage GetThirstStage(int thirst) => thirst switch
     {
-        >= 80 => ThirstStage.Hydrated,
-        >= 50 => ThirstStage.Thirsty,
-        >= 25 => ThirstStage.Dehydrated,
-        >= 1 => ThirstStage.SevereDehydration,
-        _ => ThirstStage.CriticalDehydration
+        >= 120 => ThirstStage.Nausea,
+        >= 100 => ThirstStage.Overdrinking,
+        >= 80 => ThirstStage.Full,
+        >= 50 => ThirstStage.Normal,
+        >= 40 => ThirstStage.SlightlyThirsty,
+        >= 0 => ThirstStage.VeryThirsty,
+        >= -8 => ThirstStage.Dehydrated,
+        >= -9 => ThirstStage.NearDesiccation,
+        _ => ThirstStage.Desiccation
     };
 
     private static FatigueStage GetFatigueStage(int fatigue) => fatigue switch
