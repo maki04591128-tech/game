@@ -588,7 +588,7 @@ public class SystemExpansionPhase5Tests
 
     [Theory]
     [InlineData(30, "floor_boss_30", true)]
-    [InlineData(31, "floor_boss_30", true)]
+    [InlineData(31, "floor_boss_30", false)]
     [InlineData(29, "floor_boss_30", false)]
     [InlineData(30, "floor_boss_20", false)]
     [InlineData(30, "", false)]

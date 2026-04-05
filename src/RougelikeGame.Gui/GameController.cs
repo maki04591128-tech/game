@@ -3591,8 +3591,11 @@ public class GameController
         if (wasRescuable && Player.Sanity > 0)
         {
             // 死に戻り実行：知識を引き継ぎつつ肉体をリセット
+            // DG-4: 転生にはSanityコストを消費する
+            Player.ModifySanity(-GameConstants.RebirthSanityCost);
+            transfer.Sanity = Player.Sanity;
             AddMessage($"あなたは{causeText}...");
-            AddMessage($"「また会いましたね。正気度: {Player.Sanity}」");
+            AddMessage($"「また会いましたね。正気度: {Player.Sanity}（-{GameConstants.RebirthSanityCost}）」");
             ExecuteRebirth(transfer);
         }
         else if (Player.Sanity <= 0 && Player.RescueCountRemaining > 0)

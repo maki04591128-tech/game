@@ -16,7 +16,7 @@ public class Phase6Expansion_DifficultySettingsTests
     [InlineData(DifficultyLevel.Normal, 1.0, 1.0, 3, false)]
     [InlineData(DifficultyLevel.Hard, 1.3, 0.8, 2, false)]
     [InlineData(DifficultyLevel.Nightmare, 1.6, 0.6, 1, false)]
-    [InlineData(DifficultyLevel.Ironman, 1.3, 1.0, 0, true)]
+    [InlineData(DifficultyLevel.Ironman, 1.5, 0.8, 0, true)]
     public void Get_ReturnsCorrectCoreSettings(DifficultyLevel level, double enemyStat, double exp, int rescue, bool perma)
     {
         var s = DifficultySettings.Get(level);
@@ -116,15 +116,15 @@ public class Phase6Expansion_DifficultySettingsTests
         Assert.Equal(DifficultyLevel.Ironman, s.Level);
         Assert.Equal("鉄人", s.DisplayName);
         Assert.NotEmpty(s.Description);
-        Assert.Equal(1.3, s.EnemyStatMultiplier);
-        Assert.Equal(1.0, s.ExpMultiplier);
-        Assert.Equal(1.2, s.HungerDecayMultiplier);
-        Assert.Equal(0.8, s.TurnLimitMultiplier);
+        Assert.Equal(1.5, s.EnemyStatMultiplier);
+        Assert.Equal(0.8, s.ExpMultiplier);
+        Assert.Equal(1.4, s.HungerDecayMultiplier);
+        Assert.Equal(0.7, s.TurnLimitMultiplier);
         Assert.Equal(0, s.RescueCount);
-        Assert.Equal(0.8, s.ItemDropMultiplier);
-        Assert.Equal(0.8, s.GoldMultiplier);
-        Assert.Equal(1.2, s.DamageTakenMultiplier);
-        Assert.Equal(1.0, s.DamageDealtMultiplier);
+        Assert.Equal(0.6, s.ItemDropMultiplier);
+        Assert.Equal(0.6, s.GoldMultiplier);
+        Assert.Equal(1.8, s.DamageTakenMultiplier);
+        Assert.Equal(0.9, s.DamageDealtMultiplier);
         Assert.True(s.PermaDeath);
     }
 

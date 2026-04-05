@@ -93,6 +93,7 @@ public static class GameConstants
     public const int InitialSanity = 100;
     public const int MaxSanity = 100;
     public const int SanityRecoveryOnRescue = 20;
+    public const int RebirthSanityCost = 20;
     public const int MaxRescueCount = 3;
 
     // 満腹度

@@ -84,7 +84,7 @@ public static class GameClearSystem
     /// <summary>30階ボス撃破がゲームクリア条件か判定</summary>
     public static bool IsFinalBossDefeated(int currentFloor, string defeatedEnemyTypeId)
     {
-        return currentFloor >= 30 && defeatedEnemyTypeId == "floor_boss_30";
+        return currentFloor == 30 && defeatedEnemyTypeId == "floor_boss_30";
     }
 
     /// <summary>素性別クリアテキストを取得</summary>

@@ -85,8 +85,8 @@ public abstract class EquipmentItem : Item, IEquippable
         if (player.Level < RequiredLevel)
             return false;
 
-        // BX-7: 耐久度0以下の装備は装備不可
-        if (Durability <= 0)
+        // BX-7: 耐久度0以下の装備は装備不可（耐久度システム有効時のみ）
+        if (MaxDurability > 0 && Durability <= 0)
             return false;
 
         // Y-4: スライム種族の装備制限（指輪・首飾り以外装備不可）
