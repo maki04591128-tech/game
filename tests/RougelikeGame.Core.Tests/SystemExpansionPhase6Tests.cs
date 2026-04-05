@@ -2060,12 +2060,12 @@ public class Phase6Expansion_GamblingSystemTests
     }
 
     [Theory]
-    [InlineData(10, 50, true)]
+    [InlineData(10, 50, false)]
     [InlineData(1, 100, false)]
     [InlineData(7, 0, true)]
     public void CheckAddiction_Formula(int gambles, int sanity, bool expected)
     {
-        // risk = gambles * 0.05 - sanity * 0.001 > 0.3
+        // risk = gambles * 0.05 - sanity * 0.005 > 0.3 (DS-4: 正気度影響を0.001→0.005に修正)
         Assert.Equal(expected, GamblingSystem.CheckAddiction(gambles, sanity));
     }
 }
@@ -2302,7 +2302,7 @@ public class Phase6Expansion_ElementalAffinitySystemTests
     [InlineData(MonsterRace.Plant, Element.Earth, ElementalResistanceLevel.Resistant)]
     [InlineData(MonsterRace.Plant, Element.Water, ElementalResistanceLevel.Resistant)]
     [InlineData(MonsterRace.Insect, Element.Fire, ElementalResistanceLevel.Weakness)]
-    [InlineData(MonsterRace.Spirit, Element.Light, ElementalResistanceLevel.Weakness)]
+    [InlineData(MonsterRace.Spirit, Element.Light, ElementalResistanceLevel.Resistant)]
     [InlineData(MonsterRace.Spirit, Element.Dark, ElementalResistanceLevel.Weakness)]
     [InlineData(MonsterRace.Construct, Element.Lightning, ElementalResistanceLevel.Weakness)]
     [InlineData(MonsterRace.Construct, Element.Poison, ElementalResistanceLevel.Immune)]
