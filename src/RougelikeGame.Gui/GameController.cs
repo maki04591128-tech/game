@@ -1823,6 +1823,17 @@ public class GameController
                         AddMessage($"📈 仲間の{companion.Name}がレベルアップ！");
                     }
                 }
+
+                // CC-15: ペットも経験値獲得
+                foreach (var petId in _petSystem.Pets.Keys.ToList())
+                {
+                    var petBefore = _petSystem.Pets[petId];
+                    var petAfter = _petSystem.GainExperience(petId, Math.Max(1, totalExp / 4));
+                    if (petAfter.Level > petBefore.Level)
+                    {
+                        AddMessage($"🐾 ペットの{petAfter.Name}がレベル{petAfter.Level}になった！");
+                    }
+                }
             }
         }
         else
