@@ -8535,7 +8535,7 @@ public class GameController
         }
 
         // BU-4: ゲーム時間開始値の復元
-        if (save.GameTimeStartYear != 0)
+        if (save.GameTimeStartYear > 0)
         {
             GameTime.StartYear = save.GameTimeStartYear;
             GameTime.StartMonth = save.GameTimeStartMonth;
