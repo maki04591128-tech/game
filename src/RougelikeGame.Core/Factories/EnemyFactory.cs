@@ -10,6 +10,9 @@ namespace RougelikeGame.Core.Factories;
 /// </summary>
 public class EnemyFactory
 {
+    /// <summary>CD-5: 難易度による敵ステータス倍率</summary>
+    public double DifficultyStatMultiplier { get; set; } = 1.0;
+
     /// <summary>
     /// 敵を生成
     /// </summary>
@@ -27,6 +30,23 @@ public class EnemyFactory
         if (floorBonus.HasValue)
         {
             stats = stats.Apply(floorBonus.Value);
+        }
+
+        // CD-5: 難易度によるステータススケーリング
+        if (DifficultyStatMultiplier != 1.0)
+        {
+            double m = DifficultyStatMultiplier;
+            stats = new Stats(
+                (int)(stats.Strength * m),
+                (int)(stats.Vitality * m),
+                (int)(stats.Agility * m),
+                (int)(stats.Dexterity * m),
+                (int)(stats.Intelligence * m),
+                (int)(stats.Mind * m),
+                (int)(stats.Perception * m),
+                (int)(stats.Charisma * m),
+                (int)(stats.Luck * m)
+            );
         }
 
         var enemy = new Enemy

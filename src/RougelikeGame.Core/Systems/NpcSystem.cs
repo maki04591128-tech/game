@@ -546,7 +546,7 @@ public class QuestSystem
             Name: "深淵の探索",
             Description: "ダンジョン最深部に潜む深淵の王を討伐せよ",
             Type: QuestType.Main,
-            GiverNpcId: "guild_master",
+            GiverNpcId: "npc_guild_master",
             RequiredLevel: 1,
             RequiredGuildRank: GuildRank.None,
             Objectives: new[]

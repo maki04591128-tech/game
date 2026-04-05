@@ -50,7 +50,16 @@ public static class SaveManager
             if (!File.Exists(path)) return null;
 
             var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<SaveData>(json, JsonOptions);
+            var data = JsonSerializer.Deserialize<SaveData>(json, JsonOptions);
+
+            // CA-3: セーブデータバージョン検証
+            if (data != null && data.Version > CurrentSaveVersion)
+            {
+                // 未来のバージョンのセーブデータは読み込み不可
+                return null;
+            }
+
+            return data;
         }
         catch (Exception)
         {
@@ -58,6 +67,9 @@ public static class SaveManager
             return null;
         }
     }
+
+    /// <summary>CA-3: 現在のセーブデータバージョン</summary>
+    public const int CurrentSaveVersion = 1;
 
     /// <summary>
     /// 指定スロットにセーブデータが存在するか

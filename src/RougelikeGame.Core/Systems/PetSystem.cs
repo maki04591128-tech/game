@@ -98,6 +98,41 @@ public class PetSystem
         return updated;
     }
 
+    /// <summary>CC-3/CC-15: ペットに経験値を付与しレベルアップを判定</summary>
+    public PetState GainExperience(string petId, int amount)
+    {
+        if (!_pets.TryGetValue(petId, out var pet) || amount <= 0) return pet ?? new PetState(petId, "", PetType.Cat, 1, 0, 0, 0, 1, 1, false);
+        if (pet.CurrentHp <= 0) return pet; // 戦闘不能ペットは経験値獲得不可
+
+        int newExp = pet.Experience + amount;
+        int newLevel = pet.Level;
+        int newMaxHp = pet.MaxHp;
+
+        // レベルアップ判定（必要経験値 = Level * 50）
+        while (newExp >= GetRequiredExperience(newLevel) && newLevel < 50)
+        {
+            newExp -= GetRequiredExperience(newLevel);
+            newLevel++;
+            // レベルアップでHP上昇
+            var def = _definitions.GetValueOrDefault(pet.Type);
+            int hpGain = def != null ? Math.Max(3, def.BaseHp / 5) : 5;
+            newMaxHp += hpGain;
+        }
+
+        var updated = pet with
+        {
+            Experience = newExp,
+            Level = newLevel,
+            MaxHp = newMaxHp,
+            CurrentHp = newLevel > pet.Level ? newMaxHp : pet.CurrentHp // レベルアップ時HP全回復
+        };
+        _pets[petId] = updated;
+        return updated;
+    }
+
+    /// <summary>レベルアップに必要な経験値</summary>
+    public static int GetRequiredExperience(int level) => level * 50;
+
     /// <summary>騎乗中の移動速度倍率を取得</summary>
     public float GetMoveSpeedMultiplier(string petId)
     {

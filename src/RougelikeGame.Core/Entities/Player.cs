@@ -779,7 +779,7 @@ public class Player : Character, IPlayer, IInventoryHolder
         // 魔術師: 攻撃効果語+属性語+対象語（計5語）
         CharacterClass.Mage => ["brenna", "frysta", "fjandi", "eldr", "sjalfr"],
         // 僧侶: 回復・浄化+対象語（計4語）
-        CharacterClass.Cleric => ["graeda", "hreinsa", "sjalfr", "vinir"],
+        CharacterClass.Cleric => ["graeda", "hreinsa", "sjalfr", "ljos"],
         // 死霊術師: 闇系+召喚+対象語（計5語）
         CharacterClass.Necromancer => ["eyda", "kalla", "myrkr", "draugr", "fjandi"],
         // 吟遊詩人: 支援系+修飾語（計3語）
