@@ -334,6 +334,7 @@ public abstract class StackableItem : Item, IStackable
             && otherItem.IsIdentified == IsIdentified
             && otherItem.IsCursed == IsCursed
             && otherItem.IsBlessed == IsBlessed
+            && otherItem.EnhancementLevel == EnhancementLevel  // EZ-4: 強化値が異なるアイテムはスタック不可
             && StackCount + other.StackCount <= MaxStack;
     }
 
