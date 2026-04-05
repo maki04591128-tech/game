@@ -596,6 +596,27 @@ public class ReligionSystem
         return new ReligionActionResult(true, msg);
     }
 
+    /// <summary>AW-3: 献金/供物メカニクス — ゴールドを捧げて信仰ポイントを獲得</summary>
+    public ReligionActionResult Donate(Entities.Player player, int goldAmount)
+    {
+        if (player.CurrentReligion == null)
+            return new ReligionActionResult(false, "信仰している宗教がない");
+        if (goldAmount <= 0)
+            return new ReligionActionResult(false, "献金額が不正");
+        if (player.Gold < goldAmount)
+            return new ReligionActionResult(false, "ゴールドが足りない");
+
+        player.AddGold(-goldAmount);
+        // 100ゴールドごとに信仰ポイント1（最低1）
+        int faithGain = Math.Max(1, goldAmount / 100);
+        player.AddFaithPoints(faithGain);
+
+        var rank = ReligionDefinition.GetFaithRank(player.FaithPoints);
+        var rankName = ReligionDefinition.GetFaithRankName(rank);
+        return new ReligionActionResult(true,
+            $"{goldAmount}Gを献金した。信仰度+{faithGain}（現在: {player.FaithPoints}、{rankName}）");
+    }
+
     /// <summary>F-2: 宗教固有の祈り効果を適用</summary>
     private string ApplyPrayerEffect(Entities.Player player, string religionId)
     {

@@ -79,6 +79,19 @@ public class ReputationSystem
     public bool IsWelcome(TerritoryId territory) =>
         GetRankFromValue(_reputations[territory]) != ReputationRank.Hated;
 
+    /// <summary>BP-2: 評判に基づくイベント発生率修正 (0.5〜1.5)</summary>
+    public float GetEventModifier(TerritoryId territory) => GetRankFromValue(_reputations[territory]) switch
+    {
+        ReputationRank.Revered => 1.5f,
+        ReputationRank.Trusted => 1.3f,
+        ReputationRank.Friendly => 1.1f,
+        ReputationRank.Indifferent => 1.0f,
+        ReputationRank.Unfriendly => 0.8f,
+        ReputationRank.Hostile => 0.6f,
+        ReputationRank.Hated => 0.5f,
+        _ => 1.0f
+    };
+
     /// <summary>評判段階の日本語名を取得</summary>
     public static string GetReputationRankName(ReputationRank rank) => rank switch
     {

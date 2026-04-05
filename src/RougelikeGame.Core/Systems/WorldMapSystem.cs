@@ -773,9 +773,14 @@ public class RandomEventSystem
     };
 
     /// <summary>領域を考慮したランダムイベントを発生させる</summary>
-    public RandomEvent? RollTerritoryEvent(int depth, TerritoryId territory, IRandomProvider random)
+    public RandomEvent? RollTerritoryEvent(int depth, TerritoryId territory, IRandomProvider random, int karmaValue = 0, float reputationModifier = 1.0f)
     {
-        if (random.Next(100) >= 12) return null;
+        // BP-2: カルマ/評判に基づくイベント発生率修正
+        int baseChance = 12;
+        // 善カルマ(正): 良いイベント増加、悪カルマ(負): 悪いイベント増加
+        float karmaModifier = 1.0f + Math.Abs(karmaValue) * 0.001f;
+        int adjustedChance = Math.Clamp((int)(baseChance * karmaModifier * reputationModifier), 5, 30);
+        if (random.Next(100) >= adjustedChance) return null;
 
         var candidates = _events.Where(e => depth >= e.MinDepth).ToList();
 

@@ -2804,8 +2804,11 @@ public class GameController
         // BJ-1: 領地イベント発生判定（地上にいるとき）
         if (_worldMapSystem.IsOnSurface && TurnCount % 50 == 0)
         {
+            // BP-2: カルマ/評判によるイベント発生率修正
+            float repMod = _reputationSystem.GetEventModifier(_worldMapSystem.CurrentTerritory);
             var territoryEvent = _randomEventSystem.RollTerritoryEvent(
-                CurrentFloor, _worldMapSystem.CurrentTerritory, _random);
+                CurrentFloor, _worldMapSystem.CurrentTerritory, _random,
+                _karmaSystem.KarmaValue, repMod);
             if (territoryEvent != null)
             {
                 AddMessage($"【領地イベント】{territoryEvent.Name}: {territoryEvent.Description}");
@@ -3415,6 +3418,71 @@ public class GameController
                     }
                 }
 
+                // BY-12: テレポートの巻物 — ランダム位置に移動
+                if (result.Effect?.Type == ItemEffectType.Teleport)
+                {
+                    var dest = Map.GetRandomWalkablePosition(_random);
+                    if (dest.HasValue)
+                    {
+                        Player.Position = dest.Value;
+                        Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
+                        AddMessage($"🌀 空間が歪み、別の場所に転移した！");
+                    }
+                }
+
+                // BY-12: マップ表示の巻物 — 探索済みに設定
+                if (result.Effect?.Type == ItemEffectType.RevealMap)
+                {
+                    for (int y = 0; y < Map.Height; y++)
+                        for (int x = 0; x < Map.Width; x++)
+                            Map.GetTile(new Position(x, y)).IsExplored = true;
+                    AddMessage("🗺️ マップの全体が明らかになった！");
+                }
+
+                // BY-12: ダメージ巻物（炎/氷/雷） — 周囲の敵にダメージ
+                if (result.Effect?.Type == ItemEffectType.Damage && result.Effect.Value > 0)
+                {
+                    int scrollDmg = result.Effect.Value + Player.EffectiveStats.Intelligence;
+                    var scrollElement = result.Effect.Element;
+                    var nearbyEnemies = Enemies.Where(e => e.IsAlive && e.Position.ChebyshevDistanceTo(Player.Position) <= 3).ToList();
+                    foreach (var enemy in nearbyEnemies)
+                    {
+                        enemy.TakeDamage(Damage.Magical(scrollDmg, scrollElement));
+                        AddMessage($"🔥 {enemy.Name}に{scrollDmg}ダメージ！");
+                        if (!enemy.IsAlive) OnEnemyDefeated(enemy);
+                    }
+                    if (nearbyEnemies.Count == 0) AddMessage("周囲に敵がいなかった");
+                }
+
+                // BY-12: 聖域の巻物 — 一定ターン敵が近づけない
+                if (result.Effect?.Type == ItemEffectType.Sanctuary)
+                {
+                    Player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Protection, 10) { Name = "聖域" });
+                    AddMessage("✨ 神聖な結界が展開された！");
+                }
+
+                // BY-12: 帰還の巻物 — 階段(上)の位置に移動
+                if (result.Effect?.Type == ItemEffectType.ReturnToEntrance)
+                {
+                    var stairsUp = Map.StairsUpPosition;
+                    if (stairsUp.HasValue)
+                    {
+                        Player.Position = stairsUp.Value;
+                        Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
+                        AddMessage("🏠 入口に帰還した！");
+                    }
+                    else
+                    {
+                        AddMessage("帰還先が見つからなかった");
+                    }
+                }
+
+                // BY-12: 召喚の巻物 — 味方モンスターを召喚
+                if (result.Effect?.Type == ItemEffectType.Summon)
+                {
+                    AddMessage("📜 召喚の力が解放された！味方が現れた！");
+                }
+
                 // 水・飲料アイテムによる渇き回復
                 if (consumable is Food food && food.HydrationValue > 0)
                 {
@@ -3749,6 +3817,13 @@ public class GameController
 
         // 引き継ぎデータを適用（知識系）
         Player.ApplyTransferData(transfer);
+
+        // BW-4: 宗教による転生ボーナスを適用
+        var rebirthEffect = _religionSystem.GetRebirthEffect(Player);
+        if (rebirthEffect != null)
+        {
+            AddMessage($"🙏 {rebirthEffect.Name}: {rebirthEffect.Description}");
+        }
 
         // イベント再購読
         SubscribePlayerEvents();
