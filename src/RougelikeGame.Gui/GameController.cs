@@ -7795,6 +7795,12 @@ public class GameController
     /// </summary>
     public void LoadSaveData(SaveData save)
     {
+        // AS-4: セーブデータバージョンチェック
+        if (save.Version < 1)
+        {
+            AddMessage("⚠ 古いバージョンのセーブデータです。一部データが正しく読み込めない可能性があります。");
+        }
+
         // プレイヤー復元
         Player = Player.Create(save.Player.Name, save.Player.BaseStats.ToStats());
         Player.RestoreFromSave(
