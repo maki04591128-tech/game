@@ -85,7 +85,18 @@ public static class DropTableSystem
                 {
                     var item = ItemDefinitions.Create(entry.ItemId);
                     if (item != null)
+                    {
+                        // DY-1: MinGradeを適用（MinGrade以上のランダムグレード）
+                        if (entry.MinGrade > ItemGrade.Standard)
+                        {
+                            var possibleGrades = Enum.GetValues<ItemGrade>()
+                                .Where(g => g >= entry.MinGrade)
+                                .ToArray();
+                            if (possibleGrades.Length > 0)
+                                item.Grade = possibleGrades[random.Next(0, possibleGrades.Length)];
+                        }
                         items.Add(item);
+                    }
                 }
             }
         }

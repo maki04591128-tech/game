@@ -64,7 +64,7 @@ public static class GamblingSystem
     /// <summary>賭博中毒チェック（正気度連動）</summary>
     public static bool CheckAddiction(int consecutiveGambles, int sanity)
     {
-        float risk = consecutiveGambles * 0.05f - sanity * 0.001f;
+        float risk = consecutiveGambles * 0.05f - sanity * 0.005f;  // DS-4: 正気度影響を有意な値に修正（0.001f→0.005f）
         return risk > 0.3f;
     }
 }
