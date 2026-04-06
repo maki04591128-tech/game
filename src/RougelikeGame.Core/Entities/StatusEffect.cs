@@ -51,7 +51,7 @@ public class StatusEffect
             // デバフ（ステータス低下）
             StatusEffectType.Paralysis => (0.7f, 0.8f, 0),
             StatusEffectType.Weakness => (0.7f, 0.7f, 0),
-            StatusEffectType.Vulnerability => (1.0f, 0.6f, 0),
+            StatusEffectType.Vulnerability => (1.0f, 0.5f, 0),
             StatusEffectType.Slow => (0.8f, 1.0f, 0),
             StatusEffectType.Freeze => (0.5f, 1.0f, 0),            // 凍結: 攻撃力大幅低下
             StatusEffectType.Fear => (0.7f, 0.8f, 0),              // 恐怖: 攻防低下
@@ -63,8 +63,8 @@ public class StatusEffect
             StatusEffectType.Petrification => (0.0f, 3.0f, 0),     // 石化: 攻撃不能+防御大幅上昇
             StatusEffectType.Apostasy => (0.9f, 0.9f, 0),          // 背教: 攻防やや低下
             // バフ（ステータス上昇）
-            StatusEffectType.Strength => (1.3f, 1.0f, 0),
-            StatusEffectType.Blessing => (1.15f, 1.15f, 0),
+            StatusEffectType.Strength => (1.25f, 1.0f, 0),
+            StatusEffectType.Blessing => (1.1f, 1.1f, 0),
             StatusEffectType.Haste => (1.2f, 1.0f, 0),             // 加速: 攻撃効率上昇
             StatusEffectType.Protection => (1.0f, 1.5f, 0),        // 防護: 防御力上昇
             StatusEffectType.Regeneration => (1.0f, 1.0f, -3),     // 再生: 回復効果（負値）
