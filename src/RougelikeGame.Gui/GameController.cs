@@ -10425,11 +10425,11 @@ public class GameController
         }
         int stealSkill = (int)_skillSystem.GetPassiveBonus("steal");
         // 敵レベル推定: 経験値報酬÷10（EnemyにLevelプロパティがないため推定）
-        int enemyLevel = Math.Max(1, adjacentEnemy.ExperienceReward / 10);
+        int estimatedEnemyLevel = Math.Max(1, adjacentEnemy.ExperienceReward / 10);
         // 所持ゴールド推定: 経験値報酬÷2
         int estimatedGold = Math.Max(0, adjacentEnemy.ExperienceReward / 2);
         var result = StealSystem.AttemptSteal(
-            Player.EffectiveStats.Dexterity, Player.Level, enemyLevel,
+            Player.EffectiveStats.Dexterity, Player.Level, estimatedEnemyLevel,
             estimatedGold, adjacentEnemy.DropTableId != null,
             stealSkill, _random);
         AddMessage(result.Message);
