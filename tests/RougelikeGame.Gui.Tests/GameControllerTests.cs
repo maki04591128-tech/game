@@ -282,11 +282,11 @@ public class GameControllerTests
         var messages = new List<string>();
         controller.OnMessage += msg => messages.Add(msg);
 
-        // Act - 満腹度を大幅に減少させてHungry段階に
-        controller.Player.ModifyHunger(-60); // 100→40 (Hungry stage: 25-49)
+        // Act - 満腹度を大幅に減少させてSlightlyHungry段階に
+        controller.Player.ModifyHunger(-30); // 70→40 (SlightlyHungry stage: 40-49)
 
         // Assert
-        Assert.Contains(messages, m => m.Contains("お腹が空いてきた"));
+        Assert.Contains(messages, m => m.Contains("空腹"));
     }
 
     [Fact]
@@ -308,7 +308,7 @@ public class GameControllerTests
         var controller = CreateInitializedController();
 
         // Assert
-        Assert.Equal(RougelikeGame.Core.HungerStage.Full, controller.Player.HungerStage);
+        Assert.Equal(RougelikeGame.Core.HungerStage.Normal, controller.Player.HungerStage);
         Assert.Equal(RougelikeGame.Core.SanityStage.Normal, controller.Player.SanityStage);
     }
 

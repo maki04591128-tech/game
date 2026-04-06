@@ -29,14 +29,17 @@ public static class BodyConditionSystem
         return Wounds.TryGetValue(type, out var w) ? w : null;
     }
 
-    /// <summary>疲労度によるステータス倍率（数値ベース）</summary>
+    /// <summary>疲労度によるステータス倍率（数値ベース・8段階対応）</summary>
     public static float GetFatigueModifier(FatigueStage stage) => stage switch
     {
-        FatigueStage.Fresh => 1.0f,
-        FatigueStage.Mild => 0.9f,
-        FatigueStage.Tired => 0.75f,
-        FatigueStage.Exhausted => 0.5f,
-        FatigueStage.Collapse => 0.0f,
+        FatigueStage.Refreshed => 1.0f,
+        FatigueStage.Normal => 1.0f,
+        FatigueStage.Lethargy => 0.95f,
+        FatigueStage.LightFatigue => 0.85f,
+        FatigueStage.Fatigue => 0.70f,
+        FatigueStage.HeavyFatigue => 0.50f,
+        FatigueStage.Exhaustion => 0.25f,
+        FatigueStage.TotalExhaustion => 0.0f,
         _ => 1.0f
     };
 
@@ -73,14 +76,17 @@ public static class BodyConditionSystem
         _ => 1.0f
     };
 
-    /// <summary>疲労度名を取得（数値ベース）</summary>
+    /// <summary>疲労度名を取得（数値ベース・8段階対応）</summary>
     public static string GetFatigueName(FatigueStage stage) => stage switch
     {
-        FatigueStage.Fresh => "元気",
-        FatigueStage.Mild => "軽疲労",
-        FatigueStage.Tired => "疲労",
-        FatigueStage.Exhausted => "重疲労",
-        FatigueStage.Collapse => "過労",
+        FatigueStage.Refreshed => "快調",
+        FatigueStage.Normal => "通常",
+        FatigueStage.Lethargy => "倦怠",
+        FatigueStage.LightFatigue => "疲労（軽）",
+        FatigueStage.Fatigue => "疲労",
+        FatigueStage.HeavyFatigue => "疲労（重）",
+        FatigueStage.Exhaustion => "疲弊",
+        FatigueStage.TotalExhaustion => "疲労困憊",
         _ => "不明"
     };
 

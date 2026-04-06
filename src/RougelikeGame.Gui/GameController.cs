@@ -99,6 +99,12 @@ public class GameController
     /// <summary>最後のダメージ原因（死亡判定用）</summary>
     private DeathCause _lastDamageCause = DeathCause.Unknown;
 
+    /// <summary>満腹度が最後に減少したターン</summary>
+    private long _lastHungerDecayTurn = 0;
+
+    /// <summary>渇き度が最後に減少したターン</summary>
+    private long _lastThirstDecayTurn = 0;
+
     /// <summary>自動探索中かどうか</summary>
     private bool _autoExploring = false;
 
@@ -184,6 +190,12 @@ public class GameController
 
     /// <summary>累計死亡回数</summary>
     public int TotalDeaths { get; private set; } = 0;
+
+    /// <summary>リアルタイムターン消費の開始時刻</summary>
+    private DateTime? _realTimeTurnStart;
+
+    /// <summary>リアルタイムターン消費中に累計されたターン数</summary>
+    private int _realTimeTurnAccumulated = 0;
 
     public Player Player { get; private set; } = null!;
     public DungeonMap Map { get; private set; } = null!;
@@ -635,9 +647,12 @@ public class GameController
         {
             string msg = e.NewStage switch
             {
-                HungerStage.Hungry => "⚠ お腹が空いてきた...",
-                HungerStage.Starving => "⚠ 空腹で力が入らない！",
-                HungerStage.Famished => "⚠ 餓死寸前！何か食べないと危険！",
+                HungerStage.SlightlyHungry => "🍖 少し空腹を感じる…",
+                HungerStage.VeryHungry => "🍖 空腹だ！何か食べたい…",
+                HungerStage.Starving => "🍖 飢えが身体を蝕む…（毎ターン1ダメージ）",
+                HungerStage.NearStarvation => "🍖 もう動けない…食料がなければ死ぬ…（毎ターン10ダメージ・移動攻撃不能）",
+                HungerStage.Overeating => "🍖 食べ過ぎだ…動きが鈍い",
+                HungerStage.Nausea => "🤢 食べ過ぎて吐き気がする…（30%行動不可）",
                 HungerStage.Normal when e.OldStage > HungerStage.Normal => "お腹が満たされた",
                 HungerStage.Full => "お腹いっぱいだ",
                 _ => ""
@@ -663,6 +678,27 @@ public class GameController
             {
                 AddMessage($"意識が遠のく... しかし誰かが助けてくれた（正気度-{e.SanityLoss}）");
             }
+        };
+
+        // タスク57: 疲労段階変化メッセージ
+        Player.OnFatigueStageChanged += (_, e) =>
+        {
+            // 段階が悪化した場合のメッセージ
+            string msg = e.NewStage switch
+            {
+                FatigueStage.Normal when e.OldStage == FatigueStage.Refreshed => "疲労が溜まり始めた。",
+                FatigueStage.Lethargy => "体が重くなってきた…",
+                FatigueStage.LightFatigue => "😓 疲労を感じる。休息が必要だ。",
+                FatigueStage.Fatigue => "😓 かなり疲れている！早く休息を取らねば。",
+                FatigueStage.HeavyFatigue => "⚠ 体が言うことを聞かない！攻撃やスキルが使えない！",
+                FatigueStage.Exhaustion => "⚠⚠ 疲労で動けない！移動すらままならない！",
+                FatigueStage.TotalExhaustion => "⚠⚠⚠ 完全に疲れ切った！何もできない…",
+                // 回復時のメッセージ
+                FatigueStage.Refreshed when e.OldStage != FatigueStage.Refreshed => "✨ 体が軽い！万全の状態だ。",
+                _ when e.NewStage < e.OldStage => "少し疲労が回復した。",
+                _ => ""
+            };
+            if (!string.IsNullOrEmpty(msg)) AddMessage(msg);
         };
 
         // スキルシステム: 既習得スキルを登録
@@ -1083,6 +1119,45 @@ public class GameController
             }
         }
 
+        // 餓死寸前・干死寸前の移動・攻撃不能チェック（待機・アイテム使用は可能）
+        bool isMovementOrAttack = action is GameAction.MoveUp or GameAction.MoveDown or GameAction.MoveLeft or GameAction.MoveRight
+            or GameAction.MoveUpLeft or GameAction.MoveUpRight or GameAction.MoveDownLeft or GameAction.MoveDownRight
+            or GameAction.RangedAttack or GameAction.ThrowItem;
+        if (isMovementOrAttack)
+        {
+            if (Player.HungerStage == HungerStage.NearStarvation)
+            {
+                AddMessage("🍖 飢えで動けない…");
+                OnStateChanged?.Invoke();
+                return;
+            }
+            if (Player.ThirstStage == ThirstStage.NearDesiccation)
+            {
+                AddMessage("💧 渇きで動けない…");
+                OnStateChanged?.Invoke();
+                return;
+            }
+        }
+
+        // 吐き気（満腹度/渇き度120以上）の30%行動不可チェック
+        if (Player.HungerStage == HungerStage.Nausea || Player.ThirstStage == ThirstStage.Nausea)
+        {
+            if (_random.Next(100) < 30)
+            {
+                AddMessage("🤢 吐き気で行動できない！");
+                // ターンのみ消費
+                TurnCount += TurnCosts.MoveNormal;
+                GameTime.AdvanceTurn(TurnCosts.MoveNormal);
+                ProcessEnemyTurns();
+                ProcessTurnEffects();
+                CheckTurnLimitWarnings();
+                if (!Player.IsAlive) HandlePlayerDeath(_lastDamageCause);
+                else if (CheckTurnLimitExceeded()) HandleTurnLimitExceeded();
+                OnStateChanged?.Invoke();
+                return;
+            }
+        }
+
         // 自動探索中に何か操作したら中断
         if (_autoExploring && action != GameAction.AutoExplore)
         {
@@ -1093,40 +1168,44 @@ public class GameController
         bool turnUsed = false;
         int actionCost = TurnCosts.MoveNormal; // デフォルト: 移動コスト
         bool isDiagonal = false;
+        bool isSkillAction = false; // 疲労蓄積: スキル使用かどうか
+
+        // シンボルマップ上の移動コスト判定
+        int baseMoveActionCost = _worldMapSystem.IsOnSurface ? TurnCosts.SymbolMapMove : TurnCosts.MoveNormal;
 
         switch (action)
         {
             case GameAction.MoveUp:
                 newPos = new Position(Player.Position.X, Player.Position.Y - 1);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.North;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveDown:
                 newPos = new Position(Player.Position.X, Player.Position.Y + 1);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.South;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveLeft:
                 newPos = new Position(Player.Position.X - 1, Player.Position.Y);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.West;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveRight:
                 newPos = new Position(Player.Position.X + 1, Player.Position.Y);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.East;
                 turnUsed = TryMove(newPos);
                 actionCost = _lastMoveActionCost;
                 break;
             case GameAction.MoveUpLeft:
                 newPos = new Position(Player.Position.X - 1, Player.Position.Y - 1);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.NorthWest;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
@@ -1134,7 +1213,7 @@ public class GameController
                 break;
             case GameAction.MoveUpRight:
                 newPos = new Position(Player.Position.X + 1, Player.Position.Y - 1);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.NorthEast;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
@@ -1142,7 +1221,7 @@ public class GameController
                 break;
             case GameAction.MoveDownLeft:
                 newPos = new Position(Player.Position.X - 1, Player.Position.Y + 1);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.SouthWest;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
@@ -1150,7 +1229,7 @@ public class GameController
                 break;
             case GameAction.MoveDownRight:
                 newPos = new Position(Player.Position.X + 1, Player.Position.Y + 1);
-                _lastMoveActionCost = TurnCosts.MoveNormal;
+                _lastMoveActionCost = baseMoveActionCost;
                 _playerFacing = Direction.SouthEast;
                 isDiagonal = true;
                 turnUsed = TryMove(newPos);
@@ -1159,6 +1238,8 @@ public class GameController
             case GameAction.Wait:
                 turnUsed = true;
                 actionCost = TurnCosts.Wait;
+                // タスク53: 待機時疲労回復
+                FatigueSystem.RecoverFatigue(Player);
                 AddMessage("待機した");
                 break;
             case GameAction.Pickup:
@@ -1167,11 +1248,11 @@ public class GameController
                 break;
             case GameAction.UseStairs:
                 turnUsed = TryDescendStairs();
-                actionCost = TurnCosts.MoveNormal;
+                actionCost = TurnCosts.UseStairs;
                 break;
             case GameAction.AscendStairs:
                 turnUsed = TryAscendStairs();
-                actionCost = TurnCosts.MoveNormal;
+                actionCost = TurnCosts.UseStairs;
                 break;
             case GameAction.OpenInventory:
                 ShowInventory();
@@ -1204,12 +1285,14 @@ public class GameController
                 break;
             case GameAction.UseSkill:
                 turnUsed = TryUseFirstReadySkill(out actionCost);
+                isSkillAction = true;
                 break;
             case GameAction.StartCasting:
                 StartSpellCasting();
                 return;
             case GameAction.CastSpell:
                 turnUsed = TryCastSpell(out actionCost);
+                isSkillAction = true;
                 break;
             case GameAction.CancelCasting:
                 CancelSpellCasting();
@@ -1230,7 +1313,7 @@ public class GameController
                 return;
             case GameAction.EnterTown:
                 turnUsed = TryEnterTown();
-                actionCost = TurnCosts.MoveNormal;
+                actionCost = TurnCosts.SymbolMapEntry;
                 break;
             case GameAction.LeaveTown:
                 turnUsed = TryLeaveTown();
@@ -1372,11 +1455,18 @@ public class GameController
                 actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / armorSpeedMod));
             }
 
-            // AV-4: 疲労による行動効率低下（疲労段階に応じてコスト増加）
+            // AV-4: 疲労による行動効率低下（疲労段階に応じてコスト倍率）
             float fatigueMod = BodyConditionSystem.GetFatigueModifier(Player.FatigueStage);
-            if (fatigueMod < 1.0f)
+            if (fatigueMod < 1.0f && fatigueMod > 0.0f)
             {
                 actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / fatigueMod));
+            }
+
+            // タスク55: 疲労段階による行動コスト加算（+1〜+5、満腹度・渇き度と加算で重複）
+            int fatigueCostBonus = FatigueSystem.GetActionCostBonus(Player.FatigueStage);
+            if (fatigueCostBonus > 0)
+            {
+                actionCost += fatigueCostBonus;
             }
 
             // AV-3: 渇きによるステータスペナルティ（コスト増加）
@@ -1387,10 +1477,27 @@ public class GameController
                 actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / thirstMoveMod));
             }
 
-            // 行動コスト分のターンを消費（最低1）
+            // 行動コスト分のターンを消費（最低1、ただしコスト0の場合はスキップ）
+            if (actionCost <= 0)
+            {
+                // ターン消費0の場合（シンボルマップ進入等）はターン進行なし
+                OnStateChanged?.Invoke();
+            }
+            else
+            {
             int finalCost = Math.Max(1, actionCost);
+
+            // タスク52: 疲労度蓄積（移動・スキル使用時）
+            FatigueSystem.AccumulateFatigue(Player, finalCost, isSkillAction);
+
             TurnCount += finalCost;
             GameTime.AdvanceTurn(finalCost);
+
+            // タスク61: 気付け薬の残りターン消費
+            if (Player.TickFatigueRestrictionRelief(finalCost))
+            {
+                AddMessage("😓 気付け薬の効果が切れた…体が重い。");
+            }
             // ロケーションマップ（町内）では敵が存在しないため敵ターン処理をスキップ
             // フィールドマップ（敵あり）では敵ターンを実行
             if (!_isInLocationMap || _isLocationField)
@@ -1413,6 +1520,7 @@ public class GameController
             {
                 HandleTurnLimitExceeded();
             }
+            }  // end of actionCost > 0 block
         }
 
         OnStateChanged?.Invoke();
@@ -2538,26 +2646,71 @@ public class GameController
         // 詠唱中の処理
         ProcessChanting();
 
-        // 満腹度減少（HungerDecayInterval ターンごとに1減少）
+        // 満腹度減少（経過ターン方式）
         // アンデッド「食事不要」特性: 満腹度が減少しない
-        if (TurnCount > 0 && TurnCount % TimeConstants.HungerDecayInterval == 0)
+        if (TurnCount > 0 && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
         {
-            if (!RacialTraitSystem.IsNoFoodRequired(Player.Race))
+            int hungerInterval = Player.Hunger > 0 ? TimeConstants.HungerDecayInterval : TimeConstants.HungerDecayIntervalStarving;
+            if ((TurnCount - _lastHungerDecayTurn) >= hungerInterval)
             {
                 Player.ModifyHunger(-(int)Math.Ceiling(DifficultyConfig.HungerDecayMultiplier));  // BD-3: 難易度による飢餓速度
+                _lastHungerDecayTurn = TurnCount;
             }
         }
 
-        // 飢餓ダメージ（満腹度0の場合、毎ターンダメージ）
-        // 食事不要種族は飢餓ダメージも無し
-        if (Player.Hunger <= 0 && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        // 渇き度減少（経過ターン方式）
+        if (TurnCount > 0 && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
         {
-            int starvationDamage = Math.Max(1, (int)(Player.MaxHp / 50 * DifficultyConfig.DamageTakenMultiplier));
+            int thirstInterval = Player.Thirst > 0 ? TimeConstants.ThirstDecayInterval : TimeConstants.ThirstDecayIntervalStarving;
+            if ((TurnCount - _lastThirstDecayTurn) >= thirstInterval)
+            {
+                Player.ModifyThirst(-1);
+                _lastThirstDecayTurn = TurnCount;
+            }
+        }
+
+        // 餓死判定（満腹度-10で即死）
+        if (Player.Hunger <= GameConstants.MinHunger && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        {
+            _lastDamageCause = DeathCause.Starvation;
+            HandlePlayerDeath(DeathCause.Starvation);
+            return;
+        }
+
+        // 干死判定（渇き度-10で即死）
+        if (Player.Thirst <= GameConstants.MinThirst && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        {
+            _lastDamageCause = DeathCause.Dehydration;
+            HandlePlayerDeath(DeathCause.Dehydration);
+            return;
+        }
+
+        // 餓死寸前ダメージ（満腹度-9: 毎ターン10HP）
+        if (Player.HungerStage == HungerStage.NearStarvation && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        {
+            int starvationDamage = (int)Math.Max(10, 10 * DifficultyConfig.DamageTakenMultiplier);
             _lastDamageCause = DeathCause.Starvation;
             Player.TakeDamage(Damage.Pure(starvationDamage));
-            if (TurnCount % 60 == 0) // メッセージは60ターンに1回だけ
+            if (TurnCount % 10 == 0)
             {
-                AddMessage($"空腹で体力が奪われている！（{starvationDamage}ダメージ）");
+                AddMessage($"🍖 飢えで{starvationDamage}ダメージ！もう限界だ…");
+            }
+
+            if (!Player.IsAlive)
+            {
+                HandlePlayerDeath(DeathCause.Starvation);
+                return;
+            }
+        }
+        // 飢餓ダメージ（満腹度-1〜-8: 毎ターン1HP）
+        else if (Player.HungerStage == HungerStage.Starving && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        {
+            int starvationDamage = (int)Math.Max(1, 1 * DifficultyConfig.DamageTakenMultiplier);
+            _lastDamageCause = DeathCause.Starvation;
+            Player.TakeDamage(Damage.Pure(starvationDamage));
+            if (TurnCount % 60 == 0)
+            {
+                AddMessage($"🍖 飢えで{starvationDamage}ダメージ！");
             }
 
             if (!Player.IsAlive)
@@ -2567,7 +2720,42 @@ public class GameController
             }
         }
 
-        // HP自然回復（満腹度がHungry以上、かつ戦闘中でない場合）
+        // 干死寸前ダメージ（渇き度-9: 毎ターン10HP）
+        if (Player.ThirstStage == ThirstStage.NearDesiccation && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        {
+            int dehydrationDamage = (int)Math.Max(10, 10 * DifficultyConfig.DamageTakenMultiplier);
+            _lastDamageCause = DeathCause.Dehydration;
+            Player.TakeDamage(Damage.Pure(dehydrationDamage));
+            if (TurnCount % 10 == 0)
+            {
+                AddMessage($"💧 渇きで{dehydrationDamage}ダメージ！もう限界だ…");
+            }
+
+            if (!Player.IsAlive)
+            {
+                HandlePlayerDeath(DeathCause.Dehydration);
+                return;
+            }
+        }
+        // 脱水ダメージ（渇き度-1〜-8: 毎ターン1HP）
+        else if (Player.ThirstStage == ThirstStage.Dehydrated && !RacialTraitSystem.IsNoFoodRequired(Player.Race))
+        {
+            int dehydrationDamage = (int)Math.Max(1, 1 * DifficultyConfig.DamageTakenMultiplier);
+            _lastDamageCause = DeathCause.Dehydration;
+            Player.TakeDamage(Damage.Pure(dehydrationDamage));
+            if (TurnCount % 60 == 0)
+            {
+                AddMessage($"💧 渇きで{dehydrationDamage}ダメージ！");
+            }
+
+            if (!Player.IsAlive)
+            {
+                HandlePlayerDeath(DeathCause.Dehydration);
+                return;
+            }
+        }
+
+        // HP自然回復（満腹度がNormal以上、かつ戦闘中でない場合）
         if (Player.HungerStage <= HungerStage.Normal && !IsInCombat())
         {
             if (TurnCount % 120 == 0) // 120ターン（2分）ごとにHP回復
@@ -2679,17 +2867,20 @@ public class GameController
             AddMessage($"🌙 {TimeOfDaySystem.GetTimePeriodName(currentTimePeriod)} — 視界が狭くなっている");
         }
 
-        // 疲労蓄積（BodyConditionSystem: 600ターンごとに疲労減少、装備重量で加速）
+        // 疲労状態表示（定期チェック: 装備重量による疲労追加蓄積も実施）
         if (TurnCount > 0 && TurnCount % TimeConstants.HungerDecayInterval == 0)
         {
-            // 装備重量による疲労加速: 重量50%超過で追加減少
+            // 装備重量による疲労追加蓄積: 重量50%超過で追加蓄積
             float weightRatio = ((Inventory)Player.Inventory).TotalWeight / Player.CalculateMaxWeight();
-            int fatigueDecay = weightRatio > 0.5f ? (int)(2 + (weightRatio - 0.5f) * 4) : 2;
-            Player.ModifyFatigue(-fatigueDecay);
-            float fatigueMod = BodyConditionSystem.GetFatigueModifier(Player.FatigueStage);
-            if (fatigueMod < 0.9f)
+            if (weightRatio > 0.5f)
             {
-                AddMessage($"😓 疲労: {BodyConditionSystem.GetFatigueName(Player.FatigueStage)}({Player.Fatigue}) — 行動効率{fatigueMod:P0}");
+                double extraFatigue = (weightRatio - 0.5f) * 2.0;
+                Player.ModifyFatigue(extraFatigue);
+            }
+            float fatigueMod = BodyConditionSystem.GetFatigueModifier(Player.FatigueStage);
+            if (fatigueMod < 0.95f)
+            {
+                AddMessage($"😓 疲労: {BodyConditionSystem.GetFatigueName(Player.FatigueStage)}({Player.Fatigue:F1}) — 行動効率{fatigueMod:P0}");
             }
         }
 
@@ -2808,20 +2999,12 @@ public class GameController
             _reputationSystem.DecayReputations();
         }
 
-        // 渇き進行（ThirstSystem: 満腹度の1.2倍速で減少）
-        if (TurnCount > 0 && TurnCount % TimeConstants.HungerDecayInterval == 0)
+        // 渇き度の段階メッセージ表示（定期的に警告）
+        if (TurnCount > 0 && TurnCount % TimeConstants.ThirstDecayInterval == 0)
         {
-            // 満腹度の1.2倍速で渇きが減少
-            Player.ModifyThirst(-3);  // 満腹度は-2想定、渇きは-3で約1.5倍
-            if (Player.ThirstStage >= ThirstStage.Thirsty)
+            if (Player.ThirstStage >= ThirstStage.SlightlyThirsty && Player.ThirstStage <= ThirstStage.VeryThirsty)
             {
                 AddMessage($"💧 渇き: {ThirstSystem.GetThirstName(Player.ThirstStage)}({Player.Thirst})");
-            }
-            int thirstDamage = ThirstSystem.GetThirstDamage(Player.ThirstStage);
-            if (thirstDamage > 0)
-            {
-                Player.TakeDamage(Damage.Pure((int)Math.Max(1, thirstDamage * DifficultyConfig.DamageTakenMultiplier)));
-                _lastDamageCause = DeathCause.Starvation;
             }
         }
 
@@ -3576,8 +3759,8 @@ public class GameController
                 AddMessage("⚠ 呪いの力を感じる...外せない！");
             }
 
-            TurnCount += TurnCosts.EquipChange;
-            GameTime.AdvanceTurn(TurnCosts.EquipChange);
+            TurnCount += GetEquipCostBySlot(equipItem.Slot);
+            GameTime.AdvanceTurn(GetEquipCostBySlot(equipItem.Slot));
             OnStateChanged?.Invoke();
         }
     }
@@ -3613,12 +3796,54 @@ public class GameController
         {
             inventory.Add(unequipped);
             AddMessage($"{unequipped.GetDisplayName()}を外した");
-            TurnCount += TurnCosts.EquipChange;
-            GameTime.AdvanceTurn(TurnCosts.EquipChange);
+            TurnCount += GetEquipCostBySlot(slot);
+            GameTime.AdvanceTurn(GetEquipCostBySlot(slot));
             OnStateChanged?.Invoke();
             return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// 装備スロットに応じたターンコストを取得
+    /// </summary>
+    private static int GetEquipCostBySlot(EquipmentSlot slot) => slot switch
+    {
+        EquipmentSlot.MainHand or EquipmentSlot.OffHand => TurnCosts.EquipWeapon,
+        EquipmentSlot.Ring1 or EquipmentSlot.Ring2 or EquipmentSlot.Neck or EquipmentSlot.Waist or EquipmentSlot.Back => TurnCosts.EquipAccessory,
+        EquipmentSlot.Hands or EquipmentSlot.Feet or EquipmentSlot.Head => TurnCosts.EquipArms,
+        EquipmentSlot.Body => TurnCosts.EquipBody,
+        _ => TurnCosts.EquipWeapon
+    };
+
+    /// <summary>
+    /// リアルタイムターン消費を開始（ウィンドウ操作・釣り等の実時間活動用）
+    /// 1秒毎に1ターン消費
+    /// </summary>
+    public void StartRealTimeTurnConsumption()
+    {
+        _realTimeTurnStart = DateTime.UtcNow;
+        _realTimeTurnAccumulated = 0;
+    }
+
+    /// <summary>
+    /// リアルタイムターン消費を停止し、累計ターンをTurnCountに加算
+    /// </summary>
+    public void StopRealTimeTurnConsumption()
+    {
+        if (_realTimeTurnStart.HasValue)
+        {
+            var elapsed = DateTime.UtcNow - _realTimeTurnStart.Value;
+            int realTimeTurns = (int)elapsed.TotalSeconds;
+            if (realTimeTurns > 0)
+            {
+                TurnCount += realTimeTurns;
+                GameTime.AdvanceTurn(realTimeTurns);
+                ProcessTurnEffects();
+            }
+            _realTimeTurnStart = null;
+            _realTimeTurnAccumulated = 0;
+        }
     }
 
     /// <summary>
@@ -3946,7 +4171,8 @@ public class GameController
         // 天候・身体状態リセット（キャラクター作成直後の状態に戻す）
         CurrentWeather = Weather.Clear;
         Player.ModifyThirst(GameConstants.MaxThirst - Player.Thirst);
-        Player.ModifyFatigue(GameConstants.MaxFatigue - Player.Fatigue);
+        // 疲労度を初期値（0.0: 快調状態）にリセット
+        Player.ModifyFatigue(-Player.Fatigue);
         Player.ModifyHygiene(GameConstants.MaxHygiene - Player.Hygiene);
 
         // 敵・アイテム・マップリセット
@@ -4592,9 +4818,27 @@ public class GameController
             actionCost = (int)Math.Ceiling(actionCost * turnModifier);
         }
 
+        // タスク55: 疲労段階による行動コスト加算
+        int fatigueCostBonus = FatigueSystem.GetActionCostBonus(Player.FatigueStage);
+        if (fatigueCostBonus > 0)
+        {
+            actionCost += fatigueCostBonus;
+        }
+
         int finalCost = Math.Max(1, actionCost);
+
+        // タスク52: 疲労度蓄積（スキル使用）
+        FatigueSystem.AccumulateFatigue(Player, finalCost, isSkill: true);
+
         TurnCount += finalCost;
         GameTime.AdvanceTurn(finalCost);
+
+        // タスク61: 気付け薬の残りターン消費
+        if (Player.TickFatigueRestrictionRelief(finalCost))
+        {
+            AddMessage("😓 気付け薬の効果が切れた…体が重い。");
+        }
+
         ProcessEnemyTurns();
         ProcessTurnEffects();
         CheckTurnLimitWarnings();
@@ -6294,8 +6538,9 @@ public class GameController
             TurnCount += result.TurnCost;
             GameTime.AdvanceTurn(result.TurnCost);
 
-            // 疲労回復（宿屋で完全回復）
-            Player.ModifyFatigue(GameConstants.MaxFatigue - Player.Fatigue);
+            // 疲労回復（宿屋: 段階に応じた開始値から回復）
+            var innFatigueStart = FatigueSystem.GetInnRecoveryStart(Player.FatigueStage);
+            Player.ModifyFatigue(innFatigueStart - Player.Fatigue);
             // 衛生回復（宿屋で清潔に）
             Player.ModifyHygiene(GameConstants.MaxHygiene - Player.Hygiene);
             // 渇き回復（宿泊時に水分補給）
@@ -7798,6 +8043,8 @@ public class GameController
                 FaithCap = Player.FaithCap,
                 Thirst = Player.Thirst,
                 Fatigue = Player.Fatigue,
+                HasFatigueRestrictionRelief = Player.HasFatigueRestrictionRelief,
+                FatigueRestrictionReliefRemainingTurns = Player.FatigueRestrictionReliefRemainingTurns,
                 Hygiene = Player.Hygiene,
                 Gold = Player.Gold,
                 Race = Player.Race,
@@ -8211,6 +8458,10 @@ public class GameController
             save.Player.Hygiene
         );
         Player.Position = save.Player.Position.ToPosition();
+
+        // 気付け薬フラグ復元
+        Player.HasFatigueRestrictionRelief = save.Player.HasFatigueRestrictionRelief;
+        Player.FatigueRestrictionReliefRemainingTurns = save.Player.FatigueRestrictionReliefRemainingTurns;
 
         // 魔法言語復元
         foreach (var (wordId, mastery) in save.Player.LearnedWords)
@@ -8985,8 +9236,8 @@ public class GameController
 
             case RandomEventType.RestPoint:
                 Player.Heal(Player.MaxHp / 10);
-                Player.ModifyFatigue(20);
-                AddMessage("安全な場所で少し休息を取った。");
+                Player.ModifyFatigue(-20.0);
+                AddMessage("安全な場所で少し休息を取った。疲労が回復した。");
                 break;
 
             case RandomEventType.MaterialDeposit:
@@ -9318,9 +9569,17 @@ public class GameController
         int hpAmount = (int)(Player.MaxHp * hpRecovery);
         Player.Heal(hpAmount);
 
-        // 疲労回復
-        if (fatigueRecovery > 0.5f) Player.ModifyFatigue(GameConstants.MaxFatigue - Player.Fatigue);
-        else if (fatigueRecovery > 0.2f) Player.ModifyFatigue(30);
+        // 疲労回復（新仕様: 低い値=良い状態）
+        if (fatigueRecovery > 0.5f)
+        {
+            // 高品質の休息: 疲労度を宿屋回復レベルまで回復
+            var innStart = FatigueSystem.GetInnRecoveryStart(Player.FatigueStage);
+            Player.ModifyFatigue(innStart - Player.Fatigue);
+        }
+        else if (fatigueRecovery > 0.2f)
+        {
+            Player.ModifyFatigue(-30.0);
+        }
 
         // 衛生回復（宿屋利用時）
         if (quality >= SleepQuality.DeepSleep) Player.ModifyHygiene(GameConstants.MaxHygiene - Player.Hygiene);
@@ -9864,7 +10123,7 @@ public class GameController
     // === 新システムプロパティアクセス ===
 
     /// <summary>疲労値</summary>
-    public int PlayerFatigue => Player.Fatigue;
+    public double PlayerFatigue => Player.Fatigue;
 
     /// <summary>疲労段階</summary>
     public FatigueStage PlayerFatigueStage => Player.FatigueStage;

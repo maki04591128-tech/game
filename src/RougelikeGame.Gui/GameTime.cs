@@ -104,6 +104,11 @@ public class GameTime
     public int Hour => (int)(TotalMinutesFromEpoch % MinutesPerDay / MinutesPerHour);
     public int Minute => (int)(TotalMinutesFromEpoch % MinutesPerHour);
 
+    /// <summary>
+    /// 秒（0-59）: TotalTurnsから秒を計算（1ターン＝1秒）
+    /// </summary>
+    public int Second => TotalTurns % TurnsPerMinute;
+
     public string MonthName => MonthNames[(Month - 1) % MonthNames.Length];
 
     /// <summary>
@@ -123,20 +128,20 @@ public class GameTime
 
     /// <summary>
     /// フル表示形式
-    /// 例: 冒険歴1024年 緑風の月 15日 08:00
+    /// 例: 冒険歴1024年 緑風の月 15日 08:00:00
     /// </summary>
     public string ToFullString()
     {
-        return $"{EraName}歴{Year:D4}年 {MonthName} {Day:D2}日 {Hour:D2}:{Minute:D2}";
+        return $"{EraName}歴{Year:D4}年 {MonthName} {Day:D2}日 {Hour:D2}:{Minute:D2}:{Second:D2}";
     }
 
     /// <summary>
     /// 短縮表示形式
-    /// 例: 緑風の月 15日 08:00
+    /// 例: 緑風の月 15日 08:00:00
     /// </summary>
     public string ToShortString()
     {
-        return $"{MonthName} {Day:D2}日 {Hour:D2}:{Minute:D2}";
+        return $"{MonthName} {Day:D2}日 {Hour:D2}:{Minute:D2}:{Second:D2}";
     }
 
     public override string ToString() => ToFullString();

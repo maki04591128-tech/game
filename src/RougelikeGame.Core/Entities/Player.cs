@@ -46,7 +46,7 @@ public class Player : Character, IPlayer, IInventoryHolder
         private set
         {
             var oldStage = GetHungerStage(_hunger);
-            _hunger = Math.Clamp(value, 0, GameConstants.MaxHunger);
+            _hunger = Math.Clamp(value, GameConstants.MinHunger, GameConstants.MaxHunger);
             var newStage = GetHungerStage(_hunger);
 
             if (oldStage != newStage)
@@ -64,7 +64,7 @@ public class Player : Character, IPlayer, IInventoryHolder
         private set
         {
             var oldStage = GetThirstStage(_thirst);
-            _thirst = Math.Clamp(value, 0, GameConstants.MaxThirst);
+            _thirst = Math.Clamp(value, GameConstants.MinThirst, GameConstants.MaxThirst);
             var newStage = GetThirstStage(_thirst);
 
             if (oldStage != newStage)
@@ -75,14 +75,14 @@ public class Player : Character, IPlayer, IInventoryHolder
     }
     public ThirstStage ThirstStage => GetThirstStage(Thirst);
 
-    private int _fatigue;
-    public int Fatigue
+    private double _fatigue;
+    public double Fatigue
     {
         get => _fatigue;
         private set
         {
             var oldStage = GetFatigueStage(_fatigue);
-            _fatigue = Math.Clamp(value, 0, GameConstants.MaxFatigue);
+            _fatigue = Math.Clamp(value, FatigueConstants.MinFatigue, FatigueConstants.MaxFatigue);
             var newStage = GetFatigueStage(_fatigue);
 
             if (oldStage != newStage)
@@ -92,6 +92,35 @@ public class Player : Character, IPlayer, IInventoryHolder
         }
     }
     public FatigueStage FatigueStage => GetFatigueStage(Fatigue);
+
+    /// <summary>気付け薬による疲労行動制限解除中かどうか</summary>
+    public bool HasFatigueRestrictionRelief { get; set; }
+
+    /// <summary>気付け薬の効果残りターン数</summary>
+    public int FatigueRestrictionReliefRemainingTurns { get; set; }
+
+    /// <summary>気付け薬を使用する。効果中に再使用すると持続ターンをリセット。</summary>
+    public void UseFatigueReliefDrug()
+    {
+        HasFatigueRestrictionRelief = true;
+        FatigueRestrictionReliefRemainingTurns = FatigueConstants.RestrictionReliefDuration;
+    }
+
+    /// <summary>ターン経過時に気付け薬の残りターンを消費する。0になったらフラグをリセット。</summary>
+    /// <returns>効果が切れた場合true</returns>
+    public bool TickFatigueRestrictionRelief(int turnsPassed = 1)
+    {
+        if (!HasFatigueRestrictionRelief) return false;
+
+        FatigueRestrictionReliefRemainingTurns -= turnsPassed;
+        if (FatigueRestrictionReliefRemainingTurns <= 0)
+        {
+            HasFatigueRestrictionRelief = false;
+            FatigueRestrictionReliefRemainingTurns = 0;
+            return true; // 効果切れ
+        }
+        return false;
+    }
 
     private int _hygiene;
     public int Hygiene
@@ -275,6 +304,20 @@ public class Player : Character, IPlayer, IInventoryHolder
     public override int MaxHp => base.MaxHp + BonusMaxHp + GetSkillTreeResourceBonus("MaxHp");
     public override int MaxMp => base.MaxMp + BonusMaxMp + GetSkillTreeResourceBonus("MaxMp");
 
+    /// <summary>
+    /// タスク54: 疲労段階によるSP上限修正を適用した実効MaxSP。
+    /// EffectiveMaxSP = BaseMaxSP × (1 + FatigueSpModifier)
+    /// </summary>
+    public int EffectiveMaxSp
+    {
+        get
+        {
+            double modifier = GetFatigueSpModifier();
+            int effective = (int)(MaxSp * (1.0 + modifier));
+            return Math.Max(0, effective);
+        }
+    }
+
     /// <summary>AH-4: 属性耐性（StatusEffectベース: FireResistance/ColdResistance等）</summary>
     protected override float GetResistanceAgainst(Element element)
     {
@@ -323,24 +366,36 @@ public class Player : Character, IPlayer, IInventoryHolder
         // D-1/D-2/D-3: 飢餓・渇き・疲労ペナルティ
         var hungerPenalty = HungerStage switch
         {
-            HungerStage.Starving => new StatModifier(Strength: -3, Agility: -3, Dexterity: -2),
-            HungerStage.Hungry => new StatModifier(Strength: -1, Agility: -1),
+            HungerStage.Nausea => new StatModifier(Strength: -5, Agility: -5, Dexterity: -3, Intelligence: -3),
+            HungerStage.NearStarvation => new StatModifier(Strength: -8, Agility: -8, Dexterity: -5, Intelligence: -3),
+            HungerStage.Starving => new StatModifier(Strength: -5, Agility: -5, Dexterity: -3),
+            HungerStage.VeryHungry => new StatModifier(Strength: -2, Agility: -2, Dexterity: -1),
+            HungerStage.SlightlyHungry => new StatModifier(Strength: -1, Agility: -1),
+            HungerStage.Overeating => new StatModifier(Agility: -2, Dexterity: -1),
             _ => (StatModifier?)null
         };
         if (hungerPenalty.HasValue) yield return hungerPenalty.Value;
 
         var thirstPenalty = ThirstStage switch
         {
-            ThirstStage.Dehydrated => new StatModifier(Intelligence: -3, Mind: -3, Agility: -2),
-            ThirstStage.Thirsty => new StatModifier(Intelligence: -1, Mind: -1),
+            ThirstStage.Nausea => new StatModifier(Intelligence: -5, Mind: -5, Agility: -3, Strength: -3),
+            ThirstStage.NearDesiccation => new StatModifier(Intelligence: -8, Mind: -8, Agility: -5, Strength: -3),
+            ThirstStage.Dehydrated => new StatModifier(Intelligence: -5, Mind: -5, Agility: -3),
+            ThirstStage.VeryThirsty => new StatModifier(Intelligence: -2, Mind: -2, Agility: -1),
+            ThirstStage.SlightlyThirsty => new StatModifier(Intelligence: -1, Mind: -1),
+            ThirstStage.Overdrinking => new StatModifier(Agility: -2, Intelligence: -1),
             _ => (StatModifier?)null
         };
         if (thirstPenalty.HasValue) yield return thirstPenalty.Value;
 
         var fatiguePenalty = FatigueStage switch
         {
-            FatigueStage.Exhausted => new StatModifier(Strength: -2, Agility: -2, Dexterity: -2, Intelligence: -2),
-            FatigueStage.Tired => new StatModifier(Agility: -1, Dexterity: -1),
+            FatigueStage.TotalExhaustion => new StatModifier(Strength: -5, Agility: -5, Dexterity: -5, Intelligence: -5),
+            FatigueStage.Exhaustion => new StatModifier(Strength: -4, Agility: -4, Dexterity: -4, Intelligence: -4),
+            FatigueStage.HeavyFatigue => new StatModifier(Strength: -3, Agility: -3, Dexterity: -3, Intelligence: -3),
+            FatigueStage.Fatigue => new StatModifier(Strength: -2, Agility: -2, Dexterity: -2, Intelligence: -2),
+            FatigueStage.LightFatigue => new StatModifier(Agility: -1, Dexterity: -1),
+            FatigueStage.Lethargy => new StatModifier(Agility: -1),
             _ => (StatModifier?)null
         };
         if (fatiguePenalty.HasValue) yield return fatiguePenalty.Value;
@@ -467,7 +522,7 @@ public class Player : Character, IPlayer, IInventoryHolder
     public void ModifySanity(int amount) => Sanity += amount;
     public void ModifyHunger(int amount) => Hunger += amount;
     public void ModifyThirst(int amount) => Thirst += amount;
-    public void ModifyFatigue(int amount) => Fatigue += amount;
+    public void ModifyFatigue(double amount) => Fatigue += amount;
     public void ModifyHygiene(int amount) => Hygiene += amount;
 
     private static SanityStage GetSanityStage(int sanity) => sanity switch
@@ -482,29 +537,57 @@ public class Player : Character, IPlayer, IInventoryHolder
 
     private static HungerStage GetHungerStage(int hunger) => hunger switch
     {
+        >= 120 => HungerStage.Nausea,
+        >= 100 => HungerStage.Overeating,
         >= 80 => HungerStage.Full,
         >= 50 => HungerStage.Normal,
-        >= 25 => HungerStage.Hungry,
-        >= 1 => HungerStage.Starving,
-        _ => HungerStage.Famished
+        >= 40 => HungerStage.SlightlyHungry,
+        >= 0 => HungerStage.VeryHungry,
+        >= -8 => HungerStage.Starving,
+        >= -9 => HungerStage.NearStarvation,
+        _ => HungerStage.Starvation
     };
 
     private static ThirstStage GetThirstStage(int thirst) => thirst switch
     {
-        >= 80 => ThirstStage.Hydrated,
-        >= 50 => ThirstStage.Thirsty,
-        >= 25 => ThirstStage.Dehydrated,
-        >= 1 => ThirstStage.SevereDehydration,
-        _ => ThirstStage.CriticalDehydration
+        >= 120 => ThirstStage.Nausea,
+        >= 100 => ThirstStage.Overdrinking,
+        >= 80 => ThirstStage.Full,
+        >= 50 => ThirstStage.Normal,
+        >= 40 => ThirstStage.SlightlyThirsty,
+        >= 0 => ThirstStage.VeryThirsty,
+        >= -8 => ThirstStage.Dehydrated,
+        >= -9 => ThirstStage.NearDesiccation,
+        _ => ThirstStage.Desiccation
     };
 
-    private static FatigueStage GetFatigueStage(int fatigue) => fatigue switch
+    private static FatigueStage GetFatigueStage(double fatigue) => fatigue switch
     {
-        >= 80 => FatigueStage.Fresh,
-        >= 50 => FatigueStage.Mild,
-        >= 25 => FatigueStage.Tired,
-        >= 1 => FatigueStage.Exhausted,
-        _ => FatigueStage.Collapse
+        >= 100.0 => FatigueStage.TotalExhaustion,
+        >= 90.0 => FatigueStage.Exhaustion,
+        >= 80.0 => FatigueStage.HeavyFatigue,
+        >= 70.0 => FatigueStage.Fatigue,
+        >= 60.0 => FatigueStage.LightFatigue,
+        >= 50.0 => FatigueStage.Lethargy,
+        >= 10.0 => FatigueStage.Normal,
+        _ => FatigueStage.Refreshed
+    };
+
+    /// <summary>
+    /// 現在の疲労段階に応じたSP上限修正率を返却する。
+    /// EffectiveMaxSP = BaseMaxSP × (1 + この値) で計算される。
+    /// </summary>
+    public double GetFatigueSpModifier() => FatigueStage switch
+    {
+        FatigueStage.Refreshed => FatigueConstants.RefreshedSpBonus,
+        FatigueStage.Normal => 0.0,
+        FatigueStage.Lethargy => FatigueConstants.LethargySpPenalty,
+        FatigueStage.LightFatigue => FatigueConstants.LightFatigueSpPenalty,
+        FatigueStage.Fatigue => FatigueConstants.FatigueSpPenalty,
+        FatigueStage.HeavyFatigue => FatigueConstants.HeavyFatigueSpPenalty,
+        FatigueStage.Exhaustion => FatigueConstants.ExhaustionSpPenalty,
+        FatigueStage.TotalExhaustion => FatigueConstants.TotalExhaustionSpPenalty,
+        _ => 0.0
     };
 
     private static HygieneStage GetHygieneStage(int hygiene) => hygiene switch
@@ -695,7 +778,7 @@ public class Player : Character, IPlayer, IInventoryHolder
             _sanity = GameConstants.InitialSanity,
             _hunger = GameConstants.InitialHunger,
             _thirst = GameConstants.InitialThirst,       // EX-1: 渇き初期化
-            _fatigue = GameConstants.InitialFatigue,      // EX-1: 疲労初期化
+            _fatigue = FatigueConstants.InitialFatigue,      // EX-1: 疲労初期化（0.0 = 快調状態）
             _hygiene = GameConstants.InitialHygiene,      // EX-1: 衛生初期化
             Faction = Faction.Player
         };
@@ -739,8 +822,7 @@ public class Player : Character, IPlayer, IInventoryHolder
             _sanity = GameConstants.InitialSanity,
             _hunger = GameConstants.InitialHunger,
             _thirst = GameConstants.InitialThirst,
-            _fatigue = GameConstants.InitialFatigue,
-            _hygiene = GameConstants.InitialHygiene,
+            _fatigue = FatigueConstants.InitialFatigue,            _hygiene = GameConstants.InitialHygiene,
             Faction = Faction.Player
         };
 
@@ -805,14 +887,14 @@ public class Player : Character, IPlayer, IInventoryHolder
         int currentHp, int currentMp, int currentSp, int rescueCountRemaining,
         Race race = Race.Human, CharacterClass characterClass = CharacterClass.Fighter,
         Background background = Background.Adventurer,
-        int thirst = 100, int fatigue = 100, int hygiene = 100)
+        int thirst = 100, double fatigue = 0.0, int hygiene = 100)
     {
         Level = level;
         Experience = experience;
         _sanity = Math.Clamp(sanity, 0, GameConstants.MaxSanity);
         _hunger = Math.Clamp(hunger, 0, GameConstants.MaxHunger);
         _thirst = Math.Clamp(thirst, 0, GameConstants.MaxThirst);
-        _fatigue = Math.Clamp(fatigue, 0, GameConstants.MaxFatigue);
+        _fatigue = Math.Clamp(fatigue, FatigueConstants.MinFatigue, FatigueConstants.MaxFatigue);
         _hygiene = Math.Clamp(hygiene, 0, GameConstants.MaxHygiene);
         CurrentHp = currentHp;
         CurrentMp = currentMp;

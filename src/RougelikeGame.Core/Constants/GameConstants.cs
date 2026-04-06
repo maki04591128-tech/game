@@ -24,19 +24,27 @@ public static class TurnCosts
     public const int DiagonalDenominator = 10;
 
     // 攻撃
-    public const int AttackNormal = 3;
-    public const int AttackUnarmed = 2;
-    public const int AttackTwoHanded = 5;
-    public const int AttackBow = 4;
-    public const int AttackThrow = 2;
+    public const int AttackNormal = 1;      // 3→1
+    public const int AttackUnarmed = 1;     // 2→1（通常攻撃に統合）
+    public const int AttackTwoHanded = 1;   // 5→1（通常攻撃に統合）
+    public const int AttackBow = 5;         // 4→5（遠距離攻撃統一）
+    public const int AttackThrow = 5;       // 2→5（遠距離攻撃統一）
 
     // アイテム
-    public const int UsePotion = 2;
+    public const int UsePotion = 1;         // 2→1（クイックユーズ）
     public const int UseScroll = 3;
     public const int Eat = 10;
+    [System.Obsolete("部位別コスト（EquipWeapon/EquipAccessory/EquipArms/EquipHead/EquipBody）を使用してください")]
     public const int EquipChange = 5;
     public const int SetTrap = 15;
     public const int Craft = 30;
+
+    // 装備部位別コスト
+    public const int EquipWeapon = 1;       // 武器着脱
+    public const int EquipAccessory = 1;    // アクセサリー着脱
+    public const int EquipArms = 10;        // 腕装備着脱
+    public const int EquipHead = 10;        // 頭装備着脱
+    public const int EquipBody = 20;        // 胴装備着脱
 
     // その他
     public const int Wait = 1;
@@ -46,6 +54,12 @@ public static class TurnCosts
     public const int Unlock = 10;
     public const int OpenChest = 5;
     public const int Talk = 0;  // 戦闘外のみ
+    public const int InventorySort = 20;    // インベントリソート
+    public const int UseStairs = 10;        // 階層移動（階段使用）
+
+    // シンボルマップ
+    public const int SymbolMapMove = 300;   // シンボルマップ上の移動
+    public const int SymbolMapEntry = 0;    // Tキーによるシンボルマップ進入
 
     // 魔法（最小・最大）
     public const int SpellMinimum = 5;
@@ -54,6 +68,10 @@ public static class TurnCosts
     // 宗教
     public const int Pray = 10;
     public const int ReligionAction = 5;
+
+    // 状態別ターンコスト倍率
+    public const int EngagedNonCombatMultiplier = 2;  // 接敵状態・非戦闘行動倍率
+    public const int StealthMovementMultiplier = 5;    // 隠密状態・移動ドア開閉倍率
 }
 
 /// <summary>
@@ -67,7 +85,10 @@ public static class TimeConstants
     public const int TurnsPerDay = 86400;
 
     // イベント周期
-    public const int HungerDecayInterval = 600;         // 10分
+    public const int HungerDecayInterval = 864;             // 満腹度通常消費間隔（14.4分）
+    public const int HungerDecayIntervalStarving = 59220;   // 満腹度0以下消費間隔
+    public const int ThirstDecayInterval = 432;             // 渇き度通常消費間隔（7.2分）
+    public const int ThirstDecayIntervalStarving = 29610;   // 渇き度0以下消費間隔
     public const int StatusEffectTickInterval = 10;     // 10秒
     public const int NpcScheduleUpdateInterval = 60;    // 1分
     public const int DayNightCycleHalf = 43200;         // 12時間
@@ -97,15 +118,19 @@ public static class GameConstants
     public const int MaxRescueCount = 3;
 
     // 満腹度
-    public const int InitialHunger = 100;
-    public const int MaxHunger = 100;
+    public const int InitialHunger = 70;
+    public const int MaxHunger = 150;
+    public const int MinHunger = -10;
 
     // 渇き
-    public const int InitialThirst = 100;
-    public const int MaxThirst = 100;
+    public const int InitialThirst = 70;
+    public const int MaxThirst = 150;
+    public const int MinThirst = -10;
 
-    // 疲労
-    public const int InitialFatigue = 100;
+    // 疲労（旧: 100→新: 0が初期値。新仕様では蓄積型で0が最良状態）
+    [System.Obsolete("FatigueConstants.InitialFatigue を使用してください")]
+    public const int InitialFatigue = 0;
+    [System.Obsolete("FatigueConstants.MaxFatigue を使用してください")]
     public const int MaxFatigue = 100;
 
     // 衛生
@@ -333,4 +358,93 @@ public static class BalanceConfig
     public const double IdentifiedSellBonus = 1.2;
 
     #endregion
+}
+
+/// <summary>
+/// 疲労度システムに関する定数
+/// 疲労度は0から蓄積し、100が最大値。高い値ほど悪い状態を示す。
+/// </summary>
+public static class FatigueConstants
+{
+    // === 基本値 ===
+    /// <summary>疲労度の初期値（0.0 = 快調状態）</summary>
+    public const double InitialFatigue = 0.0;
+    /// <summary>疲労度の最大値</summary>
+    public const double MaxFatigue = 100.0;
+    /// <summary>疲労度の最小値</summary>
+    public const double MinFatigue = 0.0;
+
+    // === 蓄積率 ===
+    /// <summary>移動時の疲労度蓄積率（行動コスト × この値）</summary>
+    public const double MovementFatigueRate = 0.01;
+    /// <summary>スキル使用時の疲労度蓄積率（行動コスト × この値）</summary>
+    public const double SkillFatigueRate = 0.1;
+
+    // === 段階閾値 ===
+    /// <summary>快調状態の上限（0以上10未満）</summary>
+    public const double RefreshedMax = 10.0;
+    /// <summary>通常状態の上限（10以上50未満）</summary>
+    public const double NormalMax = 50.0;
+    /// <summary>倦怠状態の上限（50以上60未満）</summary>
+    public const double LethargyMax = 60.0;
+    /// <summary>疲労・軽状態の上限（60以上70未満）</summary>
+    public const double LightFatigueMax = 70.0;
+    /// <summary>疲労状態の上限（70以上80未満）</summary>
+    public const double FatigueMax = 80.0;
+    /// <summary>疲労・重状態の上限（80以上90未満）</summary>
+    public const double HeavyFatigueMax = 90.0;
+    /// <summary>疲弊状態の上限（90以上100未満）</summary>
+    public const double ExhaustionMax = 100.0;
+
+    // === SP上限修正率 ===
+    /// <summary>快調状態のSP上限ボーナス（+1%）</summary>
+    public const double RefreshedSpBonus = 0.01;
+    /// <summary>倦怠状態のSP上限ペナルティ（−1%）</summary>
+    public const double LethargySpPenalty = -0.01;
+    /// <summary>疲労・軽状態のSP上限ペナルティ（−5%）</summary>
+    public const double LightFatigueSpPenalty = -0.05;
+    /// <summary>疲労状態のSP上限ペナルティ（−25%）</summary>
+    public const double FatigueSpPenalty = -0.25;
+    /// <summary>疲労・重状態のSP上限ペナルティ（−50%）</summary>
+    public const double HeavyFatigueSpPenalty = -0.50;
+    /// <summary>疲弊状態のSP上限ペナルティ（−80%）</summary>
+    public const double ExhaustionSpPenalty = -0.80;
+    /// <summary>疲労困憊状態のSP上限ペナルティ（−100%）</summary>
+    public const double TotalExhaustionSpPenalty = -1.00;
+
+    // === 行動コスト加算 ===
+    /// <summary>疲労・軽状態の行動コスト加算</summary>
+    public const int LightFatigueCostBonus = 1;
+    /// <summary>疲労状態の行動コスト加算</summary>
+    public const int FatigueCostBonus = 2;
+    /// <summary>疲労・重状態の行動コスト加算</summary>
+    public const int HeavyFatigueCostBonus = 3;
+    /// <summary>疲弊状態の行動コスト加算</summary>
+    public const int ExhaustionCostBonus = 4;
+    /// <summary>疲労困憊状態の行動コスト加算</summary>
+    public const int TotalExhaustionCostBonus = 5;
+
+    // === 待機時回復量 ===
+    /// <summary>待機1回あたりの基本回復量</summary>
+    public const double BaseRestRecovery = 1.0;
+    /// <summary>倦怠状態の回復量倍率（基本回復量 × 1/10）</summary>
+    public const double LethargyRecoveryMultiplier = 0.1;
+    /// <summary>疲労・軽状態の回復量倍率（基本回復量 × 1/100）</summary>
+    public const double LightFatigueRecoveryMultiplier = 0.01;
+    /// <summary>疲労以上の重度疲労の回復量倍率（基本回復量 × 1/1000）</summary>
+    public const double SevereRecoveryMultiplier = 0.001;
+
+    // === 宿屋回復開始値 ===
+    /// <summary>疲労状態（70+）の宿屋回復後開始値</summary>
+    public const double InnRecoveryFatigueStart = 10.0;
+    /// <summary>疲労・重状態（80+）の宿屋回復後開始値</summary>
+    public const double InnRecoveryHeavyFatigueStart = 20.0;
+    /// <summary>疲弊状態（90+）の宿屋回復後開始値</summary>
+    public const double InnRecoveryExhaustionStart = 30.0;
+    /// <summary>疲労困憊状態（100）の宿屋回復後開始値</summary>
+    public const double InnRecoveryTotalExhaustionStart = 40.0;
+
+    // === 気付け薬（疲労行動制限解除） ===
+    /// <summary>気付け薬の効果持続ターン数（3,600ターン＝ゲーム内1時間）</summary>
+    public const int RestrictionReliefDuration = 3600;
 }

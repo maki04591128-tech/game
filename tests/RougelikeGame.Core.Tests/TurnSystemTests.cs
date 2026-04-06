@@ -127,7 +127,7 @@ public class PlayerTests
         Assert.Equal(GameConstants.InitialSanity, player.Sanity);
         Assert.Equal(GameConstants.InitialHunger, player.Hunger);
         Assert.Equal(SanityStage.Normal, player.SanityStage);
-        Assert.Equal(HungerStage.Full, player.HungerStage);
+        Assert.Equal(HungerStage.Normal, player.HungerStage);
         Assert.Equal(GameConstants.MaxRescueCount, player.RescueCountRemaining);
         Assert.True(player.IsAlive);
     }

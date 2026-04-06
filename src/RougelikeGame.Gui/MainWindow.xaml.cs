@@ -388,8 +388,10 @@ public partial class MainWindow : Window
         {
             RougelikeGame.Core.HungerStage.Full => System.Windows.Media.Brushes.LimeGreen,
             RougelikeGame.Core.HungerStage.Normal => System.Windows.Media.Brushes.Yellow,
-            RougelikeGame.Core.HungerStage.Hungry => System.Windows.Media.Brushes.Orange,
-            RougelikeGame.Core.HungerStage.Starving => System.Windows.Media.Brushes.OrangeRed,
+            RougelikeGame.Core.HungerStage.SlightlyHungry => System.Windows.Media.Brushes.Orange,
+            RougelikeGame.Core.HungerStage.VeryHungry => System.Windows.Media.Brushes.OrangeRed,
+            RougelikeGame.Core.HungerStage.Overeating => System.Windows.Media.Brushes.Gold,
+            RougelikeGame.Core.HungerStage.Nausea => System.Windows.Media.Brushes.Gold,
             _ => System.Windows.Media.Brushes.Red
         };
 
@@ -469,10 +471,13 @@ public partial class MainWindow : Window
         ThirstText.Text = $"{_gameController.PlayerThirst}({_gameController.PlayerThirstName})";
         ThirstText.Foreground = _gameController.PlayerThirstStage switch
         {
-            ThirstStage.Hydrated => System.Windows.Media.Brushes.DeepSkyBlue,
-            ThirstStage.Thirsty => System.Windows.Media.Brushes.Yellow,
-            ThirstStage.Dehydrated => System.Windows.Media.Brushes.Orange,
-            ThirstStage.SevereDehydration => System.Windows.Media.Brushes.Red,
+            ThirstStage.Full => System.Windows.Media.Brushes.DeepSkyBlue,
+            ThirstStage.Normal => System.Windows.Media.Brushes.DeepSkyBlue,
+            ThirstStage.SlightlyThirsty => System.Windows.Media.Brushes.Yellow,
+            ThirstStage.VeryThirsty => System.Windows.Media.Brushes.Orange,
+            ThirstStage.Dehydrated => System.Windows.Media.Brushes.Red,
+            ThirstStage.Overdrinking => System.Windows.Media.Brushes.Gold,
+            ThirstStage.Nausea => System.Windows.Media.Brushes.Gold,
             _ => System.Windows.Media.Brushes.DarkRed
         };
 
@@ -505,14 +510,18 @@ public partial class MainWindow : Window
         };
 
         // 疲労表示
-        FatigueText.Text = $"{_gameController.PlayerFatigue}({_gameController.PlayerFatigueName})";
+        FatigueText.Text = $"{_gameController.PlayerFatigue:F1} / 100.0 ({_gameController.PlayerFatigueName})";
         FatigueText.Foreground = _gameController.PlayerFatigueStage switch
         {
-            FatigueStage.Fresh => System.Windows.Media.Brushes.LimeGreen,
-            FatigueStage.Mild => System.Windows.Media.Brushes.Yellow,
-            FatigueStage.Tired => System.Windows.Media.Brushes.Orange,
-            FatigueStage.Exhausted => System.Windows.Media.Brushes.Red,
-            _ => System.Windows.Media.Brushes.DarkRed
+            FatigueStage.Refreshed => System.Windows.Media.Brushes.LimeGreen,
+            FatigueStage.Normal => System.Windows.Media.Brushes.White,
+            FatigueStage.Lethargy => System.Windows.Media.Brushes.Yellow,
+            FatigueStage.LightFatigue => System.Windows.Media.Brushes.Orange,
+            FatigueStage.Fatigue => System.Windows.Media.Brushes.Red,
+            FatigueStage.HeavyFatigue => System.Windows.Media.Brushes.DarkRed,
+            FatigueStage.Exhaustion => System.Windows.Media.Brushes.DarkRed,
+            FatigueStage.TotalExhaustion => System.Windows.Media.Brushes.DarkRed,
+            _ => System.Windows.Media.Brushes.White
         };
 
         // 衛生表示
