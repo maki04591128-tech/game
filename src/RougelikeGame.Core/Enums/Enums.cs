@@ -1180,20 +1180,27 @@ public enum ThirstStage
 }
 
 /// <summary>
-/// 疲労の段階（数値ベース）
+/// 疲労の段階（数値ベース・8段階）
+/// 疲労度は0から蓄積し、高い値ほど悪い状態を示す
 /// </summary>
 public enum FatigueStage
 {
-    /// <summary>元気（80-100）</summary>
-    Fresh,
-    /// <summary>軽疲労（50-79）</summary>
-    Mild,
-    /// <summary>疲労（25-49）</summary>
-    Tired,
-    /// <summary>重疲労（1-24）</summary>
-    Exhausted,
-    /// <summary>過労（0）</summary>
-    Collapse
+    /// <summary>快調（0以上10未満）— SP上限+1%ボーナス</summary>
+    Refreshed,
+    /// <summary>通常（10以上50未満）— ペナルティなし</summary>
+    Normal,
+    /// <summary>倦怠（50以上60未満）— SP上限−1%、回復効率1/10</summary>
+    Lethargy,
+    /// <summary>疲労・軽（60以上70未満）— SP上限−5%、行動コスト+1、回復効率1/100</summary>
+    LightFatigue,
+    /// <summary>疲労（70以上80未満）— SP上限−25%、行動コスト+2、回復効率1/1000</summary>
+    Fatigue,
+    /// <summary>疲労・重（80以上90未満）— SP上限−50%、行動コスト+3、攻撃・スキル使用不能</summary>
+    HeavyFatigue,
+    /// <summary>疲弊（90以上100未満）— SP上限−80%、行動コスト+4、移動・攻撃・スキル使用不能</summary>
+    Exhaustion,
+    /// <summary>疲労困憊（100）— SP上限−100%、行動コスト+5、待機・インベントリ操作・アイテム使用のみ可能</summary>
+    TotalExhaustion
 }
 
 /// <summary>

@@ -2824,17 +2824,20 @@ public class GameController
             AddMessage($"🌙 {TimeOfDaySystem.GetTimePeriodName(currentTimePeriod)} — 視界が狭くなっている");
         }
 
-        // 疲労蓄積（BodyConditionSystem: 600ターンごとに疲労減少、装備重量で加速）
+        // 疲労状態表示（定期チェック: 装備重量による疲労追加蓄積も実施）
         if (TurnCount > 0 && TurnCount % TimeConstants.HungerDecayInterval == 0)
         {
-            // 装備重量による疲労加速: 重量50%超過で追加減少
+            // 装備重量による疲労追加蓄積: 重量50%超過で追加蓄積
             float weightRatio = ((Inventory)Player.Inventory).TotalWeight / Player.CalculateMaxWeight();
-            int fatigueDecay = weightRatio > 0.5f ? (int)(2 + (weightRatio - 0.5f) * 4) : 2;
-            Player.ModifyFatigue(-fatigueDecay);
-            float fatigueMod = BodyConditionSystem.GetFatigueModifier(Player.FatigueStage);
-            if (fatigueMod < 0.9f)
+            if (weightRatio > 0.5f)
             {
-                AddMessage($"😓 疲労: {BodyConditionSystem.GetFatigueName(Player.FatigueStage)}({Player.Fatigue}) — 行動効率{fatigueMod:P0}");
+                double extraFatigue = (weightRatio - 0.5f) * 2.0;
+                Player.ModifyFatigue(extraFatigue);
+            }
+            float fatigueMod = BodyConditionSystem.GetFatigueModifier(Player.FatigueStage);
+            if (fatigueMod < 0.95f)
+            {
+                AddMessage($"😓 疲労: {BodyConditionSystem.GetFatigueName(Player.FatigueStage)}({Player.Fatigue:F1}) — 行動効率{fatigueMod:P0}");
             }
         }
 
@@ -4125,7 +4128,8 @@ public class GameController
         // 天候・身体状態リセット（キャラクター作成直後の状態に戻す）
         CurrentWeather = Weather.Clear;
         Player.ModifyThirst(GameConstants.MaxThirst - Player.Thirst);
-        Player.ModifyFatigue(GameConstants.MaxFatigue - Player.Fatigue);
+        // 疲労度を初期値（0.0: 快調状態）にリセット
+        Player.ModifyFatigue(-Player.Fatigue);
         Player.ModifyHygiene(GameConstants.MaxHygiene - Player.Hygiene);
 
         // 敵・アイテム・マップリセット
@@ -6473,8 +6477,9 @@ public class GameController
             TurnCount += result.TurnCost;
             GameTime.AdvanceTurn(result.TurnCost);
 
-            // 疲労回復（宿屋で完全回復）
-            Player.ModifyFatigue(GameConstants.MaxFatigue - Player.Fatigue);
+            // 疲労回復（宿屋: 段階に応じた開始値から回復）
+            var innFatigueStart = FatigueSystem.GetInnRecoveryStart(Player.FatigueStage);
+            Player.ModifyFatigue(innFatigueStart - Player.Fatigue);
             // 衛生回復（宿屋で清潔に）
             Player.ModifyHygiene(GameConstants.MaxHygiene - Player.Hygiene);
             // 渇き回復（宿泊時に水分補給）
@@ -9164,8 +9169,8 @@ public class GameController
 
             case RandomEventType.RestPoint:
                 Player.Heal(Player.MaxHp / 10);
-                Player.ModifyFatigue(20);
-                AddMessage("安全な場所で少し休息を取った。");
+                Player.ModifyFatigue(-20.0);
+                AddMessage("安全な場所で少し休息を取った。疲労が回復した。");
                 break;
 
             case RandomEventType.MaterialDeposit:
@@ -9497,9 +9502,17 @@ public class GameController
         int hpAmount = (int)(Player.MaxHp * hpRecovery);
         Player.Heal(hpAmount);
 
-        // 疲労回復
-        if (fatigueRecovery > 0.5f) Player.ModifyFatigue(GameConstants.MaxFatigue - Player.Fatigue);
-        else if (fatigueRecovery > 0.2f) Player.ModifyFatigue(30);
+        // 疲労回復（新仕様: 低い値=良い状態）
+        if (fatigueRecovery > 0.5f)
+        {
+            // 高品質の休息: 疲労度を宿屋回復レベルまで回復
+            var innStart = FatigueSystem.GetInnRecoveryStart(Player.FatigueStage);
+            Player.ModifyFatigue(innStart - Player.Fatigue);
+        }
+        else if (fatigueRecovery > 0.2f)
+        {
+            Player.ModifyFatigue(-30.0);
+        }
 
         // 衛生回復（宿屋利用時）
         if (quality >= SleepQuality.DeepSleep) Player.ModifyHygiene(GameConstants.MaxHygiene - Player.Hygiene);
@@ -10043,7 +10056,7 @@ public class GameController
     // === 新システムプロパティアクセス ===
 
     /// <summary>疲労値</summary>
-    public int PlayerFatigue => Player.Fatigue;
+    public double PlayerFatigue => Player.Fatigue;
 
     /// <summary>疲労段階</summary>
     public FatigueStage PlayerFatigueStage => Player.FatigueStage;

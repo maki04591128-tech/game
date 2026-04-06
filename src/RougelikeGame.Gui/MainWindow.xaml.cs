@@ -510,14 +510,18 @@ public partial class MainWindow : Window
         };
 
         // 疲労表示
-        FatigueText.Text = $"{_gameController.PlayerFatigue}({_gameController.PlayerFatigueName})";
+        FatigueText.Text = $"{_gameController.PlayerFatigue:F1} / 100.0 ({_gameController.PlayerFatigueName})";
         FatigueText.Foreground = _gameController.PlayerFatigueStage switch
         {
-            FatigueStage.Fresh => System.Windows.Media.Brushes.LimeGreen,
-            FatigueStage.Mild => System.Windows.Media.Brushes.Yellow,
-            FatigueStage.Tired => System.Windows.Media.Brushes.Orange,
-            FatigueStage.Exhausted => System.Windows.Media.Brushes.Red,
-            _ => System.Windows.Media.Brushes.DarkRed
+            FatigueStage.Refreshed => System.Windows.Media.Brushes.LimeGreen,
+            FatigueStage.Normal => System.Windows.Media.Brushes.White,
+            FatigueStage.Lethargy => System.Windows.Media.Brushes.Yellow,
+            FatigueStage.LightFatigue => System.Windows.Media.Brushes.Orange,
+            FatigueStage.Fatigue => System.Windows.Media.Brushes.Red,
+            FatigueStage.HeavyFatigue => System.Windows.Media.Brushes.DarkRed,
+            FatigueStage.Exhaustion => System.Windows.Media.Brushes.DarkRed,
+            FatigueStage.TotalExhaustion => System.Windows.Media.Brushes.DarkRed,
+            _ => System.Windows.Media.Brushes.White
         };
 
         // 衛生表示

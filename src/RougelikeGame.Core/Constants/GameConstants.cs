@@ -127,8 +127,10 @@ public static class GameConstants
     public const int MaxThirst = 150;
     public const int MinThirst = -10;
 
-    // 疲労
-    public const int InitialFatigue = 100;
+    // 疲労（旧: 100→新: 0が初期値。新仕様では蓄積型で0が最良状態）
+    [System.Obsolete("FatigueConstants.InitialFatigue を使用してください")]
+    public const int InitialFatigue = 0;
+    [System.Obsolete("FatigueConstants.MaxFatigue を使用してください")]
     public const int MaxFatigue = 100;
 
     // 衛生
@@ -356,4 +358,93 @@ public static class BalanceConfig
     public const double IdentifiedSellBonus = 1.2;
 
     #endregion
+}
+
+/// <summary>
+/// 疲労度システムに関する定数
+/// 疲労度は0から蓄積し、100が最大値。高い値ほど悪い状態を示す。
+/// </summary>
+public static class FatigueConstants
+{
+    // === 基本値 ===
+    /// <summary>疲労度の初期値（0.0 = 快調状態）</summary>
+    public const double InitialFatigue = 0.0;
+    /// <summary>疲労度の最大値</summary>
+    public const double MaxFatigue = 100.0;
+    /// <summary>疲労度の最小値</summary>
+    public const double MinFatigue = 0.0;
+
+    // === 蓄積率 ===
+    /// <summary>移動時の疲労度蓄積率（行動コスト × この値）</summary>
+    public const double MovementFatigueRate = 0.01;
+    /// <summary>スキル使用時の疲労度蓄積率（行動コスト × この値）</summary>
+    public const double SkillFatigueRate = 0.1;
+
+    // === 段階閾値 ===
+    /// <summary>快調状態の上限（0以上10未満）</summary>
+    public const double RefreshedMax = 10.0;
+    /// <summary>通常状態の上限（10以上50未満）</summary>
+    public const double NormalMax = 50.0;
+    /// <summary>倦怠状態の上限（50以上60未満）</summary>
+    public const double LethargyMax = 60.0;
+    /// <summary>疲労・軽状態の上限（60以上70未満）</summary>
+    public const double LightFatigueMax = 70.0;
+    /// <summary>疲労状態の上限（70以上80未満）</summary>
+    public const double FatigueMax = 80.0;
+    /// <summary>疲労・重状態の上限（80以上90未満）</summary>
+    public const double HeavyFatigueMax = 90.0;
+    /// <summary>疲弊状態の上限（90以上100未満）</summary>
+    public const double ExhaustionMax = 100.0;
+
+    // === SP上限修正率 ===
+    /// <summary>快調状態のSP上限ボーナス（+1%）</summary>
+    public const double RefreshedSpBonus = 0.01;
+    /// <summary>倦怠状態のSP上限ペナルティ（−1%）</summary>
+    public const double LethargySpPenalty = -0.01;
+    /// <summary>疲労・軽状態のSP上限ペナルティ（−5%）</summary>
+    public const double LightFatigueSpPenalty = -0.05;
+    /// <summary>疲労状態のSP上限ペナルティ（−25%）</summary>
+    public const double FatigueSpPenalty = -0.25;
+    /// <summary>疲労・重状態のSP上限ペナルティ（−50%）</summary>
+    public const double HeavyFatigueSpPenalty = -0.50;
+    /// <summary>疲弊状態のSP上限ペナルティ（−80%）</summary>
+    public const double ExhaustionSpPenalty = -0.80;
+    /// <summary>疲労困憊状態のSP上限ペナルティ（−100%）</summary>
+    public const double TotalExhaustionSpPenalty = -1.00;
+
+    // === 行動コスト加算 ===
+    /// <summary>疲労・軽状態の行動コスト加算</summary>
+    public const int LightFatigueCostBonus = 1;
+    /// <summary>疲労状態の行動コスト加算</summary>
+    public const int FatigueCostBonus = 2;
+    /// <summary>疲労・重状態の行動コスト加算</summary>
+    public const int HeavyFatigueCostBonus = 3;
+    /// <summary>疲弊状態の行動コスト加算</summary>
+    public const int ExhaustionCostBonus = 4;
+    /// <summary>疲労困憊状態の行動コスト加算</summary>
+    public const int TotalExhaustionCostBonus = 5;
+
+    // === 待機時回復量 ===
+    /// <summary>待機1回あたりの基本回復量</summary>
+    public const double BaseRestRecovery = 1.0;
+    /// <summary>倦怠状態の回復量倍率（基本回復量 × 1/10）</summary>
+    public const double LethargyRecoveryMultiplier = 0.1;
+    /// <summary>疲労・軽状態の回復量倍率（基本回復量 × 1/100）</summary>
+    public const double LightFatigueRecoveryMultiplier = 0.01;
+    /// <summary>疲労以上の重度疲労の回復量倍率（基本回復量 × 1/1000）</summary>
+    public const double SevereRecoveryMultiplier = 0.001;
+
+    // === 宿屋回復開始値 ===
+    /// <summary>疲労状態（70+）の宿屋回復後開始値</summary>
+    public const double InnRecoveryFatigueStart = 10.0;
+    /// <summary>疲労・重状態（80+）の宿屋回復後開始値</summary>
+    public const double InnRecoveryHeavyFatigueStart = 20.0;
+    /// <summary>疲弊状態（90+）の宿屋回復後開始値</summary>
+    public const double InnRecoveryExhaustionStart = 30.0;
+    /// <summary>疲労困憊状態（100）の宿屋回復後開始値</summary>
+    public const double InnRecoveryTotalExhaustionStart = 40.0;
+
+    // === 気付け薬（疲労行動制限解除） ===
+    /// <summary>気付け薬の効果持続ターン数（3,600ターン＝ゲーム内1時間）</summary>
+    public const int RestrictionReliefDuration = 3600;
 }
