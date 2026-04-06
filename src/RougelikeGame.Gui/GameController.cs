@@ -3091,6 +3091,17 @@ public class GameController
             }
         }
 
+        // ダンジョン内ランダムイベント発生判定（RandomEventSystem）
+        if (!_worldMapSystem.IsOnSurface && !_isInLocationMap && TurnCount % 100 == 0)
+        {
+            var dungeonEvent = _randomEventSystem.RollEvent(CurrentFloor, _random);
+            if (dungeonEvent != null)
+            {
+                AddMessage($"【ダンジョンイベント】{dungeonEvent.Name}: {dungeonEvent.Description}");
+                ResolveRandomEvent(dungeonEvent);
+            }
+        }
+
         if (!Player.IsAlive)
         {
             // 状態異常死の原因を推定
@@ -4150,6 +4161,7 @@ public class GameController
         _tutorialSystem.Reset();
         _skillTreeSystem.Reset();
         _hasSlimeSplit = false; // Y-1: 分裂フラグリセット
+        _autoSaveSystem.Reset();
 
         // 正気度0の場合、知識系システムも消失
         if (isSanityZero)
@@ -10475,6 +10487,41 @@ public class GameController
     public ContextHelpSystem.HelpTopic? GetHelpForKey(string key)
     {
         return _contextHelpSystem.GetHelpForKey(key);
+    }
+
+    // === AccessibilitySystem活用接続 ===
+
+    /// <summary>アクセシビリティ設定に基づく実効フォントサイズを取得</summary>
+    public int GetEffectiveFontSize(int baseFontSize = 14)
+    {
+        return _accessibilitySystem.CalculateEffectiveFontSize(baseFontSize);
+    }
+
+    /// <summary>アクセシビリティ設定に基づく実効ターン遅延を取得（ミリ秒）</summary>
+    public int GetEffectiveTurnDelay(int baseDelay = 200)
+    {
+        return _accessibilitySystem.CalculateEffectiveTurnDelay(baseDelay);
+    }
+
+    /// <summary>色覚モードに応じた色変換を取得（AccessibilitySystem）</summary>
+    public AccessibilitySystem.ColorTransform GetTransformedColor(string originalColor)
+    {
+        return _accessibilitySystem.TransformColor(originalColor);
+    }
+
+    // === ModularHudSystem活用接続 ===
+
+    /// <summary>HUD要素の表示状態を確認（ModularHudSystem）</summary>
+    public bool IsHudElementVisible(HudElement element)
+    {
+        var config = _modularHudSystem.GetConfig(element);
+        return config?.IsVisible ?? true;
+    }
+
+    /// <summary>表示中のHUD要素数を取得（ModularHudSystem）</summary>
+    public int GetVisibleHudElementCount()
+    {
+        return _modularHudSystem.GetVisibleCount();
     }
 
     #endregion
