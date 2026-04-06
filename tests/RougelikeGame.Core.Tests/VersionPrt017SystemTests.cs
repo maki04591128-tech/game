@@ -152,9 +152,9 @@ public class VersionPrt017SystemTests
     #region Task 6: 渇き悪化速度 - 満腹度と同じ間隔
 
     [Fact]
-    public void HungerDecayInterval_Equals600()
+    public void HungerDecayInterval_Equals864()
     {
-        Assert.Equal(600, TimeConstants.HungerDecayInterval);
+        Assert.Equal(864, TimeConstants.HungerDecayInterval);
     }
 
     [Fact]

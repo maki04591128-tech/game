@@ -408,7 +408,7 @@ public class VersionPrt025SystemTests
     {
         var player = CreateDefaultPlayer();
         int baseInt = player.EffectiveStats.Intelligence;
-        player.ModifyThirst(-80);  // Dehydrated
+        player.ModifyThirst(-75);  // InitialThirst(70) - 75 = -5 → Dehydrated段階
 
         Assert.True(player.EffectiveStats.Intelligence < baseInt, "Dehydrated should reduce Intelligence");
     }

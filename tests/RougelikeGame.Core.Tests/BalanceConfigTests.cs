@@ -241,8 +241,8 @@ public class BalanceConfigTests
     [Fact]
     public void GameConstants_HungerValues_AreCorrect()
     {
-        Assert.Equal(100, GameConstants.InitialHunger);
-        Assert.Equal(100, GameConstants.MaxHunger);
+        Assert.Equal(70, GameConstants.InitialHunger);
+        Assert.Equal(150, GameConstants.MaxHunger);
     }
 
     [Fact]
@@ -298,11 +298,11 @@ public class BalanceConfigTests
     [Fact]
     public void TurnCosts_AttackValues_AreCorrect()
     {
-        Assert.Equal(3, TurnCosts.AttackNormal);
-        Assert.Equal(2, TurnCosts.AttackUnarmed);
-        Assert.Equal(5, TurnCosts.AttackTwoHanded);
-        Assert.Equal(4, TurnCosts.AttackBow);
-        Assert.Equal(2, TurnCosts.AttackThrow);
+        Assert.Equal(1, TurnCosts.AttackNormal);
+        Assert.Equal(1, TurnCosts.AttackUnarmed);
+        Assert.Equal(1, TurnCosts.AttackTwoHanded);
+        Assert.Equal(5, TurnCosts.AttackBow);
+        Assert.Equal(5, TurnCosts.AttackThrow);
     }
 
     [Fact]
@@ -330,7 +330,7 @@ public class BalanceConfigTests
     [Fact]
     public void TimeConstants_EventIntervals_AreCorrect()
     {
-        Assert.Equal(600, TimeConstants.HungerDecayInterval);
+        Assert.Equal(864, TimeConstants.HungerDecayInterval);
         Assert.Equal(10, TimeConstants.StatusEffectTickInterval);
         Assert.Equal(60, TimeConstants.NpcScheduleUpdateInterval);
     }

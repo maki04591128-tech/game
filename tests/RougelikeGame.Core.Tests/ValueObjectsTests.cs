@@ -595,15 +595,16 @@ public class ValueObjectsTests
     }
 
     [Fact]
-    public void TurnAction_CalculateFinalCost_NonMoveAction_IgnoresCombatState()
+    public void TurnAction_CalculateFinalCost_NonCombatNonMoveAction_DoubledInCombat()
     {
         var action = TurnAction.Wait;
 
-        // 移動以外はCombatState修正を受けない
+        // 非戦闘・非移動行動は戦闘状態で×2倍率が適用される
         var costNormal = action.CalculateFinalCost(CombatState.Normal);
         var costCombat = action.CalculateFinalCost(CombatState.Combat);
 
-        Assert.Equal(costNormal, costCombat);
+        Assert.Equal(1, costNormal);
+        Assert.Equal(2, costCombat);
     }
 
     [Fact]
