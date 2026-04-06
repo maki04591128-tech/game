@@ -680,6 +680,27 @@ public class GameController
             }
         };
 
+        // タスク57: 疲労段階変化メッセージ
+        Player.OnFatigueStageChanged += (_, e) =>
+        {
+            // 段階が悪化した場合のメッセージ
+            string msg = e.NewStage switch
+            {
+                FatigueStage.Normal when e.OldStage == FatigueStage.Refreshed => "疲労が溜まり始めた。",
+                FatigueStage.Lethargy => "体が重くなってきた…",
+                FatigueStage.LightFatigue => "😓 疲労を感じる。休息が必要だ。",
+                FatigueStage.Fatigue => "😓 かなり疲れている！早く休息を取らねば。",
+                FatigueStage.HeavyFatigue => "⚠ 体が言うことを聞かない！攻撃やスキルが使えない！",
+                FatigueStage.Exhaustion => "⚠⚠ 疲労で動けない！移動すらままならない！",
+                FatigueStage.TotalExhaustion => "⚠⚠⚠ 完全に疲れ切った！何もできない…",
+                // 回復時のメッセージ
+                FatigueStage.Refreshed when e.OldStage != FatigueStage.Refreshed => "✨ 体が軽い！万全の状態だ。",
+                _ when e.NewStage < e.OldStage => "少し疲労が回復した。",
+                _ => ""
+            };
+            if (!string.IsNullOrEmpty(msg)) AddMessage(msg);
+        };
+
         // スキルシステム: 既習得スキルを登録
         foreach (var skillId in Player.LearnedSkills)
         {
@@ -1147,6 +1168,7 @@ public class GameController
         bool turnUsed = false;
         int actionCost = TurnCosts.MoveNormal; // デフォルト: 移動コスト
         bool isDiagonal = false;
+        bool isSkillAction = false; // 疲労蓄積: スキル使用かどうか
 
         // シンボルマップ上の移動コスト判定
         int baseMoveActionCost = _worldMapSystem.IsOnSurface ? TurnCosts.SymbolMapMove : TurnCosts.MoveNormal;
@@ -1216,6 +1238,8 @@ public class GameController
             case GameAction.Wait:
                 turnUsed = true;
                 actionCost = TurnCosts.Wait;
+                // タスク53: 待機時疲労回復
+                FatigueSystem.RecoverFatigue(Player);
                 AddMessage("待機した");
                 break;
             case GameAction.Pickup:
@@ -1261,12 +1285,14 @@ public class GameController
                 break;
             case GameAction.UseSkill:
                 turnUsed = TryUseFirstReadySkill(out actionCost);
+                isSkillAction = true;
                 break;
             case GameAction.StartCasting:
                 StartSpellCasting();
                 return;
             case GameAction.CastSpell:
                 turnUsed = TryCastSpell(out actionCost);
+                isSkillAction = true;
                 break;
             case GameAction.CancelCasting:
                 CancelSpellCasting();
@@ -1429,11 +1455,18 @@ public class GameController
                 actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / armorSpeedMod));
             }
 
-            // AV-4: 疲労による行動効率低下（疲労段階に応じてコスト増加）
+            // AV-4: 疲労による行動効率低下（疲労段階に応じてコスト倍率）
             float fatigueMod = BodyConditionSystem.GetFatigueModifier(Player.FatigueStage);
-            if (fatigueMod < 1.0f)
+            if (fatigueMod < 1.0f && fatigueMod > 0.0f)
             {
                 actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / fatigueMod));
+            }
+
+            // タスク55: 疲労段階による行動コスト加算（+1〜+5、満腹度・渇き度と加算で重複）
+            int fatigueCostBonus = FatigueSystem.GetActionCostBonus(Player.FatigueStage);
+            if (fatigueCostBonus > 0)
+            {
+                actionCost += fatigueCostBonus;
             }
 
             // AV-3: 渇きによるステータスペナルティ（コスト増加）
@@ -1453,6 +1486,10 @@ public class GameController
             else
             {
             int finalCost = Math.Max(1, actionCost);
+
+            // タスク52: 疲労度蓄積（移動・スキル使用時）
+            FatigueSystem.AccumulateFatigue(Player, finalCost, isSkillAction);
+
             TurnCount += finalCost;
             GameTime.AdvanceTurn(finalCost);
             // ロケーションマップ（町内）では敵が存在しないため敵ターン処理をスキップ
@@ -4775,7 +4812,18 @@ public class GameController
             actionCost = (int)Math.Ceiling(actionCost * turnModifier);
         }
 
+        // タスク55: 疲労段階による行動コスト加算
+        int fatigueCostBonus = FatigueSystem.GetActionCostBonus(Player.FatigueStage);
+        if (fatigueCostBonus > 0)
+        {
+            actionCost += fatigueCostBonus;
+        }
+
         int finalCost = Math.Max(1, actionCost);
+
+        // タスク52: 疲労度蓄積（スキル使用）
+        FatigueSystem.AccumulateFatigue(Player, finalCost, isSkill: true);
+
         TurnCount += finalCost;
         GameTime.AdvanceTurn(finalCost);
         ProcessEnemyTurns();

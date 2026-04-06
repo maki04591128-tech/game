@@ -275,6 +275,20 @@ public class Player : Character, IPlayer, IInventoryHolder
     public override int MaxHp => base.MaxHp + BonusMaxHp + GetSkillTreeResourceBonus("MaxHp");
     public override int MaxMp => base.MaxMp + BonusMaxMp + GetSkillTreeResourceBonus("MaxMp");
 
+    /// <summary>
+    /// タスク54: 疲労段階によるSP上限修正を適用した実効MaxSP。
+    /// EffectiveMaxSP = BaseMaxSP × (1 + FatigueSpModifier)
+    /// </summary>
+    public int EffectiveMaxSp
+    {
+        get
+        {
+            double modifier = GetFatigueSpModifier();
+            int effective = (int)(MaxSp * (1.0 + modifier));
+            return Math.Max(0, effective);
+        }
+    }
+
     /// <summary>AH-4: 属性耐性（StatusEffectベース: FireResistance/ColdResistance等）</summary>
     protected override float GetResistanceAgainst(Element element)
     {
