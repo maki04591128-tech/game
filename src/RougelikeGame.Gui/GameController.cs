@@ -1389,6 +1389,10 @@ public class GameController
             case GameAction.OpenVocabulary:
                 OnShowVocabulary?.Invoke();
                 return;
+            case GameAction.Steal:
+                TryStealFromAdjacentEnemy();
+                actionCost = TurnCosts.AttackNormal;
+                break;
             case GameAction.Save:
                 OnSaveGame?.Invoke();
                 return;
@@ -3093,6 +3097,9 @@ public class GameController
             var cause = Player.HasStatusEffect(StatusEffectType.Poison) ? DeathCause.Poison : DeathCause.Unknown;
             HandlePlayerDeath(cause);
         }
+
+        // ターン経過による自動セーブ判定（AutoSaveSystem）
+        CheckAutoSave(AutoSaveTrigger.TurnElapsed);
     }
 
     /// <summary>
@@ -3470,6 +3477,7 @@ public class GameController
             SaveFloorToCache();
             CurrentFloor++;
             GenerateFloor();
+            CheckAutoSave(AutoSaveTrigger.FloorChange);
             AddMessage($"第{CurrentFloor}層に降りた");
 
             // 5階ごとにショートカット自動解放
@@ -3526,6 +3534,7 @@ public class GameController
         {
             // 1層目の上り階段 → シンボルマップに帰還
             SaveFloorToCache();
+            CheckAutoSave(AutoSaveTrigger.FloorChange);
             AddMessage("ダンジョンから脱出した！ 地上に帰還する...");
             _worldMapSystem.IsOnSurface = true;
             _currentDungeonFeature = null;
@@ -3554,6 +3563,7 @@ public class GameController
             SaveFloorToCache();
             CurrentFloor--;
             GenerateFloor();
+            CheckAutoSave(AutoSaveTrigger.FloorChange);
             // 上昇時はプレイヤーを下り階段位置に配置
             var downStairsPos = Map.StairsDownPosition;
             if (downStairsPos.HasValue)
@@ -10390,6 +10400,82 @@ public class GameController
             : EnvironmentalCombatSystem.SurfaceType.Normal;
     }
 
+    // === StealSystem接続 ===
+
+    /// <summary>隣接する敵からの盗み試行（StealSystem）</summary>
+    private void TryStealFromAdjacentEnemy()
+    {
+        var adjacentEnemy = Enemies.FirstOrDefault(e => e.IsAlive && e.Position.ChebyshevDistanceTo(Player.Position) <= 1);
+        if (adjacentEnemy == null)
+        {
+            AddMessage("盗む対象がいない");
+            return;
+        }
+        int stealSkill = (int)_skillSystem.GetPassiveBonus("steal");
+        // 敵レベル推定: ExperienceReward / 10（最低1）
+        int enemyLevel = Math.Max(1, adjacentEnemy.ExperienceReward / 10);
+        int estimatedGold = Math.Max(0, adjacentEnemy.ExperienceReward / 2);
+        var result = StealSystem.AttemptSteal(
+            Player.EffectiveStats.Dexterity, Player.Level, enemyLevel,
+            estimatedGold, adjacentEnemy.DropTableId != null,
+            stealSkill, _random);
+        AddMessage(result.Message);
+        if (result.Success && result.StolenGold > 0)
+        {
+            Player.AddGold(result.StolenGold);
+        }
+        if (result.Detected)
+        {
+            _karmaSystem.ModifyKarma(-5, "盗み発覚");
+            AddMessage("⚠ 敵が怒り、攻撃態勢に入った！");
+        }
+    }
+
+    /// <summary>盗み成功率を取得（UI表示用・StealSystem）</summary>
+    public float GetStealChance(int targetLevel)
+    {
+        int stealSkill = (int)_skillSystem.GetPassiveBonus("steal");
+        return StealSystem.CalculateStealChance(
+            Player.EffectiveStats.Dexterity, Player.Level, targetLevel, stealSkill);
+    }
+
+    // === AutoSaveSystem接続 ===
+
+    private readonly AutoSaveSystem _autoSaveSystem = new();
+
+    /// <summary>自動セーブ判定とトリガー（AutoSaveSystem）</summary>
+    private void CheckAutoSave(AutoSaveTrigger trigger)
+    {
+        if (_autoSaveSystem.ShouldAutoSave(TurnCount, trigger))
+        {
+            OnSaveGame?.Invoke();
+            _autoSaveSystem.MarkSaved(TurnCount);
+        }
+    }
+
+    /// <summary>AutoSaveSystemを取得</summary>
+    public AutoSaveSystem GetAutoSaveSystem() => _autoSaveSystem;
+
+    // === ModLoaderSystem公開アクセサ ===
+
+    /// <summary>ModLoaderSystemを取得</summary>
+    public ModLoaderSystem GetModLoaderSystem() => _modLoaderSystem;
+
+    // === ContextHelpSystem状況別ヘルプ接続 ===
+
+    /// <summary>ゲーム状態に応じたコンテキストヘルプを取得（ContextHelpSystem）</summary>
+    public IReadOnlyList<ContextHelpSystem.HelpTopic> GetContextualHelpForState()
+    {
+        string context = IsInCombat() ? "戦闘" : _worldMapSystem.IsOnSurface ? "地上" : "ダンジョン";
+        return _contextHelpSystem.GetContextualHelp(context);
+    }
+
+    /// <summary>キー操作に対するヘルプを取得（ContextHelpSystem）</summary>
+    public ContextHelpSystem.HelpTopic? GetHelpForKey(string key)
+    {
+        return _contextHelpSystem.GetHelpForKey(key);
+    }
+
     #endregion
 }
 
@@ -10456,5 +10542,6 @@ public enum GameAction
     OpenCompanion,
     OpenCooking,
     OpenBaseConstruction,
-    OpenVocabulary
+    OpenVocabulary,
+    Steal
 }
