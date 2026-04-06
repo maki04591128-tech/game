@@ -88,7 +88,7 @@
 
 - **アイテム名**: 気付け薬
 - **効果**: 疲労段階による行動制限を一時的に解除（SP上限修正・行動コスト加算は維持）
-- **効果持続**: 一定ターン数（要調整、暫定300ターン）
+- **効果持続**: 3,600ターン（ゲーム内1時間）
 - **解除される制限**:
   - 疲労（重）: 攻撃・スキル使用が可能に（ただしSP不足のスキルは使用不可）
   - 疲弊: 移動・攻撃・スキル使用が可能に（ただしSP不足のスキルは使用不可）
@@ -1600,10 +1600,10 @@ public enum FatigueStage
 - Player に `FatigueRestrictionReliefRemainingTurns` （int）を追加
 - 気付け薬使用時:
   - `HasFatigueRestrictionRelief = true` に設定
-  - `FatigueRestrictionReliefRemainingTurns` を初期値（暫定300ターン）に設定
+  - `FatigueRestrictionReliefRemainingTurns` を初期値（3,600ターン＝ゲーム内1時間）に設定
   - 効果中に再使用: 持続ターンをリセット（延長ではなく再設定）
 - 定数追加:
-  - `FatigueConstants.RestrictionReliefDuration` = 300 （気付け薬の効果持続ターン数）
+  - `FatigueConstants.RestrictionReliefDuration` = 3600 （気付け薬の効果持続ターン数＝ゲーム内1時間）
 
 #### タスク 61: 行動制限判定への制限解除フラグ統合
 
