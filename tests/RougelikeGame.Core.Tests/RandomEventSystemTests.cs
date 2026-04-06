@@ -84,7 +84,7 @@ public class RandomEventSystemTests
         for (int i = 0; i < 100; i++)
         {
             var evt = system.RollTerritoryEvent(5, TerritoryId.Forest, new FixedRandom(0 + i % 10), 0, 1.0f);
-            if (evt != null && evt.Name.Contains("精霊") || evt?.Name.Contains("薬草") == true || evt?.Name.Contains("隠者") == true)
+            if (evt != null && (evt.Name.Contains("精霊") || evt.Name.Contains("薬草") || evt.Name.Contains("隠者")))
             {
                 foundTerritoryEvent = true;
                 break;
