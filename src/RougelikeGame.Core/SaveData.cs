@@ -240,6 +240,10 @@ public class PlayerSaveData
     public int Thirst { get; set; } = 100;
     /// <summary>疲労（double型: 0.0=快調、100.0=疲労困憊）</summary>
     public double Fatigue { get; set; } = 0.0;  // デフォルト値0.0（快調状態）
+    /// <summary>気付け薬による疲労行動制限解除中かどうか</summary>
+    public bool HasFatigueRestrictionRelief { get; set; }
+    /// <summary>気付け薬の効果残りターン数</summary>
+    public int FatigueRestrictionReliefRemainingTurns { get; set; }
     /// <summary>衛生</summary>
     public int Hygiene { get; set; } = 100;
 

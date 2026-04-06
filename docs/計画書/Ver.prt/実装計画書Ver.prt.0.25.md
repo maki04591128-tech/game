@@ -1,6 +1,6 @@
 ﻿# 実装計画書 Ver.prt.0.25 — 満腹度・渇き度システム全面改修 ＆ 行動ターン消費システム改修 ＆ 疲労度システム
 
-**ステータス**: ✅ 完了（満腹度・渇き度・行動ターン消費）/ 📝 計画中（疲労度）
+**ステータス**: ✅ 完了（満腹度・渇き度・行動ターン消費・疲労度・気付け薬）
 **目的**: 満腹度・渇き度システムを全面改修し、段階的なペナルティ・行動コスト加算・過食/飲み過ぎ状態を含む10段階制に拡張する。また、行動ターン消費システムを全面改修し、シチュエーション別のターンコストを全キャラクターに適用する。さらに、移動・スキル使用に応じて蓄積する疲労度システムを新規実装し、SP上限修正・行動制限・行動コスト加算を段階的に適用する
 **前提バージョン**: Ver.prt.0.24（テスト5,539件全合格）
 
@@ -176,22 +176,22 @@
 | 46 | デバフ状態行動コスト加算実装 | ゲームロジック | TurnManager.cs | ✅ 完了 |
 | 47 | 状態別ターンコストテスト | テスト | Core.Tests / Gui.Tests | ✅ 完了 |
 | **疲労度システム** | | | | |
-| 48 | FatigueStage enum 追加（8段階） | Enum定義 | Enums.cs | 📝 計画中 |
-| 49 | GameConstants 疲労度定数追加（蓄積率・回復量・閾値・SP修正率） | 定数 | GameConstants.cs | 📝 計画中 |
-| 50 | Player.cs Fatigue プロパティ・GetFatigueStage 実装 | コアエンティティ | Player.cs | 📝 計画中 |
-| 51 | FatigueSystem.cs 新規作成（蓄積・回復・段階判定ロジック） | エンジン層 | FatigueSystem.cs | 📝 計画中 |
-| 52 | GameController.cs 疲労度蓄積ロジック（移動・スキル使用時） | ゲームロジック | GameController.cs | 📝 計画中 |
-| 53 | GameController.cs 疲労度回復ロジック（待機時の段階別回復量） | ゲームロジック | GameController.cs | 📝 計画中 |
-| 54 | SP上限修正反映（疲労段階によるSP上限増減） | ゲームロジック | Player.cs, GameController.cs | 📝 計画中 |
-| 55 | 行動制限・行動コスト加算のTurnManager統合（疲労段階） | 行動コスト | TurnManager.cs, GameController.cs | 📝 計画中 |
-| 56 | 宿屋での疲労度回復・初期値ロジック | ゲームロジック | GameController.cs | 📝 計画中 |
-| 57 | メッセージログ対応（疲労段階変化メッセージ） | UI | GameController.cs | 📝 計画中 |
-| 58 | GUI ステータスバー表示更新（疲労度表示） | UI | MainWindow.xaml.cs | 📝 計画中 |
-| 59 | 疲労度システムテスト | テスト | Core.Tests / Gui.Tests | 📝 計画中 |
+| 48 | FatigueStage enum 追加（8段階） | Enum定義 | Enums.cs | ✅ 完了 |
+| 49 | GameConstants 疲労度定数追加（蓄積率・回復量・閾値・SP修正率） | 定数 | GameConstants.cs | ✅ 完了 |
+| 50 | Player.cs Fatigue プロパティ・GetFatigueStage 実装 | コアエンティティ | Player.cs | ✅ 完了 |
+| 51 | FatigueSystem.cs 新規作成（蓄積・回復・段階判定ロジック） | エンジン層 | FatigueSystem.cs | ✅ 完了 |
+| 52 | GameController.cs 疲労度蓄積ロジック（移動・スキル使用時） | ゲームロジック | GameController.cs | ✅ 完了 |
+| 53 | GameController.cs 疲労度回復ロジック（待機時の段階別回復量） | ゲームロジック | GameController.cs | ✅ 完了 |
+| 54 | SP上限修正反映（疲労段階によるSP上限増減） | ゲームロジック | Player.cs, GameController.cs | ✅ 完了 |
+| 55 | 行動制限・行動コスト加算のTurnManager統合（疲労段階） | 行動コスト | TurnManager.cs, GameController.cs | ✅ 完了 |
+| 56 | 宿屋での疲労度回復・初期値ロジック | ゲームロジック | GameController.cs | ✅ 完了 |
+| 57 | メッセージログ対応（疲労段階変化メッセージ） | UI | GameController.cs | ✅ 完了 |
+| 58 | GUI ステータスバー表示更新（疲労度表示） | UI | MainWindow.xaml.cs | ✅ 完了 |
+| 59 | 疲労度システムテスト | テスト | Core.Tests / Gui.Tests | ✅ 完了 |
 | **疲労行動制限解除アイテム** | | | | |
-| 60 | 気付け薬アイテム定義・HasFatigueRestrictionRelief フラグ追加 | アイテム・エンティティ | Player.cs, ItemDefinitions | 📝 計画中 |
-| 61 | 行動制限判定への制限解除フラグ統合 | ゲームロジック | FatigueSystem.cs, TurnManager.cs, GameController.cs | 📝 計画中 |
-| 62 | 気付け薬アイテム・制限解除テスト | テスト | Core.Tests / Gui.Tests | 📝 計画中 |
+| 60 | 気付け薬アイテム定義・HasFatigueRestrictionRelief フラグ追加 | アイテム・エンティティ | Player.cs, ItemDefinitions | ✅ 完了 |
+| 61 | 行動制限判定への制限解除フラグ統合 | ゲームロジック | FatigueSystem.cs, TurnManager.cs, GameController.cs | ✅ 完了 |
+| 62 | 気付け薬アイテム・制限解除テスト | テスト | Core.Tests / Gui.Tests | ✅ 完了 |
 
 ---
 

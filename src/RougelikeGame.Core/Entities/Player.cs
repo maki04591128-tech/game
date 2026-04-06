@@ -93,6 +93,35 @@ public class Player : Character, IPlayer, IInventoryHolder
     }
     public FatigueStage FatigueStage => GetFatigueStage(Fatigue);
 
+    /// <summary>気付け薬による疲労行動制限解除中かどうか</summary>
+    public bool HasFatigueRestrictionRelief { get; set; }
+
+    /// <summary>気付け薬の効果残りターン数</summary>
+    public int FatigueRestrictionReliefRemainingTurns { get; set; }
+
+    /// <summary>気付け薬を使用する。効果中に再使用すると持続ターンをリセット。</summary>
+    public void UseFatigueReliefDrug()
+    {
+        HasFatigueRestrictionRelief = true;
+        FatigueRestrictionReliefRemainingTurns = FatigueConstants.RestrictionReliefDuration;
+    }
+
+    /// <summary>ターン経過時に気付け薬の残りターンを消費する。0になったらフラグをリセット。</summary>
+    /// <returns>効果が切れた場合true</returns>
+    public bool TickFatigueRestrictionRelief(int turnsPassed = 1)
+    {
+        if (!HasFatigueRestrictionRelief) return false;
+
+        FatigueRestrictionReliefRemainingTurns -= turnsPassed;
+        if (FatigueRestrictionReliefRemainingTurns <= 0)
+        {
+            HasFatigueRestrictionRelief = false;
+            FatigueRestrictionReliefRemainingTurns = 0;
+            return true; // 効果切れ
+        }
+        return false;
+    }
+
     private int _hygiene;
     public int Hygiene
     {

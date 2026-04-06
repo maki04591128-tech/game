@@ -1492,6 +1492,12 @@ public class GameController
 
             TurnCount += finalCost;
             GameTime.AdvanceTurn(finalCost);
+
+            // タスク61: 気付け薬の残りターン消費
+            if (Player.TickFatigueRestrictionRelief(finalCost))
+            {
+                AddMessage("😓 気付け薬の効果が切れた…体が重い。");
+            }
             // ロケーションマップ（町内）では敵が存在しないため敵ターン処理をスキップ
             // フィールドマップ（敵あり）では敵ターンを実行
             if (!_isInLocationMap || _isLocationField)
@@ -4826,6 +4832,13 @@ public class GameController
 
         TurnCount += finalCost;
         GameTime.AdvanceTurn(finalCost);
+
+        // タスク61: 気付け薬の残りターン消費
+        if (Player.TickFatigueRestrictionRelief(finalCost))
+        {
+            AddMessage("😓 気付け薬の効果が切れた…体が重い。");
+        }
+
         ProcessEnemyTurns();
         ProcessTurnEffects();
         CheckTurnLimitWarnings();
@@ -8030,6 +8043,8 @@ public class GameController
                 FaithCap = Player.FaithCap,
                 Thirst = Player.Thirst,
                 Fatigue = Player.Fatigue,
+                HasFatigueRestrictionRelief = Player.HasFatigueRestrictionRelief,
+                FatigueRestrictionReliefRemainingTurns = Player.FatigueRestrictionReliefRemainingTurns,
                 Hygiene = Player.Hygiene,
                 Gold = Player.Gold,
                 Race = Player.Race,
@@ -8443,6 +8458,10 @@ public class GameController
             save.Player.Hygiene
         );
         Player.Position = save.Player.Position.ToPosition();
+
+        // 気付け薬フラグ復元
+        Player.HasFatigueRestrictionRelief = save.Player.HasFatigueRestrictionRelief;
+        Player.FatigueRestrictionReliefRemainingTurns = save.Player.FatigueRestrictionReliefRemainingTurns;
 
         // 魔法言語復元
         foreach (var (wordId, mastery) in save.Player.LearnedWords)
