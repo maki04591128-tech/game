@@ -15,8 +15,8 @@ public class StealSystemTests
     {
         private readonly int _intVal;
         public FixedRandom(int intVal) { _intVal = intVal; }
-        public int Next(int maxValue) => Math.Min(_intVal, maxValue - 1);
-        public int Next(int minValue, int maxValue) => Math.Min(Math.Max(_intVal, minValue), maxValue - 1);
+        public int Next(int maxValue) => Math.Clamp(_intVal, 0, maxValue - 1);
+        public int Next(int minValue, int maxValue) => Math.Clamp(_intVal, minValue, maxValue - 1);
         public double NextDouble() => 0.5;
     }
 

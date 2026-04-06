@@ -10412,8 +10412,9 @@ public class GameController
             return;
         }
         int stealSkill = (int)_skillSystem.GetPassiveBonus("steal");
-        // 敵レベル推定: ExperienceReward / 10（最低1）
+        // 敵レベル推定: 経験値報酬÷10（EnemyにLevelプロパティがないため推定）
         int enemyLevel = Math.Max(1, adjacentEnemy.ExperienceReward / 10);
+        // 所持ゴールド推定: 経験値報酬÷2
         int estimatedGold = Math.Max(0, adjacentEnemy.ExperienceReward / 2);
         var result = StealSystem.AttemptSteal(
             Player.EffectiveStats.Dexterity, Player.Level, enemyLevel,
@@ -10426,7 +10427,7 @@ public class GameController
         }
         if (result.Detected)
         {
-            _karmaSystem.ModifyKarma(-5, "盗み発覚");
+            _karmaSystem.ModifyKarma(-5, "盗み発覚"); // 盗み発覚時のカルマペナルティ（-5）
             AddMessage("⚠ 敵が怒り、攻撃態勢に入った！");
         }
     }
