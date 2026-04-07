@@ -79,7 +79,8 @@ public class SaveData
     /// <summary>ペットデータ</summary>
     public PetSaveData? PetData { get; set; }
 
-    /// <summary>コンパニオンID</summary>
+    /// <summary>コンパニオンID（後方互換性のため維持。実際のデータはCompanionsリストを使用）</summary>
+    [Obsolete("Use Companions instead. Kept for backward compatibility with old save files.")]
     public List<string> CompanionIds { get; set; } = new();
 
     /// <summary>カルマ値</summary>
@@ -100,7 +101,8 @@ public class SaveData
     /// <summary>病気残りターン</summary>
     public int DiseaseRemainingTurns { get; set; }
 
-    /// <summary>アンロック済み実績</summary>
+    /// <summary>アンロック済み実績（後方互換性のため維持。実際のデータはUnlockedAchievementsを使用）</summary>
+    [Obsolete("Use UnlockedAchievements instead. Kept for backward compatibility with old save files.")]
     public List<string> Achievements { get; set; } = new();
 
     /// <summary>現在の天候</summary>

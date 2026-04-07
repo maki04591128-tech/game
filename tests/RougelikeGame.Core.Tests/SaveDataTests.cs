@@ -720,4 +720,40 @@ public class SaveDataTests
         Assert.Equal(1, karmaSystem.KarmaHistory.Count);
         Assert.Equal("有効なエントリ", karmaSystem.KarmaHistory[0].Reason);
     }
+
+    [Fact]
+    public void WeatherState_SaveAndRestore_RoundTrips()
+    {
+        // Arrange
+        var save = new SaveData
+        {
+            WeatherState = "Storm"
+        };
+
+        // Act & Assert
+        Assert.Equal("Storm", save.WeatherState);
+        Assert.True(Enum.TryParse<Weather>(save.WeatherState, out var weather));
+        Assert.Equal(Weather.Storm, weather);
+    }
+
+    [Fact]
+    public void WeatherState_NullOrEmpty_DefaultsToNull()
+    {
+        // Arrange
+        var save = new SaveData();
+
+        // Act & Assert
+        Assert.Null(save.WeatherState);
+    }
+
+    [Fact]
+    public void WeatherState_AllWeatherTypes_ParseCorrectly()
+    {
+        foreach (Weather w in Enum.GetValues<Weather>())
+        {
+            var serialized = w.ToString();
+            Assert.True(Enum.TryParse<Weather>(serialized, out var parsed));
+            Assert.Equal(w, parsed);
+        }
+    }
 }

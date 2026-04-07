@@ -8436,6 +8436,9 @@ public class GameController
             });
         }
 
+        // 天候状態の保存
+        save.WeatherState = CurrentWeather.ToString();
+
         // BU-4: ゲーム時間開始値の保存
         save.GameTimeStartYear = GameTime.StartYear;
         save.GameTimeStartMonth = GameTime.StartMonth;
@@ -9011,6 +9014,12 @@ public class GameController
                     }
                 }
             }
+        }
+
+        // 天候状態の復元
+        if (!string.IsNullOrEmpty(save.WeatherState) && Enum.TryParse<Weather>(save.WeatherState, out var weather))
+        {
+            CurrentWeather = weather;
         }
 
         // AS-5: スキルツリーボーナスプロバイダーを再設定（ロード後のステータス計算に必要）
