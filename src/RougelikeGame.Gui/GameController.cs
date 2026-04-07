@@ -8439,6 +8439,9 @@ public class GameController
         // 天候状態の保存
         save.WeatherState = CurrentWeather.ToString();
 
+        // 季節状態の保存（GameTime月から派生するが、デバッグ・検証用途で明示保存）
+        save.SeasonState = CurrentSeason.ToString();
+
         // BU-4: ゲーム時間開始値の保存
         save.GameTimeStartYear = GameTime.StartYear;
         save.GameTimeStartMonth = GameTime.StartMonth;
@@ -8826,10 +8829,15 @@ public class GameController
         if (save.MerchantGuild is { IsMember: true })
         {
             var mg = save.MerchantGuild;
-            _merchantGuildSystem.JoinGuild(Player.Name);
-            // ギルドポイントを設定してランクアップを反映させるため、交易を使わず直接状態を復元
-            // MerchantGuildSystemにはRestore機能がないため、ポイント分の交易を擬似的に実行
-            // Note: 簡易復元 - ギルド加入のみ。詳細な交易路復元は将来改善予定
+            var rank = Enum.TryParse<GuildRank>(mg.Rank, out var parsedRank) ? parsedRank : GuildRank.None;
+            var routes = mg.Routes.Select(r =>
+            {
+                var origin = Enum.TryParse<TerritoryId>(r.Origin, out var o) ? o : TerritoryId.Capital;
+                var dest = Enum.TryParse<TerritoryId>(r.Destination, out var d) ? d : TerritoryId.Capital;
+                var status = Enum.TryParse<TradeRouteStatus>(r.Status, out var s) ? s : TradeRouteStatus.Open;
+                return new MerchantGuildSystem.TradeRoute(r.RouteId, origin, dest, status, r.ProfitMultiplier, r.EstablishmentCost);
+            }).ToList();
+            _merchantGuildSystem.RestoreFromSave(Player.Name, rank, mg.GuildPoints, mg.TradeCount, mg.TotalProfit, routes);
         }
 
         // BZ-6: 派閥戦争状態の復元

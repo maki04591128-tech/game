@@ -756,4 +756,111 @@ public class SaveDataTests
             Assert.Equal(w, parsed);
         }
     }
+
+    // --- SeasonState テスト ---
+
+    [Fact]
+    public void SeasonState_DefaultIsNull()
+    {
+        var save = new SaveData();
+        Assert.Null(save.SeasonState);
+    }
+
+    [Fact]
+    public void SeasonState_AllSeasonTypes_ParseCorrectly()
+    {
+        foreach (Season s in Enum.GetValues<Season>())
+        {
+            var serialized = s.ToString();
+            Assert.True(Enum.TryParse<Season>(serialized, out var parsed));
+            Assert.Equal(s, parsed);
+        }
+    }
+
+    // --- MerchantGuildSystem.RestoreFromSave テスト ---
+
+    [Fact]
+    public void MerchantGuildSystem_RestoreFromSave_RestoresMembership()
+    {
+        var system = new MerchantGuildSystem();
+        system.RestoreFromSave("TestPlayer", GuildRank.Gold, 1500, 25, 50000);
+
+        Assert.True(system.IsMember);
+        Assert.NotNull(system.Membership);
+        Assert.Equal("TestPlayer", system.Membership!.PlayerId);
+        Assert.Equal(GuildRank.Gold, system.Membership.Rank);
+        Assert.Equal(1500, system.Membership.GuildPoints);
+        Assert.Equal(25, system.Membership.TradeCount);
+        Assert.Equal(50000, system.Membership.TotalProfit);
+    }
+
+    [Fact]
+    public void MerchantGuildSystem_RestoreFromSave_RestoresRoutes()
+    {
+        var system = new MerchantGuildSystem();
+        var routes = new List<MerchantGuildSystem.TradeRoute>
+        {
+            new("route1", TerritoryId.Capital, TerritoryId.Forest, TradeRouteStatus.Open, 120, 50),
+            new("route2", TerritoryId.Mountain, TerritoryId.Coast, TradeRouteStatus.Prosperous, 150, 80)
+        };
+        system.RestoreFromSave("TestPlayer", GuildRank.Silver, 600, 10, 20000, routes);
+
+        Assert.Equal(2, system.Routes.Count);
+        Assert.Equal("route1", system.Routes[0].RouteId);
+        Assert.Equal(TerritoryId.Capital, system.Routes[0].Origin);
+        Assert.Equal(TerritoryId.Forest, system.Routes[0].Destination);
+        Assert.Equal(TradeRouteStatus.Open, system.Routes[0].Status);
+        Assert.Equal("route2", system.Routes[1].RouteId);
+        Assert.Equal(TradeRouteStatus.Prosperous, system.Routes[1].Status);
+    }
+
+    [Fact]
+    public void MerchantGuildSystem_RestoreFromSave_OverwritesPreviousState()
+    {
+        var system = new MerchantGuildSystem();
+        system.JoinGuild("OldPlayer");
+        system.EstablishRoute("old_route", TerritoryId.Capital, TerritoryId.Forest, 50);
+        Assert.Equal(1, system.Routes.Count);
+
+        // Restore overwrites everything
+        system.RestoreFromSave("NewPlayer", GuildRank.Mythril, 8000, 100, 500000);
+        Assert.Equal("NewPlayer", system.Membership!.PlayerId);
+        Assert.Equal(GuildRank.Mythril, system.Membership.Rank);
+        Assert.Empty(system.Routes); // routes cleared since none passed
+    }
+
+    [Fact]
+    public void MerchantGuildSaveData_RoundTrip_SerializeDeserialize()
+    {
+        var saveData = new MerchantGuildSaveData
+        {
+            IsMember = true,
+            Rank = nameof(GuildRank.Platinum),
+            GuildPoints = 2500,
+            TradeCount = 40,
+            TotalProfit = 100000,
+            Routes = new List<TradeRouteSaveData>
+            {
+                new()
+                {
+                    RouteId = "route_Capital_Forest",
+                    Origin = nameof(TerritoryId.Capital),
+                    Destination = nameof(TerritoryId.Forest),
+                    Status = nameof(TradeRouteStatus.Open),
+                    ProfitMultiplier = 120,
+                    EstablishmentCost = 50
+                }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(saveData);
+        var restored = JsonSerializer.Deserialize<MerchantGuildSaveData>(json);
+
+        Assert.NotNull(restored);
+        Assert.True(restored!.IsMember);
+        Assert.Equal(nameof(GuildRank.Platinum), restored.Rank);
+        Assert.Equal(2500, restored.GuildPoints);
+        Assert.Single(restored.Routes);
+        Assert.Equal("route_Capital_Forest", restored.Routes[0].RouteId);
+    }
 }
