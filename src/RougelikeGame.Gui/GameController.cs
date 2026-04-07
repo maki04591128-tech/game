@@ -194,9 +194,6 @@ public class GameController
     /// <summary>リアルタイムターン消費の開始時刻</summary>
     private DateTime? _realTimeTurnStart;
 
-    /// <summary>リアルタイムターン消費中に累計されたターン数</summary>
-    private int _realTimeTurnAccumulated = 0;
-
     public Player Player { get; private set; } = null!;
     public DungeonMap Map { get; private set; } = null!;
     public List<Enemy> Enemies { get; } = new();
@@ -3844,7 +3841,6 @@ public class GameController
     public void StartRealTimeTurnConsumption()
     {
         _realTimeTurnStart = DateTime.UtcNow;
-        _realTimeTurnAccumulated = 0;
     }
 
     /// <summary>
@@ -3863,7 +3859,6 @@ public class GameController
                 ProcessTurnEffects();
             }
             _realTimeTurnStart = null;
-            _realTimeTurnAccumulated = 0;
         }
     }
 
