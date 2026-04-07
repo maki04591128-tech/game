@@ -118,6 +118,7 @@ public class StatusEffect
         DamageElement = type switch
         {
             StatusEffectType.Poison => Element.Poison,    // 毒: 毒属性
+            StatusEffectType.Burn => Element.Fire,         // 火傷: 火属性
             StatusEffectType.InstantDeath => Element.Dark, // 即死: 闇属性
             _ => Element.None
         };

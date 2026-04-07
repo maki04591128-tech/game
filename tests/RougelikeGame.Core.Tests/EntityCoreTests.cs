@@ -797,6 +797,19 @@ public class EntityCoreTests
     }
 
     [Theory]
+    [InlineData(StatusEffectType.Poison, Element.Poison)]
+    [InlineData(StatusEffectType.Burn, Element.Fire)]
+    [InlineData(StatusEffectType.InstantDeath, Element.Dark)]
+    [InlineData(StatusEffectType.Bleeding, Element.None)]
+    [InlineData(StatusEffectType.Freeze, Element.None)]
+    public void StatusEffect_Constructor_SetsCorrectDamageElement(
+        StatusEffectType type, Element expectedElement)
+    {
+        var effect = new StatusEffect(type, 10);
+        Assert.Equal(expectedElement, effect.DamageElement);
+    }
+
+    [Theory]
     [InlineData(StatusEffectType.Haste, 0.75f)]
     [InlineData(StatusEffectType.Slow, 1.5f)]
     [InlineData(StatusEffectType.Paralysis, 1.5f)]

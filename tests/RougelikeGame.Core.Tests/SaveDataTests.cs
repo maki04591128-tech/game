@@ -460,7 +460,7 @@ public class SaveDataTests
         // Assert
         Assert.Equal(Element.Poison, poison.DamageElement);      // 毒は毒属性
         Assert.Equal(Element.Dark, instantDeath.DamageElement);   // 即死は闇属性
-        Assert.Equal(Element.None, burn.DamageElement);           // 火傷は無属性
+        Assert.Equal(Element.Fire, burn.DamageElement);            // 火傷は火属性
     }
 
     [Fact]
