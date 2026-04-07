@@ -422,7 +422,7 @@ public class SaveDataTests
         Assert.True(effect.IsStackable);
         var damage = effect.GetTickDamage();
         Assert.NotNull(damage);
-        Assert.Equal(15, damage!.Amount);  // 5 * 3 stacks = 15
+        Assert.Equal(15, damage.Value.Amount);  // 5 * 3 stacks = 15
     }
 
     [Fact]
