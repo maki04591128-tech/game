@@ -855,6 +855,14 @@ public class EntityCoreTests
     }
 
     [Fact]
+    public void StatusEffect_Constructor_WeaknessHasAllStatsReduction()
+    {
+        var effect = new StatusEffect(StatusEffectType.Weakness, 10);
+
+        Assert.Equal(0.8f, effect.AllStatsMultiplier);
+    }
+
+    [Fact]
     public void StatusEffect_Constructor_HasteHasEvasionBonus()
     {
         var effect = new StatusEffect(StatusEffectType.Haste, 10);

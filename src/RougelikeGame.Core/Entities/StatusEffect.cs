@@ -109,6 +109,7 @@ public class StatusEffect
         AllStatsMultiplier = type switch
         {
             StatusEffectType.Curse => 0.8f,          // 呪い: 全ステータス-20%
+            StatusEffectType.Weakness => 0.8f,       // 衰弱: 全ステータス-20%
             StatusEffectType.Apostasy => 0.9f,       // 背教: 全ステータス-10%
             _ => 1.0f
         };

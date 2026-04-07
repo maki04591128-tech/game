@@ -5548,8 +5548,7 @@ public class GameController
                 case SpellEffectType.Blessing:
                     target.ApplyStatusEffect(new StatusEffect(StatusEffectType.Blessing, duration)
                     {
-                        Name = "祝福",
-                        AllStatsMultiplier = 1.10f
+                        Name = "祝福"
                     });
                     break;
                 case SpellEffectType.Buff:
