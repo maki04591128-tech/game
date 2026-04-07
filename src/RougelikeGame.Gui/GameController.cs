@@ -8639,7 +8639,7 @@ public class GameController
             _dialogueSystem.RestoreFlags(save.DialogueFlags);
         }
 
-        // 状態異常復元
+        // 状態異常復元（Name/DamagePerTick含む。旧形式セーブデータではNameが空のためType名にフォールバック）
         foreach (var effectData in save.Player.StatusEffects)
         {
             if (Enum.TryParse<StatusEffectType>(effectData.Type, out var effectType))
