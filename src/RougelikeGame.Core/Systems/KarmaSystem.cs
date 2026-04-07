@@ -106,8 +106,9 @@ public class KarmaSystem
         {
             // フォーマット: "oldValue->newValue:reason"
             var arrowIndex = entry.IndexOf("->");
-            var colonIndex = entry.IndexOf(':', arrowIndex >= 0 ? arrowIndex : 0);
-            if (arrowIndex < 0 || colonIndex < 0) continue;
+            if (arrowIndex < 0) continue;
+            var colonIndex = entry.IndexOf(':', arrowIndex + 2);
+            if (colonIndex < 0) continue;
 
             if (int.TryParse(entry[..arrowIndex], out var oldVal)
                 && int.TryParse(entry[(arrowIndex + 2)..colonIndex], out var newVal))
