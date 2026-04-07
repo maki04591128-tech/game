@@ -102,16 +102,17 @@ public class KarmaSystem
     /// <summary>セーブデータからカルマ履歴を復元</summary>
     public void RestoreHistory(List<string> serializedHistory)
     {
+        const string ArrowSeparator = "->";
         foreach (var entry in serializedHistory)
         {
             // フォーマット: "oldValue->newValue:reason"
-            var arrowIndex = entry.IndexOf("->");
+            var arrowIndex = entry.IndexOf(ArrowSeparator);
             if (arrowIndex < 0) continue;
-            var colonIndex = entry.IndexOf(':', arrowIndex + 2);
+            var colonIndex = entry.IndexOf(':', arrowIndex + ArrowSeparator.Length);
             if (colonIndex < 0) continue;
 
             if (int.TryParse(entry[..arrowIndex], out var oldVal)
-                && int.TryParse(entry[(arrowIndex + 2)..colonIndex], out var newVal))
+                && int.TryParse(entry[(arrowIndex + ArrowSeparator.Length)..colonIndex], out var newVal))
             {
                 var reason = entry[(colonIndex + 1)..];
                 KarmaHistory.Add(new KarmaEvent(oldVal, newVal, reason, 0));
