@@ -437,6 +437,15 @@ public class StatusEffectSaveData
 
     /// <summary>表示名</summary>
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>スタック数</summary>
+    public int StackCount { get; set; } = 1;
+
+    /// <summary>ダメージ属性</summary>
+    public string DamageElement { get; set; } = string.Empty;
+
+    /// <summary>最大スタック数</summary>
+    public int MaxStack { get; set; } = 1;
 }
 
 /// <summary>

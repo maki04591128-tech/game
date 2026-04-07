@@ -113,6 +113,14 @@ public class StatusEffect
             StatusEffectType.Apostasy => 0.9f,       // 背教: 全ステータス-10%
             _ => 1.0f
         };
+
+        // ダメージ属性のデフォルト設定
+        DamageElement = type switch
+        {
+            StatusEffectType.Poison => Element.Poison,    // 毒: 毒属性
+            StatusEffectType.InstantDeath => Element.Dark, // 即死: 闇属性
+            _ => Element.None
+        };
     }
 
     /// <summary>
@@ -133,6 +141,14 @@ public class StatusEffect
     public void Tick()
     {
         Duration--;
+    }
+
+    /// <summary>
+    /// セーブデータからスタック数を復元する
+    /// </summary>
+    public void RestoreStackCount(int stackCount)
+    {
+        StackCount = Math.Clamp(stackCount, 1, MaxStack);
     }
 
     /// <summary>

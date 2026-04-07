@@ -347,4 +347,144 @@ public class SaveDataTests
         Assert.Equal("Burn", effect.Name);
         Assert.Equal(4, effect.DamagePerTick);
     }
+
+    [Fact]
+    public void StatusEffectSaveData_RoundTrip_PreservesStackAndElement()
+    {
+        // Arrange: スタック済み毒のセーブデータ
+        var original = new SaveData
+        {
+            Player = new PlayerSaveData
+            {
+                Name = "テスト",
+                StatusEffects = new List<StatusEffectSaveData>
+                {
+                    new StatusEffectSaveData
+                    {
+                        Type = "Poison",
+                        RemainingTurns = 10,
+                        Potency = 5,
+                        Name = "毒",
+                        StackCount = 3,
+                        DamageElement = "Poison",
+                        MaxStack = 3
+                    }
+                }
+            }
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(original, JsonOptions);
+        var restored = JsonSerializer.Deserialize<SaveData>(json, JsonOptions);
+
+        // Assert
+        Assert.NotNull(restored);
+        var effect = restored!.Player.StatusEffects[0];
+        Assert.Equal(3, effect.StackCount);
+        Assert.Equal("Poison", effect.DamageElement);
+        Assert.Equal(3, effect.MaxStack);
+    }
+
+    [Fact]
+    public void StatusEffect_RestoredWithStackCount_HasCorrectTickDamage()
+    {
+        // Arrange: スタック3の毒を復元
+        var saveData = new StatusEffectSaveData
+        {
+            Type = "Poison",
+            RemainingTurns = 10,
+            Potency = 5,
+            Name = "毒",
+            StackCount = 3,
+            DamageElement = "Poison",
+            MaxStack = 3
+        };
+
+        // Act: ロード処理と同じロジック
+        Enum.TryParse<StatusEffectType>(saveData.Type, out var effectType);
+        var restoredElement = Enum.TryParse<Element>(saveData.DamageElement, out var elem) ? elem : Element.None;
+        var effect = new StatusEffect(effectType, saveData.RemainingTurns)
+        {
+            Name = saveData.Name,
+            DamagePerTick = saveData.Potency,
+            DamageElement = restoredElement,
+            MaxStack = saveData.MaxStack
+        };
+        if (saveData.StackCount > 1)
+        {
+            effect.RestoreStackCount(saveData.StackCount);
+        }
+
+        // Assert
+        Assert.Equal(3, effect.StackCount);
+        Assert.Equal(Element.Poison, effect.DamageElement);
+        Assert.Equal(3, effect.MaxStack);
+        Assert.True(effect.IsStackable);
+        var damage = effect.GetTickDamage();
+        Assert.NotNull(damage);
+        Assert.Equal(15, damage!.Amount);  // 5 * 3 stacks = 15
+    }
+
+    [Fact]
+    public void StatusEffect_BackwardCompat_OldSaveDataStackDefaults()
+    {
+        // Arrange: 旧形式セーブデータ（StackCount/DamageElement/MaxStackなし）
+        var json = """
+        {
+            "type": "Poison",
+            "remainingTurns": 10,
+            "potency": 3,
+            "name": "毒"
+        }
+        """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<StatusEffectSaveData>(json, JsonOptions);
+
+        // Assert: デフォルト値にフォールバック
+        Assert.NotNull(restored);
+        Assert.Equal(1, restored!.StackCount);    // デフォルト1
+        Assert.Equal(string.Empty, restored.DamageElement);  // デフォルト空
+        Assert.Equal(1, restored.MaxStack);        // デフォルト1
+    }
+
+    [Fact]
+    public void StatusEffect_Constructor_SetsDefaultDamageElement()
+    {
+        // Arrange & Act: コンストラクタでのDamageElementデフォルト値確認
+        var poison = new StatusEffect(StatusEffectType.Poison, 10);
+        var instantDeath = new StatusEffect(StatusEffectType.InstantDeath, 1);
+        var burn = new StatusEffect(StatusEffectType.Burn, 5);
+
+        // Assert
+        Assert.Equal(Element.Poison, poison.DamageElement);      // 毒は毒属性
+        Assert.Equal(Element.Dark, instantDeath.DamageElement);   // 即死は闇属性
+        Assert.Equal(Element.None, burn.DamageElement);           // 火傷は無属性
+    }
+
+    [Fact]
+    public void StatusEffect_RestoreStackCount_ClampsToMaxStack()
+    {
+        // Arrange
+        var effect = new StatusEffect(StatusEffectType.Poison, 10) { MaxStack = 3 };
+
+        // Act: MaxStackを超えるStackCountを復元しようとする
+        effect.RestoreStackCount(5);
+
+        // Assert: MaxStack=3にクランプされる
+        Assert.Equal(3, effect.StackCount);
+    }
+
+    [Fact]
+    public void StatusEffect_RestoreStackCount_ClampsToMin1()
+    {
+        // Arrange
+        var effect = new StatusEffect(StatusEffectType.Poison, 10) { MaxStack = 3 };
+
+        // Act: 0以下のStackCountを復元しようとする
+        effect.RestoreStackCount(0);
+
+        // Assert: 最低1にクランプされる
+        Assert.Equal(1, effect.StackCount);
+    }
 }

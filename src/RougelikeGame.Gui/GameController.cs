@@ -8147,7 +8147,10 @@ public class GameController
                 Type = effect.Type.ToString(),
                 RemainingTurns = effect.Duration,
                 Potency = effect.DamagePerTick,
-                Name = effect.Name
+                Name = effect.Name,
+                StackCount = effect.StackCount,
+                DamageElement = effect.DamageElement.ToString(),
+                MaxStack = effect.MaxStack
             });
         }
 
@@ -8639,17 +8642,26 @@ public class GameController
             _dialogueSystem.RestoreFlags(save.DialogueFlags);
         }
 
-        // 状態異常復元（Name/DamagePerTick含む。旧形式セーブデータではNameが空のためType名にフォールバック）
+        // 状態異常復元（Name/DamagePerTick/StackCount/DamageElement/MaxStack含む。旧形式セーブデータでは新フィールドがデフォルト値にフォールバック）
         foreach (var effectData in save.Player.StatusEffects)
         {
             if (Enum.TryParse<StatusEffectType>(effectData.Type, out var effectType))
             {
                 var restoredName = !string.IsNullOrEmpty(effectData.Name) ? effectData.Name : effectType.ToString();
+                var restoredElement = Enum.TryParse<Element>(effectData.DamageElement, out var elem) ? elem : Element.None;
+                var restoredMaxStack = effectData.MaxStack > 0 ? effectData.MaxStack : 1;
                 var effect = new StatusEffect(effectType, effectData.RemainingTurns)
                 {
                     Name = restoredName,
-                    DamagePerTick = effectData.Potency
+                    DamagePerTick = effectData.Potency,
+                    DamageElement = restoredElement,
+                    MaxStack = restoredMaxStack
                 };
+                // StackCountは復元メソッド経由で設定（private set）
+                if (effectData.StackCount > 1)
+                {
+                    effect.RestoreStackCount(effectData.StackCount);
+                }
                 Player.ApplyStatusEffect(effect);
             }
         }
