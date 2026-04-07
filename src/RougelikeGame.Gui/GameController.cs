@@ -8474,6 +8474,8 @@ public class GameController
             };
 
             // フロアキャッシュからCreatedAtTurnを取得
+            // フォールバック: 新規ゲーム開始直後やキャッシュクリア後など、
+            // フロアキャッシュが存在しない場合は現在のターン数を使用する
             var saveFloorKey = (_currentMapName, CurrentFloor);
             if (_floorCache.TryGetValue(saveFloorKey, out var saveFloorCache))
             {
@@ -8493,11 +8495,7 @@ public class GameController
                     mapSave.TileTypes.Add((int)tile.Type);
 
                     // デフォルトと異なる追加状態を持つタイルのみ保存
-                    if (tile.RoomId != -1 || tile.IsLocked || tile.LockDifficulty > 0
-                        || tile.TrapId != null || tile.ItemId != null || tile.BuildingId != null
-                        || tile.ChestOpened || tile.ChestLockDifficulty > 0 || tile.ChestItems != null
-                        || tile.InscriptionWordId != null || tile.InscriptionRead
-                        || tile.GatheringNodeType != null)
+                    if (HasNonDefaultTileState(tile))
                     {
                         mapSave.TileStates.Add(new TileStateSaveData
                         {
@@ -9138,6 +9136,15 @@ public class GameController
     /// <summary>
     /// セーブデータからマップを復元し、フロアキャッシュに登録する
     /// </summary>
+    private static bool HasNonDefaultTileState(Tile tile)
+    {
+        return tile.RoomId != -1 || tile.IsLocked || tile.LockDifficulty > 0
+            || tile.TrapId != null || tile.ItemId != null || tile.BuildingId != null
+            || tile.ChestOpened || tile.ChestLockDifficulty > 0 || tile.ChestItems != null
+            || tile.InscriptionWordId != null || tile.InscriptionRead
+            || tile.GatheringNodeType != null;
+    }
+
     private void RestoreMapFromSaveData(MapSaveData mapData)
     {
         // ダンジョン特徴を決定（SpawnEnemies等で使用）
