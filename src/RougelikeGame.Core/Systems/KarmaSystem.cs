@@ -10,6 +10,7 @@ public record KarmaEvent(int OldValue, int NewValue, string Reason, int TurnNumb
 /// </summary>
 public class KarmaSystem
 {
+    private const string ArrowSeparator = "->";
     private int _karmaValue;
 
     /// <summary>カルマ値 (-100～100)</summary>
@@ -102,7 +103,6 @@ public class KarmaSystem
     /// <summary>セーブデータからカルマ履歴を復元</summary>
     public void RestoreHistory(List<string> serializedHistory)
     {
-        const string ArrowSeparator = "->";
         foreach (var entry in serializedHistory)
         {
             // フォーマット: "oldValue->newValue:reason"
