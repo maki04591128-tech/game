@@ -1,5 +1,6 @@
 using Xunit;
 using RougelikeGame.Core;
+using RougelikeGame.Core.Systems;
 using System.Text.Json;
 
 namespace RougelikeGame.Core.Tests;
@@ -486,5 +487,134 @@ public class SaveDataTests
 
         // Assert: 最低1にクランプされる
         Assert.Equal(1, effect.StackCount);
+    }
+
+    [Fact]
+    public void PlayerSaveData_BonusStats_RoundTrip()
+    {
+        // Arrange
+        var saveData = new PlayerSaveData
+        {
+            Name = "テスト",
+            BonusMaxHp = 50,
+            BonusMaxMp = 30,
+            BonusCriticalRate = 0.15,
+            KnownRunes = new List<string> { "fire_rune", "ice_rune" }
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(saveData, JsonOptions);
+        var restored = JsonSerializer.Deserialize<PlayerSaveData>(json, JsonOptions);
+
+        // Assert
+        Assert.NotNull(restored);
+        Assert.Equal(50, restored!.BonusMaxHp);
+        Assert.Equal(30, restored.BonusMaxMp);
+        Assert.Equal(0.15, restored.BonusCriticalRate);
+        Assert.Equal(2, restored.KnownRunes.Count);
+        Assert.Contains("fire_rune", restored.KnownRunes);
+        Assert.Contains("ice_rune", restored.KnownRunes);
+    }
+
+    [Fact]
+    public void PlayerSaveData_BackwardCompat_OldSaveDataBonusDefaults()
+    {
+        // Arrange: 旧形式セーブデータ（BonusStats/KnownRunesなし）
+        var json = """
+        {
+            "name": "テスト",
+            "level": 5,
+            "experience": 100
+        }
+        """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<PlayerSaveData>(json, JsonOptions);
+
+        // Assert: デフォルト値にフォールバック
+        Assert.NotNull(restored);
+        Assert.Equal(0, restored!.BonusMaxHp);
+        Assert.Equal(0, restored.BonusMaxMp);
+        Assert.Equal(0.0, restored.BonusCriticalRate);
+        Assert.Empty(restored.KnownRunes);
+    }
+
+    [Fact]
+    public void PetSaveData_MaxHp_RoundTrip()
+    {
+        // Arrange
+        var saveData = new PetSaveData
+        {
+            PetId = "pet_001",
+            Name = "ポチ",
+            PetType = "Wolf",
+            Level = 5,
+            CurrentHp = 80,
+            MaxHp = 120
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(saveData, JsonOptions);
+        var restored = JsonSerializer.Deserialize<PetSaveData>(json, JsonOptions);
+
+        // Assert
+        Assert.NotNull(restored);
+        Assert.Equal(120, restored!.MaxHp);
+        Assert.Equal(80, restored.CurrentHp);
+    }
+
+    [Fact]
+    public void PetSaveData_BackwardCompat_OldSaveDataMaxHpDefault()
+    {
+        // Arrange: 旧形式セーブデータ（MaxHpなし）
+        var json = """
+        {
+            "petId": "pet_001",
+            "name": "ポチ",
+            "petType": "Wolf",
+            "currentHp": 50
+        }
+        """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<PetSaveData>(json, JsonOptions);
+
+        // Assert: MaxHpがデフォルト0（RestorePetStateで処理）
+        Assert.NotNull(restored);
+        Assert.Equal(0, restored!.MaxHp);
+    }
+
+    [Fact]
+    public void PetSystem_RestorePetState_WithMaxHp_RestoresCorrectly()
+    {
+        // Arrange
+        var petSystem = new PetSystem();
+        petSystem.AddPet("pet_001", "ポチ", PetType.Wolf);
+
+        // Act: MaxHp=120を復元（レベルアップ後の値）
+        petSystem.RestorePetState("pet_001", 5, 100, 80, 70, 100, 120);
+
+        // Assert
+        var pets = petSystem.Pets;
+        var pet = pets["pet_001"];
+        Assert.Equal(120, pet.MaxHp);
+        Assert.Equal(100, pet.CurrentHp);
+        Assert.Equal(5, pet.Level);
+    }
+
+    [Fact]
+    public void PetSystem_RestorePetState_WithZeroMaxHp_UsesBaseMaxHp()
+    {
+        // Arrange: 旧セーブデータではMaxHp=0
+        var petSystem = new PetSystem();
+        petSystem.AddPet("pet_001", "ポチ", PetType.Wolf);
+        var baseMaxHp = petSystem.Pets["pet_001"].MaxHp;
+
+        // Act: MaxHp=0（旧形式、デフォルト値でフォールバック）
+        petSystem.RestorePetState("pet_001", 1, 0, 80, 50, 30, 0);
+
+        // Assert: BaseHpを維持
+        var pet = petSystem.Pets["pet_001"];
+        Assert.Equal(baseMaxHp, pet.MaxHp);
     }
 }

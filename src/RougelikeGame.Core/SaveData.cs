@@ -312,6 +312,18 @@ public class PlayerSaveData
 
     /// <summary>引き継ぎデータ</summary>
     public TransferDataSaveData? TransferData { get; set; }
+
+    /// <summary>ボーナス最大HP（種族・職業ボーナス等）</summary>
+    public int BonusMaxHp { get; set; }
+
+    /// <summary>ボーナス最大MP（種族・職業ボーナス等）</summary>
+    public int BonusMaxMp { get; set; }
+
+    /// <summary>ボーナスクリティカル率</summary>
+    public double BonusCriticalRate { get; set; }
+
+    /// <summary>習得済みルーン</summary>
+    public List<string> KnownRunes { get; set; } = new();
 }
 
 /// <summary>
@@ -476,6 +488,9 @@ public class PetSaveData
 
     /// <summary>現在HP</summary>
     public int CurrentHp { get; set; }
+
+    /// <summary>最大HP（レベルアップ等で増加した値）</summary>
+    public int MaxHp { get; set; }
 
     /// <summary>騎乗中か</summary>
     public bool IsRiding { get; set; }

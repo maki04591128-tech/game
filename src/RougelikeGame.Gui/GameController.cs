@@ -8072,6 +8072,10 @@ public class GameController
                 CharacterClass = Player.CharacterClass,
                 Background = Player.Background,
                 TotalDeaths = TotalDeaths,
+                BonusMaxHp = Player.BonusMaxHp,
+                BonusMaxMp = Player.BonusMaxMp,
+                BonusCriticalRate = Player.BonusCriticalRate,
+                KnownRunes = Player.KnownRunes.ToList(),
                 TransferData = _transferData != null ? new TransferDataSaveData
                 {
                     LearnedWords = new Dictionary<string, int>(_transferData.LearnedWords),
@@ -8169,6 +8173,7 @@ public class GameController
                 Hunger = firstPet.Hunger,
                 Loyalty = firstPet.Loyalty,
                 CurrentHp = firstPet.CurrentHp,
+                MaxHp = firstPet.MaxHp,
                 IsRiding = firstPet.IsRiding
             };
         }
@@ -8488,6 +8493,17 @@ public class GameController
         Player.HasFatigueRestrictionRelief = save.Player.HasFatigueRestrictionRelief;
         Player.FatigueRestrictionReliefRemainingTurns = save.Player.FatigueRestrictionReliefRemainingTurns;
 
+        // ボーナスステータス復元（種族・職業ボーナス等）
+        Player.BonusMaxHp = save.Player.BonusMaxHp;
+        Player.BonusMaxMp = save.Player.BonusMaxMp;
+        Player.BonusCriticalRate = save.Player.BonusCriticalRate;
+
+        // 習得済みルーン復元
+        foreach (var runeId in save.Player.KnownRunes)
+        {
+            Player.LearnRune(runeId);
+        }
+
         // 魔法言語復元
         foreach (var (wordId, mastery) in save.Player.LearnedWords)
         {
@@ -8674,7 +8690,8 @@ public class GameController
             // AB-1: ペット属性値を復元
             _petSystem.RestorePetState(save.PetData.PetId,
                 save.PetData.Level, save.PetData.Experience,
-                save.PetData.Hunger, save.PetData.Loyalty, save.PetData.CurrentHp);
+                save.PetData.Hunger, save.PetData.Loyalty, save.PetData.CurrentHp,
+                save.PetData.MaxHp);
         }
 
         // カルマ復元
