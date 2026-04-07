@@ -213,6 +213,9 @@ public class SaveData
 
     /// <summary>AS-3/CE-12: マップ探索状態（IsExplored=trueのタイル座標）</summary>
     public List<string> ExploredTiles { get; set; } = new();
+
+    /// <summary>マップタイルデータ（セーブ/ロードでマップ構造を保持するため）</summary>
+    public MapSaveData? MapData { get; set; }
 }
 
 /// <summary>
@@ -645,3 +648,70 @@ public class EcosystemEventSaveData
     public int Turn { get; set; }
     public string Description { get; set; } = string.Empty;
 }
+
+/// <summary>
+/// マップのセーブデータ（タイル構造・部屋情報・地面アイテムを保持）
+/// </summary>
+public class MapSaveData
+{
+    /// <summary>マップ幅</summary>
+    public int Width { get; set; }
+
+    /// <summary>マップ高さ</summary>
+    public int Height { get; set; }
+
+    /// <summary>フロアキャッシュ作成時のターン数（24時間再生成判定に使用）</summary>
+    public int CreatedAtTurn { get; set; }
+
+    /// <summary>タイルタイプの一次元配列（行優先順序: index = y * Width + x）</summary>
+    public List<int> TileTypes { get; set; } = new();
+
+    /// <summary>デフォルトと異なる状態を持つタイルの詳細データ</summary>
+    public List<TileStateSaveData> TileStates { get; set; } = new();
+
+    /// <summary>部屋情報</summary>
+    public List<RoomSaveData> Rooms { get; set; } = new();
+
+    /// <summary>地面のアイテム</summary>
+    public List<GroundItemSaveData> GroundItems { get; set; } = new();
+}
+
+/// <summary>
+/// デフォルトと異なる状態を持つタイルのセーブデータ
+/// </summary>
+public class TileStateSaveData
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int RoomId { get; set; } = -1;
+    public bool IsLocked { get; set; }
+    public int LockDifficulty { get; set; }
+    public string? TrapId { get; set; }
+    public string? ItemId { get; set; }
+    public string? BuildingId { get; set; }
+    public bool ChestOpened { get; set; }
+    public int ChestLockDifficulty { get; set; }
+    public List<string>? ChestItems { get; set; }
+    public string? InscriptionWordId { get; set; }
+    public bool InscriptionRead { get; set; }
+    public int? GatheringNodeType { get; set; }
+}
+
+/// <summary>
+/// 部屋のセーブデータ
+/// </summary>
+public class RoomSaveData
+{
+    public int Id { get; set; }
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public string Type { get; set; } = "Normal";
+    public List<int> ConnectedRooms { get; set; } = new();
+}
+
+/// <summary>
+/// 地面に落ちているアイテムのセーブデータ（マップ復元用）
+/// ※ GroundItemSaveData は既存クラスを再利用
+/// </summary>

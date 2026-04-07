@@ -8464,6 +8464,91 @@ public class GameController
             }
         }
 
+        // マップタイルデータの保存（セーブ/ロードでマップ構造を保持）
+        if (Map is DungeonMap saveMap)
+        {
+            var mapSave = new MapSaveData
+            {
+                Width = saveMap.Width,
+                Height = saveMap.Height,
+            };
+
+            // フロアキャッシュからCreatedAtTurnを取得
+            var saveFloorKey = (_currentMapName, CurrentFloor);
+            if (_floorCache.TryGetValue(saveFloorKey, out var saveFloorCache))
+            {
+                mapSave.CreatedAtTurn = saveFloorCache.CreatedAtTurn;
+            }
+            else
+            {
+                mapSave.CreatedAtTurn = GameTime.TotalTurns;
+            }
+
+            // タイルタイプを一次元配列として保存
+            for (int y = 0; y < saveMap.Height; y++)
+            {
+                for (int x = 0; x < saveMap.Width; x++)
+                {
+                    var tile = saveMap.GetTile(new Position(x, y));
+                    mapSave.TileTypes.Add((int)tile.Type);
+
+                    // デフォルトと異なる追加状態を持つタイルのみ保存
+                    if (tile.RoomId != -1 || tile.IsLocked || tile.LockDifficulty > 0
+                        || tile.TrapId != null || tile.ItemId != null || tile.BuildingId != null
+                        || tile.ChestOpened || tile.ChestLockDifficulty > 0 || tile.ChestItems != null
+                        || tile.InscriptionWordId != null || tile.InscriptionRead
+                        || tile.GatheringNodeType != null)
+                    {
+                        mapSave.TileStates.Add(new TileStateSaveData
+                        {
+                            X = x,
+                            Y = y,
+                            RoomId = tile.RoomId,
+                            IsLocked = tile.IsLocked,
+                            LockDifficulty = tile.LockDifficulty,
+                            TrapId = tile.TrapId,
+                            ItemId = tile.ItemId,
+                            BuildingId = tile.BuildingId,
+                            ChestOpened = tile.ChestOpened,
+                            ChestLockDifficulty = tile.ChestLockDifficulty,
+                            ChestItems = tile.ChestItems?.ToList(),
+                            InscriptionWordId = tile.InscriptionWordId,
+                            InscriptionRead = tile.InscriptionRead,
+                            GatheringNodeType = tile.GatheringNodeType.HasValue ? (int)tile.GatheringNodeType.Value : null,
+                        });
+                    }
+                }
+            }
+
+            // 部屋情報の保存
+            foreach (var room in saveMap.Rooms)
+            {
+                mapSave.Rooms.Add(new RoomSaveData
+                {
+                    Id = room.Id,
+                    X = room.X,
+                    Y = room.Y,
+                    Width = room.Width,
+                    Height = room.Height,
+                    Type = room.Type.ToString(),
+                    ConnectedRooms = room.ConnectedRooms.ToList(),
+                });
+            }
+
+            // 地面アイテムの保存
+            foreach (var (item, pos) in GroundItems)
+            {
+                mapSave.GroundItems.Add(new GroundItemSaveData
+                {
+                    Item = CreateItemSaveData(item),
+                    X = pos.X,
+                    Y = pos.Y,
+                });
+            }
+
+            save.MapData = mapSave;
+        }
+
         return save;
     }
 
@@ -8576,8 +8661,16 @@ public class GameController
         // マップ名復元
         _currentMapName = save.CurrentMapName ?? "capital_guild";
 
-        // マップ再生成（セーブには含まない）
-        GenerateFloor();
+        // マップ復元: セーブデータにマップがあれば復元、なければ従来の再生成
+        if (save.MapData != null && save.MapData.TileTypes.Count == save.MapData.Width * save.MapData.Height)
+        {
+            RestoreMapFromSaveData(save.MapData);
+        }
+        else
+        {
+            // 旧セーブデータ互換: マップデータがない場合は従来通り再生成
+            GenerateFloor();
+        }
         Player.Position = save.Player.Position.ToPosition();
         Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
 
@@ -9040,6 +9133,123 @@ public class GameController
         Player.UpdateMaxWeight();
 
         OnStateChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// セーブデータからマップを復元し、フロアキャッシュに登録する
+    /// </summary>
+    private void RestoreMapFromSaveData(MapSaveData mapData)
+    {
+        // ダンジョン特徴を決定（SpawnEnemies等で使用）
+        var territory = _worldMapSystem.GetCurrentTerritoryInfo().Id;
+        _currentDungeonFeature = DungeonFeatureGenerator.SelectFeatureForTerritory(territory, CurrentFloor, _random);
+
+        // 環境音を更新
+        bool isBossFloor = CurrentFloor % GameConstants.BossFloorInterval == 0;
+        _currentAmbientSound = AmbientSoundSystem.GetAmbientForDungeon(CurrentFloor, isBossFloor);
+
+        // DungeonMapを復元
+        var restoredMap = new DungeonMap(mapData.Width, mapData.Height)
+        {
+            Depth = CurrentFloor,
+            Name = _currentMapName
+        };
+
+        // タイルタイプを復元
+        for (int y = 0; y < mapData.Height; y++)
+        {
+            for (int x = 0; x < mapData.Width; x++)
+            {
+                int index = y * mapData.Width + x;
+                if (index < mapData.TileTypes.Count)
+                {
+                    var tileType = (TileType)mapData.TileTypes[index];
+                    restoredMap.SetTile(new Position(x, y), Tile.FromType(tileType));
+
+                    // 階段位置を設定
+                    if (tileType == TileType.StairsUp)
+                        restoredMap.SetStairsUp(new Position(x, y));
+                    else if (tileType == TileType.StairsDown)
+                        restoredMap.SetStairsDown(new Position(x, y));
+                }
+            }
+        }
+
+        // タイルの詳細状態を復元
+        foreach (var state in mapData.TileStates)
+        {
+            var pos = new Position(state.X, state.Y);
+            if (!restoredMap.IsInBounds(pos)) continue;
+
+            var tile = restoredMap.GetTile(pos);
+            tile.RoomId = state.RoomId;
+            tile.IsLocked = state.IsLocked;
+            tile.LockDifficulty = state.LockDifficulty;
+            tile.TrapId = state.TrapId;
+            tile.ItemId = state.ItemId;
+            tile.BuildingId = state.BuildingId;
+            tile.ChestOpened = state.ChestOpened;
+            tile.ChestLockDifficulty = state.ChestLockDifficulty;
+            tile.ChestItems = state.ChestItems?.ToList();
+            tile.InscriptionWordId = state.InscriptionWordId;
+            tile.InscriptionRead = state.InscriptionRead;
+            tile.GatheringNodeType = state.GatheringNodeType.HasValue
+                ? (GatheringType)state.GatheringNodeType.Value
+                : null;
+        }
+
+        // 部屋情報を復元
+        foreach (var roomData in mapData.Rooms)
+        {
+            var room = new Room
+            {
+                Id = roomData.Id,
+                X = roomData.X,
+                Y = roomData.Y,
+                Width = roomData.Width,
+                Height = roomData.Height,
+                Type = Enum.TryParse<RoomType>(roomData.Type, out var rt) ? rt : RoomType.Normal,
+            };
+            foreach (var connId in roomData.ConnectedRooms)
+            {
+                room.ConnectedRooms.Add(connId);
+            }
+            restoredMap.AddRoom(room);
+        }
+
+        // 入口位置を設定（Entranceタイプの部屋がある場合）
+        var entranceRoom = restoredMap.GetEntranceRoom();
+        if (entranceRoom != null)
+        {
+            restoredMap.SetEntrance(entranceRoom.Center);
+        }
+
+        Map = restoredMap;
+
+        // 敵を再生成（動的要素のため毎回再生成）
+        Enemies.Clear();
+        SpawnEnemies();
+
+        // 地面アイテムを復元
+        GroundItems.Clear();
+        foreach (var groundItemData in mapData.GroundItems)
+        {
+            var item = RestoreItem(groundItemData.Item);
+            if (item != null)
+            {
+                GroundItems.Add((item, new Position(groundItemData.X, groundItemData.Y)));
+            }
+        }
+
+        // フロアキャッシュに登録（24時間再生成判定を維持）
+        var floorKey = (_currentMapName, CurrentFloor);
+        _floorCache[floorKey] = new FloorCache(restoredMap, mapData.CreatedAtTurn, new List<(Item, Position)>(GroundItems));
+
+        // ダンジョンショートカット用: 訪問済み階を記録
+        if (!string.IsNullOrEmpty(_currentMapName))
+        {
+            _dungeonShortcutSystem.MarkFloorVisited(_currentMapName, CurrentFloor);
+        }
     }
 
     private static ItemSaveData CreateItemSaveData(Item item) => new()

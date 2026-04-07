@@ -909,4 +909,273 @@ public class SaveDataTests
         Assert.Equal(0, restored.HireCost); // デフォルト0
         Assert.Null(restored.AIMode); // デフォルトnull → 復元時Defensiveにフォールバック
     }
+
+    #region マップセーブデータテスト
+
+    [Fact]
+    public void MapSaveData_RoundTrip_PreservesTileTypes()
+    {
+        // Arrange
+        var original = new MapSaveData
+        {
+            Width = 3,
+            Height = 2,
+            CreatedAtTurn = 5000,
+            TileTypes = new List<int> { 0, 1, 1, 0, 2, 3 }, // Wall, Floor, Floor, Wall, Corridor, DoorClosed
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(original, JsonOptions);
+        var restored = JsonSerializer.Deserialize<MapSaveData>(json, JsonOptions);
+
+        // Assert
+        Assert.NotNull(restored);
+        Assert.Equal(3, restored!.Width);
+        Assert.Equal(2, restored.Height);
+        Assert.Equal(5000, restored.CreatedAtTurn);
+        Assert.Equal(6, restored.TileTypes.Count);
+        Assert.Equal(original.TileTypes, restored.TileTypes);
+    }
+
+    [Fact]
+    public void MapSaveData_RoundTrip_PreservesRooms()
+    {
+        // Arrange
+        var original = new MapSaveData
+        {
+            Width = 10,
+            Height = 10,
+            CreatedAtTurn = 1000,
+            TileTypes = Enumerable.Repeat(0, 100).ToList(),
+            Rooms = new List<RoomSaveData>
+            {
+                new RoomSaveData
+                {
+                    Id = 0, X = 1, Y = 1, Width = 4, Height = 3,
+                    Type = "Entrance",
+                    ConnectedRooms = new List<int> { 1 },
+                },
+                new RoomSaveData
+                {
+                    Id = 1, X = 6, Y = 5, Width = 3, Height = 3,
+                    Type = "Boss",
+                    ConnectedRooms = new List<int> { 0 },
+                },
+            },
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(original, JsonOptions);
+        var restored = JsonSerializer.Deserialize<MapSaveData>(json, JsonOptions);
+
+        // Assert
+        Assert.NotNull(restored);
+        Assert.Equal(2, restored!.Rooms.Count);
+        Assert.Equal("Entrance", restored.Rooms[0].Type);
+        Assert.Equal("Boss", restored.Rooms[1].Type);
+        Assert.Equal(1, restored.Rooms[0].ConnectedRooms[0]);
+    }
+
+    [Fact]
+    public void MapSaveData_RoundTrip_PreservesTileStates()
+    {
+        // Arrange
+        var original = new MapSaveData
+        {
+            Width = 5,
+            Height = 5,
+            CreatedAtTurn = 2000,
+            TileTypes = Enumerable.Repeat(1, 25).ToList(),
+            TileStates = new List<TileStateSaveData>
+            {
+                new TileStateSaveData
+                {
+                    X = 2, Y = 3, RoomId = 0,
+                    IsLocked = true, LockDifficulty = 15,
+                    TrapId = "spike_trap",
+                    ChestItems = new List<string> { "sword_iron", "potion_heal" },
+                    ChestOpened = false,
+                    ChestLockDifficulty = 10,
+                    InscriptionWordId = "rune_fire",
+                    InscriptionRead = true,
+                    GatheringNodeType = 1,
+                },
+            },
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(original, JsonOptions);
+        var restored = JsonSerializer.Deserialize<MapSaveData>(json, JsonOptions);
+
+        // Assert
+        Assert.NotNull(restored);
+        var state = restored!.TileStates[0];
+        Assert.Equal(2, state.X);
+        Assert.Equal(3, state.Y);
+        Assert.Equal(0, state.RoomId);
+        Assert.True(state.IsLocked);
+        Assert.Equal(15, state.LockDifficulty);
+        Assert.Equal("spike_trap", state.TrapId);
+        Assert.NotNull(state.ChestItems);
+        Assert.Equal(2, state.ChestItems!.Count);
+        Assert.False(state.ChestOpened);
+        Assert.Equal(10, state.ChestLockDifficulty);
+        Assert.Equal("rune_fire", state.InscriptionWordId);
+        Assert.True(state.InscriptionRead);
+        Assert.Equal(1, state.GatheringNodeType);
+    }
+
+    [Fact]
+    public void MapSaveData_RoundTrip_PreservesGroundItems()
+    {
+        // Arrange
+        var original = new MapSaveData
+        {
+            Width = 5,
+            Height = 5,
+            CreatedAtTurn = 3000,
+            TileTypes = Enumerable.Repeat(1, 25).ToList(),
+            GroundItems = new List<GroundItemSaveData>
+            {
+                new GroundItemSaveData
+                {
+                    Item = new ItemSaveData { ItemId = "potion_heal", StackCount = 3 },
+                    X = 2, Y = 4,
+                },
+                new GroundItemSaveData
+                {
+                    Item = new ItemSaveData { ItemId = "sword_iron", EnhancementLevel = 2, IsCursed = true },
+                    X = 1, Y = 1,
+                },
+            },
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(original, JsonOptions);
+        var restored = JsonSerializer.Deserialize<MapSaveData>(json, JsonOptions);
+
+        // Assert
+        Assert.NotNull(restored);
+        Assert.Equal(2, restored!.GroundItems.Count);
+        Assert.Equal("potion_heal", restored.GroundItems[0].Item.ItemId);
+        Assert.Equal(3, restored.GroundItems[0].Item.StackCount);
+        Assert.Equal(2, restored.GroundItems[0].X);
+        Assert.Equal(4, restored.GroundItems[0].Y);
+        Assert.Equal("sword_iron", restored.GroundItems[1].Item.ItemId);
+        Assert.Equal(2, restored.GroundItems[1].Item.EnhancementLevel);
+        Assert.True(restored.GroundItems[1].Item.IsCursed);
+    }
+
+    [Fact]
+    public void MapSaveData_BackwardCompatibility_NullMapData()
+    {
+        // 旧セーブデータ: MapDataフィールドが存在しない
+        var json = """{"Version":1,"CurrentFloor":1,"TurnCount":10}""";
+        var restored = JsonSerializer.Deserialize<SaveData>(json);
+
+        Assert.NotNull(restored);
+        Assert.Null(restored!.MapData);
+    }
+
+    [Fact]
+    public void MapSaveData_CreatedAtTurn_PreservedForCacheExpiry()
+    {
+        // Arrange: 24時間前に作成されたマップ
+        var createdAt = 1000;
+        var currentTurn = 1000 + 24 * 60 * 60; // 24時間後
+        var cacheExpiry = 24 * 60 * 60;
+
+        var mapData = new MapSaveData
+        {
+            Width = 5,
+            Height = 5,
+            CreatedAtTurn = createdAt,
+            TileTypes = Enumerable.Repeat(1, 25).ToList(),
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(mapData, JsonOptions);
+        var restored = JsonSerializer.Deserialize<MapSaveData>(json, JsonOptions);
+
+        // Assert: CreatedAtTurnが保持され、24時間判定が正しく動作
+        Assert.NotNull(restored);
+        Assert.Equal(createdAt, restored!.CreatedAtTurn);
+        Assert.True(currentTurn - restored.CreatedAtTurn >= cacheExpiry);
+    }
+
+    [Fact]
+    public void MapSaveData_CreatedAtTurn_NotExpiredWithin24Hours()
+    {
+        // Arrange: 12時間前に作成されたマップ
+        var createdAt = 1000;
+        var currentTurn = 1000 + 12 * 60 * 60; // 12時間後
+        var cacheExpiry = 24 * 60 * 60;
+
+        var mapData = new MapSaveData
+        {
+            Width = 5,
+            Height = 5,
+            CreatedAtTurn = createdAt,
+            TileTypes = Enumerable.Repeat(1, 25).ToList(),
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(mapData, JsonOptions);
+        var restored = JsonSerializer.Deserialize<MapSaveData>(json, JsonOptions);
+
+        // Assert: 24時間以内なのでキャッシュは有効
+        Assert.NotNull(restored);
+        Assert.Equal(createdAt, restored!.CreatedAtTurn);
+        Assert.True(currentTurn - restored.CreatedAtTurn < cacheExpiry);
+    }
+
+    [Fact]
+    public void SaveData_WithMapData_FullRoundTrip()
+    {
+        // Arrange: SaveData全体にMapDataを含めたラウンドトリップ
+        var original = new SaveData
+        {
+            CurrentFloor = 5,
+            TurnCount = 50000,
+            GameTime = new GameTimeSaveData { TotalTurns = 50000 },
+            CurrentMapName = "test_dungeon",
+            MapData = new MapSaveData
+            {
+                Width = 10,
+                Height = 8,
+                CreatedAtTurn = 40000,
+                TileTypes = Enumerable.Range(0, 80).Select(i => i % 3).ToList(),
+                Rooms = new List<RoomSaveData>
+                {
+                    new RoomSaveData { Id = 0, X = 1, Y = 1, Width = 4, Height = 3, Type = "Normal" },
+                },
+                TileStates = new List<TileStateSaveData>
+                {
+                    new TileStateSaveData { X = 2, Y = 2, RoomId = 0 },
+                },
+                GroundItems = new List<GroundItemSaveData>
+                {
+                    new GroundItemSaveData { Item = new ItemSaveData { ItemId = "test_item" }, X = 3, Y = 3 },
+                },
+            },
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(original, JsonOptions);
+        var restored = JsonSerializer.Deserialize<SaveData>(json, JsonOptions);
+
+        // Assert
+        Assert.NotNull(restored);
+        Assert.NotNull(restored!.MapData);
+        Assert.Equal(10, restored.MapData!.Width);
+        Assert.Equal(8, restored.MapData.Height);
+        Assert.Equal(40000, restored.MapData.CreatedAtTurn);
+        Assert.Equal(80, restored.MapData.TileTypes.Count);
+        Assert.Single(restored.MapData.Rooms);
+        Assert.Single(restored.MapData.TileStates);
+        Assert.Single(restored.MapData.GroundItems);
+        Assert.Equal("test_dungeon", restored.CurrentMapName);
+    }
+
+    #endregion
 }
