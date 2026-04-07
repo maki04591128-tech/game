@@ -472,6 +472,12 @@ public class Player : Character, IPlayer, IInventoryHolder
     {
         FaithPoints = Math.Clamp(FaithPoints + amount, 0, FaithCap);
     }
+
+    /// <summary>セーブデータからPreviousReligionを復元</summary>
+    public void RestorePreviousReligion(string? previousReligion)
+    {
+        PreviousReligion = previousReligion;
+    }
     #endregion
 
     #region Level System

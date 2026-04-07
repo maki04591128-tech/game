@@ -99,6 +99,25 @@ public class KarmaSystem
         _currentTurn = 0;
     }
 
+    /// <summary>セーブデータからカルマ履歴を復元</summary>
+    public void RestoreHistory(List<string> serializedHistory)
+    {
+        foreach (var entry in serializedHistory)
+        {
+            // フォーマット: "oldValue->newValue:reason"
+            var arrowIndex = entry.IndexOf("->");
+            var colonIndex = entry.IndexOf(':', arrowIndex >= 0 ? arrowIndex : 0);
+            if (arrowIndex < 0 || colonIndex < 0) continue;
+
+            if (int.TryParse(entry[..arrowIndex], out var oldVal)
+                && int.TryParse(entry[(arrowIndex + 2)..colonIndex], out var newVal))
+            {
+                var reason = entry[(colonIndex + 1)..];
+                KarmaHistory.Add(new KarmaEvent(oldVal, newVal, reason, 0));
+            }
+        }
+    }
+
     /// <summary>カルマ段階の日本語名を取得</summary>
     public static string GetKarmaRankName(KarmaRank rank) => rank switch
     {

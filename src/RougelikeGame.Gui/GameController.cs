@@ -8529,6 +8529,7 @@ public class GameController
         Player.DaysSinceLastPrayer = save.Player.DaysSinceLastPrayer;
         Player.HasPrayedToday = save.Player.HasPrayedToday;  // AB-7/M-3
         Player.FaithCap = save.Player.FaithCap;
+        Player.RestorePreviousReligion(save.Player.PreviousReligion);
         foreach (var prevReligion in save.Player.PreviousReligions)
         {
             Player.PreviousReligions.Add(prevReligion);
@@ -8691,7 +8692,7 @@ public class GameController
             _petSystem.RestorePetState(save.PetData.PetId,
                 save.PetData.Level, save.PetData.Experience,
                 save.PetData.Hunger, save.PetData.Loyalty, save.PetData.CurrentHp,
-                save.PetData.MaxHp);
+                save.PetData.MaxHp, save.PetData.IsRiding);
         }
 
         // カルマ復元
@@ -8699,6 +8700,13 @@ public class GameController
         {
             _karmaSystem.Reset();
             _karmaSystem.ModifyKarma(save.KarmaValue, "セーブデータ復元");
+        }
+
+        // カルマ履歴復元
+        if (save.KarmaHistory.Count > 0)
+        {
+            _karmaSystem.KarmaHistory.Clear();
+            _karmaSystem.RestoreHistory(save.KarmaHistory);
         }
 
         // 習熟度復元

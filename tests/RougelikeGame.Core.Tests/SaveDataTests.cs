@@ -1,5 +1,6 @@
 using Xunit;
 using RougelikeGame.Core;
+using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Systems;
 using System.Text.Json;
 
@@ -616,5 +617,107 @@ public class SaveDataTests
         // Assert: BaseHpを維持
         var pet = petSystem.Pets["pet_001"];
         Assert.Equal(baseMaxHp, pet.MaxHp);
+    }
+
+    [Fact]
+    public void PetSystem_RestorePetState_RestoresIsRiding()
+    {
+        // Arrange
+        var petSystem = new PetSystem();
+        petSystem.AddPet("pet_001", "ポチ", PetType.Wolf);
+
+        // Act: IsRiding=trueを復元
+        petSystem.RestorePetState("pet_001", 3, 50, 80, 70, 60, 100, isRiding: true);
+
+        // Assert
+        var pet = petSystem.Pets["pet_001"];
+        Assert.True(pet.IsRiding);
+        Assert.Equal(3, pet.Level);
+    }
+
+    [Fact]
+    public void PetSystem_RestorePetState_DefaultIsRidingIsFalse()
+    {
+        // Arrange: 旧セーブデータではIsRiding省略（デフォルトfalse）
+        var petSystem = new PetSystem();
+        petSystem.AddPet("pet_001", "ポチ", PetType.Wolf);
+
+        // Act: IsRiding未指定
+        petSystem.RestorePetState("pet_001", 1, 0, 80, 50, 30, 50);
+
+        // Assert
+        var pet = petSystem.Pets["pet_001"];
+        Assert.False(pet.IsRiding);
+    }
+
+    [Fact]
+    public void Player_RestorePreviousReligion_RestoresValue()
+    {
+        // Arrange
+        var player = new Player { Name = "TestPlayer" };
+
+        // Act
+        player.RestorePreviousReligion("sun_god");
+
+        // Assert
+        Assert.Equal("sun_god", player.PreviousReligion);
+    }
+
+    [Fact]
+    public void Player_RestorePreviousReligion_NullWhenNotSet()
+    {
+        // Arrange
+        var player = new Player { Name = "TestPlayer" };
+
+        // Act
+        player.RestorePreviousReligion(null);
+
+        // Assert
+        Assert.Null(player.PreviousReligion);
+    }
+
+    [Fact]
+    public void KarmaSystem_RestoreHistory_ParsesCorrectly()
+    {
+        // Arrange
+        var karmaSystem = new KarmaSystem();
+        var history = new List<string>
+        {
+            "0->3:クエスト完了",
+            "3->-2:盗み発覚",
+            "-2->-7:密輸"
+        };
+
+        // Act
+        karmaSystem.RestoreHistory(history);
+
+        // Assert
+        Assert.Equal(3, karmaSystem.KarmaHistory.Count);
+        Assert.Equal(0, karmaSystem.KarmaHistory[0].OldValue);
+        Assert.Equal(3, karmaSystem.KarmaHistory[0].NewValue);
+        Assert.Equal("クエスト完了", karmaSystem.KarmaHistory[0].Reason);
+        Assert.Equal(3, karmaSystem.KarmaHistory[1].OldValue);
+        Assert.Equal(-2, karmaSystem.KarmaHistory[1].NewValue);
+        Assert.Equal("盗み発覚", karmaSystem.KarmaHistory[1].Reason);
+    }
+
+    [Fact]
+    public void KarmaSystem_RestoreHistory_SkipsInvalidEntries()
+    {
+        // Arrange
+        var karmaSystem = new KarmaSystem();
+        var history = new List<string>
+        {
+            "invalid_entry",
+            "0->5:有効なエントリ",
+            "not->a:number"
+        };
+
+        // Act
+        karmaSystem.RestoreHistory(history);
+
+        // Assert: 有効なエントリのみ復元
+        Assert.Equal(1, karmaSystem.KarmaHistory.Count);
+        Assert.Equal("有効なエントリ", karmaSystem.KarmaHistory[0].Reason);
     }
 }

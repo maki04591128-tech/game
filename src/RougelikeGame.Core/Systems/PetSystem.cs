@@ -208,7 +208,7 @@ public class PetSystem
     }
 
     /// <summary>AB-1: セーブデータからペット状態を復元</summary>
-    public void RestorePetState(string petId, int level, int experience, int hunger, int loyalty, int currentHp, int maxHp = 0)
+    public void RestorePetState(string petId, int level, int experience, int hunger, int loyalty, int currentHp, int maxHp = 0, bool isRiding = false)
     {
         if (_pets.TryGetValue(petId, out var pet))
         {
@@ -221,7 +221,8 @@ public class PetSystem
                 Hunger = hunger,
                 Loyalty = loyalty,
                 MaxHp = restoredMaxHp,
-                CurrentHp = Math.Min(currentHp, restoredMaxHp)
+                CurrentHp = Math.Min(currentHp, restoredMaxHp),
+                IsRiding = isRiding
             };
         }
     }
