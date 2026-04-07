@@ -8233,7 +8233,10 @@ public class GameController
                 MaxHp = companion.MaxHp,
                 Attack = companion.Attack,
                 Defense = companion.Defense,
-                IsAlive = companion.IsAlive
+                IsAlive = companion.IsAlive,
+                Loyalty = companion.Loyalty,
+                HireCost = companion.HireCost,
+                AIMode = companion.AIMode.ToString()
             });
         }
 
@@ -8793,9 +8796,11 @@ public class GameController
             {
                 if (Enum.TryParse<CompanionType>(cd.CompanionType ?? "Mercenary", out var compType))
                 {
+                    var aiMode = Enum.TryParse<CompanionAIMode>(cd.AIMode ?? "Defensive", out var parsedMode)
+                        ? parsedMode : CompanionAIMode.Defensive;
                     var companion = new CompanionSystem.CompanionData(
-                        cd.Name, compType, CompanionAIMode.Defensive,
-                        cd.Level, 50, 0, cd.Hp, cd.MaxHp, cd.Attack, cd.Defense, cd.IsAlive);
+                        cd.Name, compType, aiMode,
+                        cd.Level, cd.Loyalty, cd.HireCost, cd.Hp, cd.MaxHp, cd.Attack, cd.Defense, cd.IsAlive);
                     _companionSystem.AddCompanion(companion);
                 }
             }

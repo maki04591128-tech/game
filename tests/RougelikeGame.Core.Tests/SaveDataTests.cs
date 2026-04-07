@@ -863,4 +863,50 @@ public class SaveDataTests
         Assert.Single(restored.Routes);
         Assert.Equal("route_Capital_Forest", restored.Routes[0].RouteId);
     }
+
+    [Fact]
+    public void CompanionSaveData_LoyaltyHireCostAIMode_RoundTrip()
+    {
+        var saveData = new CompanionSaveData
+        {
+            Name = "テスト傭兵",
+            CompanionType = nameof(CompanionType.Mercenary),
+            Level = 5,
+            Hp = 80,
+            MaxHp = 100,
+            Attack = 15,
+            Defense = 10,
+            IsAlive = true,
+            Loyalty = 75,
+            HireCost = 350,
+            AIMode = nameof(CompanionAIMode.Aggressive)
+        };
+
+        var json = JsonSerializer.Serialize(saveData);
+        var restored = JsonSerializer.Deserialize<CompanionSaveData>(json);
+
+        Assert.NotNull(restored);
+        Assert.Equal("テスト傭兵", restored!.Name);
+        Assert.Equal(75, restored.Loyalty);
+        Assert.Equal(350, restored.HireCost);
+        Assert.Equal(nameof(CompanionAIMode.Aggressive), restored.AIMode);
+        Assert.Equal(5, restored.Level);
+        Assert.Equal(80, restored.Hp);
+        Assert.Equal(100, restored.MaxHp);
+        Assert.True(restored.IsAlive);
+    }
+
+    [Fact]
+    public void CompanionSaveData_BackwardCompatibility_DefaultValues()
+    {
+        // 旧セーブデータ: Loyalty/HireCost/AIModeが存在しない
+        var json = """{"Name":"旧仲間","CompanionType":"Ally","Level":3,"Hp":50,"MaxHp":60,"Attack":8,"Defense":4,"IsAlive":true}""";
+        var restored = JsonSerializer.Deserialize<CompanionSaveData>(json);
+
+        Assert.NotNull(restored);
+        Assert.Equal("旧仲間", restored!.Name);
+        Assert.Equal(50, restored.Loyalty); // デフォルト50
+        Assert.Equal(0, restored.HireCost); // デフォルト0
+        Assert.Null(restored.AIMode); // デフォルトnull → 復元時Defensiveにフォールバック
+    }
 }

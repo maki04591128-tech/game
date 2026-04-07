@@ -521,6 +521,12 @@ public class CompanionSaveData
     public int Attack { get; set; }
     public int Defense { get; set; }
     public bool IsAlive { get; set; }
+    /// <summary>忠誠度（旧セーブデータ互換: デフォルト50）</summary>
+    public int Loyalty { get; set; } = 50;
+    /// <summary>雇用コスト（旧セーブデータ互換: デフォルト0）</summary>
+    public int HireCost { get; set; }
+    /// <summary>AIモード（旧セーブデータ互換: デフォルトDefensive）</summary>
+    public string? AIMode { get; set; }
 }
 
 /// <summary>BZ-5: 商人ギルドのセーブデータ</summary>
