@@ -8146,7 +8146,8 @@ public class GameController
             {
                 Type = effect.Type.ToString(),
                 RemainingTurns = effect.Duration,
-                Potency = effect.DamagePerTick
+                Potency = effect.DamagePerTick,
+                Name = effect.Name
             });
         }
 
@@ -8643,7 +8644,12 @@ public class GameController
         {
             if (Enum.TryParse<StatusEffectType>(effectData.Type, out var effectType))
             {
-                var effect = new StatusEffect(effectType, effectData.RemainingTurns);
+                var restoredName = !string.IsNullOrEmpty(effectData.Name) ? effectData.Name : effectType.ToString();
+                var effect = new StatusEffect(effectType, effectData.RemainingTurns)
+                {
+                    Name = restoredName,
+                    DamagePerTick = effectData.Potency
+                };
                 Player.ApplyStatusEffect(effect);
             }
         }

@@ -434,6 +434,9 @@ public class StatusEffectSaveData
 
     /// <summary>効力</summary>
     public int Potency { get; set; }
+
+    /// <summary>表示名</summary>
+    public string Name { get; set; } = string.Empty;
 }
 
 /// <summary>
