@@ -80,7 +80,7 @@ public class SaveData
     public PetSaveData? PetData { get; set; }
 
     /// <summary>コンパニオンID（後方互換性のため維持。実際のデータはCompanionsリストを使用）</summary>
-    [Obsolete("Use Companions instead. Kept for backward compatibility with old save files.")]
+    [Obsolete("Use Companions list property instead. Kept for backward compatibility with old save files.")]
     public List<string> CompanionIds { get; set; } = new();
 
     /// <summary>カルマ値</summary>
