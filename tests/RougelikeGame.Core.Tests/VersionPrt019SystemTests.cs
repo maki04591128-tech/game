@@ -6,6 +6,8 @@ using RougelikeGame.Core.Map;
 using RougelikeGame.Core.Map.Generation;
 using RougelikeGame.Core.Systems;
 
+#pragma warning disable CS0618 // Obsolete旧enum互換テスト維持
+
 namespace RougelikeGame.Core.Tests;
 
 /// <summary>

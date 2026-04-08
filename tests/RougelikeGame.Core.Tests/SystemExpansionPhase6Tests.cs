@@ -5,6 +5,8 @@ using RougelikeGame.Core.Items;
 using static RougelikeGame.Core.Systems.EnvironmentalCombatSystem;
 using static RougelikeGame.Core.Systems.NpcRoutineSystem;
 
+#pragma warning disable CS0618 // Obsolete旧enum互換テスト維持
+
 namespace RougelikeGame.Core.Tests;
 
 #region 1. DifficultySettings Tests

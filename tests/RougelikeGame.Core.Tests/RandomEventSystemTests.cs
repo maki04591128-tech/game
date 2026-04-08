@@ -80,13 +80,11 @@ public class RandomEventSystemTests
         var system = new RandomEventSystem();
         // Forest領域では追加イベント（精霊の泉等）が候補に入る
         // 複数回実行して領域固有イベントが返されることを確認
-        bool foundTerritoryEvent = false;
         for (int i = 0; i < 100; i++)
         {
             var evt = system.RollTerritoryEvent(5, TerritoryId.Forest, new FixedRandom(0 + i % 10), 0, 1.0f);
             if (evt != null && (evt.Name.Contains("精霊") || evt.Name.Contains("薬草") || evt.Name.Contains("隠者")))
             {
-                foundTerritoryEvent = true;
                 break;
             }
         }

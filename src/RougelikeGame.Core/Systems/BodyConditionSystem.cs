@@ -44,6 +44,7 @@ public static class BodyConditionSystem
     };
 
     /// <summary>疲労度によるステータス倍率（旧enum互換）</summary>
+    [Obsolete("GetFatigueModifier(FatigueStage)を使用してください。")]
     public static float GetFatigueModifier(FatigueLevel level) => level switch
     {
         FatigueLevel.Fresh => 1.0f,
@@ -66,6 +67,7 @@ public static class BodyConditionSystem
     };
 
     /// <summary>清潔度による病気感染リスク倍率（旧enum互換）</summary>
+    [Obsolete("GetHygieneInfectionRisk(HygieneStage)を使用してください。")]
     public static float GetHygieneInfectionRisk(HygieneLevel level) => level switch
     {
         HygieneLevel.Clean => 0.5f,
@@ -91,6 +93,7 @@ public static class BodyConditionSystem
     };
 
     /// <summary>疲労度名を取得（旧enum互換）</summary>
+    [Obsolete("GetFatigueName(FatigueStage)を使用してください。")]
     public static string GetFatigueName(FatigueLevel level) => level switch
     {
         FatigueLevel.Fresh => "元気",
@@ -113,6 +116,7 @@ public static class BodyConditionSystem
     };
 
     /// <summary>清潔度名を取得（旧enum互換）</summary>
+    [Obsolete("GetHygieneName(HygieneStage)を使用してください。")]
     public static string GetHygieneName(HygieneLevel level) => level switch
     {
         HygieneLevel.Clean => "清潔",

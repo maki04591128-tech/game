@@ -1123,6 +1123,7 @@ public enum BodyWoundType
 /// <summary>
 /// 疲労度段階
 /// </summary>
+[Obsolete("FatigueStageを使用してください。この旧enumは将来のバージョンで削除されます。")]
 public enum FatigueLevel
 {
     /// <summary>元気</summary>
@@ -1140,6 +1141,7 @@ public enum FatigueLevel
 /// <summary>
 /// 清潔度段階
 /// </summary>
+[Obsolete("HygieneStageを使用してください。この旧enumは将来のバージョンで削除されます。")]
 public enum HygieneLevel
 {
     /// <summary>清潔</summary>
@@ -1385,6 +1387,7 @@ public enum BlackMarketCategory
 /// <summary>
 /// 渇きの段階
 /// </summary>
+[Obsolete("ThirstStageを使用してください。この旧enumは将来のバージョンで削除されます。")]
 public enum ThirstLevel
 {
     /// <summary>潤い（十分）</summary>

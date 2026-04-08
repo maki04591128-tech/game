@@ -75,6 +75,7 @@ public static class KarmaRelatedData
             (_, KarmaRank.Rogue) => "「……少し距離を置かせてください」",
             (_, KarmaRank.Criminal) => "「悪人とは関わりたくない。用件だけ聞きます」",
             (_, KarmaRank.Villain) => "「来ないでください。怖い」",
+            _ => "「……」",
         };
 
     /// <summary>

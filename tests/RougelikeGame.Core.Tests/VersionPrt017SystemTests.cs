@@ -5,6 +5,8 @@ using RougelikeGame.Core.Items;
 using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Map;
 
+#pragma warning disable CS0618 // Obsolete旧enum互換テスト維持
+
 namespace RougelikeGame.Core.Tests;
 
 /// <summary>

@@ -61,6 +61,7 @@ public static class StatFlagEventData
                 "「器用な手先だ。細かい作業があるときは声をかけてください」",
             (_, StatFlag.SteadyMind) =>
                 "「精神力の強さを感じる。何があっても動じないのですね」",
+            _ => "「……何か特別なものを感じる」",
         };
 
     /// <summary>
