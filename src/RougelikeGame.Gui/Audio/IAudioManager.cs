@@ -26,6 +26,11 @@ public interface IAudioManager : IDisposable
     void PlayBgm(string bgmId, bool loop = true);
 
     /// <summary>
+    /// BGMをフェードアウトしてから別のBGMをフェードインする（β.8）
+    /// </summary>
+    void FadeToBgm(string newBgmId, bool loop = true, double fadeOutMs = 800, double fadeInMs = 800);
+
+    /// <summary>
     /// BGMを停止する
     /// </summary>
     void StopBgm();
