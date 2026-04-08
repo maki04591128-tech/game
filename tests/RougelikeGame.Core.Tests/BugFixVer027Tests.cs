@@ -1,5 +1,6 @@
 using RougelikeGame.Core;
 using RougelikeGame.Core.Entities;
+using RougelikeGame.Core.Interfaces;
 using RougelikeGame.Core.Items;
 using RougelikeGame.Core.Systems;
 using Xunit;
@@ -452,6 +453,164 @@ public class BugFixVer027Tests
 
         int expectedCha = baseCha + expectedChaModifier;
         Assert.Equal(expectedCha, player.EffectiveStats.Charisma);
+    }
+
+    #endregion
+
+    #region B.24: Food.Use() 渇き回復（HydrationValue）未実装修正
+
+    private class FixedRandom : IRandomProvider
+    {
+        private readonly double _val;
+        public FixedRandom(double val) => _val = val;
+        public int Next(int maxValue) => 0;
+        public int Next(int minValue, int maxValue) => minValue;
+        public double NextDouble() => _val;
+    }
+
+    [Fact]
+    public void FoodUse_Water_RestoresThirst()
+    {
+        var player = CreateTestPlayer();
+        // 渇きを減らしておく
+        player.ModifyThirst(-50);
+        int thirstBefore = player.Thirst;
+
+        var water = ItemFactory.CreateWater();
+        water.Use(player);
+
+        Assert.True(player.Thirst > thirstBefore, "水を飲んだら渇きが回復するべき");
+        Assert.Equal(thirstBefore + 1, player.Thirst); // HydrationValue=1
+    }
+
+    [Fact]
+    public void FoodUse_CleanWater_RestoresThirstAndHp()
+    {
+        var player = CreateTestPlayer();
+        player.ModifyThirst(-50);
+        player.TakeDamage(Damage.Physical(30));
+        int thirstBefore = player.Thirst;
+        int hpBefore = player.CurrentHp;
+
+        var cleanWater = ItemFactory.CreateCleanWater();
+        cleanWater.Use(player);
+
+        Assert.True(player.Thirst > thirstBefore, "清水を飲んだら渇きが回復するべき");
+        Assert.Equal(thirstBefore + 2, player.Thirst); // HydrationValue=2
+        Assert.True(player.CurrentHp > hpBefore, "清水を飲んだらHP回復するべき");
+    }
+
+    [Fact]
+    public void FoodUse_NormalFood_NoThirstRestore()
+    {
+        var player = CreateTestPlayer();
+        player.ModifyThirst(-50);
+        int thirstBefore = player.Thirst;
+
+        var bread = ItemFactory.CreateBread();
+        bread.Use(player);
+
+        Assert.Equal(thirstBefore, player.Thirst); // HydrationValue=0 なので渇きは変化しない
+    }
+
+    [Fact]
+    public void FoodUse_Water_MessageContainsThirst()
+    {
+        var player = CreateTestPlayer();
+        player.ModifyThirst(-50);
+
+        var water = ItemFactory.CreateWater();
+        var result = water.Use(player);
+
+        Assert.True(result.Success);
+        Assert.Contains("渇き", result.Message);
+    }
+
+    #endregion
+
+    #region B.25: Food.Use() 腐食食で毒を受けた際に満腹度回復がスキップされるバグ修正
+
+    [Fact]
+    public void FoodUse_RottenFoodPoisoned_StillRestoresHunger()
+    {
+        var player = CreateTestPlayer();
+        player.ModifyHunger(-50);
+        int hungerBefore = player.Hunger;
+
+        var bread = ItemFactory.CreateBread();
+        bread.IsRotten = true;
+
+        // 0.1 < 0.3 なので毒を受ける
+        var result = bread.Use(player, new FixedRandom(0.1));
+
+        Assert.True(result.Success);
+        Assert.True(player.Hunger > hungerBefore, "腐った食べ物で毒を受けても満腹度は回復するべき");
+    }
+
+    [Fact]
+    public void FoodUse_RottenFoodNotPoisoned_RestoresHunger()
+    {
+        var player = CreateTestPlayer();
+        player.ModifyHunger(-50);
+        int hungerBefore = player.Hunger;
+
+        var bread = ItemFactory.CreateBread();
+        bread.IsRotten = true;
+
+        // 0.5 >= 0.3 なので毒は受けない
+        var result = bread.Use(player, new FixedRandom(0.5));
+
+        Assert.True(result.Success);
+        Assert.True(player.Hunger > hungerBefore, "腐った食べ物でも満腹度は回復するべき");
+    }
+
+    [Fact]
+    public void FoodUse_RottenWaterPoisoned_RestoresHungerAndThirst()
+    {
+        var player = CreateTestPlayer();
+        player.ModifyHunger(-50);
+        player.ModifyThirst(-50);
+        int hungerBefore = player.Hunger;
+        int thirstBefore = player.Thirst;
+
+        var water = ItemFactory.CreateWater();
+        water.IsRotten = true;
+
+        // 0.1 < 0.3 なので毒を受ける
+        var result = water.Use(player, new FixedRandom(0.1));
+
+        Assert.True(result.Success);
+        Assert.True(player.Hunger > hungerBefore, "腐った水で毒を受けても満腹度は回復するべき");
+        Assert.True(player.Thirst > thirstBefore, "腐った水で毒を受けても渇きは回復するべき");
+        Assert.Contains("毒", result.Message);
+    }
+
+    [Fact]
+    public void FoodUse_RottenFoodPoisoned_HasPoisonStatus()
+    {
+        var player = CreateTestPlayer();
+        var bread = ItemFactory.CreateBread();
+        bread.IsRotten = true;
+
+        bread.Use(player, new FixedRandom(0.1));
+
+        Assert.True(player.HasStatusEffect(StatusEffectType.Poison));
+    }
+
+    [Fact]
+    public void FoodUse_RottenFoodPoisoned_NutritionIsHalved()
+    {
+        var player = CreateTestPlayer();
+        player.ModifyHunger(-80);
+        int hungerBefore = player.Hunger;
+
+        var bread = ItemFactory.CreateBread();
+        int expectedNutrition = bread.NutritionValue / 2;
+        bread.IsRotten = true;
+
+        bread.Use(player, new FixedRandom(0.1));
+
+        Assert.Equal(hungerBefore + expectedNutrition, player.Hunger);
     }
 
     #endregion

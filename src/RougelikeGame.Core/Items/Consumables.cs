@@ -236,6 +236,7 @@ public class Food : ConsumableItem
             return UseResult.Fail("プレイヤーのみ使用可能");
 
         int nutrition = NutritionValue;
+        bool poisoned = false;
 
         // 腐っている場合
         if (IsRotten)
@@ -246,20 +247,46 @@ public class Food : ConsumableItem
             if (chance < 0.3)
             {
                 player.ApplyStatusEffect(new StatusEffect(StatusEffectType.Poison, 10));
-                return UseResult.Ok($"腐った{Name}を食べて毒を受けた！ 満腹度+{nutrition}",
-                    new ItemEffect(ItemEffectType.ApplyStatus, 0, StatusEffect: StatusEffectType.Poison));
+                poisoned = true;
             }
         }
 
         // 満腹度回復
         player.ModifyHunger(nutrition);
 
+        // 渇き回復
+        if (HydrationValue > 0)
+        {
+            player.ModifyThirst(HydrationValue);
+        }
+
+        // 毒を受けた場合のメッセージ
+        if (poisoned)
+        {
+            var msg = HydrationValue > 0
+                ? $"腐った{Name}を食べて毒を受けた！ 満腹度+{nutrition}、渇き+{HydrationValue}"
+                : $"腐った{Name}を食べて毒を受けた！ 満腹度+{nutrition}";
+            return UseResult.Ok(msg,
+                new ItemEffect(ItemEffectType.ApplyStatus, 0, StatusEffect: StatusEffectType.Poison));
+        }
+
         // HP回復
         if (HealValue > 0)
         {
             player.Heal(HealValue);
+            if (HydrationValue > 0)
+            {
+                return UseResult.Ok($"{Name}を食べた。満腹度+{nutrition}、渇き+{HydrationValue}、HP+{HealValue}",
+                    new ItemEffect(ItemEffectType.RestoreHunger, nutrition));
+            }
             return UseResult.Ok($"{Name}を食べた。満腹度+{nutrition}、HP+{HealValue}",
                 new ItemEffect(ItemEffectType.RestoreHunger, nutrition));
+        }
+
+        if (HydrationValue > 0)
+        {
+            return UseResult.Ok($"{Name}を食べた。満腹度+{nutrition}、渇き+{HydrationValue}",
+                new ItemEffect(ItemEffectType.RestoreThirst, HydrationValue));
         }
 
         return UseResult.Ok($"{Name}を食べた。満腹度+{nutrition}",
