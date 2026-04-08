@@ -253,4 +253,94 @@ public class BugFixVer027Tests
     }
 
     #endregion
+
+    #region B.22: Weapon.Category - WeaponType.UnarmedのEquipmentCategory修正
+
+    /// <summary>
+    /// B.22: WeaponType.Unarmed は EquipmentCategory.Fist にマッピングされるべき。
+    /// 修正前は default ケースで EquipmentCategory.Sword にフォールしていた。
+    /// これにより、Monk（Fist熟練）が素手で戦う際に熟練ボーナスが適用されなかった。
+    /// </summary>
+    [Fact]
+    public void Weapon_Category_Unarmed_ShouldBeFist()
+    {
+        var weapon = new Weapon
+        {
+            Name = "素手",
+            WeaponType = WeaponType.Unarmed,
+            Weight = 0f
+        };
+        Assert.Equal(EquipmentCategory.Fist, weapon.Category);
+    }
+
+    /// <summary>
+    /// B.22: WeaponType.Fist（格闘武器）も引き続き EquipmentCategory.Fist であることを確認。
+    /// </summary>
+    [Fact]
+    public void Weapon_Category_Fist_ShouldBeFist()
+    {
+        var weapon = new Weapon
+        {
+            Name = "ナックル",
+            WeaponType = WeaponType.Fist,
+            Weight = 1.0f
+        };
+        Assert.Equal(EquipmentCategory.Fist, weapon.Category);
+    }
+
+    /// <summary>
+    /// B.22: 全WeaponTypeのCategory導出が正しいことを包括的に確認。
+    /// </summary>
+    [Theory]
+    [InlineData(WeaponType.Unarmed, EquipmentCategory.Fist)]
+    [InlineData(WeaponType.Dagger, EquipmentCategory.Dagger)]
+    [InlineData(WeaponType.Sword, EquipmentCategory.Sword)]
+    [InlineData(WeaponType.Greatsword, EquipmentCategory.Sword)]
+    [InlineData(WeaponType.Axe, EquipmentCategory.Axe)]
+    [InlineData(WeaponType.Greataxe, EquipmentCategory.Axe)]
+    [InlineData(WeaponType.Spear, EquipmentCategory.Spear)]
+    [InlineData(WeaponType.Hammer, EquipmentCategory.Mace)]
+    [InlineData(WeaponType.Staff, EquipmentCategory.Staff)]
+    [InlineData(WeaponType.Bow, EquipmentCategory.Bow)]
+    [InlineData(WeaponType.Crossbow, EquipmentCategory.Bow)]
+    [InlineData(WeaponType.Thrown, EquipmentCategory.Bow)]
+    [InlineData(WeaponType.Whip, EquipmentCategory.Whip)]
+    [InlineData(WeaponType.Fist, EquipmentCategory.Fist)]
+    public void Weapon_Category_AllWeaponTypes_CorrectCategory(WeaponType weaponType, EquipmentCategory expectedCategory)
+    {
+        var weapon = new Weapon
+        {
+            Name = $"テスト{weaponType}",
+            WeaponType = weaponType,
+            Weight = 1.0f
+        };
+        Assert.Equal(expectedCategory, weapon.Category);
+    }
+
+    /// <summary>
+    /// B.22: Monk（Fist熟練）がUnarmedで熟練判定を通ることを確認。
+    /// </summary>
+    [Fact]
+    public void Monk_ShouldBeProficient_WithUnarmed()
+    {
+        Assert.True(ClassEquipmentSystem.IsProficient(CharacterClass.Monk, EquipmentCategory.Fist));
+
+        // UnarmedのCategoryがFistなので、Monkは素手で熟練ボーナスを得る
+        var unarmed = new Weapon { Name = "素手", WeaponType = WeaponType.Unarmed, Weight = 0f };
+        Assert.True(ClassEquipmentSystem.IsProficient(CharacterClass.Monk, unarmed.Category));
+    }
+
+    /// <summary>
+    /// B.22: Fighter（Sword熟練だがFist非熟練）はUnarmedで熟練判定を通らないことを確認。
+    /// </summary>
+    [Fact]
+    public void Fighter_ShouldNotBeProficient_WithUnarmed()
+    {
+        Assert.False(ClassEquipmentSystem.IsProficient(CharacterClass.Fighter, EquipmentCategory.Fist));
+
+        var unarmed = new Weapon { Name = "素手", WeaponType = WeaponType.Unarmed, Weight = 0f };
+        Assert.False(ClassEquipmentSystem.IsProficient(CharacterClass.Fighter, unarmed.Category));
+    }
+
+    #endregion
 }
