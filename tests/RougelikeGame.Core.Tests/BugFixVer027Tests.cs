@@ -343,4 +343,116 @@ public class BugFixVer027Tests
     }
 
     #endregion
+
+    #region B.23: HygieneStage ステータスペナルティ
+
+    /// <summary>
+    /// B.23: 衛生度Foul（不潔）でCHA-10ペナルティが適用されること。
+    /// </summary>
+    [Fact]
+    public void HygieneStage_Foul_ShouldApply_CharismaMinus10()
+    {
+        var player = CreateTestPlayer();
+        int baseCha = player.BaseStats.Charisma;
+
+        // Hygiene=0 → Foul
+        player.ModifyHygiene(-200);
+        Assert.Equal(HygieneStage.Foul, player.HygieneStage);
+
+        int expectedCha = baseCha - 10;
+        Assert.Equal(expectedCha, player.EffectiveStats.Charisma);
+    }
+
+    /// <summary>
+    /// B.23: 衛生度Filthy（不衛生）でCHA-5ペナルティが適用されること。
+    /// </summary>
+    [Fact]
+    public void HygieneStage_Filthy_ShouldApply_CharismaMinus5()
+    {
+        var player = CreateTestPlayer();
+        int baseCha = player.BaseStats.Charisma;
+
+        // Hygiene初期値100→1にする（Filthy: 1-24）
+        player.ModifyHygiene(-99);
+        Assert.Equal(HygieneStage.Filthy, player.HygieneStage);
+
+        int expectedCha = baseCha - 5;
+        Assert.Equal(expectedCha, player.EffectiveStats.Charisma);
+    }
+
+    /// <summary>
+    /// B.23: 衛生度Dirty（汚れ）でCHA-2ペナルティが適用されること。
+    /// </summary>
+    [Fact]
+    public void HygieneStage_Dirty_ShouldApply_CharismaMinus2()
+    {
+        var player = CreateTestPlayer();
+        int baseCha = player.BaseStats.Charisma;
+
+        // Hygiene初期値100→25にする（Dirty: 25-49）
+        player.ModifyHygiene(-75);
+        Assert.Equal(HygieneStage.Dirty, player.HygieneStage);
+
+        int expectedCha = baseCha - 2;
+        Assert.Equal(expectedCha, player.EffectiveStats.Charisma);
+    }
+
+    /// <summary>
+    /// B.23: 衛生度Normal（普通）でCHAペナルティなしであること。
+    /// </summary>
+    [Fact]
+    public void HygieneStage_Normal_ShouldHave_NoCharismaPenalty()
+    {
+        var player = CreateTestPlayer();
+        int baseCha = player.BaseStats.Charisma;
+
+        // Hygiene初期値100→50にする（Normal: 50-79）
+        player.ModifyHygiene(-50);
+        Assert.Equal(HygieneStage.Normal, player.HygieneStage);
+
+        Assert.Equal(baseCha, player.EffectiveStats.Charisma);
+    }
+
+    /// <summary>
+    /// B.23: 衛生度Clean（清潔）でCHA+2ボーナスが適用されること。
+    /// </summary>
+    [Fact]
+    public void HygieneStage_Clean_ShouldApply_CharismaPlus2()
+    {
+        var player = CreateTestPlayer();
+        int baseCha = player.BaseStats.Charisma;
+
+        // Hygiene初期値100 → Clean (>=80)
+        Assert.Equal(HygieneStage.Clean, player.HygieneStage);
+
+        int expectedCha = baseCha + 2;
+        Assert.Equal(expectedCha, player.EffectiveStats.Charisma);
+    }
+
+    /// <summary>
+    /// B.23: 全5段階のCHAペナルティ/ボーナスが設計書§17.2.3と一致すること。
+    /// </summary>
+    [Theory]
+    [InlineData(100, 2)]   // Clean: CHA+2
+    [InlineData(80, 2)]    // Clean境界: CHA+2
+    [InlineData(79, 0)]    // Normal: ±0
+    [InlineData(50, 0)]    // Normal境界: ±0
+    [InlineData(49, -2)]   // Dirty: CHA-2
+    [InlineData(25, -2)]   // Dirty境界: CHA-2
+    [InlineData(24, -5)]   // Filthy: CHA-5
+    [InlineData(1, -5)]    // Filthy境界: CHA-5
+    [InlineData(0, -10)]   // Foul: CHA-10
+    public void HygieneStage_AllLevels_CorrectCharismaModifier(int hygieneValue, int expectedChaModifier)
+    {
+        var player = CreateTestPlayer();
+        int baseCha = player.BaseStats.Charisma;
+
+        // Hygiene初期値100から目標値に調整
+        player.ModifyHygiene(hygieneValue - 100);
+
+        int expectedCha = baseCha + expectedChaModifier;
+        Assert.Equal(expectedCha, player.EffectiveStats.Charisma);
+    }
+
+    #endregion
 }

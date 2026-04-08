@@ -401,6 +401,17 @@ public class Player : Character, IPlayer, IInventoryHolder
             _ => (StatModifier?)null
         };
         if (fatiguePenalty.HasValue) yield return fatiguePenalty.Value;
+
+        // B.23: 衛生度ペナルティ（設計書§17.2.3準拠）
+        var hygienePenalty = HygieneStage switch
+        {
+            HygieneStage.Foul => new StatModifier(Charisma: -10),
+            HygieneStage.Filthy => new StatModifier(Charisma: -5),
+            HygieneStage.Dirty => new StatModifier(Charisma: -2),
+            HygieneStage.Clean => new StatModifier(Charisma: 2),
+            _ => (StatModifier?)null
+        };
+        if (hygienePenalty.HasValue) yield return hygienePenalty.Value;
     }
 
     /// <summary>スキルツリーボーナス辞書をStatModifierに変換（ステータス系のみ）</summary>
