@@ -59,40 +59,58 @@
                     <StackPanel>
                         <TextBlock Text="── ステータス ──" Foreground="#808080" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,3"/>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Lv:" Foreground="White" FontSize="12"/>
+                            <TextBlock Text="Lv:" Foreground="White" FontSize="12">
+                                <TextBlock.ToolTip><ToolTip Content="レベル: 経験値を獲得して上昇します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="LevelText" Text="1" Foreground="#ffa500" FontSize="12" FontWeight="Bold"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                            <TextBlock Text="HP: " Foreground="White" FontSize="12"/>
+                            <TextBlock Text="HP: " Foreground="White" FontSize="12">
+                                <TextBlock.ToolTip><ToolTip Content="ヒットポイント: 0になると死亡します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="HpText" Text="100/100" Foreground="#4ecca3" FontSize="12" FontWeight="Bold"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                            <TextBlock Text="MP: " Foreground="White" FontSize="12"/>
+                            <TextBlock Text="MP: " Foreground="White" FontSize="12">
+                                <TextBlock.ToolTip><ToolTip Content="マジックポイント: 魔法呪文の詠唱に消費します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="MpText" Text="50/50" Foreground="#00d9ff" FontSize="12" FontWeight="Bold"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                            <TextBlock Text="SP: " Foreground="White" FontSize="12"/>
+                            <TextBlock Text="SP: " Foreground="White" FontSize="12">
+                                <TextBlock.ToolTip><ToolTip Content="スタミナポイント: スキル使用・特殊行動に消費します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="SpText" Text="100/100" Foreground="#ffd93d" FontSize="12" FontWeight="Bold"/>
                         </StackPanel>
                         <Separator Background="#0f3460" Margin="0,3"/>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="満腹: " Foreground="White" FontSize="11"/>
+                            <TextBlock Text="満腹: " Foreground="White" FontSize="11">
+                                <TextBlock.ToolTip><ToolTip Content="満腹度: 下がると飢えのデバフが発生し、HPが減少します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="HungerText" Text="100" Foreground="#ff6b6b" FontSize="11" FontWeight="Bold"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
-                            <TextBlock Text="渇き: " Foreground="White" FontSize="11"/>
+                            <TextBlock Text="渇き: " Foreground="White" FontSize="11">
+                                <TextBlock.ToolTip><ToolTip Content="渇き度: 水を飲まないと脱水しHPが急速に減少します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="ThirstText" Text="潤沢" Foreground="#00BFFF" FontSize="11" FontWeight="Bold"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
-                            <TextBlock Text="正気: " Foreground="White" FontSize="11"/>
+                            <TextBlock Text="正気: " Foreground="White" FontSize="11">
+                                <TextBlock.ToolTip><ToolTip Content="正気度: 0になると廃人化。低下すると幻覚・誤行動が発生します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="SanityText" Text="100" Foreground="#c0a0ff" FontSize="11" FontWeight="Bold"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
-                            <TextBlock Text="疲労: " Foreground="White" FontSize="11"/>
+                            <TextBlock Text="疲労: " Foreground="White" FontSize="11">
+                                <TextBlock.ToolTip><ToolTip Content="疲労度: 高いと行動コスト増加・SP回復低下。宿屋で回復します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="FatigueText" Text="元気" Foreground="#90EE90" FontSize="11" FontWeight="Bold"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
-                            <TextBlock Text="衛生: " Foreground="White" FontSize="11"/>
+                            <TextBlock Text="衛生: " Foreground="White" FontSize="11">
+                                <TextBlock.ToolTip><ToolTip Content="衛生度: 低下すると病気にかかりやすくなります"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="HygieneText" Text="清潔" Foreground="#87CEEB" FontSize="11" FontWeight="Bold"/>
                         </StackPanel>
                         <TextBlock x:Name="DiseaseText" Text="" Foreground="#FF4500" FontSize="11" FontWeight="Bold" Margin="0,1,0,0"/>
@@ -152,28 +170,40 @@
                     <StackPanel>
                         <TextBlock Text="── 所持情報 ──" Foreground="#808080" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,3"/>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="💰 " Foreground="#ffd700" FontSize="13"/>
+                            <TextBlock Text="💰 " Foreground="#ffd700" FontSize="13">
+                                <TextBlock.ToolTip><ToolTip Content="所持金: ショップでのアイテム購入等に使用します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="GoldText" Text="0G" Foreground="#ffd700" FontSize="13" FontWeight="Bold"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                            <TextBlock Text="EXP: " Foreground="White" FontSize="12"/>
+                            <TextBlock Text="EXP: " Foreground="White" FontSize="12">
+                                <TextBlock.ToolTip><ToolTip Content="経験値: 敵を倒すと獲得。次のレベルアップまでの量を表示します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="ExpText" Text="0/100" Foreground="#ffa500" FontSize="12"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                            <TextBlock Text="⚖ " Foreground="#a0c4ff" FontSize="12"/>
+                            <TextBlock Text="⚖ " Foreground="#a0c4ff" FontSize="12">
+                                <TextBlock.ToolTip><ToolTip Content="所持重量: 上限を超えると移動速度が低下します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="WeightText" Text="0/100kg" Foreground="#a0c4ff" FontSize="12" FontWeight="Bold"/>
                         </StackPanel>
                         <Separator Background="#0f3460" Margin="0,3"/>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="善悪: " Foreground="White" FontSize="11"/>
+                            <TextBlock Text="善悪: " Foreground="White" FontSize="11">
+                                <TextBlock.ToolTip><ToolTip Content="カルマ: 行動によって善悪が変化。NPCの反応に影響します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="KarmaText" Text="中立" Foreground="#C0C0C0" FontSize="11" FontWeight="Bold"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
-                            <TextBlock Text="仲間: " Foreground="White" FontSize="11"/>
+                            <TextBlock Text="仲間: " Foreground="White" FontSize="11">
+                                <TextBlock.ToolTip><ToolTip Content="同行仲間数: NPCを仲間にすると増加します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="CompanionCountText" Text="0" Foreground="#FFD700" FontSize="11" FontWeight="Bold"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
-                            <TextBlock Text="構え: " Foreground="White" FontSize="11"/>
+                            <TextBlock Text="構え: " Foreground="White" FontSize="11">
+                                <TextBlock.ToolTip><ToolTip Content="戦闘構え: Tab/Z/Xで切替。攻撃/防御/均衡でステータスが変化します"/></TextBlock.ToolTip>
+                            </TextBlock>
                             <TextBlock x:Name="StanceText" Text="均衡" Foreground="#87CEEB" FontSize="11" FontWeight="Bold"/>
                         </StackPanel>
                     </StackPanel>
