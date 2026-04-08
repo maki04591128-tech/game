@@ -294,6 +294,9 @@ public class GameController
     /// <summary>プレイヤー転生イベント（β.20 死に戻り視覚演出用）</summary>
     public event Action<int>? OnPlayerRebirthed;
 
+    /// <summary>戦闘ダメージ表示イベント（β.10 属性エフェクト用）引数: 対象位置, ダメージ量, 属性, クリティカル</summary>
+    public event Action<Position, int, Element, bool>? OnCombatDamageDealt;
+
     /// <summary>ゲームクリア済みか</summary>
     public bool HasCleared => _hasCleared;
 
@@ -1972,6 +1975,10 @@ public class GameController
             var bonusStr = totalBonus > 0 ? $"(+{totalBonus})" : "";
             var dirStr = attackDir == AttackDirection.Back ? " 背面攻撃！" : attackDir == AttackDirection.Side ? " 側面攻撃！" : "";
             AddMessage($"{enemy.Name}に{baseDmg + totalBonus}ダメージ！{critStr}{dirStr}{bonusStr}");
+
+            // β.10: 属性エフェクト通知
+            var attackElement = Player.Equipment.MainHand?.Element ?? Element.None;
+            OnCombatDamageDealt?.Invoke(enemy.Position, baseDmg + totalBonus, attackElement, result.IsCritical);
 
             // BT-7: エンチャント効果の適用
             int totalDamageDealt = baseDmg + totalBonus;

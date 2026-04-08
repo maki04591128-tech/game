@@ -28,7 +28,7 @@ public class GameRenderer
     /// <summary>現在使用中のTextBlockインデックス</summary>
     private int _textPoolIndex;
 
-    private const int TileSize = 20;
+    public const int TileSize = 20;
     private const string FontFamily = "Consolas";
 
     // タイル色定義

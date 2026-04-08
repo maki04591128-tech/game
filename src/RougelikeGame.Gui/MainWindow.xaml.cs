@@ -180,6 +180,7 @@ public partial class MainWindow : Window
         _gameController.OnFloorChanged += OnFloorChangedEffect;
         _gameController.OnPlayerDied += OnPlayerDiedEffect;
         _gameController.OnPlayerRebirthed += OnPlayerRebirthedEffect;
+        _gameController.OnCombatDamageDealt += OnCombatDamageDealtEffect;
 
         UpdateDisplay();
         Focus();
@@ -1187,6 +1188,89 @@ public partial class MainWindow : Window
     #endregion
 
     #region Ver.β 視覚エフェクト（β.9/β.11/β.12/β.18）
+
+    // ============================================================
+    // β.10: 属性エフェクト — 攻撃時に属性シンボルをオーバーレイ表示
+    // ============================================================
+    private static readonly Dictionary<Element, string> _elementSymbols = new()
+    {
+        { Element.Fire,      "🔥" },
+        { Element.Ice,       "❄" },
+        { Element.Lightning, "⚡" },
+        { Element.Dark,      "💜" },
+        { Element.Light,     "✨" },
+        { Element.Poison,    "☠" },
+        { Element.Water,     "💧" },
+        { Element.Wind,      "🌀" },
+        { Element.Earth,     "🌱" },
+        { Element.Holy,      "☀" },
+        { Element.Curse,     "💀" },
+    };
+
+    private void OnCombatDamageDealtEffect(Position targetPos, int damage, Element element, bool isCritical)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (EffectCanvas.ActualWidth <= 0 || EffectCanvas.ActualHeight <= 0) return;
+
+            // グリッド座標→ピクセル座標変換（プレイヤー中心カメラ）
+            double cx = EffectCanvas.ActualWidth / 2.0;
+            double cy = EffectCanvas.ActualHeight / 2.0;
+            var playerPos = _gameController.Player.Position;
+            double pixX = cx + (targetPos.X - playerPos.X) * GameRenderer.TileSize;
+            double pixY = cy + (targetPos.Y - playerPos.Y) * GameRenderer.TileSize - GameRenderer.TileSize;
+
+            // クリティカル時はより大きくダメージ数値表示
+            var rng = new Random();
+            double offsetX = rng.NextDouble() * 20 - 10;
+            double startX = pixX + offsetX;
+            double startY = pixY - 10;
+
+            // 属性シンボル表示（属性がある場合のみ）
+            if (element != Element.None && _elementSymbols.TryGetValue(element, out var symbol))
+            {
+                var elemTb = new System.Windows.Controls.TextBlock
+                {
+                    Text = symbol,
+                    FontSize = isCritical ? 18 : 14,
+                    IsHitTestVisible = false
+                };
+                Canvas.SetLeft(elemTb, startX - 18);
+                Canvas.SetTop(elemTb, startY);
+                EffectCanvas.Children.Add(elemTb);
+
+                var moveAnim = new DoubleAnimation(startY, startY - 30, TimeSpan.FromMilliseconds(500));
+                moveAnim.Completed += (_, _) => EffectCanvas.Children.Remove(elemTb);
+                elemTb.BeginAnimation(Canvas.TopProperty, moveAnim);
+
+                var fadeAnim = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(500));
+                elemTb.BeginAnimation(OpacityProperty, fadeAnim);
+            }
+
+            // クリティカル時はオレンジの"CRITICAL!"テキストを表示
+            if (isCritical)
+            {
+                var critTb = new System.Windows.Controls.TextBlock
+                {
+                    Text = "CRITICAL!",
+                    Foreground = new SolidColorBrush(Colors.Orange),
+                    FontSize = 13,
+                    FontWeight = FontWeights.Bold,
+                    IsHitTestVisible = false
+                };
+                Canvas.SetLeft(critTb, startX - 25);
+                Canvas.SetTop(critTb, startY + 12);
+                EffectCanvas.Children.Add(critTb);
+
+                var moveAnim = new DoubleAnimation(startY + 12, startY - 10, TimeSpan.FromMilliseconds(700));
+                moveAnim.Completed += (_, _) => EffectCanvas.Children.Remove(critTb);
+                critTb.BeginAnimation(Canvas.TopProperty, moveAnim);
+
+                var fadeAnim = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(700));
+                critTb.BeginAnimation(OpacityProperty, fadeAnim);
+            }
+        });
+    }
 
     // ============================================================
     // β.13: 場面転換演出 — 階層移動時のフェードアウト→フェードイン
