@@ -132,6 +132,11 @@
                     <Canvas x:Name="EffectCanvas"
                             IsHitTestVisible="False"
                             ClipToBounds="True"/>
+                    <!-- フロア/死に戻り暗転オーバーレイ（β.13/β.20） -->
+                    <Border x:Name="FadeOverlay"
+                            IsHitTestVisible="False"
+                            Opacity="0"
+                            Background="Black"/>
                 </Grid>
             </Border>
 

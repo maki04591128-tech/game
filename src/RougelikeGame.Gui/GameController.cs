@@ -285,6 +285,15 @@ public class GameController
     /// <summary>ゲームクリアイベント</summary>
     public event Action<GameClearSystem.ClearScore>? OnGameClear;
 
+    /// <summary>フロア変更イベント（β.13 場面転換演出用）</summary>
+    public event Action<int>? OnFloorChanged;
+
+    /// <summary>プレイヤー死亡イベント（β.20 死に戻り視覚演出用）</summary>
+    public event Action<string>? OnPlayerDied;
+
+    /// <summary>プレイヤー転生イベント（β.20 死に戻り視覚演出用）</summary>
+    public event Action<int>? OnPlayerRebirthed;
+
     /// <summary>ゲームクリア済みか</summary>
     public bool HasCleared => _hasCleared;
 
@@ -3611,6 +3620,7 @@ public class GameController
             GenerateFloor();
             CheckAutoSave(AutoSaveTrigger.FloorChange);
             AddMessage($"第{CurrentFloor}層に降りた");
+            OnFloorChanged?.Invoke(CurrentFloor);
 
             // 5階ごとにショートカット自動解放
             if (CurrentFloor % 5 == 0)
@@ -3696,6 +3706,7 @@ public class GameController
             CurrentFloor--;
             GenerateFloor();
             CheckAutoSave(AutoSaveTrigger.FloorChange);
+            OnFloorChanged?.Invoke(CurrentFloor);
             // 上昇時はプレイヤーを下り階段位置に配置
             var downStairsPos = Map.StairsDownPosition;
             if (downStairsPos.HasValue)
@@ -4144,6 +4155,7 @@ public class GameController
             Player.ModifySanity(-GameConstants.RebirthSanityCost);
             transfer.Sanity = Player.Sanity;
             AddMessage($"あなたは{causeText}...");
+            OnPlayerDied?.Invoke(causeText);
             AddMessage($"「また会いましたね。正気度: {Player.Sanity}（-{GameConstants.RebirthSanityCost}）」");
             ExecuteRebirth(transfer);
         }
@@ -4151,6 +4163,7 @@ public class GameController
         {
             // 廃人化からの救済：正気度を20まで回復
             AddMessage($"あなたは{causeText}...");
+            OnPlayerDied?.Invoke(causeText);
             AddMessage("精神が崩壊した...しかし誰かが引き戻してくれた。");
             Player.ModifySanity(GameConstants.SanityRecoveryOnRescue);
             transfer.Sanity = Player.Sanity;
@@ -4336,6 +4349,7 @@ public class GameController
         }
 
         OnStateChanged?.Invoke();
+        OnPlayerRebirthed?.Invoke(TotalDeaths);
     }
 
     /// <summary>

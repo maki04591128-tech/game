@@ -176,6 +176,11 @@ public partial class MainWindow : Window
         _gameController.Player.OnSanityStageChanged += OnPlayerSanityStageChangedEffect;
         _gameController.Player.OnStatusEffectApplied += OnPlayerStatusEffectApplied;
 
+        // Ver.β 視覚エフェクト: ゲームコントローラーイベント購読（β.13/β.20）
+        _gameController.OnFloorChanged += OnFloorChangedEffect;
+        _gameController.OnPlayerDied += OnPlayerDiedEffect;
+        _gameController.OnPlayerRebirthed += OnPlayerRebirthedEffect;
+
         UpdateDisplay();
         Focus();
     }
@@ -653,24 +658,23 @@ public partial class MainWindow : Window
         string result;
         if (_gameController.IsGameOver && !_gameController.Player.IsAlive)
         {
-            result = $"ゲームオーバー\n\nあなたは第{_gameController.CurrentFloor}層で力尽きた...\n{_gameController.GameTime.ToFullString()}";
+            result = $"あなたは第{_gameController.CurrentFloor}層で力尽きた...\n\n到達階層: 第{_gameController.CurrentFloor}層\n{_gameController.GameTime.ToFullString()}\n死亡回数: {_gameController.TotalDeaths}回";
         }
         else if (_gameController.IsGameOver && _gameController.Player.IsAlive)
         {
-            result = $"ゲームオーバー\n\n時間切れ — 世界の崩壊に巻き込まれた...\n到達階層: 第{_gameController.CurrentFloor}層\n{_gameController.GameTime.ToFullString()}";
+            result = $"時間切れ — 世界の崩壊に巻き込まれた...\n\n到達階層: 第{_gameController.CurrentFloor}層\n{_gameController.GameTime.ToFullString()}\n死亡回数: {_gameController.TotalDeaths}回";
         }
         else
         {
             result = $"冒険終了\n\n到達階層: 第{_gameController.CurrentFloor}層\n{_gameController.GameTime.ToFullString()}";
         }
 
-        var choice = MessageBox.Show(
-            $"{result}\n\nタイトル画面に戻りますか？\n（「いいえ」を選ぶとゲームを終了します）",
-            "ローグライクゲーム",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Information);
+        // β.21: 専用ゲームオーバー画面を表示（MessageBox→GameOverWindow）
+        var gameOverWindow = new GameOverWindow(result);
+        gameOverWindow.Owner = this;
+        gameOverWindow.ShowDialog();
 
-        if (choice == MessageBoxResult.Yes)
+        if (gameOverWindow.ReturnToTitle)
         {
             ExitReason = GameExitReason.ReturnToTitle;
         }
@@ -1183,6 +1187,78 @@ public partial class MainWindow : Window
     #endregion
 
     #region Ver.β 視覚エフェクト（β.9/β.11/β.12/β.18）
+
+    // ============================================================
+    // β.13: 場面転換演出 — 階層移動時のフェードアウト→フェードイン
+    // β.20: 死に戻り視覚演出 — 死亡暗転→テキスト表示→フェードイン
+    // ============================================================
+    private void OnFloorChangedEffect(int newFloor)
+    {
+        Dispatcher.Invoke(() => TriggerFadeTransition(null));
+    }
+
+    private void OnPlayerDiedEffect(string causeText)
+    {
+        Dispatcher.Invoke(() => TriggerFadeTransition($"— {causeText} —"));
+    }
+
+    private void OnPlayerRebirthedEffect(int totalDeaths)
+    {
+        Dispatcher.Invoke(() => TriggerFadeIn());
+    }
+
+    private void TriggerFadeTransition(string? deathMessage)
+    {
+        // フェードアウト（黒画面に暗転）
+        FadeOverlay.Opacity = 0;
+        var fadeOut = new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(400));
+
+        if (deathMessage != null)
+        {
+            // 死亡演出: 暗転後にメッセージを表示
+            fadeOut.Completed += (_, _) =>
+            {
+                var msgBlock = new System.Windows.Controls.TextBlock
+                {
+                    Text = deathMessage,
+                    Foreground = new SolidColorBrush(Colors.DarkRed),
+                    FontSize = 20,
+                    FontWeight = FontWeights.Bold,
+                    IsHitTestVisible = false,
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                    VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                };
+                FadeOverlay.Child = msgBlock;
+
+                // 2秒後にフェードイン
+                var holdTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.0) };
+                holdTimer.Tick += (_, _) =>
+                {
+                    holdTimer.Stop();
+                    FadeOverlay.Child = null;
+                    TriggerFadeIn();
+                };
+                holdTimer.Start();
+            };
+        }
+        else
+        {
+            // 通常フロア移動: すぐにフェードイン
+            fadeOut.Completed += (_, _) => TriggerFadeIn();
+        }
+
+        FadeOverlay.BeginAnimation(OpacityProperty, fadeOut);
+    }
+
+    private void TriggerFadeIn()
+    {
+        var fadeIn = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(500))
+        {
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+        };
+        fadeIn.Completed += (_, _) => FadeOverlay.Child = null;
+        FadeOverlay.BeginAnimation(OpacityProperty, fadeIn);
+    }
 
     // ============================================================
     // β.18: 正気度演出 — 正気度ステージに応じた画面オーバーレイ
