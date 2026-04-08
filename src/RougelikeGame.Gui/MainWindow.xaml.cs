@@ -3,8 +3,11 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using RougelikeGame.Core;
+using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Items;
 using RougelikeGame.Core.Systems;
 using RougelikeGame.Engine.Magic;
@@ -167,6 +170,11 @@ public partial class MainWindow : Window
 
         // ダンジョン探索BGM開始
         _audioManager.PlayBgm(BgmIds.DungeonNormal);
+
+        // Ver.β 視覚エフェクト: プレイヤーイベント購読
+        _gameController.Player.OnDamaged += OnPlayerDamaged;
+        _gameController.Player.OnSanityStageChanged += OnPlayerSanityStageChangedEffect;
+        _gameController.Player.OnStatusEffectApplied += OnPlayerStatusEffectApplied;
 
         UpdateDisplay();
         Focus();
@@ -1170,6 +1178,185 @@ public partial class MainWindow : Window
         dialog.Owner = this;
         dialog.ShowDialog();
         Focus();
+    }
+
+    #endregion
+
+    #region Ver.β 視覚エフェクト（β.9/β.11/β.12/β.18）
+
+    // ============================================================
+    // β.18: 正気度演出 — 正気度ステージに応じた画面オーバーレイ
+    // ============================================================
+    private void OnPlayerSanityStageChangedEffect(object? sender, SanityStageEventArgs e)
+    {
+        Dispatcher.Invoke(() => UpdateSanityOverlay(e.NewStage));
+    }
+
+    private void UpdateSanityOverlay(SanityStage stage)
+    {
+        // 正気度ステージに応じたオーバーレイ色と不透明度
+        var (color, opacity) = stage switch
+        {
+            SanityStage.Normal   => (Color.FromArgb(0, 0, 0, 0), 0.0),
+            SanityStage.Uneasy   => (Color.FromArgb(30, 100, 0, 200), 0.15),
+            SanityStage.Anxious  => (Color.FromArgb(50, 120, 0, 180), 0.25),
+            SanityStage.Unstable => (Color.FromArgb(70, 150, 0, 100), 0.35),
+            SanityStage.Madness  => (Color.FromArgb(90, 200, 0, 50),  0.45),
+            _                    => (Color.FromArgb(120, 220, 0, 0),  0.55),  // Broken
+        };
+
+        SanityOverlay.Background = new SolidColorBrush(color);
+
+        var fadeAnim = new DoubleAnimation(SanityOverlay.Opacity, opacity, TimeSpan.FromSeconds(1.0));
+        SanityOverlay.BeginAnimation(OpacityProperty, fadeAnim);
+    }
+
+    // ============================================================
+    // β.11: 被弾フラッシュ — 大ダメージ時に画面が赤くフラッシュ
+    // β.9:  フローティングダメージ数値 — 被ダメ時アニメーション
+    // ============================================================
+    private void OnPlayerDamaged(object? sender, DamageEventArgs e)
+    {
+        int dmg = e.FinalDamage;
+        if (dmg <= 0) return;
+
+        Dispatcher.Invoke(() =>
+        {
+            // β.11: 大ダメージ（10以上）で赤フラッシュ
+            if (dmg >= 10)
+                TriggerFlashOverlay();
+
+            ShowFloatingDamage(dmg, e.OriginalDamage.Element);
+        });
+    }
+
+    private void TriggerFlashOverlay()
+    {
+        FlashOverlay.BeginAnimation(OpacityProperty, null);
+        FlashOverlay.Opacity = 0.45;
+        var anim = new DoubleAnimation(0.45, 0.0, TimeSpan.FromMilliseconds(400))
+        {
+            EasingFunction = new ExponentialEase { EasingMode = EasingMode.EaseOut }
+        };
+        FlashOverlay.BeginAnimation(OpacityProperty, anim);
+    }
+
+    private void ShowFloatingDamage(int damage, RougelikeGame.Core.Element element)
+    {
+        if (EffectCanvas.ActualWidth <= 0) return;
+
+        // ダメージ数値の色（属性別）
+        var color = element switch
+        {
+            RougelikeGame.Core.Element.Fire      => Colors.OrangeRed,
+            RougelikeGame.Core.Element.Ice       => Colors.DeepSkyBlue,
+            RougelikeGame.Core.Element.Lightning => Colors.Yellow,
+            RougelikeGame.Core.Element.Dark      => Colors.MediumPurple,
+            RougelikeGame.Core.Element.Light     => Colors.Gold,
+            RougelikeGame.Core.Element.Poison    => Colors.LimeGreen,
+            _                                    => Colors.White,
+        };
+
+        // プレイヤーキャラ '@' の画面中央付近にランダムオフセットで表示
+        var rng = new Random();
+        double cx = EffectCanvas.ActualWidth / 2.0;
+        double cy = EffectCanvas.ActualHeight / 2.0;
+        double startX = cx + rng.NextDouble() * 60 - 30;
+        double startY = cy - 20;
+
+        var tb = new System.Windows.Controls.TextBlock
+        {
+            Text = $"-{damage}",
+            Foreground = new SolidColorBrush(color),
+            FontSize = damage >= 20 ? 18 : 14,
+            FontWeight = FontWeights.Bold,
+            IsHitTestVisible = false
+        };
+
+        Canvas.SetLeft(tb, startX);
+        Canvas.SetTop(tb, startY);
+        EffectCanvas.Children.Add(tb);
+
+        // 上方向へ移動しながらフェードアウト（600ms）
+        var moveAnim = new DoubleAnimation(startY, startY - 45, TimeSpan.FromMilliseconds(600))
+        {
+            EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
+        };
+        moveAnim.Completed += (_, _) => EffectCanvas.Children.Remove(tb);
+        tb.BeginAnimation(Canvas.TopProperty, moveAnim);
+
+        var fadeAnim = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(600));
+        tb.BeginAnimation(OpacityProperty, fadeAnim);
+    }
+
+    // ============================================================
+    // β.12: 状態異常視覚エフェクト — 状態異常テキストをオーバーレイ表示
+    // ============================================================
+    private static readonly Dictionary<StatusEffectType, (string Text, Color Color)> _statusEffectDisplay = new()
+    {
+        { StatusEffectType.Poison,      ("☠ 毒",   Colors.LimeGreen) },
+        { StatusEffectType.Burn,        ("🔥 燃焼", Colors.OrangeRed) },
+        { StatusEffectType.Paralysis,   ("⚡ 麻痺", Colors.Yellow) },
+        { StatusEffectType.Sleep,       ("💤 睡眠", Colors.SkyBlue) },
+        { StatusEffectType.Silence,     ("🔇 沈黙", Colors.Plum) },
+        { StatusEffectType.Confusion,   ("❓ 混乱", Colors.Orange) },
+        { StatusEffectType.Curse,       ("💀 呪い", Colors.MediumPurple) },
+        { StatusEffectType.Weakness,    ("↓ 弱体化", Colors.Gray) },
+        { StatusEffectType.Strength,    ("↑ 強化",  Colors.Gold) },
+        { StatusEffectType.Blessing,    ("✨ 祝福",  Colors.Cyan) },
+        { StatusEffectType.Haste,       ("⚡ 加速",  Colors.LightCyan) },
+        { StatusEffectType.Slow,        ("🐢 減速",  Colors.RosyBrown) },
+        { StatusEffectType.Invisibility,("👻 透明化", Colors.AliceBlue) },
+        { StatusEffectType.Bleeding,    ("🩸 出血",  Colors.Crimson) },
+        { StatusEffectType.Freeze,      ("❄ 凍結",  Colors.DeepSkyBlue) },
+        { StatusEffectType.Stun,        ("💫 気絶",  Colors.Khaki) },
+        { StatusEffectType.Fear,        ("😱 恐怖",  Colors.DarkOrange) },
+        { StatusEffectType.Charm,       ("💕 魅了",  Colors.HotPink) },
+    };
+
+    private void OnPlayerStatusEffectApplied(object? sender, StatusEffectEventArgs e)
+    {
+        if (_statusEffectDisplay.TryGetValue(e.Effect.Type, out var display))
+            ShowStatusEffectNotification(display.Text, display.Color);
+    }
+
+    /// <summary>状態異常付与時にエフェクトCanvasにアイコンを表示する</summary>
+    public void ShowStatusEffectNotification(string effectName, Color color)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (EffectCanvas.ActualWidth <= 0) return;
+
+            double cx = EffectCanvas.ActualWidth / 2.0 - 30;
+            double cy = EffectCanvas.ActualHeight * 0.35;
+
+            var tb = new System.Windows.Controls.TextBlock
+            {
+                Text = effectName,
+                Foreground = new SolidColorBrush(color),
+                FontSize = 13,
+                FontWeight = FontWeights.SemiBold,
+                IsHitTestVisible = false
+            };
+
+            Canvas.SetLeft(tb, cx);
+            Canvas.SetTop(tb, cy);
+            EffectCanvas.Children.Add(tb);
+
+            var fadeIn  = new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(200));
+            var fadeOut = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(500));
+            fadeOut.BeginTime = TimeSpan.FromMilliseconds(900);
+            fadeOut.Completed += (_, _) => EffectCanvas.Children.Remove(tb);
+
+            tb.BeginAnimation(OpacityProperty, fadeIn);
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                tb.BeginAnimation(OpacityProperty, fadeOut);
+            };
+            timer.Start();
+        });
     }
 
     #endregion

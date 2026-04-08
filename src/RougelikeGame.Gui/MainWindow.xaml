@@ -117,6 +117,21 @@
                                 Width="160" Height="100"
                                 ClipToBounds="True"/>
                     </Border>
+                    <!-- Ver.β 視覚エフェクト用オーバーレイ -->
+                    <!-- 正気度演出オーバーレイ（β.18） -->
+                    <Border x:Name="SanityOverlay"
+                            IsHitTestVisible="False"
+                            Opacity="0"
+                            Background="#00FF0000"/>
+                    <!-- 被弾フラッシュオーバーレイ（β.11） -->
+                    <Border x:Name="FlashOverlay"
+                            IsHitTestVisible="False"
+                            Opacity="0"
+                            Background="#CCFF0000"/>
+                    <!-- フローティングダメージ・状態異常テキスト用Canvas（β.9/β.12） -->
+                    <Canvas x:Name="EffectCanvas"
+                            IsHitTestVisible="False"
+                            ClipToBounds="True"/>
                 </Grid>
             </Border>
 
