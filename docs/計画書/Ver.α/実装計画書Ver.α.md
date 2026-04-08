@@ -1,7 +1,7 @@
 ﻿# 実装計画書 Ver.α.0.1〜2（世界観補強・没入感向上）
 
 **目標**: ストーリーテキスト、フレーバーテキスト、NPC設定・会話内容、クエスト詳細の実装
-**状態**: 🔄 実装中（Ver.α.0.1 進行中）
+**状態**: ✅ Ver.α.0.1 全45タスク完了（2026-04-08）
 
 ---
 
@@ -146,3 +146,36 @@ Ver.prt で構築した全ゲームシステム（NPC基盤、会話システム
 |---|--------|------|------|
 | α.44 | 季節別NPC台詞差分 | ✅ | 春の祭り/夏の暑さ/秋の収穫/冬の寒さに関するNPC発言 |
 | α.45 | 季節イベントテキスト | ✅ | 季節限定イベントの描写テキスト |
+
+---
+
+## 9. ブラッシュアップ記録
+
+### Ver.α.0.1 完了ブラッシュアップ（2026-04-08）
+
+#### 実施内容
+- 全45タスク（α.1〜α.45）実装完了を確認
+- テスト状況: Core.Tests 6,353件全合格（うちAlpha専用テスト: AlphaLoreDataTests.cs 38件 + AlphaLoreDataTests2.cs 49件）
+- 新規追加ファイル（17ファイル）:
+  - `src/RougelikeGame.Core/Data/MainStoryData.cs`（メインストーリー・エンディング・プロローグ）
+  - `src/RougelikeGame.Core/Data/NpcCharacterData.cs`（NPC設定・会話テキスト）
+  - `src/RougelikeGame.Core/Data/QuestLoreData.cs`（クエスト詳細テキスト）
+  - `src/RougelikeGame.Core/Data/ReligionLoreData.cs`（宗教教義・司祭会話）
+  - `src/RougelikeGame.Core/Data/RuneWordLoreData.cs`（ルーン語フレーバー・詠唱演出）
+  - `src/RougelikeGame.Core/Data/TerritoryLoreData.cs`（領地ロケーション描写）
+  - `src/RougelikeGame.Core/Data/MonsterLoreData.cs`（モンスター図鑑テキスト）
+  - `src/RougelikeGame.Core/Data/DungeonEventLoreData.cs`（ダンジョンイベント描写）
+  - `src/RougelikeGame.Core/Data/TimeSeasonLoreData.cs`（時間・季節・天候描写）
+  - `src/RougelikeGame.Core/Data/NpcLocationLoreData.cs`（NPC・地域図鑑テキスト）
+  - `src/RougelikeGame.Core/Data/KarmaRelatedData.cs`（カルマ関連NPC反応・闇市テキスト）
+  - `src/RougelikeGame.Core/Data/StatFlagEventData.cs`（能力値フラグ条件テキスト）
+  - `src/RougelikeGame.Core/Data/RaceRelationData.cs`（種族間・領地間関係テキスト）
+  - `src/RougelikeGame.Core/Data/CompanionNpcData.cs`（仲間・傭兵NPC設定・台詞）
+  - `src/RougelikeGame.Core/Data/SpecialNpcData.cs`（吟遊詩人・賞金稼ぎ・占い師・亡霊NPCテキスト）
+  - `src/RougelikeGame.Core/Data/DungeonLocationData.cs`（ダンジョンマップロケーション・遺跡テキスト）
+  - `src/RougelikeGame.Core/Data/SeasonalEventData.cs`（季節別NPC台詞・季節イベント）
+
+#### 関連設計書更新
+- `docs/企画設計書/17_デバッグ・テスト設計書.md`: テスト件数更新（5,650→6,353件）
+- `docs/計画書/マスター実装計画書.md`: Ver.α.0.1 完了ステータス更新
+- `docs/企画設計書/11_クラス設計書.md`: Ver.α追加クラス反映
