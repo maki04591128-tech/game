@@ -108,3 +108,46 @@ Ver.β はゲームのリソースを強化するフェーズ。
 | β.37 | 夏グラフィック | ⬜ | 強い日差し、鮮やかな緑 |
 | β.38 | 秋グラフィック | ⬜ | 紅葉、暖色系 |
 | β.39 | 冬グラフィック | ⬜ | 雪/凍結、白/青色調 |
+
+---
+
+## 8. ブラッシュアップ記録
+
+### 2026-04-08 Ver.β.0.1 コード実装済みタスクまとめ
+
+**実装完了タスク（14件）:**
+- **β.8**: BGMフェード機能（`IAudioManager.FadeToBgm()`・`AudioManager`実装）
+- **β.9**: フローティングダメージ数値（`Character.OnDamaged`購読・属性別色・アニメーション）
+- **β.10**: 属性エフェクト（11種元素シンボル・クリティカル"CRITICAL!"テキスト表示）
+- **β.11**: 被弾フラッシュ（10+ダメージ時 `FlashOverlay` 赤フェードアウト）
+- **β.12**: 状態異常視覚エフェクト（18種 `OnStatusEffectApplied` 購読・オーバーレイ通知）
+- **β.13**: 場面転換演出（`GameController.OnFloorChanged` → `FadeOverlay` フェード）
+- **β.14**: フォント統一（`App.xaml` TextBlock/Button/Label/ComboBox/ListBox 游ゴシックUI）
+- **β.16**: ウィンドウフェードイン（`App.xaml` Windowスタイル EventTrigger 0→1, 200ms）
+- **β.17**: ツールチップ追加（ステータスバー14項目に日本語説明ToolTip）
+- **β.18**: 正気度演出（`Player.OnSanityStageChanged` 購読・6ステージ別 `SanityOverlay` 色調変化）
+- **β.19**: 画面遷移アニメーション（β.13に統合）
+- **β.20**: 死に戻り視覚演出（`GameController.OnPlayerDied/OnPlayerRebirthed` → 暗転→テキスト→フェードイン）
+- **β.21**: ゲームオーバー専用画面（`GameOverWindow.xaml/cs` 新規作成・フェードインアニメーション）
+
+**新規追加ファイル:**
+- `src/RougelikeGame.Gui/GameOverWindow.xaml` — ゲームオーバー専用ウィンドウ
+- `src/RougelikeGame.Gui/GameOverWindow.xaml.cs`
+- `src/RougelikeGame.Gui/WindowAnimationHelper.cs` — ウィンドウアニメーションヘルパー
+
+**変更ファイル:**
+- `MainWindow.xaml`: SanityOverlay/FlashOverlay/EffectCanvas/FadeOverlay追加、ツールチップ追加
+- `MainWindow.xaml.cs`: β視覚エフェクトregion追加（β.8〜β.21）
+- `GameController.cs`: OnFloorChanged/OnPlayerDied/OnPlayerRebirthed/OnCombatDamageDealt イベント追加
+- `GameRenderer.cs`: TileSize を public 化
+- `App.xaml`: フォント共通スタイル・ウィンドウフェードインスタイル追加
+- `Audio/IAudioManager.cs`: FadeToBgm追加
+- `Audio/AudioManager.cs`: FadeToBgm実装（タイマーベースフェード）
+- `Audio/SilentAudioManager.cs`: FadeToBgm空実装追加
+
+**未実装タスク（外部リソース必要）:**
+- β.1〜β.7: タイル画像・キャラクタースプライト（PNG/BMP等の画像ファイルが必要）
+- β.15: レイアウト改善（設計決定が必要）
+- β.22〜β.39: BGM/SEファイル・グラフィックリソースが必要
+
+**Core.Tests**: 6,353件全合格（変更なし）
