@@ -5398,6 +5398,16 @@ public class GameController
         }
 
         // 即時発動（TurnCost <= 1）
+        // α.20: 詠唱演出テキストを追加
+        var currentIncantation = _spellCastingSystem.CurrentIncantation;
+        if (currentIncantation.Count > 0)
+        {
+            var effectWord = currentIncantation.FirstOrDefault(w => true) ?? "";
+            var elementWord = currentIncantation.Count > 1 ? currentIncantation.Skip(1).FirstOrDefault() : null;
+            var castingText = RougelikeGame.Core.Data.RuneWordLoreData.GetCastingText(effectWord, elementWord);
+            if (!string.IsNullOrEmpty(castingText))
+                AddMessage(castingText);
+        }
         AddMessage(result.Message);
         actionCost = Math.Max(1, result.TurnCost);
 
@@ -6327,6 +6337,8 @@ public class GameController
             GenerateSymbolMap();
 
             OnTerritoryChanged?.Invoke(destination);
+            // α.21: 領地到着時のフレーバーテキスト
+            AddMessage(RougelikeGame.Core.Data.TerritoryLoreData.GetArrivalDescription(destination));
             OnStateChanged?.Invoke();
         }
 
