@@ -557,7 +557,7 @@ public class GameController
                         new DialogueChoice("辺境の危険について教えてくれ", "dlg_wolf_frontier") }),
             new("dlg_wolf_battle", "ヴォルフ", "戦いは準備が全てだ。相手の弱点を知り、自分の強みを活かせ。\n勢いだけで突っ込む奴は長生きしない。\n特に複数の敵を相手にする時は、一体ずつ引き離す方が賢い。\nそれから…逃げる勇気も大切だぞ。生きてこそ勝てる。",
                 new[] { new DialogueChoice("了解した", "dlg_wolf_intro") }),
-            new("dlg_wolf_frontier", "dlg_wolf_frontier", "辺境には通常の魔物以外にも、獰猛な野獣や盗賊団がいる。\n特に月のない夜は危険度が上がる。\n単独行動は避け、仲間と連携することを勧める。\n俺みたいな古強者でも、辺境では油断しない。",
+            new("dlg_wolf_frontier", "ヴォルフ", "辺境には通常の魔物以外にも、獰猛な野獣や盗賊団がいる。\n特に月のない夜は危険度が上がる。\n単独行動は避け、仲間と連携することを勧める。\n俺みたいな古強者でも、辺境では油断しない。",
                 new[] { new DialogueChoice("了解した", "dlg_wolf_intro") }),
 
             // ===== イゴール（呪術師）=====
