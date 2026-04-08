@@ -250,6 +250,13 @@ public class PetSystem
                 case PetType.Hawk: viewBonus += 3; break;         // 偵察: 視野+3
                 case PetType.Bear: dmgReduction += 0.10f; break;  // 防壁: 被ダメージ-10%
                 case PetType.Wolf: atkDebuff += 0.10f; break;     // 威嚇: 敵攻撃力-10%
+                case PetType.Horse: dropBonus += 0.05f; break;   // 幸運（小）: ドロップ率+5%
+                case PetType.Dragon:                              // 万能型: 全ボーナス少量
+                    dropBonus += 0.10f;
+                    viewBonus += 2;
+                    dmgReduction += 0.05f;
+                    atkDebuff += 0.05f;
+                    break;
             }
         }
         return (dropBonus, viewBonus, dmgReduction, atkDebuff);

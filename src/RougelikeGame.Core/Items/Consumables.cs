@@ -133,9 +133,9 @@ public class Potion : ConsumableItem
                     new ItemEffect(ItemEffectType.ApplyStatus, Duration, StatusEffect: StatusEffectType.ColdResistance));
 
             case PotionType.IntelligenceBoost:
-                user.ApplyStatusEffect(new StatusEffect(StatusEffectType.Protection, Duration > 0 ? Duration : 20));
-                return UseResult.Ok("知力が上がった！",
-                    new ItemEffect(ItemEffectType.ApplyStatus, Duration > 0 ? Duration : 20, StatusEffect: StatusEffectType.Protection));
+                user.ApplyStatusEffect(new StatusEffect(StatusEffectType.Blessing, Duration > 0 ? Duration : 20));
+                return UseResult.Ok("能力が強化された！",
+                    new ItemEffect(ItemEffectType.ApplyStatus, Duration > 0 ? Duration : 20, StatusEffect: StatusEffectType.Blessing));
 
             case PotionType.Poison:
                 user.ApplyStatusEffect(new StatusEffect(StatusEffectType.Poison, Duration > 0 ? Duration : 10));

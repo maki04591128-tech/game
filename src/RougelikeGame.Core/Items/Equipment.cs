@@ -162,6 +162,7 @@ public abstract class EquipmentItem : Item, IEquippable
         EquipmentSlot.Feet => '_',
         EquipmentSlot.Neck or EquipmentSlot.Ring1 or EquipmentSlot.Ring2 => '=',
         EquipmentSlot.Back => '`',
+        EquipmentSlot.Waist => '~',
         _ => ')'
     };
 }

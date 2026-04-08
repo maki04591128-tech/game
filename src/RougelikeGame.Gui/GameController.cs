@@ -8746,7 +8746,6 @@ public class GameController
             save.Player.Fatigue,
             save.Player.Hygiene
         );
-        Player.Position = save.Player.Position.ToPosition();
 
         // 気付け薬フラグ復元
         Player.HasFatigueRestrictionRelief = save.Player.HasFatigueRestrictionRelief;

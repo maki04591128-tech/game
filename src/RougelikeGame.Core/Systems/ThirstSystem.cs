@@ -89,6 +89,7 @@ public static class ThirstSystem
     /// <summary>渇きダメージ（ターンあたり、数値ベース）</summary>
     public static int GetThirstDamage(ThirstStage stage) => stage switch
     {
+        ThirstStage.Desiccation => 20,
         ThirstStage.Dehydrated => 1,
         ThirstStage.NearDesiccation => 10,
         _ => 0
@@ -106,6 +107,8 @@ public static class ThirstSystem
     /// <summary>渇き段階による行動コスト加算値を取得</summary>
     public static int GetThirstActionCostBonus(ThirstStage stage) => stage switch
     {
+        ThirstStage.Desiccation => 5,
+        ThirstStage.NearDesiccation => 3,
         ThirstStage.Nausea => 3,
         ThirstStage.Overdrinking => 2,
         ThirstStage.Full => 1,
