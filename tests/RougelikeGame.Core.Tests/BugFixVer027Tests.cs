@@ -223,4 +223,34 @@ public class BugFixVer027Tests
     }
 
     #endregion
+
+    #region B.21: Weapon.GetDefaultDisplayChar 全WeaponType対応
+
+    [Theory]
+    [InlineData(WeaponType.Unarmed, ' ')]
+    [InlineData(WeaponType.Dagger, '†')]
+    [InlineData(WeaponType.Sword, '/')]
+    [InlineData(WeaponType.Greatsword, '|')]
+    [InlineData(WeaponType.Axe, 'P')]
+    [InlineData(WeaponType.Greataxe, 'P')]
+    [InlineData(WeaponType.Spear, '/')]
+    [InlineData(WeaponType.Hammer, 'T')]
+    [InlineData(WeaponType.Staff, '\\')]
+    [InlineData(WeaponType.Bow, '}')]
+    [InlineData(WeaponType.Crossbow, '{')]
+    [InlineData(WeaponType.Thrown, '*')]
+    [InlineData(WeaponType.Whip, '~')]
+    [InlineData(WeaponType.Fist, ')')]
+    public void Weapon_GetDefaultDisplayChar_AllWeaponTypesHaveExplicitChar(WeaponType weaponType, char expectedChar)
+    {
+        var weapon = new Weapon
+        {
+            Name = $"テスト{weaponType}",
+            WeaponType = weaponType,
+            Weight = 1.0f
+        };
+        Assert.Equal(expectedChar, weapon.DisplayChar);
+    }
+
+    #endregion
 }

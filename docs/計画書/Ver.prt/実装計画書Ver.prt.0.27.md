@@ -164,7 +164,31 @@ Horse（馬）とDragon（竜）のケースが欠落している。
 | src/RougelikeGame.Core/Entities/Player.cs | RestoreFromSave Hunger/Thirst最小値クランプ修正、デフォルト引数定数化、Starvation/Desiccationステータスペナルティ追加 |
 | src/RougelikeGame.Core/Systems/ThirstSystem.cs | GetThirstDamage Desiccation=20追加、GetThirstActionCostBonus NearDesiccation/Desiccation追加 |
 | src/RougelikeGame.Core/Systems/PetSystem.cs | GetPetAbilityBonuses Horse/Dragon追加 |
-| src/RougelikeGame.Core/Items/Equipment.cs | GetDefaultDisplayChar Waist='~'追加 |
+| src/RougelikeGame.Core/Items/Equipment.cs | GetDefaultDisplayChar Waist='~'追加、Weapon.GetDefaultDisplayChar 全14WeaponType対応（Unarmed/Greataxe/Hammer/Thrown/Whip/Fist追加） |
 | src/RougelikeGame.Core/Items/Consumables.cs | IntelligenceBoost Protection→Blessing修正 |
 | src/RougelikeGame.Gui/GameController.cs | 冗長Player.Position設定削除 |
-| tests/RougelikeGame.Core.Tests/BugFixVer027Tests.cs | 新規テスト19件 |
+| tests/RougelikeGame.Core.Tests/BugFixVer027Tests.cs | テスト33件（B.11〜B.21） |
+
+## Phase 7: 武器表示文字の全WeaponType対応（タスク B.21）
+
+### 問題
+
+`Weapon.GetDefaultDisplayChar()`メソッドのswitch文で、14種あるWeaponTypeのうち8種しかカバーされていない。
+Unarmed, Greataxe, Hammer, Thrown, Whip, Fistの6種がデフォルトケース（`')'`）にフォールスルーする。
+
+### タスク一覧
+
+| タスクID | ファイル | 行 | 内容 | ステータス |
+|----------|---------|-----|------|------------|
+| B.21 | Equipment.cs | 243-254 | Weapon.GetDefaultDisplayChar()に全14WeaponTypeの表示文字を追加 | ✅完了 |
+
+### 修正内容
+
+| WeaponType | 表示文字 | 理由 |
+|-----------|---------|------|
+| Unarmed | ' '(空白) | 素手は武器なし |
+| Greataxe | 'P' | Axeと同系統 |
+| Hammer | 'T' | ハンマー形状 |
+| Thrown | '*' | 投擲の発射を表す |
+| Whip | '~' | 鞭のしなり |
+| Fist | ')' | 格闘武器 |

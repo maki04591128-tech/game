@@ -242,14 +242,20 @@ public class Weapon : EquipmentItem
 
     protected override char GetDefaultDisplayChar() => WeaponType switch
     {
+        WeaponType.Unarmed => ' ',
         WeaponType.Dagger => '†',
         WeaponType.Sword => '/',
         WeaponType.Greatsword => '|',
         WeaponType.Axe => 'P',
+        WeaponType.Greataxe => 'P',
         WeaponType.Spear => '/',
+        WeaponType.Hammer => 'T',
         WeaponType.Staff => '\\',
         WeaponType.Bow => '}',
         WeaponType.Crossbow => '{',
+        WeaponType.Thrown => '*',
+        WeaponType.Whip => '~',
+        WeaponType.Fist => ')',
         _ => ')'
     };
 }
