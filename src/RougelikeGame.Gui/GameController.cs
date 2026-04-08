@@ -400,63 +400,174 @@ public class GameController
     {
         _dialogueSystem.RegisterNodes(new DialogueNode[]
         {
-            new("dlg_leon_intro", "レオン", "やあ、冒険者。ギルドへようこそ。\n何か依頼を探しているなら、掲示板を確認してくれ。",
+            // ===== レオン（冒険者ギルドマスター）=====
+            new("dlg_leon_intro", "レオン", "やあ、冒険者。ギルドへようこそ。\n何か依頼を探しているなら、掲示板を確認してくれ。\nここは旅人の安全と繁栄を守る場所だ。",
                 new[] { new DialogueChoice("クエストを見せてくれ", "action:show_quest_board", 5),
-                        new DialogueChoice("ギルドについて教えて", "dlg_leon_quest") }),
-            new("dlg_leon_quest", "レオン", "このギルドは冒険者を支援する組織だ。\n依頼を達成してポイントを貯めれば、ランクが上がるぞ。"),
+                        new DialogueChoice("ギルドについて教えてほしい", "dlg_leon_lore"),
+                        new DialogueChoice("この街について教えてくれ", "dlg_leon_town") }),
+            new("dlg_leon_lore", "レオン", "このギルドは冒険者を支援する組織だ。\n依頼を達成してポイントを貯めれば、ランクが上がるぞ。\n高いランクになれば、より報酬のいい依頼が解禁される。\n信頼と実績…それがギルドマンの誇りだ。",
+                new[] { new DialogueChoice("ランクアップの条件は？", "dlg_leon_rank"),
+                        new DialogueChoice("戻る", "dlg_leon_intro") }),
+            new("dlg_leon_rank", "レオン", "ランクは銅・鉄・銀・金・白金の5段階だ。\n依頼をこなすほどポイントが貯まり、自動でランクアップする。\n白金ランクになれば…まあ、国王直属の特別依頼も来るようになるな。",
+                new[] { new DialogueChoice("了解した", "dlg_leon_intro") }),
+            new("dlg_leon_town", "レオン", "ここは王都の外れにある冒険者の街、スターターズ・クロスだ。\n昔は小さな宿場町だったが、今では各地からの冒険者が集う賑やかな拠点になった。\nダンジョンへの入口もすぐそこにある。気をつけてな。",
+                new[] { new DialogueChoice("ダンジョンについて教えてくれ", "dlg_leon_dungeon"),
+                        new DialogueChoice("了解した", "dlg_leon_intro") }),
+            new("dlg_leon_dungeon", "レオン", "ダンジョンは地下深くに広がる謎の遺跡だ。\n行けば行くほど強力な魔物が現れるが、その分宝も多い。\nただし…30階より深くに潜った者の多くは戻らない。\n俺も昔は冒険者だったが、今は後輩たちを送り出す側だ。",
+                new[] { new DialogueChoice("了解した", "dlg_leon_intro") }),
 
-            new("dlg_marco_intro", "マルコ", "いらっしゃい！ 何かお探しかな？\n良い品を揃えているよ。",
+            // ===== マルコ（商人）=====
+            new("dlg_marco_intro", "マルコ", "いらっしゃい！ 何かお探しかな？\n良い品を揃えているよ。遠い地から取り寄せた珍しいものもあるぞ。",
                 new[] { new DialogueChoice("商品を見せてくれ", "action:open_shop", 3),
-                        new DialogueChoice("最近何か変わったことは？", "dlg_marco_intro") }),
+                        new DialogueChoice("商売について聞かせてくれ", "dlg_marco_business"),
+                        new DialogueChoice("最近何か変わったことは？", "dlg_marco_news") }),
+            new("dlg_marco_business", "マルコ", "商売は信頼と情報が命だ。\nどこに何が安くあるか、どこで何が高く売れるか…\nそれを知っているだけで、戦わずとも豊かになれる。\n君も何か売りたいものがあれば、遠慮なく言ってくれ。",
+                new[] { new DialogueChoice("戻る", "dlg_marco_intro") }),
+            new("dlg_marco_news", "マルコ", "そうだな…最近、南の港から変な噂が流れてきた。\n深海から怪しい品物を運び込む船があるらしい。\nまあ、商人としては気になる話だが、近づかない方が賢明かもしれない。",
+                new[] { new DialogueChoice("商品を見せてくれ", "action:open_shop", 3),
+                        new DialogueChoice("戻る", "dlg_marco_intro") }),
 
-            new("dlg_albert_intro", "アルバート", "神の祝福がありますように。\n呪いを解いたり、祈りを捧げることができますよ。",
+            // ===== アルバート（神官）=====
+            new("dlg_albert_intro", "アルバート", "神の祝福がありますように。\n呪いを解いたり、祈りを捧げることができますよ。\n心が迷ったとき、神はいつでも導いてくださいます。",
                 new[] { new DialogueChoice("呪いを解いてほしい", "action:remove_curse", 5),
-                        new DialogueChoice("祈りを捧げたい", "action:pray") }),
+                        new DialogueChoice("祈りを捧げたい", "action:pray"),
+                        new DialogueChoice("この地の信仰について聞かせてくれ", "dlg_albert_faith") }),
+            new("dlg_albert_faith", "アルバート", "この地では主に6つの神が信仰されています。\n光の神ルーミナス、大地の神テラース、嵐の神ガルウィン…\n死の神モルタス、知恵の神ソフィア、混沌の神カオシャン。\nどの神もそれぞれの真理を持ち、信者に力を与えます。",
+                new[] { new DialogueChoice("各宗教について詳しく教えてくれ", "dlg_albert_religions"),
+                        new DialogueChoice("了解した", "dlg_albert_intro") }),
+            new("dlg_albert_religions", "アルバート", "光の神ルーミナスは治癒と守護を司ります。\n混沌の神カオシャンへの信仰は…私には理解し難いものがありますが、\n信仰の在り方は人それぞれ。どうか正しい道を歩んでください。",
+                new[] { new DialogueChoice("了解した", "dlg_albert_intro") }),
 
-            new("dlg_mervin_intro", "マーヴィン", "ほう、魔術に興味があるのかね？\nルーン語を学べば強力な魔法が使えるようになるぞ。",
+            // ===== マーヴィン（魔法使い）=====
+            new("dlg_mervin_intro", "マーヴィン", "ほう、魔術に興味があるのかね？\nルーン語を学べば強力な魔法が使えるようになるぞ。\n言葉には力が宿る。古代語のルーン文字は特にな。",
                 new[] { new DialogueChoice("魔法の品を見せてくれ", "action:open_shop", 3),
-                        new DialogueChoice("ルーン語について教えてくれ", "dlg_mervin_intro") }),
+                        new DialogueChoice("ルーン語について教えてくれ", "dlg_mervin_rune"),
+                        new DialogueChoice("魔法の歴史について", "dlg_mervin_history") }),
+            new("dlg_mervin_rune", "マーヴィン", "ルーン語は古代の魔術師が開発した呪文言語だ。\n各ルーン文字は宇宙の基本原理を表している。\n例えば『イグ』は火を、『フリス』は氷を意味する。\n複数のルーンを組み合わせることで、より複雑な魔法が使えるようになる。",
+                new[] { new DialogueChoice("ルーン語を学ぶにはどうすれば？", "dlg_mervin_learn"),
+                        new DialogueChoice("戻る", "dlg_mervin_intro") }),
+            new("dlg_mervin_learn", "マーヴィン", "ダンジョン内の碑文を調べると、ルーン語の知識が増えることがある。\nまた、古代の書と呼ばれるアイテムには貴重なルーン知識が記されている。\n学ぶことに終わりはないが、それが魔術師の醍醐味というものだ。",
+                new[] { new DialogueChoice("了解した", "dlg_mervin_intro") }),
+            new("dlg_mervin_history", "マーヴィン", "魔術は3000年前の大賢者アルカナムが体系化したと言われている。\n彼は星の配置からルーン語の法則を発見し、多くの弟子を育てた。\n今日の全ての魔法学はその流れを汲んでいる。\n…ただし、その研究の末にアルカナムが何を見たのかは、今も謎のままだ。",
+                new[] { new DialogueChoice("戻る", "dlg_mervin_intro") }),
 
-            new("dlg_elwen_intro", "エルウェン", "…森は多くを語る。耳を澄ませば、真実が聞こえるだろう。",
-                new[] { new DialogueChoice("何か教えてくれ", "dlg_elwen_intro", 3) }),
+            // ===== エルウェン（エルフの旅人）=====
+            new("dlg_elwen_intro", "エルウェン", "…森は多くを語る。耳を澄ませば、真実が聞こえるだろう。\n人間の世界は賑やかだが、その分大切なものを見失いやすい。",
+                new[] { new DialogueChoice("何か教えてくれ", "dlg_elwen_nature"),
+                        new DialogueChoice("エルフについて教えてくれ", "dlg_elwen_elf"),
+                        new DialogueChoice("森について教えてくれ", "dlg_elwen_forest") }),
+            new("dlg_elwen_nature", "エルウェン", "自然は均衡を保っている。強すぎるものは必ず弱まり、\n弱すぎるものも必ず力を蓄える時がくる。\n生と死も同様だ。大切なのは、今この瞬間に何をするかだ。",
+                new[] { new DialogueChoice("戻る", "dlg_elwen_intro") }),
+            new("dlg_elwen_elf", "エルウェン", "エルフは森の奥深くで暮らす種族だ。長命ゆえに歴史を多く知っている。\n人間とは時として衝突することもあるが、共に生きる道も必ずある。\n私がここにいるのも、両種族の架け橋になりたいという思いからだ。",
+                new[] { new DialogueChoice("戻る", "dlg_elwen_intro") }),
+            new("dlg_elwen_forest", "エルウェン", "かつてこの地は深い森に覆われていた。\n今も東の方角に行けば、古代の森の残滓を見ることができるだろう。\nそこには忘れられた遺跡と、かつての文明の痕跡が残っている。",
+                new[] { new DialogueChoice("戻る", "dlg_elwen_intro") }),
 
-            new("dlg_leena_intro", "リーナ", "薬草の調合なら任せて！\n素材があれば色々作れるわよ。",
+            // ===== リーナ（薬師）=====
+            new("dlg_leena_intro", "リーナ", "薬草の調合なら任せて！\n素材があれば色々作れるわよ。特にポーションは得意！",
                 new[] { new DialogueChoice("調合を頼みたい", "action:open_alchemy", 3),
-                        new DialogueChoice("素材について教えて", "dlg_leena_intro") }),
+                        new DialogueChoice("素材について教えて", "dlg_leena_herb"),
+                        new DialogueChoice("薬師になった経緯は？", "dlg_leena_story") }),
+            new("dlg_leena_herb", "リーナ", "薬草には様々な効果があるわ。\n赤いベリーは疲労回復に、青い花びらは毒消しに使える。\nダンジョンでも植物系のアイテムをよく見かけるから、\n捨てずに持ってきてくれると喜んで買い取るわよ。",
+                new[] { new DialogueChoice("調合を頼みたい", "action:open_alchemy", 3),
+                        new DialogueChoice("戻る", "dlg_leena_intro") }),
+            new("dlg_leena_story", "リーナ", "幼い頃に弟が病に倒れてね。当時の薬師さんに命を救ってもらったの。\nそれ以来、自分も誰かの力になれる薬師になりたいって思って…。\n今はこうして冒険者の皆さんを助けられていて、嬉しいわ。",
+                new[] { new DialogueChoice("戻る", "dlg_leena_intro") }),
 
-            new("dlg_gard_intro", "ガルド", "おう、強そうな奴が来たな。\n森の奥で厄介な魔物が暴れてるんだ。退治してくれねえか？",
+            // ===== ガルド（依頼人の農夫）=====
+            new("dlg_gard_intro", "ガルド", "おう、強そうな奴が来たな。\n森の奥で厄介な魔物が暴れてるんだ。退治してくれねえか？\n畑が荒らされて困ってるんだよ…。",
                 new[] { new DialogueChoice("依頼を受ける", "action:accept_quest", 5),
+                        new DialogueChoice("詳しく教えてくれ", "dlg_gard_detail"),
                         new DialogueChoice("考えさせてくれ", "dlg_gard_intro") }),
+            new("dlg_gard_detail", "ガルド", "3日前から夜中に変な声がするんだ。\n翌朝見てみると畑が荒らされてて、足跡が森に続いてる。\n俺みたいな農夫には手に負えねえが、冒険者なら何とかなるだろ？\n成功したら全財産とは言わんが、それなりに出すぞ。",
+                new[] { new DialogueChoice("依頼を受ける", "action:accept_quest", 5),
+                        new DialogueChoice("戻る", "dlg_gard_intro") }),
 
-            new("dlg_dwal_intro", "ドワル", "鍛冶仕事なら俺に任せろ！\n良い鉱石があれば最高の武器を打ってやるぞ。",
+            // ===== ドワル（鍛冶師）=====
+            new("dlg_dwal_intro", "ドワル", "鍛冶仕事なら俺に任せろ！\n良い鉱石があれば最高の武器を打ってやるぞ。\nドワーフの鍛冶は3000年の歴史がある。",
                 new[] { new DialogueChoice("鍛冶を頼みたい", "action:open_smithing", 3),
-                        new DialogueChoice("装備を見せてくれ", "action:open_shop", 3) }),
+                        new DialogueChoice("装備を見せてくれ", "action:open_shop", 3),
+                        new DialogueChoice("鍛冶の技について教えてくれ", "dlg_dwal_craft") }),
+            new("dlg_dwal_craft", "ドワル", "良い武器を作るには素材が全てだ。\n鉄は頑丈だが重い。ミスリルは軽くて丈夫だが希少だ。\n竜鱗なんかは最高の素材だが、そうそう手に入らん。\nどんな素材でも、腕のいい鍛冶師が打てば名品になる！",
+                new[] { new DialogueChoice("戻る", "dlg_dwal_intro") }),
 
-            new("dlg_brock_intro", "ブロック", "山岳地帯は危険が多い。\n装備を整えてから挑んだ方がいいぞ。",
-                new[] { new DialogueChoice("何か依頼はあるか", "action:show_quest_board", 3) }),
+            // ===== ブロック（山岳ガイド）=====
+            new("dlg_brock_intro", "ブロック", "山岳地帯は危険が多い。装備を整えてから挑んだ方がいいぞ。\n俺は長年この地を歩き回ってきたから、地形はよく知ってる。",
+                new[] { new DialogueChoice("何か依頼はあるか", "action:show_quest_board", 3),
+                        new DialogueChoice("山岳地帯の情報を教えてくれ", "dlg_brock_mountain") }),
+            new("dlg_brock_mountain", "ブロック", "北の山脈は高度が上がるほど気温が下がる。\n冷気耐性のある装備がないと凍傷になるぞ。\nその代わり、高山にしか生息しない魔物がいて、稀少なドロップを落とす。\n用意ができたら、ガイドを頼んでくれ。",
+                new[] { new DialogueChoice("了解した", "dlg_brock_intro") }),
 
-            new("dlg_carina_intro", "カリーナ", "風の向くまま旅をしている者よ。\n面白い話なら聞くわ。",
-                new[] { new DialogueChoice("最近のニュースは？", "dlg_carina_intro", 3) }),
+            // ===== カリーナ（吟遊詩人）=====
+            new("dlg_carina_intro", "カリーナ", "風の向くまま旅をしている者よ。面白い話なら聞くわ。\n私は世界中の物語を集めて歌にしているの。",
+                new[] { new DialogueChoice("最近見聞きした話を教えて", "dlg_carina_news"),
+                        new DialogueChoice("歌を聴かせてくれ", "dlg_carina_song"),
+                        new DialogueChoice("旅について教えてくれ", "dlg_carina_travel") }),
+            new("dlg_carina_news", "カリーナ", "ふふ、面白い話がひとつ。\n東の砂漠地帯で、古代王朝の秘密の蔵が発見されたらしいわ。\n中には莫大な財宝と…呪われた護衛の魔物がいるとか。\nまあ、噂の半分は盛ってあるものよ。でも半分は本当かもね。",
+                new[] { new DialogueChoice("戻る", "dlg_carina_intro") }),
+            new("dlg_carina_song", "カリーナ",
+                "「嵐の海を越えて、英雄は旅立った\n星の導きに従い、暗黒の地へと向かった\n剣と知恵と勇気を持って、世界の真実を探し求めて…」\n\n…続きが気になる？ それは歌が終わってからのお楽しみよ。",
+                new[] { new DialogueChoice("素晴らしい歌だ", "dlg_carina_intro", 5) }),
+            new("dlg_carina_travel", "カリーナ", "私はこれまで6つの領地全てを旅した。\n北の凍土から南の熱帯雨林、東の砂漠から西の海辺まで。\nどこにも独自の文化と歴史があって…本当に飽きない世界よ。\nあなたも旅を続けていれば、きっと忘れられない景色に出会えるわ。",
+                new[] { new DialogueChoice("了解した", "dlg_carina_intro") }),
 
-            new("dlg_mira_intro", "ミラ", "お疲れ様！ ゆっくり休んでいって。\n食事も用意できるわよ。",
+            // ===== ミラ（宿屋主人）=====
+            new("dlg_mira_intro", "ミラ", "お疲れ様！ ゆっくり休んでいって。食事も用意できるわよ。\nここは旅人の安らぎの場所よ。",
                 new[] { new DialogueChoice("休憩したい", "action:rest", 3),
-                        new DialogueChoice("食事を頼む", "action:open_cooking") }),
+                        new DialogueChoice("食事を頼む", "action:open_cooking"),
+                        new DialogueChoice("宿屋について聞かせてくれ", "dlg_mira_inn") }),
+            new("dlg_mira_inn", "ミラ", "この宿屋は私の母から受け継いだの。もう30年以上営業しているわ。\n多くの冒険者を見送ってきたけど…無事に戻ってくれる人は半分くらいかしら。\nだから、帰ってきてくれた人を見ると本当に嬉しくなっちゃう。\nしっかり休んで、また元気に出発してね。",
+                new[] { new DialogueChoice("休憩したい", "action:rest", 3),
+                        new DialogueChoice("了解した", "dlg_mira_intro") }),
 
-            new("dlg_thomas_intro", "トーマス", "最近、海岸沿いで怪しい影を見たって噂があるんだ…。",
-                new[] { new DialogueChoice("詳しく聞かせてくれ", "dlg_thomas_intro", 3) }),
+            // ===== トーマス（漁師）=====
+            new("dlg_thomas_intro", "トーマス", "最近、海岸沿いで怪しい影を見たって噂があるんだ…。\n夜中に光る何かが海の底を泳いでいるらしい。",
+                new[] { new DialogueChoice("詳しく聞かせてくれ", "dlg_thomas_detail"),
+                        new DialogueChoice("海について教えてくれ", "dlg_thomas_sea") }),
+            new("dlg_thomas_detail", "トーマス", "先週の夜、漁から戻る途中に見たんだ。\n海面に青白い光がいくつも浮かんでいて、ゆっくり動いてた。\n幽霊か海の怪物か分からないが…今月は夜の漁は控えるつもりだ。\nもし調べてくれるなら、何か礼をしたい。",
+                new[] { new DialogueChoice("了解した。調べてみる", "dlg_thomas_intro", 5) }),
+            new("dlg_thomas_sea", "トーマス", "この海は豊かだが、深いところには人知れず何かが住んでいる。\n大漁の年もあれば、全く取れない年もある。海は人間が思う以上に広くて深い。\n漁師の間では「深海には別の世界がある」という言い伝えもあるくらいだ。",
+                new[] { new DialogueChoice("戻る", "dlg_thomas_intro") }),
 
-            new("dlg_hassan_intro", "ハッサン", "…表には出せない品もある。\n金さえあれば、何でも手に入るさ。",
+            // ===== ハッサン（闇商人）=====
+            new("dlg_hassan_intro", "ハッサン", "…表には出せない品もある。金さえあれば、何でも手に入るさ。\nただし、ここでの取引は秘密にしておいてくれ。",
+                new[] { new DialogueChoice("品物を見せてくれ", "action:open_shop", 0),
+                        new DialogueChoice("何が手に入るんだ？", "dlg_hassan_items"),
+                        new DialogueChoice("やめておく", "dlg_hassan_intro") }),
+            new("dlg_hassan_items", "ハッサン", "…王国で禁じられた薬、盗品の装備、呪われた遺物…\n何でも揃えられる。ただし、表の市場の3倍は覚悟してくれ。\n危険な商売だが、需要があるから成り立つんだ。",
                 new[] { new DialogueChoice("品物を見せてくれ", "action:open_shop", 0),
                         new DialogueChoice("やめておく", "dlg_hassan_intro") }),
 
-            new("dlg_sara_intro", "サラ", "古の知識を求めてここまで来たの。\n砂漠の遺跡には多くの秘密が眠っている…。",
-                new[] { new DialogueChoice("遺跡について教えて", "dlg_sara_intro", 5) }),
+            // ===== サラ（遺跡研究者）=====
+            new("dlg_sara_intro", "サラ", "古の知識を求めてここまで来たの。砂漠の遺跡には多くの秘密が眠っている…。\n失われた文明の痕跡を探し続けているわ。",
+                new[] { new DialogueChoice("遺跡について教えて", "dlg_sara_ruin"),
+                        new DialogueChoice("古代文明について教えてくれ", "dlg_sara_ancient"),
+                        new DialogueChoice("研究について教えてくれ", "dlg_sara_research") }),
+            new("dlg_sara_ruin", "サラ", "砂漠の遺跡は古代王朝アルカナス帝国の遺物よ。\n彼らは魔法と技術を融合させた文明を持っていたと言われているわ。\nただし、帝国がなぜ滅んだのか…それがまだ分かっていないの。",
+                new[] { new DialogueChoice("戻る", "dlg_sara_intro") }),
+            new("dlg_sara_ancient", "サラ", "アルカナス帝国は今から2000年前に栄えていた。\n彼らの建築技術は今でも解明できないものがある。\nルーン語の原型も彼らが作ったとされているわ。\n私はその謎を解き明かして、歴史に名を残したいの。",
+                new[] { new DialogueChoice("戻る", "dlg_sara_intro") }),
+            new("dlg_sara_research", "サラ", "私の専門は古代言語と遺物の解読よ。\nこの辺りのダンジョンで見つかる碑文には、古代の呪文が刻まれていることがある。\nそういうものを見つけたら、ぜひ知らせてほしいわ。謝礼はちゃんとするわよ。",
+                new[] { new DialogueChoice("了解した", "dlg_sara_intro") }),
 
-            new("dlg_wolf_intro", "ヴォルフ", "辺境は弱い奴には生き残れねえ。\nそれでもやるなら、覚悟を決めろ。",
-                new[] { new DialogueChoice("仕事はあるか", "action:show_quest_board", 3) }),
+            // ===== ヴォルフ（傭兵）=====
+            new("dlg_wolf_intro", "ヴォルフ", "辺境は弱い奴には生き残れねえ。それでもやるなら、覚悟を決めろ。\n俺は長年傭兵として戦ってきた。今は半引退してるが、腕は落とさない。",
+                new[] { new DialogueChoice("仕事はあるか", "action:show_quest_board", 3),
+                        new DialogueChoice("戦いについて教えてくれ", "dlg_wolf_battle"),
+                        new DialogueChoice("辺境の危険について教えてくれ", "dlg_wolf_frontier") }),
+            new("dlg_wolf_battle", "ヴォルフ", "戦いは準備が全てだ。相手の弱点を知り、自分の強みを活かせ。\n勢いだけで突っ込む奴は長生きしない。\n特に複数の敵を相手にする時は、一体ずつ引き離す方が賢い。\nそれから…逃げる勇気も大切だぞ。生きてこそ勝てる。",
+                new[] { new DialogueChoice("了解した", "dlg_wolf_intro") }),
+            new("dlg_wolf_frontier", "dlg_wolf_frontier", "辺境には通常の魔物以外にも、獰猛な野獣や盗賊団がいる。\n特に月のない夜は危険度が上がる。\n単独行動は避け、仲間と連携することを勧める。\n俺みたいな古強者でも、辺境では油断しない。",
+                new[] { new DialogueChoice("了解した", "dlg_wolf_intro") }),
 
-            new("dlg_igor_intro", "イゴール", "…この地の闇は深い。\n気をつけることだ、冒険者よ。",
-                new[] { new DialogueChoice("何か知っているのか", "dlg_igor_intro", 3) }),
+            // ===== イゴール（呪術師）=====
+            new("dlg_igor_intro", "イゴール", "…この地の闇は深い。気をつけることだ、冒険者よ。\n見えないものほど、恐ろしいことがある。",
+                new[] { new DialogueChoice("何か知っているのか", "dlg_igor_secret"),
+                        new DialogueChoice("呪術について教えてくれ", "dlg_igor_curse") }),
+            new("dlg_igor_secret", "イゴール", "…ダンジョンの奥底には、封印された何かが眠っている。\n古の魔術師たちが命がけで閉じ込めたものだ。\nそれが目覚める前に、君に打つ手があるかどうか…。\n今はまだ言えない。だが、その時が来れば分かるだろう。",
+                new[] { new DialogueChoice("了解した", "dlg_igor_intro") }),
+            new("dlg_igor_curse", "イゴール", "呪術とは、世界の影の側面を操る技だ。\n光あるところに影があるように、魔法にも表と裏がある。\n私はその裏側を研究してきた。知りたければ、まず自分の影と向き合うことだ。",
+                new[] { new DialogueChoice("了解した", "dlg_igor_intro") }),
         });
     }
 
@@ -1833,6 +1944,11 @@ public class GameController
             if (weaponMasteryBonus > 0)
                 baseDmg = Math.Max(1, (int)(baseDmg * (1.0 + weaponMasteryBonus)));
 
+            // α.26c: モンスター図鑑完全攻略ボーナス（+5%）
+            float encyclopediaDamageBonus = _encyclopediaSystem.GetMonsterCompleteDamageBonus();
+            if (encyclopediaDamageBonus > 0)
+                baseDmg = Math.Max(1, (int)(baseDmg * (1.0f + encyclopediaDamageBonus)));
+
             int bonusDmg = (int)(baseDmg * (stanceAttackMod - 1.0f)) + weaponDamageBonus;
             int elementalBonusDmg = (int)(baseDmg * (elementalMult - 1.0f));
             int directionBonusDmg = (int)(baseDmg * (dirBonus.DamageModifier - 1.0f));
@@ -3029,6 +3145,14 @@ public class GameController
         if (TurnCount == 1000) _achievementSystem.Unlock("turn_1000");
         if (Player.Level >= 10) _achievementSystem.Unlock("level_10");
         if (CurrentFloor >= 10) _achievementSystem.Unlock("floor_10");
+
+        // α.26c: 図鑑コンプリートボーナス実績チェック
+        if (_encyclopediaSystem.IsCategoryComplete(EncyclopediaCategory.Monster))
+            _achievementSystem.Unlock("encyclopedia_monster_complete");
+        if (_encyclopediaSystem.IsCategoryComplete(EncyclopediaCategory.Region))
+            _achievementSystem.Unlock("encyclopedia_region_complete");
+        if (_encyclopediaSystem.IsAllComplete())
+            _achievementSystem.Unlock("encyclopedia_all_complete");
 
         // AT-1: 投資回収チェック（500ターンごと）
         if (TurnCount > 0 && TurnCount % 500 == 0 && _investmentSystem.GetActiveInvestments() > 0)
@@ -6029,7 +6153,18 @@ public class GameController
         var result = _religionSystem.ViolateTaboo(Player, tabooType);
         if (result.Success)
         {
-            AddMessage(result.Message);
+            // α.16: 宗教別フレーバーテキストで禁忌メッセージを強化
+            if (Enum.TryParse<ReligionId>(Player.CurrentReligion, out var religionId))
+            {
+                var tabooName = result.Message.Contains("「") && result.Message.Contains("」")
+                    ? result.Message[(result.Message.IndexOf('「') + 1)..result.Message.IndexOf('」')]
+                    : "禁忌";
+                AddMessage(RougelikeGame.Core.Data.ReligionLoreData.GetTabooViolationText(religionId, tabooName));
+            }
+            else
+            {
+                AddMessage(result.Message);
+            }
             OnReligionChanged?.Invoke();
         }
     }
@@ -6726,6 +6861,10 @@ public class GameController
         // BZ-10: 商人ギルドランクによる割引適用
         float guildDiscount = _merchantGuildSystem.GetGuildDiscount();
         if (guildDiscount > 0) discount *= (1.0 - guildDiscount);
+
+        // α.26c: 地域図鑑完全攻略による割引（10%）
+        float encyclopediaShopDiscount = _encyclopediaSystem.GetRegionCompleteShopDiscount();
+        if (encyclopediaShopDiscount > 0) discount *= (1.0 - encyclopediaShopDiscount);
 
         var result = _shopSystem.Buy(Player, shopType, index, discount);
         if (result.Success && result.ItemId is not null)

@@ -41,6 +41,26 @@ public class EncyclopediaSystem
         public const int MaxDiscoveryLevel = 5;
     }
 
+    /// <summary>図鑑コンプリートボーナス情報</summary>
+    public record EncyclopediaCompletionBonus(
+        EncyclopediaCategory Category,
+        string BonusId,
+        string Description,
+        float Value
+    );
+
+    /// <summary>α.26e: 発見度段階名（遭遇→調査→熟知→精通→極致）</summary>
+    public static string GetDiscoveryStageName(int level) => level switch
+    {
+        0 => "未発見",
+        1 => "遭遇",
+        2 => "調査",
+        3 => "熟知",
+        4 => "精通",
+        5 => "極致",
+        _ => $"Lv.{level}"
+    };
+
     private readonly Dictionary<string, EncyclopediaEntry> _entries = new();
 
     /// <summary>エントリを登録</summary>
@@ -179,6 +199,41 @@ public class EncyclopediaSystem
 
     /// <summary>発見済みエントリ数</summary>
     public int DiscoveredEntries => _entries.Values.Count(e => e.DiscoveryLevel > 0);
+
+    /// <summary>α.26c: カテゴリが全完了（全エントリMaxLevel達成）かどうか</summary>
+    public bool IsCategoryComplete(EncyclopediaCategory category)
+    {
+        var entries = _entries.Values.Where(e => e.Category == category).ToList();
+        return entries.Count > 0 && entries.All(e => e.DiscoveryLevel >= e.MaxLevel);
+    }
+
+    /// <summary>α.26c: 全カテゴリが完了しているかどうか</summary>
+    public bool IsAllComplete()
+    {
+        if (_entries.Count == 0) return false;
+        return _entries.Values.All(e => e.DiscoveryLevel >= e.MaxLevel);
+    }
+
+    /// <summary>α.26c: 有効なコンプリートボーナス一覧を返す</summary>
+    public IReadOnlyList<EncyclopediaCompletionBonus> GetActiveCompletionBonuses()
+    {
+        var bonuses = new List<EncyclopediaCompletionBonus>();
+        if (IsCategoryComplete(EncyclopediaCategory.Monster))
+            bonuses.Add(new EncyclopediaCompletionBonus(EncyclopediaCategory.Monster, "monster_complete", "モンスター図鑑完全攻略: ダメージ+5%", 0.05f));
+        if (IsCategoryComplete(EncyclopediaCategory.Region))
+            bonuses.Add(new EncyclopediaCompletionBonus(EncyclopediaCategory.Region, "region_complete", "地域図鑑完全攻略: ショップ割引10%", 0.10f));
+        if (IsAllComplete())
+            bonuses.Add(new EncyclopediaCompletionBonus(EncyclopediaCategory.Monster, "all_complete", "全図鑑完全攻略: 称号「博物学者」獲得", 1.0f));
+        return bonuses;
+    }
+
+    /// <summary>α.26c: モンスター図鑑完全攻略によるダメージボーナス率（0.0〜1.0）</summary>
+    public float GetMonsterCompleteDamageBonus()
+        => IsCategoryComplete(EncyclopediaCategory.Monster) ? 0.05f : 0.0f;
+
+    /// <summary>α.26c: 地域図鑑完全攻略によるショップ割引率（0.0〜1.0）</summary>
+    public float GetRegionCompleteShopDiscount()
+        => IsCategoryComplete(EncyclopediaCategory.Region) ? 0.10f : 0.0f;
 
     /// <summary>現在の発見レベルで閲覧可能な説明テキストを取得</summary>
     public string GetCurrentDescription(string id)

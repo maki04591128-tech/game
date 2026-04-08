@@ -65,6 +65,9 @@ public class AchievementSystem
         Register("collect_50", "収集家", "50種類のアイテムを入手した", AchievementCategory.Collection);
         Register("legendary_item", "伝説の発見", "伝説級アイテムを入手した", AchievementCategory.Collection);
         Register("encyclopedia_50", "博識", "図鑑を50%埋めた", AchievementCategory.Collection);
+        Register("encyclopedia_monster_complete", "モンスター研究家", "モンスター図鑑を全て完全開示した（ダメージ+5%）", AchievementCategory.Collection);
+        Register("encyclopedia_region_complete", "地理学者", "地域図鑑を全て完全開示した（ショップ割引10%）", AchievementCategory.Collection);
+        Register("encyclopedia_all_complete", "博物学者", "全図鑑を完全開示した（称号「博物学者」獲得）", AchievementCategory.Collection);
         // ストーリー系
         Register("dungeon_clear", "ダンジョンクリア", "ダンジョンを攻略した", AchievementCategory.Story);
         Register("true_ending", "真のエンディング", "真エンディングに到達した", AchievementCategory.Story);

@@ -23,7 +23,7 @@ public class ItemFactory
     {
         ItemId = "weapon_rusty_sword",
         Name = "錆びた剣",
-        Description = "長い間放置されていた剣。切れ味は悪いが使えなくはない。",
+        Description = "長い年月で赤錆に侵食された剣。かつては誰かの愛用品だったのかもしれない。切れ味は鈍いが、重量で殴ることはできる。",
         WeaponType = WeaponType.Sword,
         BaseDamage = 5,
         DamageRange = (3, 7),
@@ -39,7 +39,7 @@ public class ItemFactory
     {
         ItemId = "weapon_iron_sword",
         Name = "鉄の剣",
-        Description = "一般的な鉄製の剣。扱いやすく信頼性が高い。",
+        Description = "王国の兵士が標準装備として使用する鉄製の直剣。バランスが良く、初心者から熟練者まで幅広く愛用される信頼の一品。",
         WeaponType = WeaponType.Sword,
         BaseDamage = 10,
         DamageRange = (8, 12),
@@ -55,7 +55,7 @@ public class ItemFactory
     {
         ItemId = "weapon_steel_sword",
         Name = "鋼の剣",
-        Description = "良質な鋼で作られた剣。鉄よりも軽く丈夫。",
+        Description = "高純度の鋼を熟練の鍛冶師が鍛えた剣。鉄より軽く、しかし数倍丈夫。刃の美しさは実用性と審美性を兼ね備えている。",
         WeaponType = WeaponType.Sword,
         BaseDamage = 15,
         DamageRange = (12, 18),
@@ -72,7 +72,7 @@ public class ItemFactory
     {
         ItemId = "weapon_dagger",
         Name = "短剣",
-        Description = "素早い攻撃が可能な短い刃。",
+        Description = "懐に隠せる短い両刃の刃。斬撃より刺突に優れ、鎧の隙間を狙うのに適している。盗賊や斥候がよく携帯する武器。",
         WeaponType = WeaponType.Dagger,
         BaseDamage = 4,
         DamageRange = (3, 5),
@@ -457,7 +457,7 @@ public class ItemFactory
     {
         ItemId = "potion_healing_minor",
         Name = "小回復薬",
-        Description = "傷を癒す赤い薬。",
+        Description = "赤い液体が入った小瓶。薬草を蒸留して作られた基本的な回復薬。傷口を瞬時に塞ぎ、体力を部分的に回復する。",
         PotionType = PotionType.HealingMinor,
         EffectValue = 0,
         EffectPercentage = 0.25f,  // L-2: MaxHP25%回復（スケーリング対応）
@@ -470,7 +470,7 @@ public class ItemFactory
     {
         ItemId = "potion_healing",
         Name = "回復薬",
-        Description = "効果の高い回復薬。",
+        Description = "鮮やかな赤い液体が入った瓶。高品質な薬草の濃縮エキスで作られた回復薬。体の傷を癒し、消耗した活力を大きく取り戻す。",
         PotionType = PotionType.HealingMajor,
         EffectValue = 0,
         EffectPercentage = 0.50f,  // L-2: MaxHP50%回復
@@ -483,7 +483,7 @@ public class ItemFactory
     {
         ItemId = "potion_mana_minor",
         Name = "小マナポーション",
-        Description = "魔力を回復する青い薬。",
+        Description = "澄んだ青い液体が入った小瓶。魔力水晶を溶かして作られた薬で、失われた魔力をわずかに回復する。",
         PotionType = PotionType.ManaMinor,
         EffectValue = 20,
         Rarity = ItemRarity.Common,
@@ -495,7 +495,7 @@ public class ItemFactory
     {
         ItemId = "potion_antidote",
         Name = "解毒剤",
-        Description = "毒を中和する薬。",
+        Description = "苦い黄緑色の液体。毒消し草の汁と鉱物性中和剤の混合物で、体内の毒素を無効化する。冒険者必携の一品。",
         PotionType = PotionType.Antidote,
         EffectValue = 100,  // CN-8: 解毒効果（100%毒解除）
         Rarity = ItemRarity.Common,
@@ -507,7 +507,7 @@ public class ItemFactory
     {
         ItemId = "potion_healing_super",
         Name = "超回復薬",
-        Description = "非常に効果の高い回復薬。",
+        Description = "深紅色に輝く液体。希少な高地薬草と龍血の結晶から錬成された最高品質の回復薬。瀕死の重傷すら癒す力を持つと言われる。",
         PotionType = PotionType.HealingSuper,
         EffectValue = 0,
         EffectPercentage = 0.80f,  // L-2: MaxHP80%回復
@@ -520,7 +520,7 @@ public class ItemFactory
     {
         ItemId = "potion_mana",
         Name = "マナポーション",
-        Description = "魔力を大きく回復する薬。",
+        Description = "深い青色の液体。高純度の魔力水晶を主成分とした魔力回復薬。魔術師たちが長旅の際に欠かさず持参する一品。",
         PotionType = PotionType.ManaMajor,
         EffectValue = 50,
         Rarity = ItemRarity.Uncommon,
@@ -532,7 +532,7 @@ public class ItemFactory
     {
         ItemId = "potion_strength",
         Name = "筋力増強薬",
-        Description = "一時的に筋力を高める薬。",
+        Description = "どす黒い液体。獣の筋組織から抽出した成分を含み、飲んだ直後は全身に熱が走る。一時的に筋力を著しく高めるが、効果が切れると疲労が残ることがある。",
         PotionType = PotionType.StrengthBoost,
         EffectValue = 5,
         Duration = 30,
@@ -545,7 +545,7 @@ public class ItemFactory
     {
         ItemId = "potion_agility",
         Name = "敏捷増強薬",
-        Description = "一時的に素早さを高める薬。",
+        Description = "透明に近い薄緑の液体。風の精霊の羽根を使って錬成されたとも言われる。飲むと体が軽くなり、思考と動作の速度が向上する。",
         PotionType = PotionType.AgilityBoost,
         EffectValue = 5,
         Duration = 30,
@@ -558,7 +558,7 @@ public class ItemFactory
     {
         ItemId = "potion_invisibility",
         Name = "透明化薬",
-        Description = "一時的に透明になれる薬。",
+        Description = "無色透明の液体。光を屈折させる鉱物の粉末を特殊処理した秘薬。飲んだ者の姿を一時的に消し去るが、強い動作をすると効果が乱れることがある。",
         PotionType = PotionType.Invisibility,
         EffectValue = 1,  // X-1: 透明化フラグ（1=有効）
         Duration = 20,
@@ -571,7 +571,7 @@ public class ItemFactory
     {
         ItemId = "potion_fire_resist",
         Name = "耐火薬",
-        Description = "火のダメージを50%軽減する薬。",
+        Description = "燃えるような橙色の液体。サラマンダーの鱗を粉砕した素材が入っており、飲むと肌が一時的に熱に強くなる。炎系の魔物との戦闘前に推奨される。",
         PotionType = PotionType.FireResistance,
         EffectValue = 50,  // X-3: 耐性50%
         Duration = 50,
@@ -584,7 +584,7 @@ public class ItemFactory
     {
         ItemId = "potion_cold_resist",
         Name = "耐冷薬",
-        Description = "冷気のダメージを50%軽減する薬。",
+        Description = "涼しげな水色の液体。氷の精霊の結晶を溶かして作られ、飲むと体が冷気に適応する。北方の氷雪地帯を探索する際には必需品。",
         PotionType = PotionType.ColdResistance,
         EffectValue = 50,  // X-4: 耐性50%
         Duration = 50,
@@ -597,7 +597,7 @@ public class ItemFactory
     {
         ItemId = "potion_cure_all",
         Name = "万能薬",
-        Description = "全ての状態異常を治す奇跡の薬。",
+        Description = "虹色に輝く幻想的な液体。七種の珍しい薬草と三種の魔法鉱物から錬成される至高の薬。あらゆる状態異常を解除するとされ、市場では滅多に見かけない。",
         PotionType = PotionType.CureAll,
         EffectValue = 100,  // X-2: 全状態異常解除（100%効果）
         Rarity = ItemRarity.Rare,
