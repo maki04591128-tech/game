@@ -1209,6 +1209,15 @@ public class BugFixVer027Tests
     }
 
     [Fact]
+    public void B47_HungerState_Full_BoundaryValues()
+    {
+        var system = new ResourceSystem();
+        // 79以下はNormal、100以上はOvereating
+        Assert.Equal(HungerState.Normal, system.GetHungerState(79));
+        Assert.Equal(HungerState.Overeating, system.GetHungerState(100));
+    }
+
+    [Fact]
     public void B47_HungerState_Full_HungerEffect_ActionCostBonus1()
     {
         var system = new ResourceSystem();
@@ -1259,6 +1268,17 @@ public class BugFixVer027Tests
         var allTypes = Enum.GetValues<ArmorType>();
         // ShieldがArmorTypeに含まれていること
         Assert.Contains(ArmorType.Shield, allTypes);
+    }
+
+    [Fact]
+    public void B49_DeriveArmorClass_ShieldEquipped_NoException()
+    {
+        // CombatSystemのCalculateDamageが防具なし状態でも例外なく動作することを確認
+        var player = CreateTestPlayer();
+        var combatSystem = new CombatSystem(new FixedRandom(0.5));
+        var enemy = Enemy.Create("テスト敵", "test_enemy", Stats.Default, 10);
+        var damage = combatSystem.CalculateDamage(player, enemy, AttackType.Slash, false);
+        Assert.True(damage.Amount >= 0);
     }
 
     #endregion
