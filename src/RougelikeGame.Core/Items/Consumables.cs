@@ -70,6 +70,7 @@ public class Potion : ConsumableItem
 
             case PotionType.StaminaMinor:
             case PotionType.StaminaMajor:
+            case PotionType.StaminaSuper:
                 int spAmount = EffectValue > 0 
                     ? EffectValue 
                     : (int)(user.MaxSp * EffectPercentage);
@@ -176,6 +177,8 @@ public enum PotionType
     StaminaMinor,
     /// <summary>スタミナポーション</summary>
     StaminaMajor,
+    /// <summary>超スタミナポーション</summary>
+    StaminaSuper,
     /// <summary>解毒剤</summary>
     Antidote,
     /// <summary>万能薬</summary>

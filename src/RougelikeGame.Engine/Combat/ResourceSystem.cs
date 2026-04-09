@@ -211,7 +211,7 @@ public class ResourceSystem
         {
             >= 120 => HungerState.Nausea,
             >= 100 => HungerState.Overeating,
-            >= 80 => HungerState.Satiated,
+            >= 80 => HungerState.Full,
             >= 50 => HungerState.Normal,
             >= 40 => HungerState.SlightlyHungry,
             >= 0 => HungerState.VeryHungry,
@@ -232,7 +232,7 @@ public class ResourceSystem
         {
             HungerState.Nausea => new HungerEffect(0.7f, true, true, 0, ActionCostBonus: 3, ActionBlockChance: 0.3f),
             HungerState.Overeating => new HungerEffect(0.9f, true, true, 0, ActionCostBonus: 2),
-            HungerState.Satiated => new HungerEffect(1.0f, true, true, 0, ActionCostBonus: 1),
+            HungerState.Full => new HungerEffect(1.0f, true, true, 0, ActionCostBonus: 1),
             HungerState.Normal => new HungerEffect(1.0f, true, true, 0),
             HungerState.SlightlyHungry => new HungerEffect(0.95f, true, true, 0),
             HungerState.VeryHungry => new HungerEffect(0.9f, true, true, 0, ActionCostBonus: 1),
@@ -455,7 +455,7 @@ public enum HungerState
     /// <summary>過食 (100-119) - 行動コスト+2</summary>
     Overeating,
     /// <summary>満腹 (80-99) - 行動コスト+1</summary>
-    Satiated,
+    Full,
     /// <summary>通常 (50-79) - 通常状態</summary>
     Normal,
     /// <summary>空腹・小 (40-49) - 30%確率で行動コスト+1</summary>

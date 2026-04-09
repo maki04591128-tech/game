@@ -497,7 +497,7 @@ public class CombatSystemTests
 
         Assert.Equal(HungerState.Nausea, system.GetHungerState(130));
         Assert.Equal(HungerState.Overeating, system.GetHungerState(110));
-        Assert.Equal(HungerState.Satiated, system.GetHungerState(90));
+        Assert.Equal(HungerState.Full, system.GetHungerState(90));
         Assert.Equal(HungerState.Normal, system.GetHungerState(60));
         Assert.Equal(HungerState.SlightlyHungry, system.GetHungerState(45));
         Assert.Equal(HungerState.VeryHungry, system.GetHungerState(30));

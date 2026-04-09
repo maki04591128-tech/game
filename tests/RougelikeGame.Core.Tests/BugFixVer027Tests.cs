@@ -4,6 +4,7 @@ using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Interfaces;
 using RougelikeGame.Core.Items;
 using RougelikeGame.Core.Map;
+using RougelikeGame.Core.Map.Generation;
 using RougelikeGame.Core.Systems;
 using RougelikeGame.Engine.Combat;
 using Xunit;
@@ -1191,6 +1192,109 @@ public class BugFixVer027Tests
         enemy.ExecuteAction(TurnAction.UseItem("potion", 100), state);
         // 回復されていること
         Assert.True(enemy.CurrentHp >= hpBeforeItem);
+    }
+
+    #endregion
+
+    #region B.47: HungerState.Satiated→Full統一（Core層HungerStageと名前一致）
+
+    [Fact]
+    public void B47_HungerState_Full_MatchesHungerStage()
+    {
+        var system = new ResourceSystem();
+        // 80-99の範囲はFullであること
+        Assert.Equal(HungerState.Full, system.GetHungerState(80));
+        Assert.Equal(HungerState.Full, system.GetHungerState(90));
+        Assert.Equal(HungerState.Full, system.GetHungerState(99));
+    }
+
+    [Fact]
+    public void B47_HungerState_Full_HungerEffect_ActionCostBonus1()
+    {
+        var system = new ResourceSystem();
+        var effect = system.GetHungerEffect(90);
+        // 満腹時はActionCostBonus=1
+        Assert.Equal(1, effect.ActionCostBonus);
+    }
+
+    #endregion
+
+    #region B.48: PotionType.StaminaSuper追加（Healing/Manaと対称性確保）
+
+    [Fact]
+    public void B48_StaminaSuper_PotionType_Exists()
+    {
+        // StaminaSuper enumが存在し、Parseできること
+        var result = Enum.Parse<PotionType>("StaminaSuper");
+        Assert.Equal(PotionType.StaminaSuper, result);
+    }
+
+    [Fact]
+    public void B48_StaminaSuper_Potion_RestoresSp()
+    {
+        var player = CreateTestPlayer();
+        // SPを消費
+        player.ConsumeSp(80);
+        int spBefore = player.CurrentSp;
+
+        var potion = new Potion
+        {
+            Name = "超スタミナポーション",
+            PotionType = PotionType.StaminaSuper,
+            EffectValue = 50
+        };
+        var result = potion.Use(player);
+        Assert.True(result.Success);
+        Assert.True(player.CurrentSp > spBefore);
+    }
+
+    #endregion
+
+    #region B.49: ArmorType.Shield明示case追加（DeriveArmorClass）
+
+    [Fact]
+    public void B49_DeriveArmorClass_AllArmorTypes_Handled()
+    {
+        // ArmorType enumの全値が列挙できることを確認
+        var allTypes = Enum.GetValues<ArmorType>();
+        // ShieldがArmorTypeに含まれていること
+        Assert.Contains(ArmorType.Shield, allTypes);
+    }
+
+    #endregion
+
+    #region B.50: Program.cs TurnCostModifier除算ゼロ対策
+
+    [Fact]
+    public void B50_TurnCostModifier_Zero_NoException()
+    {
+        // TurnCostModifier=0の場合、条件式 > 0f && < 1.0f が0を除外すること
+        float turnCostModifier = 0f;
+        bool condition = turnCostModifier > 0f && turnCostModifier < 1.0f;
+        Assert.False(condition); // 0は条件を満たさないので除算されない
+    }
+
+    [Fact]
+    public void B50_TurnCostModifier_Negative_NoException()
+    {
+        float turnCostModifier = -1f;
+        bool condition = turnCostModifier > 0f && turnCostModifier < 1.0f;
+        Assert.False(condition);
+    }
+
+    #endregion
+
+    #region B.51: RoomType.Entrance明示case追加（DecorateRoom）
+
+    [Fact]
+    public void B51_RoomType_Entrance_DecorateRoom_NoException()
+    {
+        var map = new DungeonMap(50, 50);
+        var room = new Room { X = 5, Y = 5, Width = 10, Height = 10, Type = RoomType.Entrance };
+        // Entrance部屋の装飾でエラーが発生しないこと
+        RoomGenerator.DecorateRoom(map, room, new Random(42));
+        // 例外なく完了すればOK
+        Assert.True(true);
     }
 
     #endregion

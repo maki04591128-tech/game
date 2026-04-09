@@ -128,6 +128,10 @@ public static class RoomGenerator
                     AddRandomDecoration(map, room, random);
                 }
                 break;
+
+            case RoomType.Entrance:
+                // 開始地点は装飾なし
+                break;
         }
     }
 

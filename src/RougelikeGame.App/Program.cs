@@ -795,7 +795,7 @@ partial class Program
             if (effect.DamagePerTick < 0) details.Add($"毎ターン{-effect.DamagePerTick}回復");
             if (effect.AttackMultiplier > 1.0f) details.Add($"攻撃力×{effect.AttackMultiplier:F2}");
             if (effect.DefenseMultiplier > 1.0f) details.Add($"防御力×{effect.DefenseMultiplier:F2}");
-            if (effect.TurnCostModifier < 1.0f) details.Add($"行動速度×{1 / effect.TurnCostModifier:F2}");
+            if (effect.TurnCostModifier > 0f && effect.TurnCostModifier < 1.0f) details.Add($"行動速度×{1 / effect.TurnCostModifier:F2}");
 
             var detailStr = details.Count > 0 ? string.Join(", ", details) : "特殊効果";
             Console.WriteLine($"  {effect.Name,-12} [{effect.Duration}ターン] - {detailStr}");

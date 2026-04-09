@@ -149,6 +149,7 @@ public class CombatSystem : ICombatSystem
             ArmorType.Chainmail => ArmorClass.Medium,
             ArmorType.Leather => ArmorClass.Light,
             ArmorType.Robe or ArmorType.Cloth => ArmorClass.Robe,
+            ArmorType.Shield => ArmorClass.Light, // 盾はBody枠には装備しないが念のためLight
             _ => ArmorClass.Light
         };
     }
