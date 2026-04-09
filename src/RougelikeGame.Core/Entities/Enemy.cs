@@ -385,7 +385,8 @@ public class Enemy : Character
             case TurnActionType.Search:
             case TurnActionType.Wait:
             case TurnActionType.Rest:
-                // 待機/探索/休憩 - 何もしない
+            case TurnActionType.Interact: // B.42: Interact対応（敵は何もしない）
+                // 待機/探索/休憩/インタラクト - 何もしない
                 break;
 
             case TurnActionType.UseSkill:

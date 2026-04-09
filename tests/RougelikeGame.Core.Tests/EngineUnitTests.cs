@@ -96,12 +96,12 @@ public class EngineUnitTests
         int warriorHp = rs.CalculateMaxHp(new HpCalculationParams
         {
             Vitality = 10, Level = 5, RaceBonus = 0,
-            CharacterClass = Engine.Combat.CharacterClass.Warrior
+            CharacterClass = CharacterClass.Fighter
         });
         int mageHp = rs.CalculateMaxHp(new HpCalculationParams
         {
             Vitality = 10, Level = 5, RaceBonus = 0,
-            CharacterClass = Engine.Combat.CharacterClass.Mage
+            CharacterClass = CharacterClass.Mage
         });
         Assert.True(warriorHp > mageHp);
     }
@@ -115,7 +115,7 @@ public class EngineUnitTests
         int hp = rs.CalculateMaxHp(new HpCalculationParams
         {
             Vitality = 10, Level = 1, RaceBonus = 5,
-            CharacterClass = Engine.Combat.CharacterClass.Warrior
+            CharacterClass = CharacterClass.Fighter
         });
         Assert.Equal(50 + 100 + 5 + 5 + 0, hp); // 160
     }

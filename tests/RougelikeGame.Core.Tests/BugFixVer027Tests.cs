@@ -974,4 +974,116 @@ public class BugFixVer027Tests
     }
 
     #endregion
+
+    #region B.40: ResourceSystem CharacterClass重複enum統一
+
+    [Fact]
+    public void B40_ResourceSystem_UsesCoreFighterClass_HpCalculation()
+    {
+        // B.40: ResourceSystem.CharacterClass.Warrior を Core.CharacterClass.Fighter に統一
+        var rs = new ResourceSystem();
+        var hp = rs.CalculateMaxHp(new HpCalculationParams
+        {
+            Vitality = 10, Level = 5, RaceBonus = 0,
+            CharacterClass = CharacterClass.Fighter
+        });
+        // Fighter: hpPerLevel=15, bonus=15*(5-1)=60
+        // 50 + 100 + 25 + 0 + 60 = 235
+        Assert.Equal(235, hp);
+    }
+
+    [Fact]
+    public void B40_ResourceSystem_UsesCoreFighterClass_MpCalculation()
+    {
+        var rs = new ResourceSystem();
+        var mp = rs.CalculateMaxMp(new MpCalculationParams
+        {
+            Mind = 10, Intelligence = 10, Level = 5, RaceBonus = 0,
+            CharacterClass = CharacterClass.Fighter
+        });
+        // Fighter: mpPerLevel=2, bonus=2*(5-1)=8
+        // 20 + 50 + 20 + 10 + 0 + 8 = 108
+        Assert.Equal(108, mp);
+    }
+
+    [Fact]
+    public void B40_ResourceSystem_AllCoreClasses_HaveValidHpBonus()
+    {
+        var rs = new ResourceSystem();
+        foreach (var cls in Enum.GetValues<CharacterClass>())
+        {
+            var hp = rs.CalculateMaxHp(new HpCalculationParams
+            {
+                Vitality = 10, Level = 5, RaceBonus = 0,
+                CharacterClass = cls
+            });
+            Assert.True(hp > 0, $"CharacterClass.{cls}のHP計算が正しくありません: {hp}");
+        }
+    }
+
+    #endregion
+
+    #region B.41: InscriptionSystem 除算ゼロ対策
+
+    [Fact]
+    public void B41_InscriptionSystem_ZeroRequiredLevel_NoDivisionByZero()
+    {
+        // B.41: RequiredLevel=0の碑文でも除算ゼロにならないことを確認
+        var system = new InscriptionSystem();
+        system.Register("test_zero", InscriptionType.Lore, "???", "テスト碑文", 0, "報酬");
+        var result = system.TryDecode("test_zero", 0);
+        // RequiredLevel=0 かつ playerMagicLevel=0 → 条件 0 < 0 はfalse → 解読成功
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public void B41_InscriptionSystem_LowRequiredLevel_ProgressCalculation()
+    {
+        var system = new InscriptionSystem();
+        system.Register("test_low", InscriptionType.Lore, "???", "テスト碑文", 1, "報酬");
+        var result = system.TryDecode("test_low", 0);
+        // playerMagicLevel(0) < RequiredLevel(1) → progress計算
+        Assert.False(result.Success);
+        Assert.Equal(0, result.PartialProgress);
+    }
+
+    #endregion
+
+    #region B.42: Enemy.ExecuteAction Interact case追加
+
+    [Fact]
+    public void B42_Enemy_ExecuteAction_InteractDoesNotThrow()
+    {
+        // B.42: TurnActionType.Interact が Enemy.ExecuteAction で例外を投げないことを確認
+        var enemy = Enemy.Create("テスト敵", "test_enemy", Stats.Default, 10);
+        var state = new TestGameState();
+        var action = TurnAction.Interact;
+        
+        // Interact を実行しても例外にならない
+        enemy.ExecuteAction(action, state);
+        Assert.True(true); // 例外が発生しなければ成功
+    }
+
+    [Fact]
+    public void B42_Enemy_ExecuteAction_AllActionTypes_NoThrow()
+    {
+        var enemy = Enemy.Create("テスト敵", "test_enemy", Stats.Default, 10);
+        var state = new TestGameState();
+        
+        // 全TurnActionTypeについてクラッシュしないことを確認
+        var actions = new[]
+        {
+            TurnAction.Wait,
+            TurnAction.Rest,
+            TurnAction.Search,
+            TurnAction.Interact
+        };
+        foreach (var action in actions)
+        {
+            enemy.ExecuteAction(action, state);
+        }
+        Assert.True(true);
+    }
+
+    #endregion
 }

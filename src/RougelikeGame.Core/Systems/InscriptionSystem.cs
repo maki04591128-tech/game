@@ -52,7 +52,9 @@ public class InscriptionSystem
 
         if (playerMagicLevel < inscription.RequiredLevel)
         {
-            int progress = Math.Min(99, playerMagicLevel * 100 / inscription.RequiredLevel);
+            // B.41: RequiredLevel <= 0の場合の除算ゼロ対策
+            int requiredLevel = Math.Max(1, inscription.RequiredLevel);
+            int progress = Math.Min(99, playerMagicLevel * 100 / requiredLevel);
             string partialText = GetPartialText(inscription.DecodedText, progress);
             return new DecodeResult(false, inscriptionId,
                 $"解読中... ({progress}%) - {partialText}", null, progress);
