@@ -5640,7 +5640,7 @@ public class GameController
                         .OrderBy(c => (float)c.Hp / c.MaxHp).FirstOrDefault();
                     float playerHpRatio = Player.MaxHp > 0 ? (float)Player.CurrentHp / Player.MaxHp : 1f;
 
-                    if (lowestCompanion != null && lowestCompanion.MaxHp > 0 && (float)lowestCompanion.Hp / lowestCompanion.MaxHp < playerHpRatio)
+                    if (lowestCompanion != null && (float)lowestCompanion.Hp / lowestCompanion.MaxHp < playerHpRatio)
                     {
                         _companionSystem.HealCompanion(lowestCompanion.Name, healAmount);
                         AddMessage($"{lowestCompanion.Name}のHPが回復した");
