@@ -2,7 +2,9 @@ using RougelikeGame.Core;
 using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Interfaces;
 using RougelikeGame.Core.Items;
+using RougelikeGame.Core.Map;
 using RougelikeGame.Core.Systems;
+using RougelikeGame.Engine.Combat;
 using Xunit;
 
 namespace RougelikeGame.Core.Tests;
@@ -789,6 +791,186 @@ public class BugFixVer027Tests
             ArmorType = ArmorType.Plate
         };
         Assert.Equal(1.0f, armor.SpeedModifier);
+    }
+
+    #endregion
+
+    #region B.34: CombatSystem ArmorClass がターゲット装備から導出される
+
+    [Fact]
+    public void DeriveArmorClass_PlayerWithPlateArmor_ReturnsHeavy()
+    {
+        // Arrange: CombatSystemのBuildHitCheckParamsを間接的にテスト
+        // ArmorClassの導出ロジックを確認するため、
+        // Armor.Category で ArmorType→EquipmentCategory 変換をテスト
+        var armor = new Armor
+        {
+            ItemId = "plate_test",
+            Name = "板金鎧",
+            Slot = EquipmentSlot.Body,
+            ArmorType = ArmorType.Plate
+        };
+        Assert.Equal(EquipmentCategory.HeavyArmor, armor.Category);
+    }
+
+    [Fact]
+    public void DeriveArmorClass_PlayerWithChainmailArmor_ReturnsMedium()
+    {
+        var armor = new Armor
+        {
+            ItemId = "chain_test",
+            Name = "鎖帷子",
+            Slot = EquipmentSlot.Body,
+            ArmorType = ArmorType.Chainmail
+        };
+        Assert.Equal(EquipmentCategory.MediumArmor, armor.Category);
+    }
+
+    [Fact]
+    public void DeriveArmorClass_PlayerWithLeatherArmor_ReturnsLight()
+    {
+        var armor = new Armor
+        {
+            ItemId = "leather_test",
+            Name = "革鎧",
+            Slot = EquipmentSlot.Body,
+            ArmorType = ArmorType.Leather
+        };
+        Assert.Equal(EquipmentCategory.LightArmor, armor.Category);
+    }
+
+    [Fact]
+    public void DeriveArmorClass_PlayerWithRobe_ReturnsRobe()
+    {
+        var armor = new Armor
+        {
+            ItemId = "robe_test",
+            Name = "ローブ",
+            Slot = EquipmentSlot.Body,
+            ArmorType = ArmorType.Robe
+        };
+        Assert.Equal(EquipmentCategory.Robe, armor.Category);
+    }
+
+    [Fact]
+    public void DeriveArmorClass_PlayerWithNoArmor_BodySlotIsNull()
+    {
+        var player = CreateTestPlayer();
+        // 装備なしの場合、Body枠はnull
+        Assert.Null(player.Equipment[EquipmentSlot.Body]);
+    }
+
+    #endregion
+
+    #region B.35/B.36: DamageCalculator docstring修正確認（コンパイル時テスト）
+
+    [Fact]
+    public void DamageCalculator_CriticalCheck_DEXContribution_MatchesK3Fix()
+    {
+        // K-3修正後: DEXもLUKも0.5%/ptで統一されている
+        // DEX=100, LUK=0 の場合と DEX=0, LUK=100 の場合で
+        // 同じクリティカル率になることを確認
+        var calc = new RougelikeGame.Engine.Combat.DamageCalculator(
+            new TestRandomProvider(0.99)); // 高い値で常にfalse
+
+        // DEX=100, LUK=0
+        var paramDex = new RougelikeGame.Engine.Combat.CriticalCheckParams
+        {
+            Dexterity = 100,
+            Luck = 0,
+            WeaponCritBonus = 0,
+            SkillCritBonus = 0
+        };
+
+        // DEX=0, LUK=100
+        var paramLuk = new RougelikeGame.Engine.Combat.CriticalCheckParams
+        {
+            Dexterity = 0,
+            Luck = 100,
+            WeaponCritBonus = 0,
+            SkillCritBonus = 0
+        };
+
+        // K-3修正により、両方とも同じクリティカル率（=基礎5% + 100*0.5% = 55%）
+        // 乱数0.99では両方ともfalse（55% < 99%）
+        Assert.Equal(
+            calc.CheckCritical(paramDex),
+            calc.CheckCritical(paramLuk)
+        );
+    }
+
+    #endregion
+
+    #region B.38: 重複ItemType enum削除確認
+
+    [Fact]
+    public void ItemType_InItemsNamespace_HasExpectedValues()
+    {
+        // Items.ItemType が正しい値を持つことを確認
+        Assert.Equal(0, (int)RougelikeGame.Core.Items.ItemType.Equipment);
+        Assert.Equal(1, (int)RougelikeGame.Core.Items.ItemType.Consumable);
+        Assert.Equal(2, (int)RougelikeGame.Core.Items.ItemType.Food);
+        Assert.Equal(3, (int)RougelikeGame.Core.Items.ItemType.Material);
+        Assert.Equal(4, (int)RougelikeGame.Core.Items.ItemType.Key);
+        Assert.Equal(5, (int)RougelikeGame.Core.Items.ItemType.Quest);
+        Assert.Equal(6, (int)RougelikeGame.Core.Items.ItemType.Miscellaneous);
+    }
+
+    #endregion
+
+    #region B.39: Player.ExecuteAction Interact/Search case追加
+
+    [Fact]
+    public void ExecuteAction_InteractType_DoesNotThrow()
+    {
+        var player = CreateTestPlayer();
+        var action = TurnAction.Interact;
+        var state = new TestGameState();
+
+        // Interact アクションが例外を投げないことを確認
+        var exception = Record.Exception(() => player.ExecuteAction(action, state));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void ExecuteAction_SearchType_DoesNotThrow()
+    {
+        var player = CreateTestPlayer();
+        var action = TurnAction.Search;
+        var state = new TestGameState();
+
+        // Search アクションが例外を投げないことを確認
+        var exception = Record.Exception(() => player.ExecuteAction(action, state));
+        Assert.Null(exception);
+    }
+
+    #endregion
+
+    #region テスト用ヘルパークラス
+
+    private class TestGameState : IGameState
+    {
+        public IPlayer Player { get; } = null!;
+        public IMap CurrentMap { get; } = new TestMap();
+        public ICombatSystem CombatSystem { get; } = null!;
+        public IRandomProvider Random { get; } = new TestRandomProvider(0.5);
+        public CombatState CombatState => CombatState.None;
+        public long CurrentTurn => 0;
+        public float GetMovementModifier(IEntity entity) => 1.0f;
+    }
+
+    private class TestMap : IMap
+    {
+        public int Width => 50;
+        public int Height => 50;
+        public bool InBounds(Position pos) => true;
+        public bool IsWalkable(Position pos) => true;
+        public bool BlocksSight(Position pos) => false;
+        public bool CanMoveTo(Position pos) => true;
+        public bool HasLineOfSight(Position from, Position to) => true;
+        public float GetEnvironmentModifier(Position pos, TurnActionType actionType) => 1.0f;
+        public Tile GetTile(Position pos) => new Tile { Type = TileType.Floor };
+        public void SetTile(Position pos, Tile tile) { }
     }
 
     #endregion

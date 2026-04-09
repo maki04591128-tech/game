@@ -772,6 +772,14 @@ public class Player : Character, IPlayer, IInventoryHolder
             case TurnActionType.UseItem:
                 // アイテム使用は外部システムで処理
                 break;
+
+            case TurnActionType.Interact:
+                // 対話・操作は外部システム(GameController)で処理
+                break;
+
+            case TurnActionType.Search:
+                // 探索は外部システム(GameController)で処理
+                break;
         }
 
         TickStatusEffects();

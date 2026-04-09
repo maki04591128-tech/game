@@ -101,6 +101,11 @@ public class CombatSystem : ICombatSystem
         {
             targetAgility = targetChar.EffectiveStats.Agility;
             targetLuck = targetChar.EffectiveStats.Luck;
+            // B.34: ターゲットの装備からArmorClassを導出（Player のみ装備あり）
+            if (targetChar is Core.Entities.Player targetPlayer)
+            {
+                armorClass = DeriveArmorClass(targetPlayer);
+            }
             // CB-10: 状態異常による回避率修正
             foreach (var eff in targetChar.StatusEffects)
             {
@@ -126,6 +131,25 @@ public class CombatSystem : ICombatSystem
             TargetAgility = targetAgility,
             TargetLuck = targetLuck,
             TargetEvasionBonus = targetEvasionBonus
+        };
+    }
+
+    /// <summary>
+    /// B.34: Playerの装備Body枠からArmorClassを導出する
+    /// </summary>
+    private static ArmorClass DeriveArmorClass(Core.Entities.Player player)
+    {
+        var bodyArmor = player.Equipment[EquipmentSlot.Body] as Armor;
+        if (bodyArmor == null)
+            return ArmorClass.None; // 防具なし = 裸
+
+        return bodyArmor.ArmorType switch
+        {
+            ArmorType.Plate => ArmorClass.Heavy,
+            ArmorType.Chainmail => ArmorClass.Medium,
+            ArmorType.Leather => ArmorClass.Light,
+            ArmorType.Robe or ArmorType.Cloth => ArmorClass.Robe,
+            _ => ArmorClass.Light
         };
     }
 

@@ -201,20 +201,8 @@ public enum GameCommand
     Cancel
 }
 
-/// <summary>
-/// アイテムタイプ
-/// </summary>
-public enum ItemType
-{
-    Weapon,
-    Armor,
-    Accessory,
-    Consumable,
-    Material,
-    KeyItem,
-    Scroll,
-    Book
-}
+// B.38: ItemType enum は Items/Item.cs (RougelikeGame.Core.Items.ItemType) に定義済み
+// Enums.cs 側の重複定義は削除済み
 
 /// <summary>
 /// 状態異常タイプ
