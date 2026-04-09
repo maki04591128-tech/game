@@ -1216,9 +1216,9 @@ public enum HygieneStage
     Normal,
     /// <summary>汚れ（25-49）</summary>
     Dirty,
-    /// <summary>不衛生（1-24）</summary>
+    /// <summary>不潔（1-24）</summary>
     Filthy,
-    /// <summary>不潔（0）</summary>
+    /// <summary>悪臭（0）</summary>
     Foul
 }
 

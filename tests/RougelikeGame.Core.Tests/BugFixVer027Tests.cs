@@ -614,4 +614,104 @@ public class BugFixVer027Tests
     }
 
     #endregion
+
+    #region B.26: Food.Use()の渇き回復二重適用修正
+
+    [Fact]
+    public void B26_FoodUse_HydrationAppliedOnlyOnce()
+    {
+        // Food.Use()内でModifyThirst(HydrationValue)が1回だけ適用されることを確認
+        var player = CreateTestPlayer();
+        player.ModifyThirst(-50);
+        int thirstBefore = player.Thirst;
+
+        var water = ItemFactory.CreateWater();
+        int expectedHydration = water.HydrationValue;
+
+        var result = water.Use(player);
+
+        Assert.True(result.Success);
+        // HydrationValue分だけ渇きが回復するべき（二重に適用されてはいけない）
+        Assert.Equal(thirstBefore + expectedHydration, player.Thirst);
+    }
+
+    [Fact]
+    public void B26_FoodUse_WithHealAndHydration_ThirstRestoredOnce()
+    {
+        // HP回復付きの食料でも渇き回復は1回だけ
+        var player = CreateTestPlayer();
+        player.ModifyThirst(-50);
+        player.ModifyHunger(-50);
+        int thirstBefore = player.Thirst;
+
+        var food = new Food
+        {
+            ItemId = "test_food_heal_hydration",
+            Name = "テスト癒し食",
+            NutritionValue = 20,
+            HydrationValue = 5,
+            HealValue = 10
+        };
+
+        food.Use(player);
+        Assert.Equal(thirstBefore + 5, player.Thirst);
+    }
+
+    [Fact]
+    public void B26_FoodUse_NoHydration_ThirstUnchanged()
+    {
+        // HydrationValue=0の食料は渇きを変えない
+        var player = CreateTestPlayer();
+        player.ModifyThirst(-30);
+        int thirstBefore = player.Thirst;
+
+        var bread = new Food
+        {
+            ItemId = "test_bread",
+            Name = "パン",
+            NutritionValue = 30,
+            HydrationValue = 0
+        };
+
+        bread.Use(player);
+        Assert.Equal(thirstBefore, player.Thirst);
+    }
+
+    #endregion
+
+    #region B.29: HygieneStage enum コメント修正確認
+
+    [Fact]
+    public void B29_HygieneStage_FilthyHasCorrectPenalty()
+    {
+        // Filthy段階のCHAペナルティが-5であることを確認（設計書の「不潔」に対応）
+        var player = CreateTestPlayer();
+        // 初期状態はClean(CHA+2)なので、まずNormalにする
+        player.ModifyHygiene(-player.Hygiene + 60);  // Hygiene=60 → Normal(50-79)
+        int normalCharisma = player.EffectiveStats.Charisma;  // CHA=10（ペナルティなし）
+
+        player.ModifyHygiene(-50);  // Hygiene=10 → Filthy(1-24)
+        Assert.Equal(HygieneStage.Filthy, player.HygieneStage);
+
+        int filthyCharisma = player.EffectiveStats.Charisma;
+        Assert.Equal(normalCharisma - 5, filthyCharisma);
+    }
+
+    [Fact]
+    public void B29_HygieneStage_FoulHasCorrectPenalty()
+    {
+        // Foul段階のCHAペナルティが-10であることを確認（設計書の「悪臭」に対応）
+        var player = CreateTestPlayer();
+        // 初期状態はClean(CHA+2)なので、まずNormalにする
+        player.ModifyHygiene(-player.Hygiene + 60);  // Hygiene=60 → Normal(50-79)
+        int normalCharisma = player.EffectiveStats.Charisma;  // CHA=10（ペナルティなし）
+
+        player.ModifyHygiene(-60);  // Hygiene=0 → Foul
+        Assert.Equal(HygieneStage.Foul, player.HygieneStage);
+
+        int foulCharisma = player.EffectiveStats.Charisma;
+        Assert.Equal(normalCharisma - 10, foulCharisma);
+    }
+
+    #endregion
 }

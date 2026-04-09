@@ -3850,11 +3850,10 @@ public class GameController
                     AddMessage("📜 召喚の力が解放された！味方が現れた！");
                 }
 
-                // 水・飲料アイテムによる渇き回復
+                // B.26: 渇き回復はFood.Use()内で既に適用済みのため、ここでのModifyThirstは削除
+                // （以前はFood.Use()とGameControllerで二重に渇き回復が適用されていた）
                 if (consumable is Food food && food.HydrationValue > 0)
                 {
-                    int recoveryAmount = food.HydrationValue * 10;  // HydrationValue 1段階=10ポイント回復
-                    Player.ModifyThirst(recoveryAmount);
                     AddMessage($"💧 渇きが癒された（{ThirstSystem.GetThirstName(Player.ThirstStage)} {Player.Thirst}）");
                 }
 
@@ -5636,11 +5635,12 @@ public class GameController
             case SpellTargetType.SingleAlly:  // BY-8: 単体味方回復
                 {
                     // 最もHP割合が低い味方を回復（プレイヤー含む）
-                    var lowestCompanion = _companionSystem.Party.Where(c => c.IsAlive)
+                    // B.27: MaxHpが0以下の場合の除算ゼロ対策
+                    var lowestCompanion = _companionSystem.Party.Where(c => c.IsAlive && c.MaxHp > 0)
                         .OrderBy(c => (float)c.Hp / c.MaxHp).FirstOrDefault();
                     float playerHpRatio = Player.MaxHp > 0 ? (float)Player.CurrentHp / Player.MaxHp : 1f;
 
-                    if (lowestCompanion != null && (float)lowestCompanion.Hp / lowestCompanion.MaxHp < playerHpRatio)
+                    if (lowestCompanion != null && lowestCompanion.MaxHp > 0 && (float)lowestCompanion.Hp / lowestCompanion.MaxHp < playerHpRatio)
                     {
                         _companionSystem.HealCompanion(lowestCompanion.Name, healAmount);
                         AddMessage($"{lowestCompanion.Name}のHPが回復した");
@@ -10740,7 +10740,7 @@ public class GameController
     public AutoExploreSystem.StopReason? CheckAutoExploreStop()
     {
         bool hasEnemyNearby = IsInCombat();
-        float hpRatio = (float)Player.CurrentHp / Player.MaxHp;
+        float hpRatio = Player.MaxHp > 0 ? (float)Player.CurrentHp / Player.MaxHp : 1f;  // B.28: 除算ゼロ対策
         float hungerRatio = (float)Player.Hunger / 100f;
         bool itemOnTile = GroundItems.Any(i => i.Position == Player.Position);
         var tile = Map.GetTile(Player.Position);
