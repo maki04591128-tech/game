@@ -1574,7 +1574,7 @@ public class GameController
                     armorSpeedMod *= armor.SpeedModifier;
                 }
             }
-            if (armorSpeedMod != 1.0f && actionCost <= TurnCosts.AttackNormal)
+            if (armorSpeedMod != 1.0f && armorSpeedMod > 0f && actionCost <= TurnCosts.AttackNormal)
             {
                 actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / armorSpeedMod));
             }
@@ -1596,7 +1596,7 @@ public class GameController
             // AV-3: 渇きによるステータスペナルティ（コスト増加）
             var (thirstStrMod, thirstAgiMod, _) = ThirstSystem.GetThirstModifiers(Player.ThirstStage);
             float thirstMoveMod = Math.Min(thirstStrMod, thirstAgiMod); // 移動は STR と AGI の低い方
-            if (thirstMoveMod < 1.0f && actionCost <= TurnCosts.AttackNormal)
+            if (thirstMoveMod < 1.0f && thirstMoveMod > 0f && actionCost <= TurnCosts.AttackNormal)
             {
                 actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / thirstMoveMod));
             }
@@ -3884,8 +3884,8 @@ public class GameController
                 AddMessage($"{equipItem.GetDisplayName()}の正体が分かった！");
             }
 
-            // 職業装備適性チェック
-            bool isProficient = ClassEquipmentSystem.IsProficient(Player.CharacterClass, equipItem.Category);
+            // 職業装備適性チェック（アクセサリは適性不要）
+            bool isProficient = equipItem is Accessory || ClassEquipmentSystem.IsProficient(Player.CharacterClass, equipItem.Category);
 
             var previousItem = Player.Equipment.Equip(equipItem, Player);
 

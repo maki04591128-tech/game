@@ -332,6 +332,9 @@ public class Accessory : EquipmentItem
     public int SkillCooldown { get; init; }
 
     protected override char GetDefaultDisplayChar() => '=';
+
+    /// <summary>アクセサリは専用カテゴリ（職業適性判定対象外）</summary>
+    public override EquipmentCategory Category => EquipmentCategory.Accessory;
 }
 
 /// <summary>

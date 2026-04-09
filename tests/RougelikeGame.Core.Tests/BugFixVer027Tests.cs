@@ -714,4 +714,82 @@ public class BugFixVer027Tests
     }
 
     #endregion
+
+    #region B.30〜B.33: 除算ゼロ対策、アクセサリカテゴリ、コメント修正
+
+    [Fact]
+    public void B30_ThirstDesiccation_ModifiersReturnZero()
+    {
+        // Desiccation段階のModifiersが(0,0,0)を返すことを確認
+        var (str, agi, intel) = ThirstSystem.GetThirstModifiers(ThirstStage.Desiccation);
+        Assert.Equal(0f, str);
+        Assert.Equal(0f, agi);
+        Assert.Equal(0f, intel);
+    }
+
+    [Fact]
+    public void B30_ThirstNearDesiccation_ModifiersReturnPositive()
+    {
+        // NearDesiccation段階のModifiersは正の値を返すことを確認
+        var (str, agi, intel) = ThirstSystem.GetThirstModifiers(ThirstStage.NearDesiccation);
+        Assert.True(str > 0f, "NearDesiccation STR modifier should be positive");
+        Assert.True(agi > 0f, "NearDesiccation AGI modifier should be positive");
+        Assert.True(intel > 0f, "NearDesiccation INT modifier should be positive");
+    }
+
+    [Fact]
+    public void B30_ThirstActionCostBonus_DesiccationHasHighestCost()
+    {
+        // Desiccation段階の行動コスト加算が最大であることを確認
+        int desiccationCost = ThirstSystem.GetThirstActionCostBonus(ThirstStage.Desiccation);
+        int nearDesiccationCost = ThirstSystem.GetThirstActionCostBonus(ThirstStage.NearDesiccation);
+        int dehydratedCost = ThirstSystem.GetThirstActionCostBonus(ThirstStage.Dehydrated);
+
+        Assert.True(desiccationCost >= nearDesiccationCost,
+            $"Desiccation({desiccationCost}) should >= NearDesiccation({nearDesiccationCost})");
+        Assert.True(nearDesiccationCost >= dehydratedCost,
+            $"NearDesiccation({nearDesiccationCost}) should >= Dehydrated({dehydratedCost})");
+    }
+
+    [Fact]
+    public void B32_Accessory_HasAccessoryCategory()
+    {
+        // アクセサリの EquipmentCategory が Accessory であることを確認
+        var accessory = new Accessory
+        {
+            ItemId = "test_ring",
+            Name = "テストリング",
+            Slot = EquipmentSlot.Ring1
+        };
+        Assert.Equal(EquipmentCategory.Accessory, accessory.Category);
+    }
+
+    [Fact]
+    public void B32_Accessory_NotSwordCategory()
+    {
+        // アクセサリが剣カテゴリでないことを確認（旧バグ: デフォルトSwordのまま）
+        var accessory = new Accessory
+        {
+            ItemId = "test_neck",
+            Name = "テストネックレス",
+            Slot = EquipmentSlot.Neck
+        };
+        Assert.NotEqual(EquipmentCategory.Sword, accessory.Category);
+    }
+
+    [Fact]
+    public void B31_ArmorSpeedModifier_DefaultIsOne()
+    {
+        // Armor の SpeedModifier デフォルト値が 1.0f であることを確認（除算ゼロにならない）
+        var armor = new Armor
+        {
+            ItemId = "test_armor",
+            Name = "テスト鎧",
+            Slot = EquipmentSlot.Body,
+            ArmorType = ArmorType.Plate
+        };
+        Assert.Equal(1.0f, armor.SpeedModifier);
+    }
+
+    #endregion
 }

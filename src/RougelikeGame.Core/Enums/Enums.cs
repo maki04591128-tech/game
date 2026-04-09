@@ -400,7 +400,8 @@ public enum EquipmentCategory
     Robe,
     Fist,
     Spear,
-    Whip
+    Whip,
+    Accessory
 }
 
 /// <summary>
