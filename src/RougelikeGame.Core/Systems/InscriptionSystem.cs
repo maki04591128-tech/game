@@ -92,8 +92,10 @@ public class InscriptionSystem
     /// <summary>部分的な解読テキストを生成</summary>
     private static string GetPartialText(string fullText, int progressPercent)
     {
-        if (progressPercent <= 0) return "???";
+        // B.43: 空文字列・進捗0以下の防御
+        if (progressPercent <= 0 || string.IsNullOrEmpty(fullText)) return "???";
         int revealChars = Math.Max(1, fullText.Length * progressPercent / 100);
+        revealChars = Math.Min(revealChars, fullText.Length); // 範囲外アクセス防止
         return fullText[..revealChars] + "...";
     }
 

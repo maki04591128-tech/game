@@ -400,7 +400,8 @@ public class Enemy : Character
 
             case TurnActionType.UseItem:
                 // HH-1: アイテム使用（敵はHP回復を試みる）
-                if (CurrentHp < MaxHp / 2)
+                // B.46: MaxHp <= 0 の除算ゼロ対策
+                if (MaxHp > 0 && CurrentHp < MaxHp / 2)
                 {
                     Heal(MaxHp / 10);
                 }

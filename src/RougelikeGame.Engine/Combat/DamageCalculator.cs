@@ -96,7 +96,7 @@ public class DamageCalculator
         // 属性相性
         float elementMultiplier = ElementSystem.GetAffinityMultiplier(param.SpellElement, param.TargetElement);
 
-        // 最終ダメージ計算（魔法はクリティカルなし）
+        // 最終ダメージ計算（K-2: クリティカル判定はCombatSystem側で適用）
         int finalDamage = (int)(baseDamage * variance * elementMultiplier);
         finalDamage = Math.Max(GameConstants.MinimumDamage, finalDamage);
 

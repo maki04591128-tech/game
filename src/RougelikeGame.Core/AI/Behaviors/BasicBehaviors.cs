@@ -426,6 +426,8 @@ public class BerserkerBehavior : AIBehaviorBase
 
     public override bool IsApplicable(Enemy enemy, IGameState state)
     {
+        // B.45: MaxHp <= 0 の除算ゼロ対策
+        if (enemy.MaxHp <= 0) return false;
         // HPが閾値以下で発動
         float hpRatio = (float)enemy.CurrentHp / enemy.MaxHp;
         return hpRatio <= _berserkThreshold && hpRatio > 0;

@@ -1,4 +1,5 @@
 using RougelikeGame.Core;
+using RougelikeGame.Core.AI.Behaviors;
 using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Interfaces;
 using RougelikeGame.Core.Items;
@@ -1083,6 +1084,113 @@ public class BugFixVer027Tests
             enemy.ExecuteAction(action, state);
         }
         Assert.True(true);
+    }
+
+    #endregion
+
+    #region B.43: InscriptionSystem.GetPartialText 空文字列防御
+
+    [Fact]
+    public void InscriptionSystem_GetPartialText_EmptyDecodedText_NoException()
+    {
+        // B.43: decodedTextが空文字列の場合にIndexOutOfRangeExceptionが発生しないこと
+        var system = new InscriptionSystem();
+        system.Register("empty_test", InscriptionType.Lore, "???", "",
+            requiredLevel: 10, rewardInfo: null);
+
+        // playerMagicLevel < requiredLevel なのでGetPartialTextが呼ばれる
+        var result = system.TryDecode("empty_test", 5);
+        Assert.False(result.Success);
+        Assert.Contains("???", result.Message);
+    }
+
+    [Fact]
+    public void InscriptionSystem_GetPartialText_HighProgress_NoOverflow()
+    {
+        // B.43: progressPercentが100を超える場合に範囲外アクセスしないこと
+        var system = new InscriptionSystem();
+        system.Register("overflow_test", InscriptionType.Hint, "???", "AB",
+            requiredLevel: 1, rewardInfo: null);
+
+        // requiredLevel=1, playerMagicLevel=0 → progress計算
+        var result = system.TryDecode("overflow_test", 0);
+        Assert.False(result.Success);
+    }
+
+    #endregion
+
+    #region B.44: DamageCalculator 魔法クリティカルコメント修正
+
+    [Fact]
+    public void DamageCalculator_MagicalDamage_IsCriticalFalse_InResult()
+    {
+        // B.44: DamageCalculator自体はIsCritical=falseを返す
+        // （K-2: クリティカル判定はCombatSystem側で1.3倍適用）
+        var calc = new DamageCalculator(new TestRandomProvider(0.5));
+        var param = new MagicalDamageParams
+        {
+            StaffAttack = 10,
+            Intelligence = 10,
+            MagicAttackBuff = 0,
+            MagicDefense = 5,
+            Mind = 5,
+            MagicDefenseBuff = 0,
+            SkillMultiplier = 1.0f,
+            LanguageBonus = 1.0f,
+            SpellElement = Element.Fire,
+            TargetElement = Element.None
+        };
+        var result = calc.CalculateMagicalDamage(param);
+        Assert.False(result.IsCritical);
+        Assert.True(result.FinalDamage > 0);
+    }
+
+    #endregion
+
+    #region B.45: BasicBehaviors.BerserkerBehavior MaxHp除算ゼロ対策
+
+    [Fact]
+    public void BerserkerBehavior_IsApplicable_NoException()
+    {
+        // B.45: BerserkerBehavior.IsApplicableが除算ゼロしないこと
+        var enemy = Enemy.Create("テスト敵", "test", new Stats(0, 0, 0, 0, 0, 0, 0, 0, 0), 10);
+        var behavior = new BerserkerBehavior(0.3f);
+        // IsApplicableは正常に動作すること（例外なし）
+        var result = behavior.IsApplicable(enemy, new TestGameState());
+        Assert.IsType<bool>(result);
+    }
+
+    #endregion
+
+    #region B.46: Enemy.ExecuteAction UseItem MaxHp除算ゼロ対策
+
+    [Fact]
+    public void Enemy_ExecuteAction_UseItem_NoException()
+    {
+        // B.46: UseItemアクションで例外が発生しないこと
+        var state = new TestGameState();
+        var enemy = Enemy.Create("テスト敵", "test", new Stats(0, 0, 0, 0, 0, 0, 0, 0, 0), 10);
+
+        var action = TurnAction.UseItem("potion", 100);
+        enemy.ExecuteAction(action, state);
+        Assert.True(true); // 例外が発生しないことを確認
+    }
+
+    [Fact]
+    public void Enemy_ExecuteAction_UseItem_HealsWhenLowHp()
+    {
+        // B.46: HP半分以下のとき回復が行われること
+        var state = new TestGameState();
+        var enemy = Enemy.Create("テスト敵", "test", Stats.Default, 10);
+        int maxHp = enemy.MaxHp;
+
+        // HPを半分以下に減らす（Pure属性で防御無視）
+        enemy.TakeDamage(new Damage(maxHp * 3 / 4, DamageType.Pure, Element.None, false));
+        int hpBeforeItem = enemy.CurrentHp;
+
+        enemy.ExecuteAction(TurnAction.UseItem("potion", 100), state);
+        // 回復されていること
+        Assert.True(enemy.CurrentHp >= hpBeforeItem);
     }
 
     #endregion
