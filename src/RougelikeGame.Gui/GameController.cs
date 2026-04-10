@@ -1692,6 +1692,18 @@ public class GameController
         {
             Attack(enemy);
             _lastMoveActionCost = TurnCosts.AttackNormal;
+            // EP-4: SpeedBoostエンチャント効果（攻撃速度上昇: -15%/個）
+            int speedBoostCount = 0;
+            foreach (var eq in Player.Equipment.GetAll().Values)
+            {
+                if (eq != null && eq.AppliedEnchantments.Contains(EnchantmentType.SpeedBoost.ToString()))
+                    speedBoostCount++;
+            }
+            if (speedBoostCount > 0)
+            {
+                float speedReduction = 1.0f - (speedBoostCount * 0.15f);
+                _lastMoveActionCost = Math.Max(1, (int)(_lastMoveActionCost * Math.Max(0.3f, speedReduction)));
+            }
             return true;
         }
 
@@ -1903,6 +1915,26 @@ public class GameController
 
         var result = _combatSystem.ExecuteAttack(Player, enemy, AttackType.Slash);
 
+        // EP-3: CriticalBoostエンチャント効果（+10%/個のクリティカル率追加判定）
+        if (result.IsHit && !result.IsCritical)
+        {
+            int critBoostCount = 0;
+            foreach (var eq in Player.Equipment.GetAll().Values)
+            {
+                if (eq != null && eq.AppliedEnchantments.Contains(EnchantmentType.CriticalBoost.ToString()))
+                    critBoostCount++;
+            }
+            if (critBoostCount > 0 && _random.Next(100) < critBoostCount * 10)
+            {
+                // クリティカルに昇格: ダメージ1.5倍
+                int critDmg = result.Damage != null ? (int)(result.Damage.Value.Amount * 1.5) : 0;
+                var critDamage = result.Damage != null
+                    ? new Damage(critDmg, result.Damage.Value.Type, result.Damage.Value.Element, true)
+                    : (Damage?)null;
+                result = new CombatResult(true, true, critDamage, result.Attacker, result.Target);
+            }
+        }
+
         // === GUI統合: 戦闘システム修飾 ===
         // スタンス修飾（CombatStanceSystem）
         float stanceAttackMod = CombatStanceSystem.GetAttackModifier(_playerStance);
@@ -2047,8 +2079,8 @@ public class GameController
                                 if (_random.Next(100) < 15)
                                     enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Paralysis, 2));
                                 break;
-                            // ExpBoost, DropBoost, CriticalBoost, SpeedBoost, DefenseBoost, Thorns
-                            // はパッシブ効果のため攻撃時の個別処理は不要
+                            // ExpBoost(EP-1), DropBoost(EP-2), CriticalBoost(EP-3), SpeedBoost(EP-4),
+                            // DefenseBoost(EP-5), Thorns(EP-6) は別箇所でパッシブ適用済み
                             default:
                                 break;
                         }
@@ -2551,6 +2583,18 @@ public class GameController
                 bodyArmor.Durability = Math.Max(0, bodyArmor.Durability - armorWear);
             }
 
+            // EP-5: DefenseBoostエンチャント効果（防御力+5/個）
+            int defBoostCount = 0;
+            foreach (var eq in Player.Equipment.GetAll().Values)
+            {
+                if (eq != null && eq.AppliedEnchantments.Contains(EnchantmentType.DefenseBoost.ToString()))
+                    defBoostCount++;
+            }
+            if (defBoostCount > 0)
+            {
+                modifiedDmg = Math.Max(1, modifiedDmg - (defBoostCount * 5));
+            }
+
             var critStr = result.IsCritical ? " クリティカル！" : "";
             var dirWarnStr = defenseDir == AttackDirection.Back ? " 背面を取られた！" : "";
             AddMessage($"{enemy.Name}の攻撃！{modifiedDmg}ダメージ！{critStr}{dirWarnStr}");
@@ -2559,6 +2603,20 @@ public class GameController
             int finalDmg = Math.Max(1, (int)(modifiedDmg * DifficultyConfig.DamageTakenMultiplier));
             Player.TakeDamage(Damage.Physical(finalDmg));
             _lastDamageCause = DeathCause.Combat;
+
+            // EP-6: Thornsエンチャント効果（反射ダメージ: 被ダメージの20%/個）
+            int thornsCount = 0;
+            foreach (var eq in Player.Equipment.GetAll().Values)
+            {
+                if (eq != null && eq.AppliedEnchantments.Contains(EnchantmentType.Thorns.ToString()))
+                    thornsCount++;
+            }
+            if (thornsCount > 0 && enemy.IsAlive)
+            {
+                int thornsDmg = Math.Max(1, (int)(finalDmg * 0.2f * thornsCount));
+                enemy.TakeDamage(Damage.Pure(thornsDmg));
+                AddMessage($"⚡ 反射ダメージ！{enemy.Name}に{thornsDmg}ダメージ！");
+            }
 
             // Y-2: デーモン種族の魔力吸収（被弾時MP5%回復）
             if (RacialTraitSystem.HasManaAbsorption(Player.Race))

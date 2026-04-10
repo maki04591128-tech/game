@@ -1602,4 +1602,170 @@ public class BugFixVer027Tests
 
     #endregion
 
+    #region B.68: CriticalBoostエンチャント効果 - 武器にのみ適用可能 + Damage構造体クリティカル昇格
+
+    [Fact]
+    public void CriticalBoost_IsValidForWeaponOnly()
+    {
+        // B.68: CriticalBoostは武器にのみ適用可能
+        var weapon = new Weapon { Name = "テスト剣", WeaponType = WeaponType.Sword, Weight = 2.0f };
+        Assert.True(EnchantmentSystem.IsValidEnchantTarget(weapon, EnchantmentType.CriticalBoost));
+
+        var armor = new Armor { Name = "テスト鎧", ArmorType = ArmorType.Plate, Weight = 5.0f };
+        Assert.False(EnchantmentSystem.IsValidEnchantTarget(armor, EnchantmentType.CriticalBoost));
+    }
+
+    [Fact]
+    public void CriticalBoost_Definition_HasCorrectEffectValue()
+    {
+        // B.68: CriticalBoostのEffectValueは0.1（+10%クリティカル率）
+        var def = EnchantmentSystem.GetEnchantmentInfo(EnchantmentType.CriticalBoost);
+        Assert.NotNull(def);
+        Assert.Equal(0.1f, def.EffectValue);
+    }
+
+    [Fact]
+    public void Damage_CanBeCreatedWithIsCriticalTrue()
+    {
+        // B.68: Damage構造体でIsCritical=trueのクリティカルダメージが作成可能
+        var dmg = new Damage(30, DamageType.Physical, Element.None, true);
+        Assert.True(dmg.IsCritical);
+        Assert.Equal(30, dmg.Amount);
+    }
+
+    [Fact]
+    public void CombatResult_CanPromoteToCritical()
+    {
+        // B.68: CombatResultのIsCriticalをtrueに昇格可能
+        var player = CreateTestPlayer();
+        var miss = CombatResult.Miss(player, player);
+        Assert.False(miss.IsCritical);
+
+        var critResult = new CombatResult(true, true, new Damage(20, DamageType.Physical, Element.None, true), player, player);
+        Assert.True(critResult.IsCritical);
+        Assert.Equal(20, critResult.Damage?.Amount);
+    }
+
+    #endregion
+
+    #region B.69: SpeedBoostエンチャント効果 - 武器にも防具にも適用可能
+
+    [Fact]
+    public void SpeedBoost_IsValidForWeaponAndArmor()
+    {
+        // B.69: SpeedBoostは武器/防具どちらにも適用可能
+        var weapon = new Weapon { Name = "テスト剣", WeaponType = WeaponType.Sword, Weight = 2.0f };
+        Assert.True(EnchantmentSystem.IsValidEnchantTarget(weapon, EnchantmentType.SpeedBoost));
+
+        var armor = new Armor { Name = "テスト鎧", ArmorType = ArmorType.Plate, Weight = 5.0f };
+        Assert.True(EnchantmentSystem.IsValidEnchantTarget(armor, EnchantmentType.SpeedBoost));
+    }
+
+    [Fact]
+    public void SpeedBoost_Definition_HasCorrectEffectValue()
+    {
+        // B.69: SpeedBoostのEffectValueは0.15（-15%攻撃コスト）
+        var def = EnchantmentSystem.GetEnchantmentInfo(EnchantmentType.SpeedBoost);
+        Assert.NotNull(def);
+        Assert.Equal(0.15f, def.EffectValue);
+    }
+
+    [Fact]
+    public void SpeedBoost_CanBeAppliedToWeapon()
+    {
+        // B.69: SpeedBoostエンチャントを武器に適用できる
+        var weapon = new Weapon { Name = "テスト剣", WeaponType = WeaponType.Sword, Weight = 2.0f };
+        weapon.AppliedEnchantments.Add(EnchantmentType.SpeedBoost.ToString());
+        Assert.Contains(EnchantmentType.SpeedBoost.ToString(), weapon.AppliedEnchantments);
+    }
+
+    #endregion
+
+    #region B.70: DefenseBoostエンチャント効果 - 防具にのみ適用可能
+
+    [Fact]
+    public void DefenseBoost_IsValidForArmorOnly()
+    {
+        // B.70: DefenseBoostは防具にのみ適用可能
+        var armor = new Armor { Name = "テスト鎧", ArmorType = ArmorType.Plate, Weight = 5.0f };
+        Assert.True(EnchantmentSystem.IsValidEnchantTarget(armor, EnchantmentType.DefenseBoost));
+
+        var weapon = new Weapon { Name = "テスト剣", WeaponType = WeaponType.Sword, Weight = 2.0f };
+        Assert.False(EnchantmentSystem.IsValidEnchantTarget(weapon, EnchantmentType.DefenseBoost));
+    }
+
+    [Fact]
+    public void DefenseBoost_Definition_HasCorrectEffectValue()
+    {
+        // B.70: DefenseBoostのEffectValueは5.0（+5防御力/個）
+        var def = EnchantmentSystem.GetEnchantmentInfo(EnchantmentType.DefenseBoost);
+        Assert.NotNull(def);
+        Assert.Equal(5.0f, def.EffectValue);
+    }
+
+    [Fact]
+    public void DefenseBoost_CanBeAppliedToArmor()
+    {
+        // B.70: DefenseBoostエンチャントを防具に適用できる
+        var armor = new Armor { Name = "テスト鎧", ArmorType = ArmorType.Plate, Weight = 5.0f };
+        armor.AppliedEnchantments.Add(EnchantmentType.DefenseBoost.ToString());
+        Assert.Contains(EnchantmentType.DefenseBoost.ToString(), armor.AppliedEnchantments);
+    }
+
+    #endregion
+
+    #region B.71: Thornsエンチャント効果 - 防具にのみ適用可能 + 反射ダメージ計算
+
+    [Fact]
+    public void Thorns_IsValidForArmorOnly()
+    {
+        // B.71: Thornsは防具にのみ適用可能
+        var armor = new Armor { Name = "テスト鎧", ArmorType = ArmorType.Plate, Weight = 5.0f };
+        Assert.True(EnchantmentSystem.IsValidEnchantTarget(armor, EnchantmentType.Thorns));
+
+        var weapon = new Weapon { Name = "テスト剣", WeaponType = WeaponType.Sword, Weight = 2.0f };
+        Assert.False(EnchantmentSystem.IsValidEnchantTarget(weapon, EnchantmentType.Thorns));
+    }
+
+    [Fact]
+    public void Thorns_Definition_HasCorrectEffectValue()
+    {
+        // B.71: ThornsのEffectValueは0.2（20%反射ダメージ）
+        var def = EnchantmentSystem.GetEnchantmentInfo(EnchantmentType.Thorns);
+        Assert.NotNull(def);
+        Assert.Equal(0.2f, def.EffectValue);
+    }
+
+    [Fact]
+    public void Thorns_CalculateEnchantedDamageBonus_ReturnsReflectionDamage()
+    {
+        // B.71: Thornsの反射ダメージ計算（20%）
+        int bonus = EnchantmentSystem.CalculateEnchantedDamageBonus(EnchantmentType.Thorns, 50);
+        Assert.Equal(10, bonus);  // 50 * 0.2 = 10
+    }
+
+    [Fact]
+    public void Thorns_CanBeAppliedToArmor()
+    {
+        // B.71: Thornsエンチャントを防具に適用できる
+        var armor = new Armor { Name = "テスト鎧", ArmorType = ArmorType.Plate, Weight = 5.0f };
+        armor.AppliedEnchantments.Add(EnchantmentType.Thorns.ToString());
+        Assert.Contains(EnchantmentType.Thorns.ToString(), armor.AppliedEnchantments);
+    }
+
+    [Fact]
+    public void AllEnchantmentTypes_HaveDefinitions()
+    {
+        // B.68-B.71: 全EnchantmentTypeにEnchantmentSystem定義が存在することを確認
+        foreach (var type in Enum.GetValues<EnchantmentType>())
+        {
+            var def = EnchantmentSystem.GetEnchantmentInfo(type);
+            Assert.NotNull(def);
+            Assert.NotNull(def.Name);
+            Assert.NotNull(def.Description);
+        }
+    }
+
+    #endregion
+
 }
