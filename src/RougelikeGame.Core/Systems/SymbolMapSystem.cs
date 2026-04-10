@@ -56,7 +56,7 @@ public class SymbolMapSystem
     public bool IsDungeonEntrance(Position position)
     {
         var location = GetLocationAt(position);
-        return location?.Type == LocationType.Dungeon;
+        return location?.Type is LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest;
     }
 
     /// <summary>
@@ -65,7 +65,7 @@ public class SymbolMapSystem
     public bool IsTownEntrance(Position position)
     {
         var location = GetLocationAt(position);
-        return location?.Type is LocationType.Town or LocationType.Village;
+        return location?.Type is LocationType.Town or LocationType.Village or LocationType.Capital;
     }
 
     /// <summary>
@@ -105,7 +105,10 @@ public class SymbolMapSystem
         return location.Type switch
         {
             LocationType.Dungeon => $"【{location.Name}】の入口に到着した。（>キーでダンジョンに入る）",
+            LocationType.BanditDen => $"【{location.Name}】を発見した。（>キーでダンジョンに入る）",
+            LocationType.GoblinNest => $"【{location.Name}】を発見した。（>キーでダンジョンに入る）",
             LocationType.Town or LocationType.Village => $"【{location.Name}】に到着した。（Tキーで街に入る）",
+            LocationType.Capital => $"【{location.Name}】に到着した。（Tキーで都に入る）",
             LocationType.Facility => $"【{location.Name}】に到着した。{location.Description}",
             LocationType.ReligiousSite => $"【{location.Name}】に到着した。{location.Description}",
             LocationType.Field => $"【{location.Name}】に到着した。{location.Description}",
@@ -119,12 +122,10 @@ public class SymbolMapSystem
     /// </summary>
     public bool CanEnterField(Position position)
     {
-        // ロケーションが配置されている場合
         var location = GetLocationAt(position);
         if (location != null)
-            return location.Type != LocationType.Dungeon;
+            return location.Type is not (LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest);
 
-        // ロケーション未配置でもシンボルマップの地形タイルなら進入可能
         if (CurrentMap == null) return false;
         var tile = CurrentMap.GetTile(position);
         return IsEnterableTerrainTile(tile.Type);

@@ -407,10 +407,10 @@ public class Phase9_NpcSystemTests
 public class Phase9_WorldMapSystemTests
 {
     [Fact]
-    public void TerritoryDefinition_GetAll_Returns6Territories()
+    public void TerritoryDefinition_GetAll_Returns12Territories()
     {
         var all = TerritoryDefinition.GetAll();
-        Assert.Equal(6, all.Count);
+        Assert.Equal(12, all.Count);
     }
 
     [Fact]

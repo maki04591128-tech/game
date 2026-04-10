@@ -37,6 +37,18 @@ public static class SymbolMapEventSystem
             0.1f, new[] { Season.Winter }, new[] { TerritoryId.Mountain }),
         new("event_fairy_ring", "妖精の輪", "MPが完全回復する不思議な場所",
             0.03f, new[] { Season.Spring }, new[] { TerritoryId.Forest }),
+        new("event_sandstorm", "砂嵐", "視界が極端に悪化。迷いやすくなる",
+            0.1f, new[] { Season.Summer }, new[] { TerritoryId.Desert }),
+        new("event_swamp_miasma", "瘴気の濃霧", "毒の霧に包まれる。毒耐性がないと危険",
+            0.08f, Array.Empty<Season>(), new[] { TerritoryId.Swamp }),
+        new("event_blizzard", "猛吹雪", "凍傷の危険。移動コストが大幅増加",
+            0.1f, new[] { Season.Winter }, new[] { TerritoryId.Tundra }),
+        new("event_lake_mist", "湖上の幻霧", "幻惑効果。方向感覚を失う",
+            0.06f, new[] { Season.Autumn }, new[] { TerritoryId.Lake }),
+        new("event_eruption", "火山噴火", "溶岩弾が降り注ぐ。素早く退避が必要",
+            0.05f, Array.Empty<Season>(), new[] { TerritoryId.Volcanic }),
+        new("event_divine_light", "神聖な光", "聖なる力が降り注ぎ、HP全回復",
+            0.03f, Array.Empty<Season>(), new[] { TerritoryId.Sacred }),
     };
 
     /// <summary>全イベント定義を取得</summary>

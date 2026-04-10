@@ -34,10 +34,10 @@ public class WorldMapSystemTests
     #region TerritoryDefinition Tests
 
     [Fact]
-    public void TerritoryDefinition_GetAll_Returns6Territories()
+    public void TerritoryDefinition_GetAll_Returns12Territories()
     {
         var all = TerritoryDefinition.GetAll();
-        Assert.Equal(6, all.Count);
+        Assert.Equal(12, all.Count);
     }
 
     [Theory]
@@ -247,7 +247,8 @@ public class WorldMapSystemTests
     {
         var system = new WorldMapSystem();
         var adj = system.GetAdjacentTerritories();
-        Assert.Equal(3, adj.Count);
+        // 王都領の隣接: Forest, Mountain, Coast, Lake（12領地版）
+        Assert.Equal(4, adj.Count);
     }
 
     [Fact]

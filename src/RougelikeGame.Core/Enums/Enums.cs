@@ -570,7 +570,7 @@ public enum FacilityType
 }
 
 /// <summary>
-/// 領地ID
+/// 領地ID（12領地）
 /// </summary>
 public enum TerritoryId
 {
@@ -579,7 +579,13 @@ public enum TerritoryId
     Mountain,
     Coast,
     Southern,
-    Frontier
+    Frontier,
+    Desert,
+    Swamp,
+    Tundra,
+    Lake,
+    Volcanic,
+    Sacred
 }
 
 /// <summary>

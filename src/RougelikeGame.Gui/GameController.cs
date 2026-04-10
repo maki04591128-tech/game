@@ -855,9 +855,9 @@ public class GameController
         Map = symbolMap;
         _worldMapSystem.IsOnSurface = true;
 
-        // プレイヤー配置（入口位置）
-        var startPos = symbolMap.EntrancePosition ?? new Position(
-            SymbolMapGenerator.MapWidth / 2, SymbolMapGenerator.MapHeight / 2);
+        // プレイヤー配置（入口位置、または領地サイズに応じた中心）
+        var (mapW, mapH) = SymbolMapGenerator.GetTerritoryMapSize(territory);
+        var startPos = symbolMap.EntrancePosition ?? new Position(mapW / 2, mapH / 2);
         Player.Position = startPos;
 
         // シンボルマップでは敵・アイテムを配置しない
@@ -865,7 +865,7 @@ public class GameController
         GroundItems.Clear();
 
         // 視界計算（シンボルマップは広い視界）
-        symbolMap.ComputeFov(Player.Position, 12);
+        symbolMap.ComputeFov(Player.Position, 15);
     }
 
     /// <summary>現在のフロアの状態（マップ・アイテム）をキャッシュに保存</summary>
@@ -6498,8 +6498,8 @@ public class GameController
         // シンボルマップ上のロケーションを判定
         var location = _symbolMapSystem.GetLocationAt(Player.Position);
 
-        // ダンジョンの場合はダンジョン入場処理
-        if (location != null && location.Type == LocationType.Dungeon)
+        // ダンジョンの場合はダンジョン入場処理（通常ダンジョン、野盗のねぐら、ゴブリンの巣）
+        if (location != null && location.Type is LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest)
         {
             _worldMapSystem.IsOnSurface = false;
             _currentMapName = location.Id;

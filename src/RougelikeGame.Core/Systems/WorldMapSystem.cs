@@ -12,7 +12,13 @@ public enum LocationType
     Facility,
     ReligiousSite,
     Field,
-    Dungeon
+    Dungeon,
+    /// <summary>都（領地の首都）</summary>
+    Capital,
+    /// <summary>野盗のねぐら（ランダム生成ダンジョン）</summary>
+    BanditDen,
+    /// <summary>ゴブリンの巣（ランダム生成ダンジョン）</summary>
+    GoblinNest
 }
 
 /// <summary>
@@ -100,7 +106,74 @@ public record LocationDefinition(
         ["frontier_wasteland"] = new("frontier_wasteland", "荒野", "魔物が徘徊する危険地帯", LocationType.Field, TerritoryId.Frontier, DangerLevel: 4),
         ["frontier_chaos_altar"] = new("frontier_chaos_altar", "混沌の祭壇", "混沌の崇拝の中心地", LocationType.ReligiousSite, TerritoryId.Frontier, MinLevel: 20, DangerLevel: 4),
         ["frontier_great_rift"] = new("frontier_great_rift", "大裂け目", "最高難易度、最終ダンジョン候補", LocationType.Dungeon, TerritoryId.Frontier, MinLevel: 25, DangerLevel: 5),
-        ["frontier_ancient_ruins"] = new("frontier_ancient_ruins", "滅びた王国の遺跡", "高難易度、古代文明の秘密", LocationType.Dungeon, TerritoryId.Frontier, MinLevel: 20, DangerLevel: 5)
+        ["frontier_ancient_ruins"] = new("frontier_ancient_ruins", "滅びた王国の遺跡", "高難易度、古代文明の秘密", LocationType.Dungeon, TerritoryId.Frontier, MinLevel: 20, DangerLevel: 5),
+
+        // 砂漠領
+        ["desert_town"] = new("desert_town", "砂都オアシス", "砂漠のオアシスに築かれた交易都市。商人ギルド、砂漠の祠、隊商宿が存在する",
+            LocationType.Town, TerritoryId.Desert,
+            SubLocationIds: new[] { "desert_market", "desert_shrine", "desert_caravan" }),
+        ["desert_market"] = new("desert_market", "砂漠の大市場", "異国の珍品が集まる市場", LocationType.Town, TerritoryId.Desert),
+        ["desert_shrine"] = new("desert_shrine", "砂漠の祠", "太陽神への祈りの場", LocationType.ReligiousSite, TerritoryId.Desert),
+        ["desert_caravan"] = new("desert_caravan", "隊商宿", "旅人の休息所、情報交換の場", LocationType.Facility, TerritoryId.Desert),
+        ["desert_village"] = new("desert_village", "砂の民の集落", "砂漠に住む遊牧民の集落", LocationType.Village, TerritoryId.Desert),
+        ["desert_wasteland"] = new("desert_wasteland", "灼熱の砂原", "猛暑と砂嵐に苛まれる危険地帯", LocationType.Field, TerritoryId.Desert, DangerLevel: 3),
+        ["desert_pyramid"] = new("desert_pyramid", "古代のピラミッド", "古代王朝の墓所、罠とミイラ", LocationType.Dungeon, TerritoryId.Desert, MinLevel: 12, DangerLevel: 4),
+        ["desert_antlion"] = new("desert_antlion", "蟻地獄の巣穴", "巨大蟲の巣、地下空洞", LocationType.Dungeon, TerritoryId.Desert, MinLevel: 8, DangerLevel: 3),
+
+        // 沼沢領
+        ["swamp_town"] = new("swamp_town", "水郷の里", "沼沢地の中に浮かぶ水上集落。薬草園、毒の沼、蛙人の村がある",
+            LocationType.Town, TerritoryId.Swamp,
+            SubLocationIds: new[] { "swamp_village", "swamp_herb", "swamp_frog" }),
+        ["swamp_village"] = new("swamp_village", "水上の村", "高床式の家が並ぶ漁村", LocationType.Village, TerritoryId.Swamp),
+        ["swamp_herb"] = new("swamp_herb", "薬草園", "毒草と薬草が混在する", LocationType.Facility, TerritoryId.Swamp),
+        ["swamp_frog"] = new("swamp_frog", "蛙人の村", "蛙人族の小さな集落", LocationType.Village, TerritoryId.Swamp),
+        ["swamp_bog"] = new("swamp_bog", "腐敗の沼地", "瘴気が立ち込める危険な沼", LocationType.Field, TerritoryId.Swamp, DangerLevel: 3),
+        ["swamp_sunken"] = new("swamp_sunken", "沈んだ遺跡", "水没した古代遺跡", LocationType.Dungeon, TerritoryId.Swamp, MinLevel: 10, DangerLevel: 4),
+        ["swamp_hag"] = new("swamp_hag", "魔女の住処", "沼の奥に潜む魔女の洞窟", LocationType.Dungeon, TerritoryId.Swamp, MinLevel: 14, DangerLevel: 4),
+
+        // 凍土領
+        ["tundra_town"] = new("tundra_town", "氷壁砦", "永久凍土の中に築かれた要塞都市。狼牙の集落、氷の祭壇がある",
+            LocationType.Town, TerritoryId.Tundra,
+            SubLocationIds: new[] { "tundra_fort", "tundra_wolf", "tundra_altar" }),
+        ["tundra_fort"] = new("tundra_fort", "氷壁砦中心部", "凍土の守り手の拠点", LocationType.Town, TerritoryId.Tundra),
+        ["tundra_wolf"] = new("tundra_wolf", "狼牙の集落", "獣人狩猟民の集落", LocationType.Village, TerritoryId.Tundra),
+        ["tundra_altar"] = new("tundra_altar", "氷の祭壇", "冬の精霊を祀る聖地", LocationType.ReligiousSite, TerritoryId.Tundra),
+        ["tundra_plain"] = new("tundra_plain", "白銀の平原", "猛吹雪が吹き荒れる凍土", LocationType.Field, TerritoryId.Tundra, DangerLevel: 4),
+        ["tundra_glacier"] = new("tundra_glacier", "氷河の裂け目", "氷に閉ざされた古代生物の墓", LocationType.Dungeon, TerritoryId.Tundra, MinLevel: 18, DangerLevel: 4),
+        ["tundra_mammoth"] = new("tundra_mammoth", "マンモスの墓場", "巨獣の骨が累々と横たわる洞窟", LocationType.Dungeon, TerritoryId.Tundra, MinLevel: 20, DangerLevel: 5),
+
+        // 湖水領
+        ["lake_town"] = new("lake_town", "湖畔の都ミラージュ", "巨大湖のほとりに広がる美しい都市。漁師の浜、水の神殿、霧の島がある",
+            LocationType.Town, TerritoryId.Lake,
+            SubLocationIds: new[] { "lake_city", "lake_fisher", "lake_temple" }),
+        ["lake_city"] = new("lake_city", "ミラージュ中心部", "湖に映る幻のような美しい街", LocationType.Town, TerritoryId.Lake),
+        ["lake_fisher"] = new("lake_fisher", "漁師の浜", "新鮮な魚介類が手に入る", LocationType.Village, TerritoryId.Lake),
+        ["lake_temple"] = new("lake_temple", "水の神殿", "水の精霊を祀る聖堂", LocationType.ReligiousSite, TerritoryId.Lake),
+        ["lake_island"] = new("lake_island", "霧の島", "湖上に浮かぶ謎の島、幻惑の霧", LocationType.Field, TerritoryId.Lake, DangerLevel: 3),
+        ["lake_underwater"] = new("lake_underwater", "湖底神殿", "水中に沈んだ古代神殿", LocationType.Dungeon, TerritoryId.Lake, MinLevel: 12, DangerLevel: 4),
+        ["lake_serpent"] = new("lake_serpent", "大蛇の棲家", "湖に住む大蛇の巣", LocationType.Dungeon, TerritoryId.Lake, MinLevel: 16, DangerLevel: 5),
+
+        // 火山領
+        ["volcanic_town"] = new("volcanic_town", "溶鉄の城塞", "火山の麓に築かれたドワーフの鍛冶都市。炎の鍛冶場、火山の祠がある",
+            LocationType.Town, TerritoryId.Volcanic,
+            SubLocationIds: new[] { "volcanic_forge", "volcanic_mine", "volcanic_shrine" }),
+        ["volcanic_forge"] = new("volcanic_forge", "炎の鍛冶場", "溶岩の熱を利用した究極の鍛冶", LocationType.Facility, TerritoryId.Volcanic),
+        ["volcanic_mine"] = new("volcanic_mine", "火山鉱脈", "貴重な鉱石が眠る採掘場", LocationType.Village, TerritoryId.Volcanic),
+        ["volcanic_shrine"] = new("volcanic_shrine", "火山の祠", "炎の精霊を祀る祭壇", LocationType.ReligiousSite, TerritoryId.Volcanic),
+        ["volcanic_waste"] = new("volcanic_waste", "灰の荒野", "火山灰に覆われた死の大地", LocationType.Field, TerritoryId.Volcanic, DangerLevel: 4),
+        ["volcanic_crater"] = new("volcanic_crater", "火口洞窟", "活火山の内部、溶岩の川が流れる", LocationType.Dungeon, TerritoryId.Volcanic, MinLevel: 20, DangerLevel: 5),
+        ["volcanic_dragon"] = new("volcanic_dragon", "炎竜の巣", "火山に住む炎竜の住処", LocationType.Dungeon, TerritoryId.Volcanic, MinLevel: 25, DangerLevel: 5),
+
+        // 聖域
+        ["sacred_town"] = new("sacred_town", "光輝の聖都", "天使と聖者が守護する神聖な都市。聖堂、巡礼の道、聖なる泉がある",
+            LocationType.Town, TerritoryId.Sacred,
+            SubLocationIds: new[] { "sacred_cathedral", "sacred_pilgrim", "sacred_spring" }),
+        ["sacred_cathedral"] = new("sacred_cathedral", "大聖堂ルミナス", "光の神の総本山", LocationType.ReligiousSite, TerritoryId.Sacred),
+        ["sacred_pilgrim"] = new("sacred_pilgrim", "巡礼者の村", "聖地を目指す巡礼者の拠点", LocationType.Village, TerritoryId.Sacred),
+        ["sacred_spring"] = new("sacred_spring", "聖なる泉", "万病を癒す奇跡の泉", LocationType.Facility, TerritoryId.Sacred),
+        ["sacred_garden"] = new("sacred_garden", "天上の庭園", "精霊が舞う聖域の庭", LocationType.Field, TerritoryId.Sacred, DangerLevel: 2),
+        ["sacred_abyss"] = new("sacred_abyss", "封印の深淵", "かつて封印された邪悪が眠る", LocationType.Dungeon, TerritoryId.Sacred, MinLevel: 22, DangerLevel: 5),
+        ["sacred_trial"] = new("sacred_trial", "試練の塔", "英雄を選ぶための試練の場", LocationType.Dungeon, TerritoryId.Sacred, MinLevel: 18, DangerLevel: 4)
     };
 
     public static LocationDefinition Get(string id) => All[id];
@@ -139,34 +212,64 @@ public record TerritoryDefinition(
     private static readonly Dictionary<TerritoryId, TerritoryDefinition> All = new()
     {
         [TerritoryId.Capital] = new(TerritoryId.Capital, "王都領", "王国の中心。大都市と大聖堂がある", 1, 10,
-            new[] { TerritoryId.Forest, TerritoryId.Mountain, TerritoryId.Coast },
+            new[] { TerritoryId.Forest, TerritoryId.Mountain, TerritoryId.Coast, TerritoryId.Lake },
             0,
             new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.WeaponShop, FacilityType.ArmorShop, FacilityType.Inn, FacilityType.Smithy, FacilityType.Church, FacilityType.Temple, FacilityType.MagicShop, FacilityType.Library, FacilityType.Bank, FacilityType.Arena }),
 
         [TerritoryId.Forest] = new(TerritoryId.Forest, "森林領", "深い森に覆われた自然豊かな領地", 5, 15,
-            new[] { TerritoryId.Capital, TerritoryId.Southern },
+            new[] { TerritoryId.Capital, TerritoryId.Southern, TerritoryId.Swamp },
             TimeConstants.TurnsPerDay * 3,
             new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.Inn }),
 
         [TerritoryId.Mountain] = new(TerritoryId.Mountain, "山岳領", "険しい山々と鉱脈が広がる領地", 10, 20,
-            new[] { TerritoryId.Capital, TerritoryId.Frontier },
+            new[] { TerritoryId.Capital, TerritoryId.Frontier, TerritoryId.Volcanic },
             TimeConstants.TurnsPerDay * 5,
             new[] { FacilityType.AdventurerGuild, FacilityType.WeaponShop, FacilityType.Smithy, FacilityType.Inn }),
 
         [TerritoryId.Coast] = new(TerritoryId.Coast, "海岸領", "港湾都市と漁村が点在する沿岸地帯", 5, 15,
-            new[] { TerritoryId.Capital, TerritoryId.Southern },
+            new[] { TerritoryId.Capital, TerritoryId.Southern, TerritoryId.Desert },
             TimeConstants.TurnsPerDay * 2,
             new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.ArmorShop, FacilityType.Inn, FacilityType.Bank }),
 
         [TerritoryId.Southern] = new(TerritoryId.Southern, "南部領", "荒野と古代遺跡が広がる辺境", 15, 25,
-            new[] { TerritoryId.Forest, TerritoryId.Coast, TerritoryId.Frontier },
+            new[] { TerritoryId.Forest, TerritoryId.Coast, TerritoryId.Frontier, TerritoryId.Tundra },
             TimeConstants.TurnsPerDay * 4,
             new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.Inn }),
 
         [TerritoryId.Frontier] = new(TerritoryId.Frontier, "辺境領", "未開の地。危険だが宝物も眠る", 20, 30,
-            new[] { TerritoryId.Mountain, TerritoryId.Southern },
+            new[] { TerritoryId.Mountain, TerritoryId.Southern, TerritoryId.Sacred },
             TimeConstants.TurnsPerDay * 7,
-            new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop })
+            new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop }),
+
+        [TerritoryId.Desert] = new(TerritoryId.Desert, "砂漠領", "灼熱の砂漠とオアシスの交易都市", 8, 15,
+            new[] { TerritoryId.Coast, TerritoryId.Volcanic },
+            TimeConstants.TurnsPerDay * 4,
+            new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.Inn }),
+
+        [TerritoryId.Swamp] = new(TerritoryId.Swamp, "沼沢領", "瘴気漂う湿地帯と水上集落", 8, 15,
+            new[] { TerritoryId.Forest, TerritoryId.Lake },
+            TimeConstants.TurnsPerDay * 3,
+            new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.Inn }),
+
+        [TerritoryId.Tundra] = new(TerritoryId.Tundra, "凍土領", "永久凍土に覆われた極寒の大地", 15, 20,
+            new[] { TerritoryId.Southern, TerritoryId.Sacred },
+            TimeConstants.TurnsPerDay * 5,
+            new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.Inn }),
+
+        [TerritoryId.Lake] = new(TerritoryId.Lake, "湖水領", "巨大湖とその周辺の豊かな水郷", 5, 15,
+            new[] { TerritoryId.Capital, TerritoryId.Swamp },
+            TimeConstants.TurnsPerDay * 2,
+            new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.Inn, FacilityType.Church }),
+
+        [TerritoryId.Volcanic] = new(TerritoryId.Volcanic, "火山領", "活火山群と溶岩の大地", 18, 25,
+            new[] { TerritoryId.Mountain, TerritoryId.Desert },
+            TimeConstants.TurnsPerDay * 6,
+            new[] { FacilityType.AdventurerGuild, FacilityType.WeaponShop, FacilityType.Smithy }),
+
+        [TerritoryId.Sacred] = new(TerritoryId.Sacred, "聖域", "神聖な力に守られた浄化の地", 15, 25,
+            new[] { TerritoryId.Frontier, TerritoryId.Tundra },
+            TimeConstants.TurnsPerDay * 5,
+            new[] { FacilityType.AdventurerGuild, FacilityType.Church, FacilityType.Temple, FacilityType.Inn })
     };
 
     public static TerritoryDefinition Get(TerritoryId id) => All[id];

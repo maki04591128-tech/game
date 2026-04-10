@@ -167,6 +167,26 @@ public enum TileType
     /// </summary>
     SymbolField,
 
+    /// <summary>
+    /// シンボルマップ: 村
+    /// </summary>
+    SymbolVillage,
+
+    /// <summary>
+    /// シンボルマップ: 都（首都）
+    /// </summary>
+    SymbolCapital,
+
+    /// <summary>
+    /// シンボルマップ: 野盗のねぐら（ランダム生成ダンジョン）
+    /// </summary>
+    SymbolBanditDen,
+
+    /// <summary>
+    /// シンボルマップ: ゴブリンの巣（ランダム生成ダンジョン）
+    /// </summary>
+    SymbolGoblinNest,
+
     // === デバッグ専用タイル ===
 
     /// <summary>
@@ -424,6 +444,10 @@ public class Tile
             case TileType.SymbolFacility:
             case TileType.SymbolShrine:
             case TileType.SymbolField:
+            case TileType.SymbolVillage:
+            case TileType.SymbolCapital:
+            case TileType.SymbolBanditDen:
+            case TileType.SymbolGoblinNest:
                 tile.BlocksSight = false;
                 tile.BlocksMovement = false;
                 break;
@@ -518,6 +542,10 @@ public class Tile
             TileType.SymbolFacility => '☆',
             TileType.SymbolShrine => '†',
             TileType.SymbolField => '◇',
+            TileType.SymbolVillage => '◆',
+            TileType.SymbolCapital => '★',
+            TileType.SymbolBanditDen => '☠',
+            TileType.SymbolGoblinNest => '⚔',
             TileType.NpcGuildReceptionist => 'G',
             TileType.NpcPriest => 'P',
             TileType.NpcShopkeeper => 'S',

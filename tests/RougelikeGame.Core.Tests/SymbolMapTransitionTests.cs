@@ -31,25 +31,37 @@ public class SymbolMapSystemTests
     [InlineData(TerritoryId.Coast)]
     [InlineData(TerritoryId.Southern)]
     [InlineData(TerritoryId.Frontier)]
+    [InlineData(TerritoryId.Desert)]
+    [InlineData(TerritoryId.Swamp)]
+    [InlineData(TerritoryId.Tundra)]
+    [InlineData(TerritoryId.Lake)]
+    [InlineData(TerritoryId.Volcanic)]
+    [InlineData(TerritoryId.Sacred)]
     public void Generate_AllTerritories_ProducesValidMap(TerritoryId territory)
     {
         var generator = new SymbolMapGenerator();
         var result = generator.Generate(territory);
 
-        Assert.Equal(SymbolMapGenerator.MapWidth, result.Map.Width);
-        Assert.Equal(SymbolMapGenerator.MapHeight, result.Map.Height);
+        var (expectedWidth, expectedHeight) = SymbolMapGenerator.GetTerritoryMapSize(territory);
+        Assert.Equal(expectedWidth, result.Map.Width);
+        Assert.Equal(expectedHeight, result.Map.Height);
         Assert.Equal(0, result.Map.Depth);
         Assert.True(result.LocationPositions.Count > 0);
+        // マップのマス数が2300-5000の範囲内
+        int totalTiles = result.Map.Width * result.Map.Height;
+        Assert.InRange(totalTiles, 2300, 5000);
     }
 
     [Fact]
-    public void Generate_Capital_PlacesCorrectNumberOfLocations()
+    public void Generate_Capital_PlacesAtLeastDefinedLocations()
     {
         var locations = LocationDefinition.GetSymbolLocations(TerritoryId.Capital);
         var generator = new SymbolMapGenerator();
         var result = generator.Generate(TerritoryId.Capital);
 
-        Assert.Equal(locations.Count, result.LocationPositions.Count);
+        // 定義済みロケーション + 自動生成の村/町/都/ランダムダンジョン
+        Assert.True(result.LocationPositions.Count >= locations.Count,
+            $"Expected at least {locations.Count} locations, got {result.LocationPositions.Count}");
     }
 
     [Fact]
@@ -94,11 +106,14 @@ public class SymbolMapSystemTests
             var expectedType = loc.Type switch
             {
                 LocationType.Town => TileType.SymbolTown,
-                LocationType.Village => TileType.SymbolTown,
+                LocationType.Village => TileType.SymbolVillage,
+                LocationType.Capital => TileType.SymbolCapital,
                 LocationType.Facility => TileType.SymbolFacility,
                 LocationType.ReligiousSite => TileType.SymbolShrine,
                 LocationType.Field => TileType.SymbolField,
                 LocationType.Dungeon => TileType.SymbolDungeon,
+                LocationType.BanditDen => TileType.SymbolBanditDen,
+                LocationType.GoblinNest => TileType.SymbolGoblinNest,
                 _ => TileType.SymbolField
             };
             Assert.Equal(expectedType, tile.Type);
@@ -427,9 +442,10 @@ public class SymbolMapSystemTests
             Assert.True(system.LocationCount > 0,
                 $"Territory {territory} should have locations");
 
-            // 各ロケーションが正しく配置されている
+            // 自動生成の村/町/都/ランダムダンジョンを含め、定義済み以上のロケーション数
             var locations = LocationDefinition.GetSymbolLocations(territory);
-            Assert.Equal(locations.Count, system.LocationCount);
+            Assert.True(system.LocationCount >= locations.Count,
+                $"Territory {territory}: expected at least {locations.Count}, got {system.LocationCount}");
         }
     }
 
@@ -442,7 +458,7 @@ public class SymbolMapSystemTests
         // ダンジョン入口を見つける
         var allPositions = system.GetAllLocationPositions();
         var dungeonEntry = allPositions
-            .FirstOrDefault(p => p.Value.Type == LocationType.Dungeon);
+            .FirstOrDefault(p => p.Value.Type is LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest);
 
         if (dungeonEntry.Value != null)
         {
