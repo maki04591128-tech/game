@@ -75,7 +75,7 @@ Ver.prt で構築した全ゲームシステム（NPC基盤、会話システム
 
 | # | タスク | 状態 | 備考 |
 |---|--------|------|------|
-| α.21 | 6領地のロケーション描写 | ✅ | TerritoryLoreData.cs - 到着時テキスト・時間帯テキスト実装、TryTravelToに統合 |
+| α.21 | 12領地のロケーション描写 | ✅ | TerritoryLoreData.cs - 12領地の到着時テキスト・時間帯テキスト・詳細テキスト実装 |
 | α.22 | アイテムフレーバーテキスト | ✅ | 武器(4種)/消耗品(11種)の説明文拡充 |
 | α.23 | 敵モンスター図鑑テキスト | ✅ | 10種族×5段階の生態・伝承・弱点テキスト（MonsterLoreData.cs）|
 | α.24 | ダンジョンイベントテキスト | ✅ | 宝箱/泉/遺跡/NPC遭遇等のイベント描写テキスト（DungeonEventLoreData.cs）|
@@ -179,3 +179,76 @@ Ver.prt で構築した全ゲームシステム（NPC基盤、会話システム
 - `docs/企画設計書/17_デバッグ・テスト設計書.md`: テスト件数更新（5,650→6,353件）
 - `docs/計画書/マスター実装計画書.md`: Ver.α.0.1 完了ステータス更新
 - `docs/企画設計書/11_クラス設計書.md`: Ver.α追加クラス反映
+
+---
+
+## 10. Ver.α.0.2 シンボルマップ拡張（2026-04-10）
+
+**目標**: 12領地対応、可変サイズシンボルマップ、村/町/都自動配置、ランダムダンジョン生成、勢力影響敵種別マッピング、シンボルマップ上アクション制限
+
+**状態**: ✅ 全タスク完了
+
+### 10.1 領地拡張
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.46 | TerritoryId 12領地化 | ✅ | Desert, Swamp, Tundra, Lake, Volcanic, Sacred追加（Enums.cs）|
+| α.47 | 新TileType追加 | ✅ | SymbolVillage, SymbolCapital, SymbolBanditDen, SymbolGoblinNest（Tile.cs）|
+| α.48 | 新LocationType追加 | ✅ | Capital, BanditDen, GoblinNest（WorldMapSystem.cs）|
+| α.49 | 12領地TerritoryDefinition | ✅ | 隣接関係・施設・レベル帯の定義（WorldMapSystem.cs）|
+| α.50 | 12領地LocationDefinition | ✅ | 新6領地の町/村/施設/ダンジョン定義（WorldMapSystem.cs）|
+| α.51 | 12領地TerritoryLoreData | ✅ | 到着テキスト・詳細テキスト・時間帯描写の6領地分追加 |
+
+### 10.2 シンボルマップ生成
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.52 | 可変サイズマップ(2300-5000マス) | ✅ | 領地ごとに幅×高さを定義（SymbolMapGenerator.cs）|
+| α.53 | 複雑形状生成 | ✅ | ノイズベース楕円+突起/湾で複雑形状マスク生成 |
+| α.54 | 隣接境界一致 | ✅ | 決定論的シード値で同一辺のノイズカーブを共有 |
+| α.55 | 村自動配置(マス数/500箇所) | ✅ | PlaceSettlementsメソッドで自動生成 |
+| α.56 | 町自動配置(マス数/1000箇所) | ✅ | 同上 |
+| α.57 | 都自動配置(1箇所/領地) | ✅ | マップ中心付近に優先配置 |
+| α.58 | ランダムダンジョン生成 | ✅ | 野盗のねぐら/ゴブリンの巣等、50マス距離制限/100マス間隔、1-3階層 |
+
+### 10.3 勢力影響システム
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.59 | 勢力名定数定義 | ✅ | FactionNames（王国/賊/ゴブリン/野生動物/アンデッド/魔族/エルフ/ドワーフ）|
+| α.60 | タイルレベル勢力判定 | ✅ | GetDominantFactionForTile（集落近く=野生動物、遠方=領地支配勢力）|
+| α.61 | 勢力→敵種別マッピング | ✅ | GetEnemyTypeForFaction（賊→野盗、ゴブリン→ゴブリン等）|
+| α.62 | 領地デフォルト勢力 | ✅ | GetDefaultFaction（12領地×デフォルト勢力）|
+
+### 10.4 シンボルマップ上アクション制限（Ver.prt）
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.63 | アクション制限実装 | ✅ | IsAllowedOnSymbolMap: 移動/インベントリ/情報確認/進入のみ許可 |
+
+### 10.5 テスト
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.64 | Ver.αテスト追加 | ✅ | VerAlphaSymbolMapTests.cs 71件追加、既存テスト修正 |
+
+### Ver.α.0.2 ブラッシュアップ記録（2026-04-10）
+
+#### 実施内容
+- 全19タスク（α.46〜α.64）実装完了
+- テスト状況: Core.Tests 6,614件全合格（うちVer.αシンボルマップテスト: 71件）
+- 変更ファイル:
+  - `src/RougelikeGame.Core/Enums/Enums.cs`: TerritoryId 12領地化
+  - `src/RougelikeGame.Core/Map/Tile.cs`: 新TileType（SymbolVillage/Capital/BanditDen/GoblinNest）
+  - `src/RougelikeGame.Core/Systems/WorldMapSystem.cs`: 新LocationType、12領地TerritoryDefinition/LocationDefinition
+  - `src/RougelikeGame.Core/Map/Generation/SymbolMapGenerator.cs`: 大幅改修（可変サイズ/複雑形状/自動配置/ランダムダンジョン）
+  - `src/RougelikeGame.Core/Systems/TerritoryInfluenceSystem.cs`: 勢力名定数/タイルレベル勢力/敵種別マッピング追加
+  - `src/RougelikeGame.Core/Systems/SymbolMapSystem.cs`: 新LocationType対応（BanditDen/GoblinNest）
+  - `src/RougelikeGame.Core/Systems/SymbolMapEventSystem.cs`: 新6領地専用イベント7件追加
+  - `src/RougelikeGame.Core/Data/TerritoryLoreData.cs`: 新6領地のロア/時間帯テキスト
+  - `src/RougelikeGame.Gui/GameController.cs`: シンボルマップ上アクション制限/ダンジョン遷移対応
+  - `tests/RougelikeGame.Core.Tests/VerAlphaSymbolMapTests.cs`: 新規71件テスト
+  - `tests/RougelikeGame.Core.Tests/SymbolMapTransitionTests.cs`: 可変サイズ/12領地対応修正
+  - `tests/RougelikeGame.Core.Tests/WorldMapSystemTests.cs`: 12領地対応修正
+  - `tests/RougelikeGame.Core.Tests/SystemExpansionPhase7Tests.cs`: イベント数修正
+  - `tests/RougelikeGame.Core.Tests/SystemExpansionPhase9Tests.cs`: 12領地対応修正

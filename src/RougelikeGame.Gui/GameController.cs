@@ -1284,6 +1284,15 @@ public class GameController
             _autoExploring = false;
         }
 
+        // Ver.prt: シンボルマップ上のアクション制限
+        // 許可: 移動、インベントリ開閉、ステータス/ログ/死亡録確認、ロケーション進入、ワールドマップ、領地移動
+        if (_worldMapSystem.IsOnSurface && !IsAllowedOnSymbolMap(action))
+        {
+            AddMessage("シンボルマップ上ではこの操作は行えない");
+            OnStateChanged?.Invoke();
+            return;
+        }
+
         Position newPos = Player.Position;
         bool turnUsed = false;
         int actionCost = TurnCosts.MoveNormal; // デフォルト: 移動コスト
@@ -10898,6 +10907,37 @@ public class GameController
         var tile = Map.GetTile(Player.Position);
         bool stairsNearby = tile.Type is TileType.StairsDown or TileType.StairsUp;
         return AutoExploreSystem.CheckStopConditions(true, hasEnemyNearby, itemOnTile, stairsNearby, false, hpRatio, hungerRatio);
+    }
+
+    /// <summary>
+    /// Ver.prt: シンボルマップ上で許可されるアクションかどうか判定する。
+    /// 許可: 移動、インベントリ開閉、アイテム使用、装備変更、ログ/死亡録等の情報確認、
+    /// フィールド/ダンジョン/村/町/都への進入、ワールドマップ、領地移動、待機
+    /// </summary>
+    private static bool IsAllowedOnSymbolMap(GameAction action)
+    {
+        return action is
+            // 移動
+            GameAction.MoveUp or GameAction.MoveDown or
+            GameAction.MoveLeft or GameAction.MoveRight or
+            GameAction.MoveUpLeft or GameAction.MoveUpRight or
+            GameAction.MoveDownLeft or GameAction.MoveDownRight or
+            // 待機
+            GameAction.Wait or
+            // インベントリ（アイテム使用・装備変更含む）
+            GameAction.OpenInventory or
+            // ステータス・ログ・情報確認
+            GameAction.OpenStatus or
+            GameAction.OpenMessageLog or
+            // ロケーション進入（フィールド/ダンジョン/村/町/都）
+            GameAction.EnterTown or
+            GameAction.UseStairs or
+            GameAction.AscendStairs or
+            // ワールドマップ・領地移動
+            GameAction.OpenWorldMap or
+            GameAction.TravelToTerritory or
+            // 階段（ダンジョン進入用）
+            GameAction.LeaveTown;
     }
 
     /// <summary>フラグ条件評価（FlagConditionSystem）</summary>
