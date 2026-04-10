@@ -1318,4 +1318,98 @@ public class BugFixVer027Tests
     }
 
     #endregion
+
+    #region B.52/B.58: ResourceSystem.CalculateRequiredExp 計算式・上限ガードをGameConstants準拠に修正
+
+    [Fact]
+    public void B52_CalculateRequiredExp_Level1_MatchesGameConstants()
+    {
+        var system = new ResourceSystem();
+        int expected = (int)(GameConstants.BaseExpRequired * Math.Pow(GameConstants.ExpGrowthRate, 0));
+        Assert.Equal(expected, system.CalculateRequiredExp(1));
+    }
+
+    [Fact]
+    public void B52_CalculateRequiredExp_Level10_MatchesGameConstants()
+    {
+        var system = new ResourceSystem();
+        int expected = (int)(GameConstants.BaseExpRequired * Math.Pow(GameConstants.ExpGrowthRate, 9));
+        Assert.Equal(expected, system.CalculateRequiredExp(10));
+    }
+
+    [Fact]
+    public void B58_CalculateRequiredExp_MaxLevel_ReturnsIntMax()
+    {
+        var system = new ResourceSystem();
+        Assert.Equal(int.MaxValue, system.CalculateRequiredExp(GameConstants.MaxLevel));
+    }
+
+    [Fact]
+    public void B58_CalculateRequiredExp_BelowMaxLevel_NotIntMax()
+    {
+        var system = new ResourceSystem();
+        Assert.NotEqual(int.MaxValue, system.CalculateRequiredExp(GameConstants.MaxLevel - 1));
+    }
+
+    #endregion
+
+    #region B.53: ThirstSystem.GetThirstActionCostBonus 定義・値確認
+
+    [Fact]
+    public void B53_GetThirstActionCostBonus_Desiccation_Returns5()
+    {
+        int bonus = ThirstSystem.GetThirstActionCostBonus(ThirstStage.Desiccation);
+        Assert.Equal(5, bonus);
+    }
+
+    [Fact]
+    public void B53_GetThirstActionCostBonus_NearDesiccation_Returns3()
+    {
+        int bonus = ThirstSystem.GetThirstActionCostBonus(ThirstStage.NearDesiccation);
+        Assert.Equal(3, bonus);
+    }
+
+    [Fact]
+    public void B53_GetThirstActionCostBonus_Normal_Returns0()
+    {
+        int bonus = ThirstSystem.GetThirstActionCostBonus(ThirstStage.Normal);
+        Assert.Equal(0, bonus);
+    }
+
+    #endregion
+
+    #region B.56: DamageType.Elemental 明示case追加（Character.TakeDamage）
+
+    [Fact]
+    public void B56_TakeDamage_ElementalType_DefenseIsZero()
+    {
+        var player = CreateTestPlayer();
+        int hpBefore = player.CurrentHp;
+        var elementalDamage = new Damage(10, DamageType.Elemental, Element.Fire, false);
+        player.TakeDamage(elementalDamage);
+        // Elemental は防御無視なので finalDamage = 10
+        Assert.Equal(hpBefore - 10, player.CurrentHp);
+    }
+
+    #endregion
+
+    #region B.57: ThirstSystem.GetThirstSlightPenaltyCostBonus 定義確認
+
+    [Fact]
+    public void B57_GetThirstSlightPenaltyCostBonus_SlightlyThirsty_ReturnsZeroOrOne()
+    {
+        var rng = new Random(0);
+        int bonus = ThirstSystem.GetThirstSlightPenaltyCostBonus(ThirstStage.SlightlyThirsty, rng);
+        Assert.True(bonus == 0 || bonus == 1);
+    }
+
+    [Fact]
+    public void B57_GetThirstSlightPenaltyCostBonus_Normal_Returns0()
+    {
+        int bonus = ThirstSystem.GetThirstSlightPenaltyCostBonus(ThirstStage.Normal);
+        Assert.Equal(0, bonus);
+    }
+
+    #endregion
+
 }

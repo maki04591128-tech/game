@@ -290,13 +290,10 @@ public class ResourceSystem
     /// </summary>
     public int CalculateRequiredExp(int level)
     {
-        if (level >= 99) return int.MaxValue;  // レベル上限
+        if (level >= GameConstants.MaxLevel) return int.MaxValue;  // レベル上限
 
-        // 基礎経験値 × 1.5の累乗
-        double baseExp = 100;
-        double multiplier = 1.5;
-
-        double required = baseExp * Math.Pow(multiplier, level - 1);
+        // GameConstants準拠: BaseExpRequired × ExpGrowthRate^(level-1)
+        double required = GameConstants.BaseExpRequired * Math.Pow(GameConstants.ExpGrowthRate, level - 1);
         // AI-2: 高レベルでint.MaxValueを超えないようにクランプ
         return (int)Math.Min(required, int.MaxValue - 1);
     }

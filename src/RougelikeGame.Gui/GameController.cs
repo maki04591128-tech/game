@@ -1593,6 +1593,19 @@ public class GameController
                 actionCost += fatigueCostBonus;
             }
 
+            // B.53: 渇き段階による行動コスト加算（Desiccation+5〜Dehydrated+2等）
+            int thirstCostBonus = ThirstSystem.GetThirstActionCostBonus(Player.ThirstStage);
+            if (thirstCostBonus > 0)
+            {
+                actionCost += thirstCostBonus;
+            }
+
+            // B.57: 渇き（小）の30%確率で行動コスト+1
+            if (Player.ThirstStage == ThirstStage.SlightlyThirsty && _random.Next(100) < 30)
+            {
+                actionCost += 1;
+            }
+
             // AV-3: 渇きによるステータスペナルティ（コスト増加）
             var (thirstStrMod, thirstAgiMod, _) = ThirstSystem.GetThirstModifiers(Player.ThirstStage);
             float thirstMoveMod = Math.Min(thirstStrMod, thirstAgiMod); // 移動は STR と AGI の低い方
@@ -4984,6 +4997,19 @@ public class GameController
         if (fatigueCostBonus > 0)
         {
             actionCost += fatigueCostBonus;
+        }
+
+        // B.53: 渇き段階による行動コスト加算
+        int thirstCostBonus = ThirstSystem.GetThirstActionCostBonus(Player.ThirstStage);
+        if (thirstCostBonus > 0)
+        {
+            actionCost += thirstCostBonus;
+        }
+
+        // B.57: 渇き（小）の30%確率で行動コスト+1
+        if (Player.ThirstStage == ThirstStage.SlightlyThirsty && _random.Next(100) < 30)
+        {
+            actionCost += 1;
         }
 
         int finalCost = Math.Max(1, actionCost);
