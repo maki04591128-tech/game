@@ -438,7 +438,7 @@ public class SymbolMapGenerator
 
     /// <summary>
     /// ランダムダンジョン（野盗のねぐら、ゴブリンの巣等）を配置する。
-    /// 条件: 村/町/都から75マス以上離れた場所、他ダンジョンから150マス以上離れた場所
+    /// 条件: 村/町/都から25マス以上離れた場所、他ダンジョンから50マス以上離れた場所
     /// </summary>
     private static void PlaceRandomDungeons(
         DungeonMap map, TerritoryId territory,
@@ -494,7 +494,8 @@ public class SymbolMapGenerator
 
     /// <summary>
     /// ランダムダンジョンの配置位置を探す。
-    /// 集落からの最低距離は基本75マス、他ダンジョンからは基本150マス。
+    /// 集落からの最低距離は基本25マス、他ダンジョンからは基本50マス。
+    /// （元の値: 集落50マス/ダンジョン間100マスの1/2）
     /// ただしマップ対角線に対して、集落距離は対角線の1/3、ダンジョン距離は対角線の1/2を上限とする。
     /// これにより小さいマップでは距離制限が自動的にスケールダウンされる。
     /// </summary>
@@ -504,8 +505,8 @@ public class SymbolMapGenerator
         Random random)
     {
         int mapDiag = (int)Math.Sqrt(map.Width * map.Width + map.Height * map.Height);
-        int settlementMinDist = Math.Min(75, mapDiag / 3);
-        int dungeonMinDist = Math.Min(150, mapDiag / 2);
+        int settlementMinDist = Math.Min(25, mapDiag / 3);
+        int dungeonMinDist = Math.Min(50, mapDiag / 2);
 
         for (int attempt = 0; attempt < MaxRandomDungeonPlacementAttempts; attempt++)
         {
