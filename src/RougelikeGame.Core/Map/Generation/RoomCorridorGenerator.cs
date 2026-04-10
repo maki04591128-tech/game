@@ -225,6 +225,9 @@ public static class RoomGenerator
             case 2: // 水たまり
                 AddWaterPuddle(map, room, random);
                 break;
+
+            case 3: // 装飾なし（意図的に空き部屋を残す）
+                break;
         }
     }
 

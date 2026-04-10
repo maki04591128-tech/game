@@ -2003,6 +2003,38 @@ public class GameController
                     {
                         switch (enchType)
                         {
+                            case EnchantmentType.FireDamage:
+                                int fireDmg = Math.Max(1, totalDamageDealt / 8);
+                                enemy.TakeDamage(Damage.Magical(fireDmg, Element.Fire));
+                                if (_random.Next(100) < 10)
+                                    enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Burn, 3));
+                                break;
+                            case EnchantmentType.IceDamage:
+                                int iceDmg = Math.Max(1, totalDamageDealt / 8);
+                                enemy.TakeDamage(Damage.Magical(iceDmg, Element.Ice));
+                                if (_random.Next(100) < 10)
+                                    enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Freeze, 2));
+                                break;
+                            case EnchantmentType.LightningDamage:
+                                int lightDmg = Math.Max(1, totalDamageDealt / 8);
+                                enemy.TakeDamage(Damage.Magical(lightDmg, Element.Lightning));
+                                if (_random.Next(100) < 10)
+                                    enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Paralysis, 2));
+                                break;
+                            case EnchantmentType.PoisonDamage:
+                                int poisonDmg = Math.Max(1, totalDamageDealt / 10);
+                                enemy.TakeDamage(Damage.Magical(poisonDmg, Element.Poison));
+                                if (_random.Next(100) < 15)
+                                    enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Poison, 4));
+                                break;
+                            case EnchantmentType.HolyDamage:
+                                int holyDmg = Math.Max(1, totalDamageDealt / 8);
+                                enemy.TakeDamage(Damage.Magical(holyDmg, Element.Holy));
+                                break;
+                            case EnchantmentType.DarkDamage:
+                                int darkDmg = Math.Max(1, totalDamageDealt / 8);
+                                enemy.TakeDamage(Damage.Magical(darkDmg, Element.Dark));
+                                break;
                             case EnchantmentType.Lifesteal:
                                 int lifestealHp = Math.Max(1, totalDamageDealt / 10);
                                 Player.Heal(lifestealHp);
@@ -2014,6 +2046,10 @@ public class GameController
                             case EnchantmentType.ParalysisChance:
                                 if (_random.Next(100) < 15)
                                     enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Paralysis, 2));
+                                break;
+                            // ExpBoost, DropBoost, CriticalBoost, SpeedBoost, DefenseBoost, Thorns
+                            // はパッシブ効果のため攻撃時の個別処理は不要
+                            default:
                                 break;
                         }
                     }
@@ -9746,7 +9782,39 @@ public class GameController
                 }
                 break;
 
-            // その他のイベントはメッセージ表示のみ（既に表示済み）
+            case RandomEventType.Trap:
+                int trapDmg = Math.Max(1, Player.MaxHp / 15);
+                Player.TakeDamage(Damage.Physical(trapDmg));
+                _lastDamageCause = DeathCause.Trap;
+                AddMessage($"⚠ 罠にかかった！ {trapDmg}ダメージを受けた！");
+                break;
+
+            case RandomEventType.Ruins:
+                AddMessage("🏚 遺跡を発見した。何か有益な情報が得られるかもしれない。");
+                break;
+
+            case RandomEventType.MysteriousItem:
+                AddMessage("✨ 不思議な輝きを放つ物体を発見した…");
+                break;
+
+            case RandomEventType.MonsterHouse:
+                AddMessage("⚠ モンスターハウスだ！大量の敵が現れた！");
+                SpawnEnemies();
+                break;
+
+            case RandomEventType.CursedRoom:
+                AddMessage("💀 呪われた部屋に足を踏み入れた…不吉な気配が漂う。");
+                break;
+
+            case RandomEventType.BlessedRoom:
+                Player.Heal(Player.MaxHp / 4);
+                Player.RestoreMp(Player.MaxMp / 4);
+                AddMessage("✨ 祝福された部屋だ！体力と魔力が回復した。");
+                break;
+
+            case RandomEventType.HiddenShop:
+                AddMessage("🏪 隠しショップを発見した！珍しい品が並んでいる。");
+                break;
         }
     }
 
