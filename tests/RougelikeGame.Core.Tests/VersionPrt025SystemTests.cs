@@ -287,8 +287,8 @@ public class VersionPrt025SystemTests
     [InlineData(120, HungerState.Nausea)]
     [InlineData(119, HungerState.Overeating)]
     [InlineData(100, HungerState.Overeating)]
-    [InlineData(99, HungerState.Satiated)]
-    [InlineData(80, HungerState.Satiated)]
+    [InlineData(99, HungerState.Full)]
+    [InlineData(80, HungerState.Full)]
     [InlineData(79, HungerState.Normal)]
     [InlineData(50, HungerState.Normal)]
     [InlineData(49, HungerState.SlightlyHungry)]
@@ -408,7 +408,7 @@ public class VersionPrt025SystemTests
     {
         var player = CreateDefaultPlayer();
         int baseInt = player.EffectiveStats.Intelligence;
-        player.ModifyThirst(-80);  // Dehydrated
+        player.ModifyThirst(-75);  // InitialThirst(70) - 75 = -5 → Dehydrated段階
 
         Assert.True(player.EffectiveStats.Intelligence < baseInt, "Dehydrated should reduce Intelligence");
     }

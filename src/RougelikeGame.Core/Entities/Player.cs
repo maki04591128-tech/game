@@ -366,6 +366,7 @@ public class Player : Character, IPlayer, IInventoryHolder
         // D-1/D-2/D-3: 飢餓・渇き・疲労ペナルティ
         var hungerPenalty = HungerStage switch
         {
+            HungerStage.Starvation => new StatModifier(Strength: -10, Agility: -10, Dexterity: -8, Intelligence: -5),
             HungerStage.Nausea => new StatModifier(Strength: -5, Agility: -5, Dexterity: -3, Intelligence: -3),
             HungerStage.NearStarvation => new StatModifier(Strength: -8, Agility: -8, Dexterity: -5, Intelligence: -3),
             HungerStage.Starving => new StatModifier(Strength: -5, Agility: -5, Dexterity: -3),
@@ -378,6 +379,7 @@ public class Player : Character, IPlayer, IInventoryHolder
 
         var thirstPenalty = ThirstStage switch
         {
+            ThirstStage.Desiccation => new StatModifier(Intelligence: -10, Mind: -10, Agility: -8, Strength: -5),
             ThirstStage.Nausea => new StatModifier(Intelligence: -5, Mind: -5, Agility: -3, Strength: -3),
             ThirstStage.NearDesiccation => new StatModifier(Intelligence: -8, Mind: -8, Agility: -5, Strength: -3),
             ThirstStage.Dehydrated => new StatModifier(Intelligence: -5, Mind: -5, Agility: -3),
@@ -399,6 +401,17 @@ public class Player : Character, IPlayer, IInventoryHolder
             _ => (StatModifier?)null
         };
         if (fatiguePenalty.HasValue) yield return fatiguePenalty.Value;
+
+        // B.23: 衛生度ペナルティ（設計書§17.2.3準拠）
+        var hygienePenalty = HygieneStage switch
+        {
+            HygieneStage.Foul => new StatModifier(Charisma: -10),
+            HygieneStage.Filthy => new StatModifier(Charisma: -5),
+            HygieneStage.Dirty => new StatModifier(Charisma: -2),
+            HygieneStage.Clean => new StatModifier(Charisma: 2),
+            _ => (StatModifier?)null
+        };
+        if (hygienePenalty.HasValue) yield return hygienePenalty.Value;
     }
 
     /// <summary>スキルツリーボーナス辞書をStatModifierに変換（ステータス系のみ）</summary>
@@ -471,6 +484,12 @@ public class Player : Character, IPlayer, IInventoryHolder
     public void AddFaithPoints(int amount)
     {
         FaithPoints = Math.Clamp(FaithPoints + amount, 0, FaithCap);
+    }
+
+    /// <summary>セーブデータからPreviousReligionを復元</summary>
+    public void RestorePreviousReligion(string? previousReligion)
+    {
+        PreviousReligion = previousReligion;
     }
     #endregion
 
@@ -753,6 +772,14 @@ public class Player : Character, IPlayer, IInventoryHolder
             case TurnActionType.UseItem:
                 // アイテム使用は外部システムで処理
                 break;
+
+            case TurnActionType.Interact:
+                // 対話・操作は外部システム(GameController)で処理
+                break;
+
+            case TurnActionType.Search:
+                // 探索は外部システム(GameController)で処理
+                break;
         }
 
         TickStatusEffects();
@@ -887,13 +914,13 @@ public class Player : Character, IPlayer, IInventoryHolder
         int currentHp, int currentMp, int currentSp, int rescueCountRemaining,
         Race race = Race.Human, CharacterClass characterClass = CharacterClass.Fighter,
         Background background = Background.Adventurer,
-        int thirst = 100, double fatigue = 0.0, int hygiene = 100)
+        int thirst = GameConstants.InitialThirst, double fatigue = 0.0, int hygiene = GameConstants.InitialHygiene)
     {
         Level = level;
         Experience = experience;
         _sanity = Math.Clamp(sanity, 0, GameConstants.MaxSanity);
-        _hunger = Math.Clamp(hunger, 0, GameConstants.MaxHunger);
-        _thirst = Math.Clamp(thirst, 0, GameConstants.MaxThirst);
+        _hunger = Math.Clamp(hunger, GameConstants.MinHunger, GameConstants.MaxHunger);
+        _thirst = Math.Clamp(thirst, GameConstants.MinThirst, GameConstants.MaxThirst);
         _fatigue = Math.Clamp(fatigue, FatigueConstants.MinFatigue, FatigueConstants.MaxFatigue);
         _hygiene = Math.Clamp(hygiene, 0, GameConstants.MaxHygiene);
         CurrentHp = currentHp;

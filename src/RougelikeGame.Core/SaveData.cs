@@ -79,7 +79,8 @@ public class SaveData
     /// <summary>ペットデータ</summary>
     public PetSaveData? PetData { get; set; }
 
-    /// <summary>コンパニオンID</summary>
+    /// <summary>コンパニオンID（後方互換性のため維持。実際のデータはCompanionsリストを使用）</summary>
+    [Obsolete("Use Companions list property instead. Kept for backward compatibility with old save files.")]
     public List<string> CompanionIds { get; set; } = new();
 
     /// <summary>カルマ値</summary>
@@ -100,7 +101,8 @@ public class SaveData
     /// <summary>病気残りターン</summary>
     public int DiseaseRemainingTurns { get; set; }
 
-    /// <summary>アンロック済み実績</summary>
+    /// <summary>アンロック済み実績（後方互換性のため維持。実際のデータはUnlockedAchievementsを使用）</summary>
+    [Obsolete("Use UnlockedAchievements instead. Kept for backward compatibility with old save files.")]
     public List<string> Achievements { get; set; } = new();
 
     /// <summary>現在の天候</summary>
@@ -211,6 +213,9 @@ public class SaveData
 
     /// <summary>AS-3/CE-12: マップ探索状態（IsExplored=trueのタイル座標）</summary>
     public List<string> ExploredTiles { get; set; } = new();
+
+    /// <summary>マップタイルデータ（セーブ/ロードでマップ構造を保持するため）</summary>
+    public MapSaveData? MapData { get; set; }
 }
 
 /// <summary>
@@ -312,6 +317,18 @@ public class PlayerSaveData
 
     /// <summary>引き継ぎデータ</summary>
     public TransferDataSaveData? TransferData { get; set; }
+
+    /// <summary>ボーナス最大HP（種族・職業ボーナス等）</summary>
+    public int BonusMaxHp { get; set; }
+
+    /// <summary>ボーナス最大MP（種族・職業ボーナス等）</summary>
+    public int BonusMaxMp { get; set; }
+
+    /// <summary>ボーナスクリティカル率</summary>
+    public double BonusCriticalRate { get; set; }
+
+    /// <summary>習得済みルーン</summary>
+    public List<string> KnownRunes { get; set; } = new();
 }
 
 /// <summary>
@@ -434,6 +451,18 @@ public class StatusEffectSaveData
 
     /// <summary>効力</summary>
     public int Potency { get; set; }
+
+    /// <summary>表示名</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>スタック数</summary>
+    public int StackCount { get; set; } = 1;
+
+    /// <summary>ダメージ属性</summary>
+    public string DamageElement { get; set; } = string.Empty;
+
+    /// <summary>最大スタック数</summary>
+    public int MaxStack { get; set; } = 1;
 }
 
 /// <summary>
@@ -465,6 +494,9 @@ public class PetSaveData
     /// <summary>現在HP</summary>
     public int CurrentHp { get; set; }
 
+    /// <summary>最大HP（レベルアップ等で増加した値）</summary>
+    public int MaxHp { get; set; }
+
     /// <summary>騎乗中か</summary>
     public bool IsRiding { get; set; }
 }
@@ -492,6 +524,12 @@ public class CompanionSaveData
     public int Attack { get; set; }
     public int Defense { get; set; }
     public bool IsAlive { get; set; }
+    /// <summary>忠誠度（旧セーブデータ互換: デフォルト50）</summary>
+    public int Loyalty { get; set; } = 50;
+    /// <summary>雇用コスト（旧セーブデータ互換: デフォルト0）</summary>
+    public int HireCost { get; set; }
+    /// <summary>AIモード（旧セーブデータ互換: デフォルトDefensive）</summary>
+    public string? AIMode { get; set; }
 }
 
 /// <summary>BZ-5: 商人ギルドのセーブデータ</summary>
@@ -610,3 +648,70 @@ public class EcosystemEventSaveData
     public int Turn { get; set; }
     public string Description { get; set; } = string.Empty;
 }
+
+/// <summary>
+/// マップのセーブデータ（タイル構造・部屋情報・地面アイテムを保持）
+/// </summary>
+public class MapSaveData
+{
+    /// <summary>マップ幅</summary>
+    public int Width { get; set; }
+
+    /// <summary>マップ高さ</summary>
+    public int Height { get; set; }
+
+    /// <summary>フロアキャッシュ作成時のターン数（24時間再生成判定に使用）</summary>
+    public int CreatedAtTurn { get; set; }
+
+    /// <summary>タイルタイプの一次元配列（行優先順序: index = y * Width + x）</summary>
+    public List<int> TileTypes { get; set; } = new();
+
+    /// <summary>デフォルトと異なる状態を持つタイルの詳細データ</summary>
+    public List<TileStateSaveData> TileStates { get; set; } = new();
+
+    /// <summary>部屋情報</summary>
+    public List<RoomSaveData> Rooms { get; set; } = new();
+
+    /// <summary>地面のアイテム</summary>
+    public List<GroundItemSaveData> GroundItems { get; set; } = new();
+}
+
+/// <summary>
+/// デフォルトと異なる状態を持つタイルのセーブデータ
+/// </summary>
+public class TileStateSaveData
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int RoomId { get; set; } = -1;
+    public bool IsLocked { get; set; }
+    public int LockDifficulty { get; set; }
+    public string? TrapId { get; set; }
+    public string? ItemId { get; set; }
+    public string? BuildingId { get; set; }
+    public bool ChestOpened { get; set; }
+    public int ChestLockDifficulty { get; set; }
+    public List<string>? ChestItems { get; set; }
+    public string? InscriptionWordId { get; set; }
+    public bool InscriptionRead { get; set; }
+    public int? GatheringNodeType { get; set; }
+}
+
+/// <summary>
+/// 部屋のセーブデータ
+/// </summary>
+public class RoomSaveData
+{
+    public int Id { get; set; }
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public string Type { get; set; } = "Normal";
+    public List<int> ConnectedRooms { get; set; } = new();
+}
+
+/// <summary>
+/// 地面に落ちているアイテムのセーブデータ（マップ復元用）
+/// ※ GroundItemSaveData は既存クラスを再利用
+/// </summary>

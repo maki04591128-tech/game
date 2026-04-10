@@ -128,6 +128,18 @@ public static class RoomGenerator
                     AddRandomDecoration(map, room, random);
                 }
                 break;
+
+            case RoomType.Entrance:
+                // 開始地点は装飾なし
+                break;
+
+            case RoomType.Prison:
+            case RoomType.Storage:
+            case RoomType.Secret:
+            case RoomType.Shop:
+            case RoomType.TrapRoom:
+                // B.61: これらの部屋タイプは現時点では装飾なし
+                break;
         }
     }
 
@@ -212,6 +224,9 @@ public static class RoomGenerator
 
             case 2: // 水たまり
                 AddWaterPuddle(map, room, random);
+                break;
+
+            case 3: // 装飾なし（意図的に空き部屋を残す）
                 break;
         }
     }

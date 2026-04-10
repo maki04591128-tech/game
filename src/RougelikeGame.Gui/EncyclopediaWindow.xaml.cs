@@ -12,6 +12,7 @@ public partial class EncyclopediaWindow : Window
     private readonly EncyclopediaSystem _encyclopedia;
     private EncyclopediaCategory _currentCategory = EncyclopediaCategory.Monster;
     private readonly Button[] _tabButtons;
+    private List<EncyclopediaEntryViewModel> _allViewModels = new();
 
     public EncyclopediaWindow(GameController controller)
     {
@@ -32,14 +33,14 @@ public partial class EncyclopediaWindow : Window
         _currentCategory = category;
         UpdateTabHighlight();
         var entries = _encyclopedia.GetByCategory(category);
-        var viewModels = entries.Select(e => new EncyclopediaEntryViewModel
+        _allViewModels = entries.Select(e => new EncyclopediaEntryViewModel
         {
             Id = e.Id,
             DisplayName = e.DiscoveryLevel > 0 ? e.Name : "???",
             DiscoveryIcon = e.DiscoveryLevel >= e.MaxLevel ? "\u2605" : e.DiscoveryLevel > 0 ? "\u25C6" : "\u25CB",
             LevelText = e.Category == EncyclopediaCategory.Monster && e.KillCount > 0
                 ? "[" + e.KillCount + "体撃破]"
-                : "[" + e.DiscoveryLevel + "/" + e.MaxLevel + "]",
+                : "[" + EncyclopediaSystem.GetDiscoveryStageName(e.DiscoveryLevel) + "]",
             NameColor = e.DiscoveryLevel >= e.MaxLevel
                 ? new SolidColorBrush(Color.FromRgb(0xff, 0xd9, 0x3d))
                 : e.DiscoveryLevel > 0
@@ -47,11 +48,27 @@ public partial class EncyclopediaWindow : Window
                     : new SolidColorBrush(Color.FromRgb(0x60, 0x60, 0x60)),
             Entry = e
         }).ToList();
-        EntryList.ItemsSource = viewModels;
-        float discoveryRate = _encyclopedia.GetDiscoveryRate(category);
+
+        ApplySearchFilter();
+
         float completionRate = _encyclopedia.GetCompletionRate(category);
+        float discoveryRate = _encyclopedia.GetDiscoveryRate(category);
+        CompletionProgressBar.Value = completionRate;
+        CompletionRateLabel.Text = completionRate.ToString("P0");
         CategoryRateText.Text = GetCategoryName(category) + ": 発見率 " + discoveryRate.ToString("P0") + " | 完全開示率 " + completionRate.ToString("P0");
         ClearDetail();
+    }
+
+    /// <summary>α.26b: 検索フィルタを適用してリストを更新</summary>
+    private void ApplySearchFilter()
+    {
+        string query = SearchBox?.Text?.Trim() ?? "";
+        var filtered = string.IsNullOrEmpty(query)
+            ? _allViewModels
+            : _allViewModels.Where(vm =>
+                vm.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                vm.LevelText.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
+        EntryList.ItemsSource = filtered;
     }
 
     private void UpdateTabHighlight()
@@ -92,6 +109,8 @@ public partial class EncyclopediaWindow : Window
             {
                 DiscoveryLevelText.Text = entry.DiscoveryLevel + "/" + entry.MaxLevel;
             }
+            // α.26e: 段階名を表示
+            StageNameText.Text = "【" + EncyclopediaSystem.GetDiscoveryStageName(entry.DiscoveryLevel) + "】";
             EntryDescText.Text = _encyclopedia.GetCurrentDescription(entry.Id);
         }
         else
@@ -105,6 +124,7 @@ public partial class EncyclopediaWindow : Window
         EntryNameText.Text = "エントリを選択してください";
         EntryCategoryText.Text = "";
         DiscoveryLevelText.Text = "";
+        StageNameText.Text = "";
         EntryDescText.Text = "";
     }
 
@@ -112,6 +132,10 @@ public partial class EncyclopediaWindow : Window
     private void TabItem_Click(object sender, RoutedEventArgs e) => LoadCategory(EncyclopediaCategory.Item);
     private void TabNpc_Click(object sender, RoutedEventArgs e) => LoadCategory(EncyclopediaCategory.Npc);
     private void TabRegion_Click(object sender, RoutedEventArgs e) => LoadCategory(EncyclopediaCategory.Region);
+
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) => ApplySearchFilter();
+
+    private void SearchClear_Click(object sender, RoutedEventArgs e) => SearchBox.Text = "";
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {

@@ -208,17 +208,21 @@ public class PetSystem
     }
 
     /// <summary>AB-1: セーブデータからペット状態を復元</summary>
-    public void RestorePetState(string petId, int level, int experience, int hunger, int loyalty, int currentHp)
+    public void RestorePetState(string petId, int level, int experience, int hunger, int loyalty, int currentHp, int maxHp = 0, bool isRiding = false)
     {
         if (_pets.TryGetValue(petId, out var pet))
         {
+            // maxHpが指定されていない場合（旧セーブデータ）は現在のMaxHpを維持
+            var restoredMaxHp = maxHp > 0 ? maxHp : pet.MaxHp;
             _pets[petId] = pet with
             {
                 Level = level,
                 Experience = experience,
                 Hunger = hunger,
                 Loyalty = loyalty,
-                CurrentHp = Math.Min(currentHp, pet.MaxHp)
+                MaxHp = restoredMaxHp,
+                CurrentHp = Math.Min(currentHp, restoredMaxHp),
+                IsRiding = isRiding
             };
         }
     }
@@ -246,6 +250,13 @@ public class PetSystem
                 case PetType.Hawk: viewBonus += 3; break;         // 偵察: 視野+3
                 case PetType.Bear: dmgReduction += 0.10f; break;  // 防壁: 被ダメージ-10%
                 case PetType.Wolf: atkDebuff += 0.10f; break;     // 威嚇: 敵攻撃力-10%
+                case PetType.Horse: dropBonus += 0.05f; break;   // 幸運（小）: ドロップ率+5%
+                case PetType.Dragon:                              // 万能型: 全ボーナス少量
+                    dropBonus += 0.10f;
+                    viewBonus += 2;
+                    dmgReduction += 0.05f;
+                    atkDebuff += 0.05f;
+                    break;
             }
         }
         return (dropBonus, viewBonus, dmgReduction, atkDebuff);

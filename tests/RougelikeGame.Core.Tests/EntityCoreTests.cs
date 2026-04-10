@@ -743,4 +743,145 @@ public class EntityCoreTests
     }
 
     #endregion
+
+    #region StatusEffect - コンストラクタデフォルト値
+
+    [Theory]
+    [InlineData(StatusEffectType.Poison, 1.0f, 1.0f, 3)]
+    [InlineData(StatusEffectType.Bleeding, 1.0f, 1.0f, 2)]
+    [InlineData(StatusEffectType.Burn, 0.85f, 1.0f, 4)]
+    [InlineData(StatusEffectType.Paralysis, 0.7f, 0.8f, 0)]
+    [InlineData(StatusEffectType.Weakness, 0.7f, 0.7f, 0)]
+    [InlineData(StatusEffectType.Vulnerability, 1.0f, 0.5f, 0)]
+    [InlineData(StatusEffectType.Strength, 1.25f, 1.0f, 0)]
+    [InlineData(StatusEffectType.Blessing, 1.1f, 1.1f, 0)]
+    [InlineData(StatusEffectType.Slow, 0.8f, 1.0f, 0)]
+    [InlineData(StatusEffectType.Protection, 1.0f, 1.5f, 0)]
+    [InlineData(StatusEffectType.Haste, 1.2f, 1.0f, 0)]
+    [InlineData(StatusEffectType.Regeneration, 1.0f, 1.0f, -3)]
+    [InlineData(StatusEffectType.Freeze, 0.5f, 1.0f, 0)]
+    [InlineData(StatusEffectType.Fear, 0.7f, 0.8f, 0)]
+    [InlineData(StatusEffectType.Blind, 0.7f, 1.0f, 0)]
+    [InlineData(StatusEffectType.Confusion, 0.85f, 0.85f, 0)]
+    [InlineData(StatusEffectType.Charm, 0.5f, 0.8f, 0)]
+    [InlineData(StatusEffectType.Madness, 1.3f, 0.5f, 0)]
+    [InlineData(StatusEffectType.Stun, 0.5f, 0.8f, 0)]
+    [InlineData(StatusEffectType.Petrification, 0.0f, 3.0f, 0)]
+    [InlineData(StatusEffectType.InstantDeath, 1.0f, 1.0f, 999999)]
+    [InlineData(StatusEffectType.Curse, 0.9f, 0.9f, 1)]
+    [InlineData(StatusEffectType.Apostasy, 0.9f, 0.9f, 0)]
+    public void StatusEffect_Constructor_SetsCorrectDefaultMultipliers(
+        StatusEffectType type, float expectedAtk, float expectedDef, int expectedDpt)
+    {
+        var effect = new StatusEffect(type, 10);
+
+        Assert.Equal(expectedAtk, effect.AttackMultiplier);
+        Assert.Equal(expectedDef, effect.DefenseMultiplier);
+        Assert.Equal(expectedDpt, effect.DamagePerTick);
+    }
+
+    [Theory]
+    [InlineData(StatusEffectType.Sleep, 1.0f, 1.0f, 0)]
+    [InlineData(StatusEffectType.Silence, 1.0f, 1.0f, 0)]
+    [InlineData(StatusEffectType.Invisibility, 1.0f, 1.0f, 0)]
+    [InlineData(StatusEffectType.FireResistance, 1.0f, 1.0f, 0)]
+    [InlineData(StatusEffectType.ColdResistance, 1.0f, 1.0f, 0)]
+    public void StatusEffect_Constructor_DefaultCasesHaveNoStatChange(
+        StatusEffectType type, float expectedAtk, float expectedDef, int expectedDpt)
+    {
+        var effect = new StatusEffect(type, 10);
+
+        Assert.Equal(expectedAtk, effect.AttackMultiplier);
+        Assert.Equal(expectedDef, effect.DefenseMultiplier);
+        Assert.Equal(expectedDpt, effect.DamagePerTick);
+    }
+
+    [Theory]
+    [InlineData(StatusEffectType.Poison, Element.Poison)]
+    [InlineData(StatusEffectType.Burn, Element.Fire)]
+    [InlineData(StatusEffectType.InstantDeath, Element.Dark)]
+    [InlineData(StatusEffectType.Bleeding, Element.None)]
+    [InlineData(StatusEffectType.Freeze, Element.None)]
+    public void StatusEffect_Constructor_SetsCorrectDamageElement(
+        StatusEffectType type, Element expectedElement)
+    {
+        var effect = new StatusEffect(type, 10);
+        Assert.Equal(expectedElement, effect.DamageElement);
+    }
+
+    [Theory]
+    [InlineData(StatusEffectType.Haste, 0.75f)]
+    [InlineData(StatusEffectType.Slow, 1.5f)]
+    [InlineData(StatusEffectType.Paralysis, 1.5f)]
+    [InlineData(StatusEffectType.Confusion, 1.3f)]
+    [InlineData(StatusEffectType.Freeze, 999f)]
+    [InlineData(StatusEffectType.Sleep, 999f)]
+    [InlineData(StatusEffectType.Stun, 999f)]
+    [InlineData(StatusEffectType.Petrification, 999f)]
+    public void StatusEffect_Constructor_SetsCorrectTurnCostModifier(
+        StatusEffectType type, float expectedTurnCost)
+    {
+        var effect = new StatusEffect(type, 10);
+
+        Assert.Equal(expectedTurnCost, effect.TurnCostModifier);
+    }
+
+    [Fact]
+    public void StatusEffect_Constructor_DefaultTurnCostModifierIsOne()
+    {
+        // 特別な行動速度修正がないタイプ
+        var effect = new StatusEffect(StatusEffectType.Poison, 10);
+        Assert.Equal(1.0f, effect.TurnCostModifier);
+    }
+
+    [Fact]
+    public void StatusEffect_Constructor_BlindHasHitRatePenalty()
+    {
+        var effect = new StatusEffect(StatusEffectType.Blind, 10);
+
+        Assert.Equal(-0.5f, effect.HitRateModifier);
+    }
+
+    [Fact]
+    public void StatusEffect_Constructor_InvisibilityHasEvasionBonus()
+    {
+        var effect = new StatusEffect(StatusEffectType.Invisibility, 10);
+
+        Assert.Equal(0.5f, effect.EvasionRateModifier);
+        Assert.Equal(-0.1f, effect.HitRateModifier);
+    }
+
+    [Fact]
+    public void StatusEffect_Constructor_CurseHasAllStatsReduction()
+    {
+        var effect = new StatusEffect(StatusEffectType.Curse, 10);
+
+        Assert.Equal(0.8f, effect.AllStatsMultiplier);
+    }
+
+    [Fact]
+    public void StatusEffect_Constructor_ApostasyHasAllStatsReduction()
+    {
+        var effect = new StatusEffect(StatusEffectType.Apostasy, 10);
+
+        Assert.Equal(0.9f, effect.AllStatsMultiplier);
+    }
+
+    [Fact]
+    public void StatusEffect_Constructor_WeaknessHasAllStatsReduction()
+    {
+        var effect = new StatusEffect(StatusEffectType.Weakness, 10);
+
+        Assert.Equal(0.8f, effect.AllStatsMultiplier);
+    }
+
+    [Fact]
+    public void StatusEffect_Constructor_HasteHasEvasionBonus()
+    {
+        var effect = new StatusEffect(StatusEffectType.Haste, 10);
+
+        Assert.Equal(0.1f, effect.EvasionRateModifier);
+    }
+
+    #endregion
 }

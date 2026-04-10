@@ -162,6 +162,8 @@ public enum ItemEffectType
     RestoreSp,
     /// <summary>満腹度回復</summary>
     RestoreHunger,
+    /// <summary>渇き回復</summary>
+    RestoreThirst,
     /// <summary>正気度回復</summary>
     RestoreSanity,
     /// <summary>ダメージ</summary>

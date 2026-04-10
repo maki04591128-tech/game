@@ -530,7 +530,6 @@ public class BalanceAndTutorialTests
     [Fact]
     public void Balance_GoldReward_ScalesProperlyWithRank()
     {
-        int depth = 10;
         double commonGold = BalanceConfig.GetRankGoldMultiplier(EnemyRank.Common);
         double eliteGold = BalanceConfig.GetRankGoldMultiplier(EnemyRank.Elite);
         double bossGold = BalanceConfig.GetRankGoldMultiplier(EnemyRank.Boss);
@@ -545,7 +544,6 @@ public class BalanceAndTutorialTests
     private class TestRandomProvider : IRandomProvider
     {
         private readonly double _doubleValue;
-        private int _counter;
 
         public TestRandomProvider(double doubleValue)
         {

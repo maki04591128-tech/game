@@ -201,20 +201,8 @@ public enum GameCommand
     Cancel
 }
 
-/// <summary>
-/// アイテムタイプ
-/// </summary>
-public enum ItemType
-{
-    Weapon,
-    Armor,
-    Accessory,
-    Consumable,
-    Material,
-    KeyItem,
-    Scroll,
-    Book
-}
+// B.38: ItemType enum は Items/Item.cs (RougelikeGame.Core.Items.ItemType) に定義済み
+// Enums.cs 側の重複定義は削除済み
 
 /// <summary>
 /// 状態異常タイプ
@@ -400,7 +388,8 @@ public enum EquipmentCategory
     Robe,
     Fist,
     Spear,
-    Whip
+    Whip,
+    Accessory
 }
 
 /// <summary>
@@ -1123,6 +1112,7 @@ public enum BodyWoundType
 /// <summary>
 /// 疲労度段階
 /// </summary>
+[Obsolete("FatigueStageを使用してください。この旧enumは将来のバージョンで削除されます。")]
 public enum FatigueLevel
 {
     /// <summary>元気</summary>
@@ -1140,6 +1130,7 @@ public enum FatigueLevel
 /// <summary>
 /// 清潔度段階
 /// </summary>
+[Obsolete("HygieneStageを使用してください。この旧enumは将来のバージョンで削除されます。")]
 public enum HygieneLevel
 {
     /// <summary>清潔</summary>
@@ -1214,9 +1205,9 @@ public enum HygieneStage
     Normal,
     /// <summary>汚れ（25-49）</summary>
     Dirty,
-    /// <summary>不衛生（1-24）</summary>
+    /// <summary>不潔（1-24）</summary>
     Filthy,
-    /// <summary>不潔（0）</summary>
+    /// <summary>悪臭（0）</summary>
     Foul
 }
 
@@ -1385,6 +1376,7 @@ public enum BlackMarketCategory
 /// <summary>
 /// 渇きの段階
 /// </summary>
+[Obsolete("ThirstStageを使用してください。この旧enumは将来のバージョンで削除されます。")]
 public enum ThirstLevel
 {
     /// <summary>潤い（十分）</summary>

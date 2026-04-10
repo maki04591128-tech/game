@@ -795,7 +795,7 @@ partial class Program
             if (effect.DamagePerTick < 0) details.Add($"毎ターン{-effect.DamagePerTick}回復");
             if (effect.AttackMultiplier > 1.0f) details.Add($"攻撃力×{effect.AttackMultiplier:F2}");
             if (effect.DefenseMultiplier > 1.0f) details.Add($"防御力×{effect.DefenseMultiplier:F2}");
-            if (effect.TurnCostModifier < 1.0f) details.Add($"行動速度×{1 / effect.TurnCostModifier:F2}");
+            if (effect.TurnCostModifier > 0f && effect.TurnCostModifier < 1.0f) details.Add($"行動速度×{1 / effect.TurnCostModifier:F2}");
 
             var detailStr = details.Count > 0 ? string.Join(", ", details) : "特殊効果";
             Console.WriteLine($"  {effect.Name,-12} [{effect.Duration}ターン] - {detailStr}");
@@ -834,10 +834,10 @@ partial class Program
         // クラス別HP/MP成長
         Console.WriteLine("【クラス別HP/MP成長（レベル10時）】");
         var classes = new[] {
-            RougelikeGame.Engine.Combat.CharacterClass.Warrior, RougelikeGame.Engine.Combat.CharacterClass.Knight, RougelikeGame.Engine.Combat.CharacterClass.Monk,
-            RougelikeGame.Engine.Combat.CharacterClass.Cleric, RougelikeGame.Engine.Combat.CharacterClass.Mage, RougelikeGame.Engine.Combat.CharacterClass.Necromancer,
-            RougelikeGame.Engine.Combat.CharacterClass.Thief, RougelikeGame.Engine.Combat.CharacterClass.Ranger, RougelikeGame.Engine.Combat.CharacterClass.Bard,
-            RougelikeGame.Engine.Combat.CharacterClass.Alchemist
+            CharacterClass.Fighter, CharacterClass.Knight, CharacterClass.Monk,
+            CharacterClass.Cleric, CharacterClass.Mage, CharacterClass.Necromancer,
+            CharacterClass.Thief, CharacterClass.Ranger, CharacterClass.Bard,
+            CharacterClass.Alchemist
         };
 
         foreach (var charClass in classes)

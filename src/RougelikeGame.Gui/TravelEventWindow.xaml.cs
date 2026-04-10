@@ -51,6 +51,11 @@ public partial class TravelEventWindow : Window
                 NegotiateButton.Content = "助ける [2]";
                 EvadeButton.Content = "無視する [3]";
                 break;
+            case TravelEventType.Ambush:
+                ForceButton.Content = "応戦する [1]";
+                NegotiateButton.Content = "交渉する [2]";
+                EvadeButton.Content = "逃げる [3]";
+                break;
         }
     }
 

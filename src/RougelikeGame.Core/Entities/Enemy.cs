@@ -310,6 +310,10 @@ public class Enemy : Character
             return TurnAction.Wait;
         }
 
+        // B.63: PatrolIndex境界値チェック
+        if (PatrolIndex < 0 || PatrolIndex >= PatrolRoute.Count)
+            PatrolIndex = 0;
+
         var targetPos = PatrolRoute[PatrolIndex];
 
         // 目標地点に到達
@@ -385,7 +389,8 @@ public class Enemy : Character
             case TurnActionType.Search:
             case TurnActionType.Wait:
             case TurnActionType.Rest:
-                // 待機/探索/休憩 - 何もしない
+            case TurnActionType.Interact: // B.42: Interact対応（敵は何もしない）
+                // 待機/探索/休憩/インタラクト - 何もしない
                 break;
 
             case TurnActionType.UseSkill:
@@ -399,7 +404,8 @@ public class Enemy : Character
 
             case TurnActionType.UseItem:
                 // HH-1: アイテム使用（敵はHP回復を試みる）
-                if (CurrentHp < MaxHp / 2)
+                // B.46: MaxHp <= 0 の除算ゼロ対策
+                if (MaxHp > 0 && CurrentHp < MaxHp / 2)
                 {
                     Heal(MaxHp / 10);
                 }

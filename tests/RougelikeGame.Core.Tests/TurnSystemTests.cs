@@ -61,7 +61,7 @@ public class TurnActionTests
     }
 
     [Fact]
-    public void Attack_Returns3Turns()
+    public void Attack_Returns1Turn()
     {
         // Arrange
         var action = TurnAction.Attack(null!);
@@ -71,7 +71,7 @@ public class TurnActionTests
 
         // Assert
         Assert.Equal(TurnCosts.AttackNormal, cost);
-        Assert.Equal(3, cost);
+        Assert.Equal(1, cost);
     }
 
     [Fact]

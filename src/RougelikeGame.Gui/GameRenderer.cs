@@ -28,7 +28,7 @@ public class GameRenderer
     /// <summary>現在使用中のTextBlockインデックス</summary>
     private int _textPoolIndex;
 
-    private const int TileSize = 20;
+    public const int TileSize = 20;
     private const string FontFamily = "Consolas";
 
     // タイル色定義
@@ -359,6 +359,8 @@ public class GameRenderer
         }
 
         // マップ全体がミニマップに収まるスケールを計算
+        // B.60: map.Width/Height が 0 の場合の除算ゼロ対策
+        if (map.Width <= 0 || map.Height <= 0) return;
         double scaleX = canvasWidth / map.Width;
         double scaleY = canvasHeight / map.Height;
         double scale = Math.Min(scaleX, scaleY);

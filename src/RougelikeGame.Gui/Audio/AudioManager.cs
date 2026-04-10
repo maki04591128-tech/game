@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace RougelikeGame.Gui.Audio;
 
@@ -69,6 +70,68 @@ public class AudioManager : IAudioManager
         _bgmPlayer.Close();
         CurrentBgmId = null;
         IsBgmPlaying = false;
+    }
+
+    /// <summary>
+    /// β.8: BGMをフェードアウトしてから別のBGMをフェードインする
+    /// </summary>
+    public void FadeToBgm(string newBgmId, bool loop = true, double fadeOutMs = 800, double fadeInMs = 800)
+    {
+        if (CurrentBgmId == newBgmId && IsBgmPlaying) return;
+
+        double targetVolume = MasterVolume * BgmVolume;
+        double startVolume = IsBgmPlaying ? _bgmPlayer.Volume : 0.0;
+        int steps = 20;
+        double stepMs = fadeOutMs / steps;
+        double volumeStep = startVolume / steps;
+        int step = 0;
+
+        var fadeOutTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(stepMs)
+        };
+        fadeOutTimer.Tick += (_, _) =>
+        {
+            step++;
+            double newVol = Math.Max(0.0, startVolume - volumeStep * step);
+            _bgmPlayer.Volume = newVol;
+
+            if (step >= steps)
+            {
+                fadeOutTimer.Stop();
+                StopBgm();
+
+                // フェードイン
+                var filePath = FindAudioFile(_bgmDirectory, newBgmId);
+                if (filePath == null) return;
+                try
+                {
+                    _bgmLoop = loop;
+                    _bgmPlayer.Open(new Uri(filePath, UriKind.Absolute));
+                    _bgmPlayer.Volume = 0.0;
+                    _bgmPlayer.Play();
+                    CurrentBgmId = newBgmId;
+                    IsBgmPlaying = true;
+
+                    int inStep = 0;
+                    double inStepMs = fadeInMs / steps;
+                    double inVolumeStep = targetVolume / steps;
+                    var fadeInTimer = new DispatcherTimer
+                    {
+                        Interval = TimeSpan.FromMilliseconds(inStepMs)
+                    };
+                    fadeInTimer.Tick += (_, _) =>
+                    {
+                        inStep++;
+                        _bgmPlayer.Volume = Math.Min(targetVolume, inVolumeStep * inStep);
+                        if (inStep >= steps) fadeInTimer.Stop();
+                    };
+                    fadeInTimer.Start();
+                }
+                catch { }
+            }
+        };
+        fadeOutTimer.Start();
     }
 
     public void PauseBgm()

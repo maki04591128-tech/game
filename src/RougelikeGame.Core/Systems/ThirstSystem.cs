@@ -21,6 +21,7 @@ public static class ThirstSystem
     };
 
     /// <summary>渇き段階によるステータス影響（旧enum互換）</summary>
+    [Obsolete("GetThirstModifiers(ThirstStage)を使用してください。")]
     public static (float StrMod, float AgiMod, float IntMod) GetThirstModifiers(ThirstLevel level) => level switch
     {
         ThirstLevel.Hydrated => (1.0f, 1.0f, 1.0f),
@@ -56,6 +57,7 @@ public static class ThirstSystem
     };
 
     /// <summary>渇き段階名を取得（旧enum互換）</summary>
+    [Obsolete("GetThirstName(ThirstStage)を使用してください。")]
     public static string GetThirstName(ThirstLevel level) => level switch
     {
         ThirstLevel.Hydrated => "潤い",
@@ -87,12 +89,14 @@ public static class ThirstSystem
     /// <summary>渇きダメージ（ターンあたり、数値ベース）</summary>
     public static int GetThirstDamage(ThirstStage stage) => stage switch
     {
+        ThirstStage.Desiccation => 20,
         ThirstStage.Dehydrated => 1,
         ThirstStage.NearDesiccation => 10,
         _ => 0
     };
 
     /// <summary>渇きダメージ（ターンあたり、旧enum互換）</summary>
+    [Obsolete("GetThirstDamage(ThirstStage)を使用してください。")]
     public static int GetThirstDamage(ThirstLevel level) => level switch
     {
         ThirstLevel.Dehydrated => 1,
@@ -103,6 +107,8 @@ public static class ThirstSystem
     /// <summary>渇き段階による行動コスト加算値を取得</summary>
     public static int GetThirstActionCostBonus(ThirstStage stage) => stage switch
     {
+        ThirstStage.Desiccation => 5,
+        ThirstStage.NearDesiccation => 3,
         ThirstStage.Nausea => 3,
         ThirstStage.Overdrinking => 2,
         ThirstStage.Full => 1,

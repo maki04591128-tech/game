@@ -102,6 +102,18 @@ public class MerchantGuildSystem
         }
     }
 
+    /// <summary>セーブデータからギルド状態を復元する</summary>
+    public void RestoreFromSave(string playerId, GuildRank rank, int guildPoints, int tradeCount, int totalProfit,
+        IEnumerable<TradeRoute>? routes = null)
+    {
+        _membership = new GuildMembership(playerId, rank, guildPoints, tradeCount, totalProfit);
+        _routes.Clear();
+        if (routes != null)
+        {
+            _routes.AddRange(routes);
+        }
+    }
+
     /// <summary>
     /// 商人ギルド状態をリセットする（死に戻り時に呼び出し）。
     /// 死に戻りは時間巻き戻しであるため、ギルド加入・交易路は全て消失する。

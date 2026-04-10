@@ -162,6 +162,7 @@ public abstract class EquipmentItem : Item, IEquippable
         EquipmentSlot.Feet => '_',
         EquipmentSlot.Neck or EquipmentSlot.Ring1 or EquipmentSlot.Ring2 => '=',
         EquipmentSlot.Back => '`',
+        EquipmentSlot.Waist => '~',
         _ => ')'
     };
 }
@@ -182,7 +183,7 @@ public class Weapon : EquipmentItem
         WeaponType.Dagger => EquipmentCategory.Dagger,
         WeaponType.Bow or WeaponType.Crossbow or WeaponType.Thrown => EquipmentCategory.Bow,
         WeaponType.Staff => EquipmentCategory.Staff,
-        WeaponType.Fist => EquipmentCategory.Fist,
+        WeaponType.Unarmed or WeaponType.Fist => EquipmentCategory.Fist,
         WeaponType.Spear => EquipmentCategory.Spear,
         WeaponType.Whip => EquipmentCategory.Whip,
         _ => EquipmentCategory.Sword
@@ -241,14 +242,20 @@ public class Weapon : EquipmentItem
 
     protected override char GetDefaultDisplayChar() => WeaponType switch
     {
+        WeaponType.Unarmed => ' ',
         WeaponType.Dagger => '†',
         WeaponType.Sword => '/',
         WeaponType.Greatsword => '|',
         WeaponType.Axe => 'P',
+        WeaponType.Greataxe => 'P',
         WeaponType.Spear => '/',
+        WeaponType.Hammer => 'T',
         WeaponType.Staff => '\\',
         WeaponType.Bow => '}',
         WeaponType.Crossbow => '{',
+        WeaponType.Thrown => '*',
+        WeaponType.Whip => '~',
+        WeaponType.Fist => ')',
         _ => ')'
     };
 }
@@ -325,6 +332,9 @@ public class Accessory : EquipmentItem
     public int SkillCooldown { get; init; }
 
     protected override char GetDefaultDisplayChar() => '=';
+
+    /// <summary>アクセサリは専用カテゴリ（職業適性判定対象外）</summary>
+    public override EquipmentCategory Category => EquipmentCategory.Accessory;
 }
 
 /// <summary>

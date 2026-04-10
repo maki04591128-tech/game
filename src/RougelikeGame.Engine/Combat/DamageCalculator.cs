@@ -73,7 +73,8 @@ public class DamageCalculator
 
     /// <summary>
     /// 魔法ダメージを計算
-    /// 基礎ダメージ = (魔法攻撃力 × スキル倍率 × 魔法言語補正) - (魔法防御 × 0.3)
+    /// 基礎ダメージ = (魔法攻撃力 × スキル倍率 × 魔法言語補正) - (魔法防御 × 0.5)
+    /// ※K-1修正: 魔法防御係数を0.3→0.5に引き上げ（物理0.65とは別調整）
     /// 最終ダメージ = 基礎ダメージ × 乱数(0.9~1.1) × 属性相性
     /// ※魔法は必中
     /// </summary>
@@ -86,7 +87,7 @@ public class DamageCalculator
         int magicDefense = param.MagicDefense + (param.Mind * 2) + param.MagicDefenseBuff;
 
         // 基礎ダメージ（魔法言語補正含む）
-        int baseDamage = (int)(magicAttack * param.SkillMultiplier * param.LanguageBonus) - (int)(magicDefense * 0.5);  // K-1: 魔法防御係数を物理と統一
+        int baseDamage = (int)(magicAttack * param.SkillMultiplier * param.LanguageBonus) - (int)(magicDefense * 0.5);  // K-1: 魔法防御係数0.5（物理0.65とは別調整）
         baseDamage = Math.Max(GameConstants.MinimumDamage, baseDamage);
 
         // 乱数幅 (0.9~1.1)
@@ -95,7 +96,7 @@ public class DamageCalculator
         // 属性相性
         float elementMultiplier = ElementSystem.GetAffinityMultiplier(param.SpellElement, param.TargetElement);
 
-        // 最終ダメージ計算（魔法はクリティカルなし）
+        // 最終ダメージ計算（K-2: クリティカル判定はCombatSystem側で適用）
         int finalDamage = (int)(baseDamage * variance * elementMultiplier);
         finalDamage = Math.Max(GameConstants.MinimumDamage, finalDamage);
 
@@ -170,7 +171,8 @@ public class DamageCalculator
 
     /// <summary>
     /// クリティカル判定
-    /// クリティカル率 = 基礎5% + (DEX × 0.3%) + (LUK × 0.5%) + 武器補正 + スキル補正
+    /// クリティカル率 = 基礎5% + (DEX × 0.5%) + (LUK × 0.5%) + 武器補正 + スキル補正
+    /// ※K-3修正: DEXの寄与をLUK（0.5%/pt）と統一
     /// </summary>
     public bool CheckCritical(CriticalCheckParams param)
     {

@@ -31,7 +31,7 @@ public class ResourceSystem
     {
         int hpPerLevel = characterClass switch
         {
-            CharacterClass.Warrior => 15,
+            CharacterClass.Fighter => 15,
             CharacterClass.Knight => 12,
             CharacterClass.Monk => 10,
             CharacterClass.Cleric => 8,
@@ -92,7 +92,7 @@ public class ResourceSystem
     {
         int mpPerLevel = characterClass switch
         {
-            CharacterClass.Warrior => 2,
+            CharacterClass.Fighter => 2,
             CharacterClass.Knight => 3,
             CharacterClass.Monk => 4,
             CharacterClass.Cleric => 6,
@@ -211,7 +211,7 @@ public class ResourceSystem
         {
             >= 120 => HungerState.Nausea,
             >= 100 => HungerState.Overeating,
-            >= 80 => HungerState.Satiated,
+            >= 80 => HungerState.Full,
             >= 50 => HungerState.Normal,
             >= 40 => HungerState.SlightlyHungry,
             >= 0 => HungerState.VeryHungry,
@@ -232,7 +232,7 @@ public class ResourceSystem
         {
             HungerState.Nausea => new HungerEffect(0.7f, true, true, 0, ActionCostBonus: 3, ActionBlockChance: 0.3f),
             HungerState.Overeating => new HungerEffect(0.9f, true, true, 0, ActionCostBonus: 2),
-            HungerState.Satiated => new HungerEffect(1.0f, true, true, 0, ActionCostBonus: 1),
+            HungerState.Full => new HungerEffect(1.0f, true, true, 0, ActionCostBonus: 1),
             HungerState.Normal => new HungerEffect(1.0f, true, true, 0),
             HungerState.SlightlyHungry => new HungerEffect(0.95f, true, true, 0),
             HungerState.VeryHungry => new HungerEffect(0.9f, true, true, 0, ActionCostBonus: 1),
@@ -290,13 +290,10 @@ public class ResourceSystem
     /// </summary>
     public int CalculateRequiredExp(int level)
     {
-        if (level >= 99) return int.MaxValue;  // レベル上限
+        if (level >= GameConstants.MaxLevel) return int.MaxValue;  // レベル上限
 
-        // 基礎経験値 × 1.5の累乗
-        double baseExp = 100;
-        double multiplier = 1.5;
-
-        double required = baseExp * Math.Pow(multiplier, level - 1);
+        // GameConstants準拠: BaseExpRequired × ExpGrowthRate^(level-1)
+        double required = GameConstants.BaseExpRequired * Math.Pow(GameConstants.ExpGrowthRate, level - 1);
         // AI-2: 高レベルでint.MaxValueを超えないようにクランプ
         return (int)Math.Min(required, int.MaxValue - 1);
     }
@@ -411,32 +408,7 @@ public record struct HungerEffect(
 
 #region 列挙型
 
-/// <summary>
-/// キャラクタークラス
-/// </summary>
-public enum CharacterClass
-{
-    /// <summary>戦士</summary>
-    Warrior,
-    /// <summary>騎士</summary>
-    Knight,
-    /// <summary>武闘家</summary>
-    Monk,
-    /// <summary>聖職者</summary>
-    Cleric,
-    /// <summary>魔術師</summary>
-    Mage,
-    /// <summary>死霊術師</summary>
-    Necromancer,
-    /// <summary>盗賊</summary>
-    Thief,
-    /// <summary>レンジャー</summary>
-    Ranger,
-    /// <summary>吟遊詩人</summary>
-    Bard,
-    /// <summary>錬金術師</summary>
-    Alchemist
-}
+// B.40: CharacterClass enumはRougelikeGame.Core.CharacterClassに統一（重複定義を削除）
 
 /// <summary>
 /// スタミナ消費行動
@@ -480,7 +452,7 @@ public enum HungerState
     /// <summary>過食 (100-119) - 行動コスト+2</summary>
     Overeating,
     /// <summary>満腹 (80-99) - 行動コスト+1</summary>
-    Satiated,
+    Full,
     /// <summary>通常 (50-79) - 通常状態</summary>
     Normal,
     /// <summary>空腹・小 (40-49) - 30%確率で行動コスト+1</summary>

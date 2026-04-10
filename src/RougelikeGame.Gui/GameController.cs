@@ -194,9 +194,6 @@ public class GameController
     /// <summary>リアルタイムターン消費の開始時刻</summary>
     private DateTime? _realTimeTurnStart;
 
-    /// <summary>リアルタイムターン消費中に累計されたターン数</summary>
-    private int _realTimeTurnAccumulated = 0;
-
     public Player Player { get; private set; } = null!;
     public DungeonMap Map { get; private set; } = null!;
     public List<Enemy> Enemies { get; } = new();
@@ -287,6 +284,18 @@ public class GameController
 
     /// <summary>ゲームクリアイベント</summary>
     public event Action<GameClearSystem.ClearScore>? OnGameClear;
+
+    /// <summary>フロア変更イベント（β.13 場面転換演出用）</summary>
+    public event Action<int>? OnFloorChanged;
+
+    /// <summary>プレイヤー死亡イベント（β.20 死に戻り視覚演出用）</summary>
+    public event Action<string>? OnPlayerDied;
+
+    /// <summary>プレイヤー転生イベント（β.20 死に戻り視覚演出用）</summary>
+    public event Action<int>? OnPlayerRebirthed;
+
+    /// <summary>戦闘ダメージ表示イベント（β.10 属性エフェクト用）引数: 対象位置, ダメージ量, 属性, クリティカル</summary>
+    public event Action<Position, int, Element, bool>? OnCombatDamageDealt;
 
     /// <summary>ゲームクリア済みか</summary>
     public bool HasCleared => _hasCleared;
@@ -403,63 +412,174 @@ public class GameController
     {
         _dialogueSystem.RegisterNodes(new DialogueNode[]
         {
-            new("dlg_leon_intro", "レオン", "やあ、冒険者。ギルドへようこそ。\n何か依頼を探しているなら、掲示板を確認してくれ。",
+            // ===== レオン（冒険者ギルドマスター）=====
+            new("dlg_leon_intro", "レオン", "やあ、冒険者。ギルドへようこそ。\n何か依頼を探しているなら、掲示板を確認してくれ。\nここは旅人の安全と繁栄を守る場所だ。",
                 new[] { new DialogueChoice("クエストを見せてくれ", "action:show_quest_board", 5),
-                        new DialogueChoice("ギルドについて教えて", "dlg_leon_quest") }),
-            new("dlg_leon_quest", "レオン", "このギルドは冒険者を支援する組織だ。\n依頼を達成してポイントを貯めれば、ランクが上がるぞ。"),
+                        new DialogueChoice("ギルドについて教えてほしい", "dlg_leon_lore"),
+                        new DialogueChoice("この街について教えてくれ", "dlg_leon_town") }),
+            new("dlg_leon_lore", "レオン", "このギルドは冒険者を支援する組織だ。\n依頼を達成してポイントを貯めれば、ランクが上がるぞ。\n高いランクになれば、より報酬のいい依頼が解禁される。\n信頼と実績…それがギルドマンの誇りだ。",
+                new[] { new DialogueChoice("ランクアップの条件は？", "dlg_leon_rank"),
+                        new DialogueChoice("戻る", "dlg_leon_intro") }),
+            new("dlg_leon_rank", "レオン", "ランクは銅・鉄・銀・金・白金の5段階だ。\n依頼をこなすほどポイントが貯まり、自動でランクアップする。\n白金ランクになれば…まあ、国王直属の特別依頼も来るようになるな。",
+                new[] { new DialogueChoice("了解した", "dlg_leon_intro") }),
+            new("dlg_leon_town", "レオン", "ここは王都の外れにある冒険者の街、スターターズ・クロスだ。\n昔は小さな宿場町だったが、今では各地からの冒険者が集う賑やかな拠点になった。\nダンジョンへの入口もすぐそこにある。気をつけてな。",
+                new[] { new DialogueChoice("ダンジョンについて教えてくれ", "dlg_leon_dungeon"),
+                        new DialogueChoice("了解した", "dlg_leon_intro") }),
+            new("dlg_leon_dungeon", "レオン", "ダンジョンは地下深くに広がる謎の遺跡だ。\n行けば行くほど強力な魔物が現れるが、その分宝も多い。\nただし…30階より深くに潜った者の多くは戻らない。\n俺も昔は冒険者だったが、今は後輩たちを送り出す側だ。",
+                new[] { new DialogueChoice("了解した", "dlg_leon_intro") }),
 
-            new("dlg_marco_intro", "マルコ", "いらっしゃい！ 何かお探しかな？\n良い品を揃えているよ。",
+            // ===== マルコ（商人）=====
+            new("dlg_marco_intro", "マルコ", "いらっしゃい！ 何かお探しかな？\n良い品を揃えているよ。遠い地から取り寄せた珍しいものもあるぞ。",
                 new[] { new DialogueChoice("商品を見せてくれ", "action:open_shop", 3),
-                        new DialogueChoice("最近何か変わったことは？", "dlg_marco_intro") }),
+                        new DialogueChoice("商売について聞かせてくれ", "dlg_marco_business"),
+                        new DialogueChoice("最近何か変わったことは？", "dlg_marco_news") }),
+            new("dlg_marco_business", "マルコ", "商売は信頼と情報が命だ。\nどこに何が安くあるか、どこで何が高く売れるか…\nそれを知っているだけで、戦わずとも豊かになれる。\n君も何か売りたいものがあれば、遠慮なく言ってくれ。",
+                new[] { new DialogueChoice("戻る", "dlg_marco_intro") }),
+            new("dlg_marco_news", "マルコ", "そうだな…最近、南の港から変な噂が流れてきた。\n深海から怪しい品物を運び込む船があるらしい。\nまあ、商人としては気になる話だが、近づかない方が賢明かもしれない。",
+                new[] { new DialogueChoice("商品を見せてくれ", "action:open_shop", 3),
+                        new DialogueChoice("戻る", "dlg_marco_intro") }),
 
-            new("dlg_albert_intro", "アルバート", "神の祝福がありますように。\n呪いを解いたり、祈りを捧げることができますよ。",
+            // ===== アルバート（神官）=====
+            new("dlg_albert_intro", "アルバート", "神の祝福がありますように。\n呪いを解いたり、祈りを捧げることができますよ。\n心が迷ったとき、神はいつでも導いてくださいます。",
                 new[] { new DialogueChoice("呪いを解いてほしい", "action:remove_curse", 5),
-                        new DialogueChoice("祈りを捧げたい", "action:pray") }),
+                        new DialogueChoice("祈りを捧げたい", "action:pray"),
+                        new DialogueChoice("この地の信仰について聞かせてくれ", "dlg_albert_faith") }),
+            new("dlg_albert_faith", "アルバート", "この地では主に6つの神が信仰されています。\n光の神ルーミナス、大地の神テラース、嵐の神ガルウィン…\n死の神モルタス、知恵の神ソフィア、混沌の神カオシャン。\nどの神もそれぞれの真理を持ち、信者に力を与えます。",
+                new[] { new DialogueChoice("各宗教について詳しく教えてくれ", "dlg_albert_religions"),
+                        new DialogueChoice("了解した", "dlg_albert_intro") }),
+            new("dlg_albert_religions", "アルバート", "光の神ルーミナスは治癒と守護を司ります。\n混沌の神カオシャンへの信仰は…私には理解し難いものがありますが、\n信仰の在り方は人それぞれ。どうか正しい道を歩んでください。",
+                new[] { new DialogueChoice("了解した", "dlg_albert_intro") }),
 
-            new("dlg_mervin_intro", "マーヴィン", "ほう、魔術に興味があるのかね？\nルーン語を学べば強力な魔法が使えるようになるぞ。",
+            // ===== マーヴィン（魔法使い）=====
+            new("dlg_mervin_intro", "マーヴィン", "ほう、魔術に興味があるのかね？\nルーン語を学べば強力な魔法が使えるようになるぞ。\n言葉には力が宿る。古代語のルーン文字は特にな。",
                 new[] { new DialogueChoice("魔法の品を見せてくれ", "action:open_shop", 3),
-                        new DialogueChoice("ルーン語について教えてくれ", "dlg_mervin_intro") }),
+                        new DialogueChoice("ルーン語について教えてくれ", "dlg_mervin_rune"),
+                        new DialogueChoice("魔法の歴史について", "dlg_mervin_history") }),
+            new("dlg_mervin_rune", "マーヴィン", "ルーン語は古代の魔術師が開発した呪文言語だ。\n各ルーン文字は宇宙の基本原理を表している。\n例えば『イグ』は火を、『フリス』は氷を意味する。\n複数のルーンを組み合わせることで、より複雑な魔法が使えるようになる。",
+                new[] { new DialogueChoice("ルーン語を学ぶにはどうすれば？", "dlg_mervin_learn"),
+                        new DialogueChoice("戻る", "dlg_mervin_intro") }),
+            new("dlg_mervin_learn", "マーヴィン", "ダンジョン内の碑文を調べると、ルーン語の知識が増えることがある。\nまた、古代の書と呼ばれるアイテムには貴重なルーン知識が記されている。\n学ぶことに終わりはないが、それが魔術師の醍醐味というものだ。",
+                new[] { new DialogueChoice("了解した", "dlg_mervin_intro") }),
+            new("dlg_mervin_history", "マーヴィン", "魔術は3000年前の大賢者アルカナムが体系化したと言われている。\n彼は星の配置からルーン語の法則を発見し、多くの弟子を育てた。\n今日の全ての魔法学はその流れを汲んでいる。\n…ただし、その研究の末にアルカナムが何を見たのかは、今も謎のままだ。",
+                new[] { new DialogueChoice("戻る", "dlg_mervin_intro") }),
 
-            new("dlg_elwen_intro", "エルウェン", "…森は多くを語る。耳を澄ませば、真実が聞こえるだろう。",
-                new[] { new DialogueChoice("何か教えてくれ", "dlg_elwen_intro", 3) }),
+            // ===== エルウェン（エルフの旅人）=====
+            new("dlg_elwen_intro", "エルウェン", "…森は多くを語る。耳を澄ませば、真実が聞こえるだろう。\n人間の世界は賑やかだが、その分大切なものを見失いやすい。",
+                new[] { new DialogueChoice("何か教えてくれ", "dlg_elwen_nature"),
+                        new DialogueChoice("エルフについて教えてくれ", "dlg_elwen_elf"),
+                        new DialogueChoice("森について教えてくれ", "dlg_elwen_forest") }),
+            new("dlg_elwen_nature", "エルウェン", "自然は均衡を保っている。強すぎるものは必ず弱まり、\n弱すぎるものも必ず力を蓄える時がくる。\n生と死も同様だ。大切なのは、今この瞬間に何をするかだ。",
+                new[] { new DialogueChoice("戻る", "dlg_elwen_intro") }),
+            new("dlg_elwen_elf", "エルウェン", "エルフは森の奥深くで暮らす種族だ。長命ゆえに歴史を多く知っている。\n人間とは時として衝突することもあるが、共に生きる道も必ずある。\n私がここにいるのも、両種族の架け橋になりたいという思いからだ。",
+                new[] { new DialogueChoice("戻る", "dlg_elwen_intro") }),
+            new("dlg_elwen_forest", "エルウェン", "かつてこの地は深い森に覆われていた。\n今も東の方角に行けば、古代の森の残滓を見ることができるだろう。\nそこには忘れられた遺跡と、かつての文明の痕跡が残っている。",
+                new[] { new DialogueChoice("戻る", "dlg_elwen_intro") }),
 
-            new("dlg_leena_intro", "リーナ", "薬草の調合なら任せて！\n素材があれば色々作れるわよ。",
+            // ===== リーナ（薬師）=====
+            new("dlg_leena_intro", "リーナ", "薬草の調合なら任せて！\n素材があれば色々作れるわよ。特にポーションは得意！",
                 new[] { new DialogueChoice("調合を頼みたい", "action:open_alchemy", 3),
-                        new DialogueChoice("素材について教えて", "dlg_leena_intro") }),
+                        new DialogueChoice("素材について教えて", "dlg_leena_herb"),
+                        new DialogueChoice("薬師になった経緯は？", "dlg_leena_story") }),
+            new("dlg_leena_herb", "リーナ", "薬草には様々な効果があるわ。\n赤いベリーは疲労回復に、青い花びらは毒消しに使える。\nダンジョンでも植物系のアイテムをよく見かけるから、\n捨てずに持ってきてくれると喜んで買い取るわよ。",
+                new[] { new DialogueChoice("調合を頼みたい", "action:open_alchemy", 3),
+                        new DialogueChoice("戻る", "dlg_leena_intro") }),
+            new("dlg_leena_story", "リーナ", "幼い頃に弟が病に倒れてね。当時の薬師さんに命を救ってもらったの。\nそれ以来、自分も誰かの力になれる薬師になりたいって思って…。\n今はこうして冒険者の皆さんを助けられていて、嬉しいわ。",
+                new[] { new DialogueChoice("戻る", "dlg_leena_intro") }),
 
-            new("dlg_gard_intro", "ガルド", "おう、強そうな奴が来たな。\n森の奥で厄介な魔物が暴れてるんだ。退治してくれねえか？",
+            // ===== ガルド（依頼人の農夫）=====
+            new("dlg_gard_intro", "ガルド", "おう、強そうな奴が来たな。\n森の奥で厄介な魔物が暴れてるんだ。退治してくれねえか？\n畑が荒らされて困ってるんだよ…。",
                 new[] { new DialogueChoice("依頼を受ける", "action:accept_quest", 5),
+                        new DialogueChoice("詳しく教えてくれ", "dlg_gard_detail"),
                         new DialogueChoice("考えさせてくれ", "dlg_gard_intro") }),
+            new("dlg_gard_detail", "ガルド", "3日前から夜中に変な声がするんだ。\n翌朝見てみると畑が荒らされてて、足跡が森に続いてる。\n俺みたいな農夫には手に負えねえが、冒険者なら何とかなるだろ？\n成功したら全財産とは言わんが、それなりに出すぞ。",
+                new[] { new DialogueChoice("依頼を受ける", "action:accept_quest", 5),
+                        new DialogueChoice("戻る", "dlg_gard_intro") }),
 
-            new("dlg_dwal_intro", "ドワル", "鍛冶仕事なら俺に任せろ！\n良い鉱石があれば最高の武器を打ってやるぞ。",
+            // ===== ドワル（鍛冶師）=====
+            new("dlg_dwal_intro", "ドワル", "鍛冶仕事なら俺に任せろ！\n良い鉱石があれば最高の武器を打ってやるぞ。\nドワーフの鍛冶は3000年の歴史がある。",
                 new[] { new DialogueChoice("鍛冶を頼みたい", "action:open_smithing", 3),
-                        new DialogueChoice("装備を見せてくれ", "action:open_shop", 3) }),
+                        new DialogueChoice("装備を見せてくれ", "action:open_shop", 3),
+                        new DialogueChoice("鍛冶の技について教えてくれ", "dlg_dwal_craft") }),
+            new("dlg_dwal_craft", "ドワル", "良い武器を作るには素材が全てだ。\n鉄は頑丈だが重い。ミスリルは軽くて丈夫だが希少だ。\n竜鱗なんかは最高の素材だが、そうそう手に入らん。\nどんな素材でも、腕のいい鍛冶師が打てば名品になる！",
+                new[] { new DialogueChoice("戻る", "dlg_dwal_intro") }),
 
-            new("dlg_brock_intro", "ブロック", "山岳地帯は危険が多い。\n装備を整えてから挑んだ方がいいぞ。",
-                new[] { new DialogueChoice("何か依頼はあるか", "action:show_quest_board", 3) }),
+            // ===== ブロック（山岳ガイド）=====
+            new("dlg_brock_intro", "ブロック", "山岳地帯は危険が多い。装備を整えてから挑んだ方がいいぞ。\n俺は長年この地を歩き回ってきたから、地形はよく知ってる。",
+                new[] { new DialogueChoice("何か依頼はあるか", "action:show_quest_board", 3),
+                        new DialogueChoice("山岳地帯の情報を教えてくれ", "dlg_brock_mountain") }),
+            new("dlg_brock_mountain", "ブロック", "北の山脈は高度が上がるほど気温が下がる。\n冷気耐性のある装備がないと凍傷になるぞ。\nその代わり、高山にしか生息しない魔物がいて、稀少なドロップを落とす。\n用意ができたら、ガイドを頼んでくれ。",
+                new[] { new DialogueChoice("了解した", "dlg_brock_intro") }),
 
-            new("dlg_carina_intro", "カリーナ", "風の向くまま旅をしている者よ。\n面白い話なら聞くわ。",
-                new[] { new DialogueChoice("最近のニュースは？", "dlg_carina_intro", 3) }),
+            // ===== カリーナ（吟遊詩人）=====
+            new("dlg_carina_intro", "カリーナ", "風の向くまま旅をしている者よ。面白い話なら聞くわ。\n私は世界中の物語を集めて歌にしているの。",
+                new[] { new DialogueChoice("最近見聞きした話を教えて", "dlg_carina_news"),
+                        new DialogueChoice("歌を聴かせてくれ", "dlg_carina_song"),
+                        new DialogueChoice("旅について教えてくれ", "dlg_carina_travel") }),
+            new("dlg_carina_news", "カリーナ", "ふふ、面白い話がひとつ。\n東の砂漠地帯で、古代王朝の秘密の蔵が発見されたらしいわ。\n中には莫大な財宝と…呪われた護衛の魔物がいるとか。\nまあ、噂の半分は盛ってあるものよ。でも半分は本当かもね。",
+                new[] { new DialogueChoice("戻る", "dlg_carina_intro") }),
+            new("dlg_carina_song", "カリーナ",
+                "「嵐の海を越えて、英雄は旅立った\n星の導きに従い、暗黒の地へと向かった\n剣と知恵と勇気を持って、世界の真実を探し求めて…」\n\n…続きが気になる？ それは歌が終わってからのお楽しみよ。",
+                new[] { new DialogueChoice("素晴らしい歌だ", "dlg_carina_intro", 5) }),
+            new("dlg_carina_travel", "カリーナ", "私はこれまで6つの領地全てを旅した。\n北の凍土から南の熱帯雨林、東の砂漠から西の海辺まで。\nどこにも独自の文化と歴史があって…本当に飽きない世界よ。\nあなたも旅を続けていれば、きっと忘れられない景色に出会えるわ。",
+                new[] { new DialogueChoice("了解した", "dlg_carina_intro") }),
 
-            new("dlg_mira_intro", "ミラ", "お疲れ様！ ゆっくり休んでいって。\n食事も用意できるわよ。",
+            // ===== ミラ（宿屋主人）=====
+            new("dlg_mira_intro", "ミラ", "お疲れ様！ ゆっくり休んでいって。食事も用意できるわよ。\nここは旅人の安らぎの場所よ。",
                 new[] { new DialogueChoice("休憩したい", "action:rest", 3),
-                        new DialogueChoice("食事を頼む", "action:open_cooking") }),
+                        new DialogueChoice("食事を頼む", "action:open_cooking"),
+                        new DialogueChoice("宿屋について聞かせてくれ", "dlg_mira_inn") }),
+            new("dlg_mira_inn", "ミラ", "この宿屋は私の母から受け継いだの。もう30年以上営業しているわ。\n多くの冒険者を見送ってきたけど…無事に戻ってくれる人は半分くらいかしら。\nだから、帰ってきてくれた人を見ると本当に嬉しくなっちゃう。\nしっかり休んで、また元気に出発してね。",
+                new[] { new DialogueChoice("休憩したい", "action:rest", 3),
+                        new DialogueChoice("了解した", "dlg_mira_intro") }),
 
-            new("dlg_thomas_intro", "トーマス", "最近、海岸沿いで怪しい影を見たって噂があるんだ…。",
-                new[] { new DialogueChoice("詳しく聞かせてくれ", "dlg_thomas_intro", 3) }),
+            // ===== トーマス（漁師）=====
+            new("dlg_thomas_intro", "トーマス", "最近、海岸沿いで怪しい影を見たって噂があるんだ…。\n夜中に光る何かが海の底を泳いでいるらしい。",
+                new[] { new DialogueChoice("詳しく聞かせてくれ", "dlg_thomas_detail"),
+                        new DialogueChoice("海について教えてくれ", "dlg_thomas_sea") }),
+            new("dlg_thomas_detail", "トーマス", "先週の夜、漁から戻る途中に見たんだ。\n海面に青白い光がいくつも浮かんでいて、ゆっくり動いてた。\n幽霊か海の怪物か分からないが…今月は夜の漁は控えるつもりだ。\nもし調べてくれるなら、何か礼をしたい。",
+                new[] { new DialogueChoice("了解した。調べてみる", "dlg_thomas_intro", 5) }),
+            new("dlg_thomas_sea", "トーマス", "この海は豊かだが、深いところには人知れず何かが住んでいる。\n大漁の年もあれば、全く取れない年もある。海は人間が思う以上に広くて深い。\n漁師の間では「深海には別の世界がある」という言い伝えもあるくらいだ。",
+                new[] { new DialogueChoice("戻る", "dlg_thomas_intro") }),
 
-            new("dlg_hassan_intro", "ハッサン", "…表には出せない品もある。\n金さえあれば、何でも手に入るさ。",
+            // ===== ハッサン（闇商人）=====
+            new("dlg_hassan_intro", "ハッサン", "…表には出せない品もある。金さえあれば、何でも手に入るさ。\nただし、ここでの取引は秘密にしておいてくれ。",
+                new[] { new DialogueChoice("品物を見せてくれ", "action:open_shop", 0),
+                        new DialogueChoice("何が手に入るんだ？", "dlg_hassan_items"),
+                        new DialogueChoice("やめておく", "dlg_hassan_intro") }),
+            new("dlg_hassan_items", "ハッサン", "…王国で禁じられた薬、盗品の装備、呪われた遺物…\n何でも揃えられる。ただし、表の市場の3倍は覚悟してくれ。\n危険な商売だが、需要があるから成り立つんだ。",
                 new[] { new DialogueChoice("品物を見せてくれ", "action:open_shop", 0),
                         new DialogueChoice("やめておく", "dlg_hassan_intro") }),
 
-            new("dlg_sara_intro", "サラ", "古の知識を求めてここまで来たの。\n砂漠の遺跡には多くの秘密が眠っている…。",
-                new[] { new DialogueChoice("遺跡について教えて", "dlg_sara_intro", 5) }),
+            // ===== サラ（遺跡研究者）=====
+            new("dlg_sara_intro", "サラ", "古の知識を求めてここまで来たの。砂漠の遺跡には多くの秘密が眠っている…。\n失われた文明の痕跡を探し続けているわ。",
+                new[] { new DialogueChoice("遺跡について教えて", "dlg_sara_ruin"),
+                        new DialogueChoice("古代文明について教えてくれ", "dlg_sara_ancient"),
+                        new DialogueChoice("研究について教えてくれ", "dlg_sara_research") }),
+            new("dlg_sara_ruin", "サラ", "砂漠の遺跡は古代王朝アルカナス帝国の遺物よ。\n彼らは魔法と技術を融合させた文明を持っていたと言われているわ。\nただし、帝国がなぜ滅んだのか…それがまだ分かっていないの。",
+                new[] { new DialogueChoice("戻る", "dlg_sara_intro") }),
+            new("dlg_sara_ancient", "サラ", "アルカナス帝国は今から2000年前に栄えていた。\n彼らの建築技術は今でも解明できないものがある。\nルーン語の原型も彼らが作ったとされているわ。\n私はその謎を解き明かして、歴史に名を残したいの。",
+                new[] { new DialogueChoice("戻る", "dlg_sara_intro") }),
+            new("dlg_sara_research", "サラ", "私の専門は古代言語と遺物の解読よ。\nこの辺りのダンジョンで見つかる碑文には、古代の呪文が刻まれていることがある。\nそういうものを見つけたら、ぜひ知らせてほしいわ。謝礼はちゃんとするわよ。",
+                new[] { new DialogueChoice("了解した", "dlg_sara_intro") }),
 
-            new("dlg_wolf_intro", "ヴォルフ", "辺境は弱い奴には生き残れねえ。\nそれでもやるなら、覚悟を決めろ。",
-                new[] { new DialogueChoice("仕事はあるか", "action:show_quest_board", 3) }),
+            // ===== ヴォルフ（傭兵）=====
+            new("dlg_wolf_intro", "ヴォルフ", "辺境は弱い奴には生き残れねえ。それでもやるなら、覚悟を決めろ。\n俺は長年傭兵として戦ってきた。今は半引退してるが、腕は落とさない。",
+                new[] { new DialogueChoice("仕事はあるか", "action:show_quest_board", 3),
+                        new DialogueChoice("戦いについて教えてくれ", "dlg_wolf_battle"),
+                        new DialogueChoice("辺境の危険について教えてくれ", "dlg_wolf_frontier") }),
+            new("dlg_wolf_battle", "ヴォルフ", "戦いは準備が全てだ。相手の弱点を知り、自分の強みを活かせ。\n勢いだけで突っ込む奴は長生きしない。\n特に複数の敵を相手にする時は、一体ずつ引き離す方が賢い。\nそれから…逃げる勇気も大切だぞ。生きてこそ勝てる。",
+                new[] { new DialogueChoice("了解した", "dlg_wolf_intro") }),
+            new("dlg_wolf_frontier", "ヴォルフ", "辺境には通常の魔物以外にも、獰猛な野獣や盗賊団がいる。\n特に月のない夜は危険度が上がる。\n単独行動は避け、仲間と連携することを勧める。\n俺みたいな古強者でも、辺境では油断しない。",
+                new[] { new DialogueChoice("了解した", "dlg_wolf_intro") }),
 
-            new("dlg_igor_intro", "イゴール", "…この地の闇は深い。\n気をつけることだ、冒険者よ。",
-                new[] { new DialogueChoice("何か知っているのか", "dlg_igor_intro", 3) }),
+            // ===== イゴール（呪術師）=====
+            new("dlg_igor_intro", "イゴール", "…この地の闇は深い。気をつけることだ、冒険者よ。\n見えないものほど、恐ろしいことがある。",
+                new[] { new DialogueChoice("何か知っているのか", "dlg_igor_secret"),
+                        new DialogueChoice("呪術について教えてくれ", "dlg_igor_curse") }),
+            new("dlg_igor_secret", "イゴール", "…ダンジョンの奥底には、封印された何かが眠っている。\n古の魔術師たちが命がけで閉じ込めたものだ。\nそれが目覚める前に、君に打つ手があるかどうか…。\n今はまだ言えない。だが、その時が来れば分かるだろう。",
+                new[] { new DialogueChoice("了解した", "dlg_igor_intro") }),
+            new("dlg_igor_curse", "イゴール", "呪術とは、世界の影の側面を操る技だ。\n光あるところに影があるように、魔法にも表と裏がある。\n私はその裏側を研究してきた。知りたければ、まず自分の影と向き合うことだ。",
+                new[] { new DialogueChoice("了解した", "dlg_igor_intro") }),
         });
     }
 
@@ -1389,6 +1509,10 @@ public class GameController
             case GameAction.OpenVocabulary:
                 OnShowVocabulary?.Invoke();
                 return;
+            case GameAction.Steal:
+                TryStealFromAdjacentEnemy();
+                actionCost = TurnCosts.AttackNormal;
+                break;
             case GameAction.Save:
                 OnSaveGame?.Invoke();
                 return;
@@ -1450,7 +1574,7 @@ public class GameController
                     armorSpeedMod *= armor.SpeedModifier;
                 }
             }
-            if (armorSpeedMod != 1.0f && actionCost <= TurnCosts.AttackNormal)
+            if (armorSpeedMod != 1.0f && armorSpeedMod > 0f && actionCost <= TurnCosts.AttackNormal)
             {
                 actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / armorSpeedMod));
             }
@@ -1469,10 +1593,23 @@ public class GameController
                 actionCost += fatigueCostBonus;
             }
 
+            // B.53: 渇き段階による行動コスト加算（Desiccation+5〜Dehydrated+2等）
+            int thirstCostBonus = ThirstSystem.GetThirstActionCostBonus(Player.ThirstStage);
+            if (thirstCostBonus > 0)
+            {
+                actionCost += thirstCostBonus;
+            }
+
+            // B.57: 渇き（小）の30%確率で行動コスト+1
+            if (Player.ThirstStage == ThirstStage.SlightlyThirsty && _random.Next(100) < 30)
+            {
+                actionCost += 1;
+            }
+
             // AV-3: 渇きによるステータスペナルティ（コスト増加）
             var (thirstStrMod, thirstAgiMod, _) = ThirstSystem.GetThirstModifiers(Player.ThirstStage);
             float thirstMoveMod = Math.Min(thirstStrMod, thirstAgiMod); // 移動は STR と AGI の低い方
-            if (thirstMoveMod < 1.0f && actionCost <= TurnCosts.AttackNormal)
+            if (thirstMoveMod < 1.0f && thirstMoveMod > 0f && actionCost <= TurnCosts.AttackNormal)
             {
                 actionCost = Math.Max(1, (int)Math.Ceiling(actionCost / thirstMoveMod));
             }
@@ -1555,6 +1692,18 @@ public class GameController
         {
             Attack(enemy);
             _lastMoveActionCost = TurnCosts.AttackNormal;
+            // EP-4: SpeedBoostエンチャント効果（攻撃速度上昇: -15%/個）
+            int speedBoostCount = 0;
+            foreach (var eq in Player.Equipment.GetAll().Values)
+            {
+                if (eq != null && eq.AppliedEnchantments.Contains(EnchantmentType.SpeedBoost.ToString()))
+                    speedBoostCount++;
+            }
+            if (speedBoostCount > 0)
+            {
+                float speedReduction = 1.0f - (speedBoostCount * 0.15f);
+                _lastMoveActionCost = Math.Max(1, (int)(_lastMoveActionCost * Math.Max(0.3f, speedReduction)));
+            }
             return true;
         }
 
@@ -1766,6 +1915,26 @@ public class GameController
 
         var result = _combatSystem.ExecuteAttack(Player, enemy, AttackType.Slash);
 
+        // EP-3: CriticalBoostエンチャント効果（+10%/個のクリティカル率追加判定）
+        if (result.IsHit && !result.IsCritical)
+        {
+            int critBoostCount = 0;
+            foreach (var eq in Player.Equipment.GetAll().Values)
+            {
+                if (eq != null && eq.AppliedEnchantments.Contains(EnchantmentType.CriticalBoost.ToString()))
+                    critBoostCount++;
+            }
+            if (critBoostCount > 0 && _random.Next(100) < critBoostCount * 10)
+            {
+                // クリティカルに昇格: ダメージ1.5倍
+                int critDmg = result.Damage != null ? (int)(result.Damage.Value.Amount * 1.5) : 0;
+                var critDamage = result.Damage != null
+                    ? new Damage(critDmg, result.Damage.Value.Type, result.Damage.Value.Element, true)
+                    : (Damage?)null;
+                result = new CombatResult(true, true, critDamage, result.Attacker, result.Target);
+            }
+        }
+
         // === GUI統合: 戦闘システム修飾 ===
         // スタンス修飾（CombatStanceSystem）
         float stanceAttackMod = CombatStanceSystem.GetAttackModifier(_playerStance);
@@ -1832,6 +2001,11 @@ public class GameController
             if (weaponMasteryBonus > 0)
                 baseDmg = Math.Max(1, (int)(baseDmg * (1.0 + weaponMasteryBonus)));
 
+            // α.26c: モンスター図鑑完全攻略ボーナス（+5%）
+            float encyclopediaDamageBonus = _encyclopediaSystem.GetMonsterCompleteDamageBonus();
+            if (encyclopediaDamageBonus > 0)
+                baseDmg = Math.Max(1, (int)(baseDmg * (1.0f + encyclopediaDamageBonus)));
+
             int bonusDmg = (int)(baseDmg * (stanceAttackMod - 1.0f)) + weaponDamageBonus;
             int elementalBonusDmg = (int)(baseDmg * (elementalMult - 1.0f));
             int directionBonusDmg = (int)(baseDmg * (dirBonus.DamageModifier - 1.0f));
@@ -1847,6 +2021,10 @@ public class GameController
             var dirStr = attackDir == AttackDirection.Back ? " 背面攻撃！" : attackDir == AttackDirection.Side ? " 側面攻撃！" : "";
             AddMessage($"{enemy.Name}に{baseDmg + totalBonus}ダメージ！{critStr}{dirStr}{bonusStr}");
 
+            // β.10: 属性エフェクト通知
+            var attackElement = Player.Equipment.MainHand?.Element ?? Element.None;
+            OnCombatDamageDealt?.Invoke(enemy.Position, baseDmg + totalBonus, attackElement, result.IsCritical);
+
             // BT-7: エンチャント効果の適用
             int totalDamageDealt = baseDmg + totalBonus;
             if (Player.Equipment.MainHand != null)
@@ -1857,6 +2035,38 @@ public class GameController
                     {
                         switch (enchType)
                         {
+                            case EnchantmentType.FireDamage:
+                                int fireDmg = Math.Max(1, totalDamageDealt / 8);
+                                enemy.TakeDamage(Damage.Magical(fireDmg, Element.Fire));
+                                if (_random.Next(100) < 10)
+                                    enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Burn, 3));
+                                break;
+                            case EnchantmentType.IceDamage:
+                                int iceDmg = Math.Max(1, totalDamageDealt / 8);
+                                enemy.TakeDamage(Damage.Magical(iceDmg, Element.Ice));
+                                if (_random.Next(100) < 10)
+                                    enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Freeze, 2));
+                                break;
+                            case EnchantmentType.LightningDamage:
+                                int lightDmg = Math.Max(1, totalDamageDealt / 8);
+                                enemy.TakeDamage(Damage.Magical(lightDmg, Element.Lightning));
+                                if (_random.Next(100) < 10)
+                                    enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Paralysis, 2));
+                                break;
+                            case EnchantmentType.PoisonDamage:
+                                int poisonDmg = Math.Max(1, totalDamageDealt / 10);
+                                enemy.TakeDamage(Damage.Magical(poisonDmg, Element.Poison));
+                                if (_random.Next(100) < 15)
+                                    enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Poison, 4));
+                                break;
+                            case EnchantmentType.HolyDamage:
+                                int holyDmg = Math.Max(1, totalDamageDealt / 8);
+                                enemy.TakeDamage(Damage.Magical(holyDmg, Element.Holy));
+                                break;
+                            case EnchantmentType.DarkDamage:
+                                int darkDmg = Math.Max(1, totalDamageDealt / 8);
+                                enemy.TakeDamage(Damage.Magical(darkDmg, Element.Dark));
+                                break;
                             case EnchantmentType.Lifesteal:
                                 int lifestealHp = Math.Max(1, totalDamageDealt / 10);
                                 Player.Heal(lifestealHp);
@@ -1868,6 +2078,10 @@ public class GameController
                             case EnchantmentType.ParalysisChance:
                                 if (_random.Next(100) < 15)
                                     enemy.ApplyStatusEffect(new StatusEffect(StatusEffectType.Paralysis, 2));
+                                break;
+                            // ExpBoost(EP-1), DropBoost(EP-2), CriticalBoost(EP-3), SpeedBoost(EP-4),
+                            // DefenseBoost(EP-5), Thorns(EP-6) は別箇所でパッシブ適用済み
+                            default:
                                 break;
                         }
                     }
@@ -2369,6 +2583,18 @@ public class GameController
                 bodyArmor.Durability = Math.Max(0, bodyArmor.Durability - armorWear);
             }
 
+            // EP-5: DefenseBoostエンチャント効果（防御力+5/個）
+            int defBoostCount = 0;
+            foreach (var eq in Player.Equipment.GetAll().Values)
+            {
+                if (eq != null && eq.AppliedEnchantments.Contains(EnchantmentType.DefenseBoost.ToString()))
+                    defBoostCount++;
+            }
+            if (defBoostCount > 0)
+            {
+                modifiedDmg = Math.Max(1, modifiedDmg - (defBoostCount * 5));
+            }
+
             var critStr = result.IsCritical ? " クリティカル！" : "";
             var dirWarnStr = defenseDir == AttackDirection.Back ? " 背面を取られた！" : "";
             AddMessage($"{enemy.Name}の攻撃！{modifiedDmg}ダメージ！{critStr}{dirWarnStr}");
@@ -2377,6 +2603,20 @@ public class GameController
             int finalDmg = Math.Max(1, (int)(modifiedDmg * DifficultyConfig.DamageTakenMultiplier));
             Player.TakeDamage(Damage.Physical(finalDmg));
             _lastDamageCause = DeathCause.Combat;
+
+            // EP-6: Thornsエンチャント効果（反射ダメージ: 被ダメージの20%/個）
+            int thornsCount = 0;
+            foreach (var eq in Player.Equipment.GetAll().Values)
+            {
+                if (eq != null && eq.AppliedEnchantments.Contains(EnchantmentType.Thorns.ToString()))
+                    thornsCount++;
+            }
+            if (thornsCount > 0 && enemy.IsAlive)
+            {
+                int thornsDmg = Math.Max(1, (int)(finalDmg * 0.2f * thornsCount));
+                enemy.TakeDamage(Damage.Pure(thornsDmg));
+                AddMessage($"⚡ 反射ダメージ！{enemy.Name}に{thornsDmg}ダメージ！");
+            }
 
             // Y-2: デーモン種族の魔力吸収（被弾時MP5%回復）
             if (RacialTraitSystem.HasManaAbsorption(Player.Race))
@@ -3029,6 +3269,14 @@ public class GameController
         if (Player.Level >= 10) _achievementSystem.Unlock("level_10");
         if (CurrentFloor >= 10) _achievementSystem.Unlock("floor_10");
 
+        // α.26c: 図鑑コンプリートボーナス実績チェック
+        if (_encyclopediaSystem.IsCategoryComplete(EncyclopediaCategory.Monster))
+            _achievementSystem.Unlock("encyclopedia_monster_complete");
+        if (_encyclopediaSystem.IsCategoryComplete(EncyclopediaCategory.Region))
+            _achievementSystem.Unlock("encyclopedia_region_complete");
+        if (_encyclopediaSystem.IsAllComplete())
+            _achievementSystem.Unlock("encyclopedia_all_complete");
+
         // AT-1: 投資回収チェック（500ターンごと）
         if (TurnCount > 0 && TurnCount % 500 == 0 && _investmentSystem.GetActiveInvestments() > 0)
         {
@@ -3087,12 +3335,26 @@ public class GameController
             }
         }
 
+        // ダンジョン内ランダムイベント発生判定（RandomEventSystem）
+        if (!_worldMapSystem.IsOnSurface && !_isInLocationMap && TurnCount % 100 == 0)
+        {
+            var dungeonEvent = _randomEventSystem.RollEvent(CurrentFloor, _random);
+            if (dungeonEvent != null)
+            {
+                AddMessage($"【ダンジョンイベント】{dungeonEvent.Name}: {dungeonEvent.Description}");
+                ResolveRandomEvent(dungeonEvent);
+            }
+        }
+
         if (!Player.IsAlive)
         {
             // 状態異常死の原因を推定
             var cause = Player.HasStatusEffect(StatusEffectType.Poison) ? DeathCause.Poison : DeathCause.Unknown;
             HandlePlayerDeath(cause);
         }
+
+        // ターン経過による自動セーブ判定（AutoSaveSystem）
+        CheckAutoSave(AutoSaveTrigger.TurnElapsed);
     }
 
     /// <summary>
@@ -3470,7 +3732,9 @@ public class GameController
             SaveFloorToCache();
             CurrentFloor++;
             GenerateFloor();
+            CheckAutoSave(AutoSaveTrigger.FloorChange);
             AddMessage($"第{CurrentFloor}層に降りた");
+            OnFloorChanged?.Invoke(CurrentFloor);
 
             // 5階ごとにショートカット自動解放
             if (CurrentFloor % 5 == 0)
@@ -3526,6 +3790,7 @@ public class GameController
         {
             // 1層目の上り階段 → シンボルマップに帰還
             SaveFloorToCache();
+            CheckAutoSave(AutoSaveTrigger.FloorChange);
             AddMessage("ダンジョンから脱出した！ 地上に帰還する...");
             _worldMapSystem.IsOnSurface = true;
             _currentDungeonFeature = null;
@@ -3554,6 +3819,8 @@ public class GameController
             SaveFloorToCache();
             CurrentFloor--;
             GenerateFloor();
+            CheckAutoSave(AutoSaveTrigger.FloorChange);
+            OnFloorChanged?.Invoke(CurrentFloor);
             // 上昇時はプレイヤーを下り階段位置に配置
             var downStairsPos = Map.StairsDownPosition;
             if (downStairsPos.HasValue)
@@ -3690,11 +3957,10 @@ public class GameController
                     AddMessage("📜 召喚の力が解放された！味方が現れた！");
                 }
 
-                // 水・飲料アイテムによる渇き回復
+                // B.26: 渇き回復はFood.Use()内で既に適用済みのため、ここでのModifyThirstは削除
+                // （以前はFood.Use()とGameControllerで二重に渇き回復が適用されていた）
                 if (consumable is Food food && food.HydrationValue > 0)
                 {
-                    int recoveryAmount = food.HydrationValue * 10;  // HydrationValue 1段階=10ポイント回復
-                    Player.ModifyThirst(recoveryAmount);
                     AddMessage($"💧 渇きが癒された（{ThirstSystem.GetThirstName(Player.ThirstStage)} {Player.Thirst}）");
                 }
 
@@ -3725,8 +3991,8 @@ public class GameController
                 AddMessage($"{equipItem.GetDisplayName()}の正体が分かった！");
             }
 
-            // 職業装備適性チェック
-            bool isProficient = ClassEquipmentSystem.IsProficient(Player.CharacterClass, equipItem.Category);
+            // 職業装備適性チェック（アクセサリは適性不要）
+            bool isProficient = equipItem is Accessory || ClassEquipmentSystem.IsProficient(Player.CharacterClass, equipItem.Category);
 
             var previousItem = Player.Equipment.Equip(equipItem, Player);
 
@@ -3823,7 +4089,6 @@ public class GameController
     public void StartRealTimeTurnConsumption()
     {
         _realTimeTurnStart = DateTime.UtcNow;
-        _realTimeTurnAccumulated = 0;
     }
 
     /// <summary>
@@ -3842,7 +4107,6 @@ public class GameController
                 ProcessTurnEffects();
             }
             _realTimeTurnStart = null;
-            _realTimeTurnAccumulated = 0;
         }
     }
 
@@ -4004,6 +4268,7 @@ public class GameController
             Player.ModifySanity(-GameConstants.RebirthSanityCost);
             transfer.Sanity = Player.Sanity;
             AddMessage($"あなたは{causeText}...");
+            OnPlayerDied?.Invoke(causeText);
             AddMessage($"「また会いましたね。正気度: {Player.Sanity}（-{GameConstants.RebirthSanityCost}）」");
             ExecuteRebirth(transfer);
         }
@@ -4011,6 +4276,7 @@ public class GameController
         {
             // 廃人化からの救済：正気度を20まで回復
             AddMessage($"あなたは{causeText}...");
+            OnPlayerDied?.Invoke(causeText);
             AddMessage("精神が崩壊した...しかし誰かが引き戻してくれた。");
             Player.ModifySanity(GameConstants.SanityRecoveryOnRescue);
             transfer.Sanity = Player.Sanity;
@@ -4140,6 +4406,7 @@ public class GameController
         _tutorialSystem.Reset();
         _skillTreeSystem.Reset();
         _hasSlimeSplit = false; // Y-1: 分裂フラグリセット
+        _autoSaveSystem.Reset();
 
         // 正気度0の場合、知識系システムも消失
         if (isSanityZero)
@@ -4195,6 +4462,7 @@ public class GameController
         }
 
         OnStateChanged?.Invoke();
+        OnPlayerRebirthed?.Invoke(TotalDeaths);
     }
 
     /// <summary>
@@ -4825,6 +5093,19 @@ public class GameController
             actionCost += fatigueCostBonus;
         }
 
+        // B.53: 渇き段階による行動コスト加算
+        int thirstCostBonus = ThirstSystem.GetThirstActionCostBonus(Player.ThirstStage);
+        if (thirstCostBonus > 0)
+        {
+            actionCost += thirstCostBonus;
+        }
+
+        // B.57: 渇き（小）の30%確率で行動コスト+1
+        if (Player.ThirstStage == ThirstStage.SlightlyThirsty && _random.Next(100) < 30)
+        {
+            actionCost += 1;
+        }
+
         int finalCost = Math.Max(1, actionCost);
 
         // タスク52: 疲労度蓄積（スキル使用）
@@ -5257,6 +5538,16 @@ public class GameController
         }
 
         // 即時発動（TurnCost <= 1）
+        // α.20: 詠唱演出テキストを追加
+        var currentIncantation = _spellCastingSystem.CurrentIncantation;
+        if (currentIncantation.Count > 0)
+        {
+            var effectWord = currentIncantation.FirstOrDefault(w => true) ?? "";
+            var elementWord = currentIncantation.Count > 1 ? currentIncantation.Skip(1).FirstOrDefault() : null;
+            var castingText = RougelikeGame.Core.Data.RuneWordLoreData.GetCastingText(effectWord, elementWord);
+            if (!string.IsNullOrEmpty(castingText))
+                AddMessage(castingText);
+        }
         AddMessage(result.Message);
         actionCost = Math.Max(1, result.TurnCost);
 
@@ -5464,7 +5755,8 @@ public class GameController
             case SpellTargetType.SingleAlly:  // BY-8: 単体味方回復
                 {
                     // 最もHP割合が低い味方を回復（プレイヤー含む）
-                    var lowestCompanion = _companionSystem.Party.Where(c => c.IsAlive)
+                    // B.27: MaxHpが0以下の場合の除算ゼロ対策
+                    var lowestCompanion = _companionSystem.Party.Where(c => c.IsAlive && c.MaxHp > 0)
                         .OrderBy(c => (float)c.Hp / c.MaxHp).FirstOrDefault();
                     float playerHpRatio = Player.MaxHp > 0 ? (float)Player.CurrentHp / Player.MaxHp : 1f;
 
@@ -5526,8 +5818,7 @@ public class GameController
                 case SpellEffectType.Blessing:
                     target.ApplyStatusEffect(new StatusEffect(StatusEffectType.Blessing, duration)
                     {
-                        Name = "祝福",
-                        AllStatsMultiplier = 1.10f
+                        Name = "祝福"
                     });
                     break;
                 case SpellEffectType.Buff:
@@ -6013,7 +6304,18 @@ public class GameController
         var result = _religionSystem.ViolateTaboo(Player, tabooType);
         if (result.Success)
         {
-            AddMessage(result.Message);
+            // α.16: 宗教別フレーバーテキストで禁忌メッセージを強化
+            if (Enum.TryParse<ReligionId>(Player.CurrentReligion, out var religionId))
+            {
+                var tabooName = result.Message.Contains("「") && result.Message.Contains("」")
+                    ? result.Message[(result.Message.IndexOf('「') + 1)..result.Message.IndexOf('」')]
+                    : "禁忌";
+                AddMessage(RougelikeGame.Core.Data.ReligionLoreData.GetTabooViolationText(religionId, tabooName));
+            }
+            else
+            {
+                AddMessage(result.Message);
+            }
             OnReligionChanged?.Invoke();
         }
     }
@@ -6176,6 +6478,8 @@ public class GameController
             GenerateSymbolMap();
 
             OnTerritoryChanged?.Invoke(destination);
+            // α.21: 領地到着時のフレーバーテキスト
+            AddMessage(RougelikeGame.Core.Data.TerritoryLoreData.GetArrivalDescription(destination));
             OnStateChanged?.Invoke();
         }
 
@@ -6710,6 +7014,10 @@ public class GameController
         // BZ-10: 商人ギルドランクによる割引適用
         float guildDiscount = _merchantGuildSystem.GetGuildDiscount();
         if (guildDiscount > 0) discount *= (1.0 - guildDiscount);
+
+        // α.26c: 地域図鑑完全攻略による割引（10%）
+        float encyclopediaShopDiscount = _encyclopediaSystem.GetRegionCompleteShopDiscount();
+        if (encyclopediaShopDiscount > 0) discount *= (1.0 - encyclopediaShopDiscount);
 
         var result = _shopSystem.Buy(Player, shopType, index, discount);
         if (result.Success && result.ItemId is not null)
@@ -8051,6 +8359,10 @@ public class GameController
                 CharacterClass = Player.CharacterClass,
                 Background = Player.Background,
                 TotalDeaths = TotalDeaths,
+                BonusMaxHp = Player.BonusMaxHp,
+                BonusMaxMp = Player.BonusMaxMp,
+                BonusCriticalRate = Player.BonusCriticalRate,
+                KnownRunes = Player.KnownRunes.ToList(),
                 TransferData = _transferData != null ? new TransferDataSaveData
                 {
                     LearnedWords = new Dictionary<string, int>(_transferData.LearnedWords),
@@ -8125,7 +8437,11 @@ public class GameController
             {
                 Type = effect.Type.ToString(),
                 RemainingTurns = effect.Duration,
-                Potency = effect.DamagePerTick
+                Potency = effect.DamagePerTick,
+                Name = effect.Name,
+                StackCount = effect.StackCount,
+                DamageElement = effect.DamageElement.ToString(),
+                MaxStack = effect.MaxStack
             });
         }
 
@@ -8144,6 +8460,7 @@ public class GameController
                 Hunger = firstPet.Hunger,
                 Loyalty = firstPet.Loyalty,
                 CurrentHp = firstPet.CurrentHp,
+                MaxHp = firstPet.MaxHp,
                 IsRiding = firstPet.IsRiding
             };
         }
@@ -8203,7 +8520,10 @@ public class GameController
                 MaxHp = companion.MaxHp,
                 Attack = companion.Attack,
                 Defense = companion.Defense,
-                IsAlive = companion.IsAlive
+                IsAlive = companion.IsAlive,
+                Loyalty = companion.Loyalty,
+                HireCost = companion.HireCost,
+                AIMode = companion.AIMode.ToString()
             });
         }
 
@@ -8406,6 +8726,12 @@ public class GameController
             });
         }
 
+        // 天候状態の保存
+        save.WeatherState = CurrentWeather.ToString();
+
+        // 季節状態の保存（GameTime月から派生するが、デバッグ・検証用途で明示保存）
+        save.SeasonState = CurrentSeason.ToString();
+
         // BU-4: ゲーム時間開始値の保存
         save.GameTimeStartYear = GameTime.StartYear;
         save.GameTimeStartMonth = GameTime.StartMonth;
@@ -8423,6 +8749,89 @@ public class GameController
                     save.ExploredTiles.Add($"{x},{y}");
                 }
             }
+        }
+
+        // マップタイルデータの保存（セーブ/ロードでマップ構造を保持）
+        if (Map is DungeonMap saveMap)
+        {
+            var mapSave = new MapSaveData
+            {
+                Width = saveMap.Width,
+                Height = saveMap.Height,
+            };
+
+            // フロアキャッシュからCreatedAtTurnを取得
+            // フォールバック: 新規ゲーム開始直後やキャッシュクリア後など、
+            // フロアキャッシュが存在しない場合は現在のターン数を使用する
+            var saveFloorKey = (_currentMapName, CurrentFloor);
+            if (_floorCache.TryGetValue(saveFloorKey, out var saveFloorCache))
+            {
+                mapSave.CreatedAtTurn = saveFloorCache.CreatedAtTurn;
+            }
+            else
+            {
+                mapSave.CreatedAtTurn = GameTime.TotalTurns;
+            }
+
+            // タイルタイプを一次元配列として保存
+            for (int y = 0; y < saveMap.Height; y++)
+            {
+                for (int x = 0; x < saveMap.Width; x++)
+                {
+                    var tile = saveMap.GetTile(new Position(x, y));
+                    mapSave.TileTypes.Add((int)tile.Type);
+
+                    // デフォルトと異なる追加状態を持つタイルのみ保存
+                    if (HasNonDefaultTileState(tile))
+                    {
+                        mapSave.TileStates.Add(new TileStateSaveData
+                        {
+                            X = x,
+                            Y = y,
+                            RoomId = tile.RoomId,
+                            IsLocked = tile.IsLocked,
+                            LockDifficulty = tile.LockDifficulty,
+                            TrapId = tile.TrapId,
+                            ItemId = tile.ItemId,
+                            BuildingId = tile.BuildingId,
+                            ChestOpened = tile.ChestOpened,
+                            ChestLockDifficulty = tile.ChestLockDifficulty,
+                            ChestItems = tile.ChestItems?.ToList(),
+                            InscriptionWordId = tile.InscriptionWordId,
+                            InscriptionRead = tile.InscriptionRead,
+                            GatheringNodeType = tile.GatheringNodeType.HasValue ? (int)tile.GatheringNodeType.Value : null,
+                        });
+                    }
+                }
+            }
+
+            // 部屋情報の保存
+            foreach (var room in saveMap.Rooms)
+            {
+                mapSave.Rooms.Add(new RoomSaveData
+                {
+                    Id = room.Id,
+                    X = room.X,
+                    Y = room.Y,
+                    Width = room.Width,
+                    Height = room.Height,
+                    Type = room.Type.ToString(),
+                    ConnectedRooms = room.ConnectedRooms.ToList(),
+                });
+            }
+
+            // 地面アイテムの保存
+            foreach (var (item, pos) in GroundItems)
+            {
+                mapSave.GroundItems.Add(new GroundItemSaveData
+                {
+                    Item = CreateItemSaveData(item),
+                    X = pos.X,
+                    Y = pos.Y,
+                });
+            }
+
+            save.MapData = mapSave;
         }
 
         return save;
@@ -8457,11 +8866,21 @@ public class GameController
             save.Player.Fatigue,
             save.Player.Hygiene
         );
-        Player.Position = save.Player.Position.ToPosition();
 
         // 気付け薬フラグ復元
         Player.HasFatigueRestrictionRelief = save.Player.HasFatigueRestrictionRelief;
         Player.FatigueRestrictionReliefRemainingTurns = save.Player.FatigueRestrictionReliefRemainingTurns;
+
+        // ボーナスステータス復元（種族・職業ボーナス等）
+        Player.BonusMaxHp = save.Player.BonusMaxHp;
+        Player.BonusMaxMp = save.Player.BonusMaxMp;
+        Player.BonusCriticalRate = save.Player.BonusCriticalRate;
+
+        // 習得済みルーン復元
+        foreach (var runeId in save.Player.KnownRunes)
+        {
+            Player.LearnRune(runeId);
+        }
 
         // 魔法言語復元
         foreach (var (wordId, mastery) in save.Player.LearnedWords)
@@ -8488,6 +8907,7 @@ public class GameController
         Player.DaysSinceLastPrayer = save.Player.DaysSinceLastPrayer;
         Player.HasPrayedToday = save.Player.HasPrayedToday;  // AB-7/M-3
         Player.FaithCap = save.Player.FaithCap;
+        Player.RestorePreviousReligion(save.Player.PreviousReligion);
         foreach (var prevReligion in save.Player.PreviousReligions)
         {
             Player.PreviousReligions.Add(prevReligion);
@@ -8525,8 +8945,16 @@ public class GameController
         // マップ名復元
         _currentMapName = save.CurrentMapName ?? "capital_guild";
 
-        // マップ再生成（セーブには含まない）
-        GenerateFloor();
+        // マップ復元: セーブデータにマップがあれば復元、なければ従来の再生成
+        if (save.MapData != null && save.MapData.TileTypes.Count == save.MapData.Width * save.MapData.Height)
+        {
+            RestoreMapFromSaveData(save.MapData);
+        }
+        else
+        {
+            // 旧セーブデータ互換: マップデータがない場合は従来通り再生成
+            GenerateFloor();
+        }
         Player.Position = save.Player.Position.ToPosition();
         Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
 
@@ -8617,12 +9045,26 @@ public class GameController
             _dialogueSystem.RestoreFlags(save.DialogueFlags);
         }
 
-        // 状態異常復元
+        // 状態異常復元（Name/DamagePerTick/StackCount/DamageElement/MaxStack含む。旧形式セーブデータでは新フィールドがデフォルト値にフォールバック）
         foreach (var effectData in save.Player.StatusEffects)
         {
             if (Enum.TryParse<StatusEffectType>(effectData.Type, out var effectType))
             {
-                var effect = new StatusEffect(effectType, effectData.RemainingTurns);
+                var restoredName = !string.IsNullOrEmpty(effectData.Name) ? effectData.Name : effectType.ToString();
+                var restoredElement = Enum.TryParse<Element>(effectData.DamageElement, out var elem) ? elem : Element.None;
+                var restoredMaxStack = effectData.MaxStack > 0 ? effectData.MaxStack : 1;
+                var effect = new StatusEffect(effectType, effectData.RemainingTurns)
+                {
+                    Name = restoredName,
+                    DamagePerTick = effectData.Potency,
+                    DamageElement = restoredElement,
+                    MaxStack = restoredMaxStack
+                };
+                // StackCountは復元メソッド経由で設定（private set）
+                if (effectData.StackCount > 1)
+                {
+                    effect.RestoreStackCount(effectData.StackCount);
+                }
                 Player.ApplyStatusEffect(effect);
             }
         }
@@ -8635,7 +9077,8 @@ public class GameController
             // AB-1: ペット属性値を復元
             _petSystem.RestorePetState(save.PetData.PetId,
                 save.PetData.Level, save.PetData.Experience,
-                save.PetData.Hunger, save.PetData.Loyalty, save.PetData.CurrentHp);
+                save.PetData.Hunger, save.PetData.Loyalty, save.PetData.CurrentHp,
+                save.PetData.MaxHp, save.PetData.IsRiding);
         }
 
         // カルマ復元
@@ -8643,6 +9086,13 @@ public class GameController
         {
             _karmaSystem.Reset();
             _karmaSystem.ModifyKarma(save.KarmaValue, "セーブデータ復元");
+        }
+
+        // カルマ履歴復元
+        if (save.KarmaHistory.Count > 0)
+        {
+            _karmaSystem.KarmaHistory.Clear();
+            _karmaSystem.RestoreHistory(save.KarmaHistory);
         }
 
         // 習熟度復元
@@ -8723,9 +9173,11 @@ public class GameController
             {
                 if (Enum.TryParse<CompanionType>(cd.CompanionType ?? "Mercenary", out var compType))
                 {
+                    var aiMode = Enum.TryParse<CompanionAIMode>(cd.AIMode ?? "Defensive", out var parsedMode)
+                        ? parsedMode : CompanionAIMode.Defensive;
                     var companion = new CompanionSystem.CompanionData(
-                        cd.Name, compType, CompanionAIMode.Defensive,
-                        cd.Level, 50, 0, cd.Hp, cd.MaxHp, cd.Attack, cd.Defense, cd.IsAlive);
+                        cd.Name, compType, aiMode,
+                        cd.Level, cd.Loyalty, cd.HireCost, cd.Hp, cd.MaxHp, cd.Attack, cd.Defense, cd.IsAlive);
                     _companionSystem.AddCompanion(companion);
                 }
             }
@@ -8759,10 +9211,15 @@ public class GameController
         if (save.MerchantGuild is { IsMember: true })
         {
             var mg = save.MerchantGuild;
-            _merchantGuildSystem.JoinGuild(Player.Name);
-            // ギルドポイントを設定してランクアップを反映させるため、交易を使わず直接状態を復元
-            // MerchantGuildSystemにはRestore機能がないため、ポイント分の交易を擬似的に実行
-            // Note: 簡易復元 - ギルド加入のみ。詳細な交易路復元は将来改善予定
+            var rank = Enum.TryParse<GuildRank>(mg.Rank, out var parsedRank) ? parsedRank : GuildRank.None;
+            var routes = mg.Routes.Select(r =>
+            {
+                var origin = Enum.TryParse<TerritoryId>(r.Origin, out var o) ? o : TerritoryId.Capital;
+                var dest = Enum.TryParse<TerritoryId>(r.Destination, out var d) ? d : TerritoryId.Capital;
+                var status = Enum.TryParse<TradeRouteStatus>(r.Status, out var s) ? s : TradeRouteStatus.Open;
+                return new MerchantGuildSystem.TradeRoute(r.RouteId, origin, dest, status, r.ProfitMultiplier, r.EstablishmentCost);
+            }).ToList();
+            _merchantGuildSystem.RestoreFromSave(Player.Name, rank, mg.GuildPoints, mg.TradeCount, mg.TotalProfit, routes);
         }
 
         // BZ-6: 派閥戦争状態の復元
@@ -8949,11 +9406,145 @@ public class GameController
             }
         }
 
+        // 天候状態の復元
+        if (!string.IsNullOrEmpty(save.WeatherState) && Enum.TryParse<Weather>(save.WeatherState, out var weather))
+        {
+            CurrentWeather = weather;
+        }
+
         // AS-5: スキルツリーボーナスプロバイダーを再設定（ロード後のステータス計算に必要）
         Player.SkillTreeBonusProvider = () => _skillTreeSystem.GetTotalStatBonuses();
         Player.UpdateMaxWeight();
 
         OnStateChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// セーブデータからマップを復元し、フロアキャッシュに登録する
+    /// </summary>
+    private static bool HasNonDefaultTileState(Tile tile)
+    {
+        return tile.RoomId != -1 || tile.IsLocked || tile.LockDifficulty > 0
+            || tile.TrapId != null || tile.ItemId != null || tile.BuildingId != null
+            || tile.ChestOpened || tile.ChestLockDifficulty > 0 || tile.ChestItems != null
+            || tile.InscriptionWordId != null || tile.InscriptionRead
+            || tile.GatheringNodeType != null;
+    }
+
+    private void RestoreMapFromSaveData(MapSaveData mapData)
+    {
+        // ダンジョン特徴を決定（SpawnEnemies等で使用）
+        var territory = _worldMapSystem.GetCurrentTerritoryInfo().Id;
+        _currentDungeonFeature = DungeonFeatureGenerator.SelectFeatureForTerritory(territory, CurrentFloor, _random);
+
+        // 環境音を更新
+        bool isBossFloor = CurrentFloor % GameConstants.BossFloorInterval == 0;
+        _currentAmbientSound = AmbientSoundSystem.GetAmbientForDungeon(CurrentFloor, isBossFloor);
+
+        // DungeonMapを復元
+        var restoredMap = new DungeonMap(mapData.Width, mapData.Height)
+        {
+            Depth = CurrentFloor,
+            Name = _currentMapName
+        };
+
+        // タイルタイプを復元
+        for (int y = 0; y < mapData.Height; y++)
+        {
+            for (int x = 0; x < mapData.Width; x++)
+            {
+                int index = y * mapData.Width + x;
+                if (index < mapData.TileTypes.Count)
+                {
+                    var tileType = (TileType)mapData.TileTypes[index];
+                    restoredMap.SetTile(new Position(x, y), Tile.FromType(tileType));
+
+                    // 階段位置を設定
+                    if (tileType == TileType.StairsUp)
+                        restoredMap.SetStairsUp(new Position(x, y));
+                    else if (tileType == TileType.StairsDown)
+                        restoredMap.SetStairsDown(new Position(x, y));
+                }
+            }
+        }
+
+        // タイルの詳細状態を復元
+        foreach (var state in mapData.TileStates)
+        {
+            var pos = new Position(state.X, state.Y);
+            if (!restoredMap.IsInBounds(pos)) continue;
+
+            var tile = restoredMap.GetTile(pos);
+            tile.RoomId = state.RoomId;
+            tile.IsLocked = state.IsLocked;
+            tile.LockDifficulty = state.LockDifficulty;
+            tile.TrapId = state.TrapId;
+            tile.ItemId = state.ItemId;
+            tile.BuildingId = state.BuildingId;
+            tile.ChestOpened = state.ChestOpened;
+            tile.ChestLockDifficulty = state.ChestLockDifficulty;
+            tile.ChestItems = state.ChestItems?.ToList();
+            tile.InscriptionWordId = state.InscriptionWordId;
+            tile.InscriptionRead = state.InscriptionRead;
+            tile.GatheringNodeType = state.GatheringNodeType.HasValue
+                ? (GatheringType)state.GatheringNodeType.Value
+                : null;
+        }
+
+        // 部屋情報を復元
+        foreach (var roomData in mapData.Rooms)
+        {
+            var room = new Room
+            {
+                Id = roomData.Id,
+                X = roomData.X,
+                Y = roomData.Y,
+                Width = roomData.Width,
+                Height = roomData.Height,
+                Type = Enum.TryParse<RoomType>(roomData.Type, out var rt) ? rt : RoomType.Normal,
+            };
+            foreach (var connId in roomData.ConnectedRooms)
+            {
+                room.ConnectedRooms.Add(connId);
+            }
+            restoredMap.AddRoom(room);
+        }
+
+        // 入口位置を設定（Entranceタイプの部屋がある場合）
+        var entranceRoom = restoredMap.GetEntranceRoom();
+        if (entranceRoom != null)
+        {
+            restoredMap.SetEntrance(entranceRoom.Center);
+        }
+
+        Map = restoredMap;
+
+        // 敵を再生成（動的要素：敵はフロア進入時に毎回再配置される仕様。
+        // マップ構造・地面アイテムはセーブデータから復元するが、
+        // 敵の位置・状態は保存せず、フロア進入時と同じロジックで再生成する）
+        Enemies.Clear();
+        SpawnEnemies();
+
+        // 地面アイテムを復元
+        GroundItems.Clear();
+        foreach (var groundItemData in mapData.GroundItems)
+        {
+            var item = RestoreItem(groundItemData.Item);
+            if (item != null)
+            {
+                GroundItems.Add((item, new Position(groundItemData.X, groundItemData.Y)));
+            }
+        }
+
+        // フロアキャッシュに登録（24時間再生成判定を維持）
+        var floorKey = (_currentMapName, CurrentFloor);
+        _floorCache[floorKey] = new FloorCache(restoredMap, mapData.CreatedAtTurn, new List<(Item, Position)>(GroundItems));
+
+        // ダンジョンショートカット用: 訪問済み階を記録
+        if (!string.IsNullOrEmpty(_currentMapName))
+        {
+            _dungeonShortcutSystem.MarkFloorVisited(_currentMapName, CurrentFloor);
+        }
     }
 
     private static ItemSaveData CreateItemSaveData(Item item) => new()
@@ -9249,7 +9840,39 @@ public class GameController
                 }
                 break;
 
-            // その他のイベントはメッセージ表示のみ（既に表示済み）
+            case RandomEventType.Trap:
+                int trapDmg = Math.Max(1, Player.MaxHp / 15);
+                Player.TakeDamage(Damage.Physical(trapDmg));
+                _lastDamageCause = DeathCause.Trap;
+                AddMessage($"⚠ 罠にかかった！ {trapDmg}ダメージを受けた！");
+                break;
+
+            case RandomEventType.Ruins:
+                AddMessage("🏚 遺跡を発見した。何か有益な情報が得られるかもしれない。");
+                break;
+
+            case RandomEventType.MysteriousItem:
+                AddMessage("✨ 不思議な輝きを放つ物体を発見した…");
+                break;
+
+            case RandomEventType.MonsterHouse:
+                AddMessage("⚠ モンスターハウスだ！大量の敵が現れた！");
+                SpawnEnemies();
+                break;
+
+            case RandomEventType.CursedRoom:
+                AddMessage("💀 呪われた部屋に足を踏み入れた…不吉な気配が漂う。");
+                break;
+
+            case RandomEventType.BlessedRoom:
+                Player.Heal(Player.MaxHp / 4);
+                Player.RestoreMp(Player.MaxMp / 4);
+                AddMessage("✨ 祝福された部屋だ！体力と魔力が回復した。");
+                break;
+
+            case RandomEventType.HiddenShop:
+                AddMessage("🏪 隠しショップを発見した！珍しい品が並んでいる。");
+                break;
         }
     }
 
@@ -10269,7 +10892,7 @@ public class GameController
     public AutoExploreSystem.StopReason? CheckAutoExploreStop()
     {
         bool hasEnemyNearby = IsInCombat();
-        float hpRatio = (float)Player.CurrentHp / Player.MaxHp;
+        float hpRatio = Player.MaxHp > 0 ? (float)Player.CurrentHp / Player.MaxHp : 1f;  // B.28: 除算ゼロ対策
         float hungerRatio = (float)Player.Hunger / 100f;
         bool itemOnTile = GroundItems.Any(i => i.Position == Player.Position);
         var tile = Map.GetTile(Player.Position);
@@ -10390,6 +11013,118 @@ public class GameController
             : EnvironmentalCombatSystem.SurfaceType.Normal;
     }
 
+    // === StealSystem接続 ===
+
+    /// <summary>隣接する敵からの盗み試行（StealSystem）</summary>
+    private void TryStealFromAdjacentEnemy()
+    {
+        var adjacentEnemy = Enemies.FirstOrDefault(e => e.IsAlive && e.Position.ChebyshevDistanceTo(Player.Position) <= 1);
+        if (adjacentEnemy == null)
+        {
+            AddMessage("盗む対象がいない");
+            return;
+        }
+        int stealSkill = (int)_skillSystem.GetPassiveBonus("steal");
+        // 敵レベル推定: 経験値報酬÷10（EnemyにLevelプロパティがないため推定）
+        int estimatedEnemyLevel = Math.Max(1, adjacentEnemy.ExperienceReward / 10);
+        // 所持ゴールド推定: 経験値報酬÷2
+        int estimatedGold = Math.Max(0, adjacentEnemy.ExperienceReward / 2);
+        var result = StealSystem.AttemptSteal(
+            Player.EffectiveStats.Dexterity, Player.Level, estimatedEnemyLevel,
+            estimatedGold, adjacentEnemy.DropTableId != null,
+            stealSkill, _random);
+        AddMessage(result.Message);
+        if (result.Success && result.StolenGold > 0)
+        {
+            Player.AddGold(result.StolenGold);
+        }
+        if (result.Detected)
+        {
+            _karmaSystem.ModifyKarma(-5, "盗み発覚"); // 盗み発覚時のカルマペナルティ（-5）
+            AddMessage("⚠ 敵が怒り、攻撃態勢に入った！");
+        }
+    }
+
+    /// <summary>盗み成功率を取得（UI表示用・StealSystem）</summary>
+    public float GetStealChance(int targetLevel)
+    {
+        int stealSkill = (int)_skillSystem.GetPassiveBonus("steal");
+        return StealSystem.CalculateStealChance(
+            Player.EffectiveStats.Dexterity, Player.Level, targetLevel, stealSkill);
+    }
+
+    // === AutoSaveSystem接続 ===
+
+    private readonly AutoSaveSystem _autoSaveSystem = new();
+
+    /// <summary>自動セーブ判定とトリガー（AutoSaveSystem）</summary>
+    private void CheckAutoSave(AutoSaveTrigger trigger)
+    {
+        if (_autoSaveSystem.ShouldAutoSave(TurnCount, trigger))
+        {
+            OnSaveGame?.Invoke();
+            _autoSaveSystem.MarkSaved(TurnCount);
+        }
+    }
+
+    /// <summary>AutoSaveSystemを取得</summary>
+    public AutoSaveSystem GetAutoSaveSystem() => _autoSaveSystem;
+
+    // === ModLoaderSystem公開アクセサ ===
+
+    /// <summary>ModLoaderSystemを取得</summary>
+    public ModLoaderSystem GetModLoaderSystem() => _modLoaderSystem;
+
+    // === ContextHelpSystem状況別ヘルプ接続 ===
+
+    /// <summary>ゲーム状態に応じたコンテキストヘルプを取得（ContextHelpSystem）</summary>
+    public IReadOnlyList<ContextHelpSystem.HelpTopic> GetContextualHelpForState()
+    {
+        string context = IsInCombat() ? "戦闘" : _worldMapSystem.IsOnSurface ? "地上" : "ダンジョン";
+        return _contextHelpSystem.GetContextualHelp(context);
+    }
+
+    /// <summary>キー操作に対するヘルプを取得（ContextHelpSystem）</summary>
+    public ContextHelpSystem.HelpTopic? GetHelpForKey(string key)
+    {
+        return _contextHelpSystem.GetHelpForKey(key);
+    }
+
+    // === AccessibilitySystem活用接続 ===
+
+    /// <summary>アクセシビリティ設定に基づく実効フォントサイズを取得</summary>
+    public int GetEffectiveFontSize(int baseFontSize = 14)
+    {
+        return _accessibilitySystem.CalculateEffectiveFontSize(baseFontSize);
+    }
+
+    /// <summary>アクセシビリティ設定に基づく実効ターン遅延を取得（ミリ秒）</summary>
+    public int GetEffectiveTurnDelay(int baseDelay = 200)
+    {
+        return _accessibilitySystem.CalculateEffectiveTurnDelay(baseDelay);
+    }
+
+    /// <summary>色覚モードに応じた色変換を取得（AccessibilitySystem）</summary>
+    public AccessibilitySystem.ColorTransform GetTransformedColor(string originalColor)
+    {
+        return _accessibilitySystem.TransformColor(originalColor);
+    }
+
+    // === ModularHudSystem活用接続 ===
+
+    /// <summary>HUD要素の表示状態を確認（ModularHudSystem）</summary>
+    public bool IsHudElementVisible(HudElement element)
+    {
+        var config = _modularHudSystem.GetConfig(element);
+        return config?.IsVisible ?? true;
+    }
+
+    /// <summary>表示中のHUD要素数を取得（ModularHudSystem）</summary>
+    public int GetVisibleHudElementCount()
+    {
+        return _modularHudSystem.GetVisibleCount();
+    }
+
     #endregion
 }
 
@@ -10456,5 +11191,6 @@ public enum GameAction
     OpenCompanion,
     OpenCooking,
     OpenBaseConstruction,
-    OpenVocabulary
+    OpenVocabulary,
+    Steal
 }

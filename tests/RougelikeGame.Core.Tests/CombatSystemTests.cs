@@ -440,7 +440,7 @@ public class CombatSystemTests
             Vitality = 20,
             Level = 5,
             RaceBonus = 10,
-            CharacterClass = RougelikeGame.Engine.Combat.CharacterClass.Warrior
+            CharacterClass = CharacterClass.Fighter
         };
 
         // 50 + (20×10) + (5×5) + 10 + (15×4) = 50 + 200 + 25 + 10 + 60 = 345
@@ -458,7 +458,7 @@ public class CombatSystemTests
             Intelligence = 20,
             Level = 5,
             RaceBonus = 5,
-            CharacterClass = RougelikeGame.Engine.Combat.CharacterClass.Mage
+            CharacterClass = CharacterClass.Mage
         };
 
         // 20 + (15×5) + (20×2) + (5×2) + 5 + (8×4) = 20 + 75 + 40 + 10 + 5 + 32 = 182
@@ -497,7 +497,7 @@ public class CombatSystemTests
 
         Assert.Equal(HungerState.Nausea, system.GetHungerState(130));
         Assert.Equal(HungerState.Overeating, system.GetHungerState(110));
-        Assert.Equal(HungerState.Satiated, system.GetHungerState(90));
+        Assert.Equal(HungerState.Full, system.GetHungerState(90));
         Assert.Equal(HungerState.Normal, system.GetHungerState(60));
         Assert.Equal(HungerState.SlightlyHungry, system.GetHungerState(45));
         Assert.Equal(HungerState.VeryHungry, system.GetHungerState(30));

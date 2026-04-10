@@ -17,6 +17,12 @@ public class SilentAudioManager : IAudioManager
         IsBgmPlaying = true;
     }
 
+    public void FadeToBgm(string newBgmId, bool loop = true, double fadeOutMs = 800, double fadeInMs = 800)
+    {
+        CurrentBgmId = newBgmId;
+        IsBgmPlaying = true;
+    }
+
     public void StopBgm()
     {
         CurrentBgmId = null;
