@@ -47,9 +47,9 @@ public class SymbolMapSystemTests
         Assert.Equal(expectedHeight, result.Map.Height);
         Assert.Equal(0, result.Map.Depth);
         Assert.True(result.LocationPositions.Count > 0);
-        // マップのマス数が2300-5000の範囲内
+        // マップのマス数が23000-50000の範囲内（10倍拡大）
         int totalTiles = result.Map.Width * result.Map.Height;
-        Assert.InRange(totalTiles, 2300, 5000);
+        Assert.InRange(totalTiles, 23000, 50000);
     }
 
     [Fact]

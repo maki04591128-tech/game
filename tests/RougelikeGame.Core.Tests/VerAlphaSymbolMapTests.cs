@@ -35,7 +35,7 @@ public class VerAlphaSymbolMapTests
     {
         var (w, h) = SymbolMapGenerator.GetTerritoryMapSize(territory);
         int totalTiles = w * h;
-        Assert.InRange(totalTiles, 2300, 5000);
+        Assert.InRange(totalTiles, 23000, 50000);
     }
 
     [Fact]

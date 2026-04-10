@@ -78,7 +78,7 @@ public class TerritoryInfluenceSystem
                 if (loc.Type is LocationType.Town or LocationType.Village or LocationType.Capital)
                 {
                     int dist = Math.Abs(pos.X - tilePos.X) + Math.Abs(pos.Y - tilePos.Y);
-                    if (dist < 10) return FactionNames.Wildlife;
+                    if (dist < 30) return FactionNames.Wildlife;
                 }
             }
         }

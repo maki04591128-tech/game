@@ -6,38 +6,38 @@ namespace RougelikeGame.Core.Map.Generation;
 /// シンボルマップ生成器
 /// 領地ごとの地上マップを生成する。Elona/The Door of Trithius風の
 /// ロケーションシンボルが配置されたオーバーワールドマップ。
-/// Ver.α: 12領地対応、可変サイズ(2300-5000マス)、複雑形状、村/町/都自動配置、
+/// Ver.α: 12領地対応、可変サイズ(23000-50000マス)、複雑形状、村/町/都自動配置、
 /// ランダムダンジョン(野盗のねぐら/ゴブリンの巣)生成、勢力影響マップ対応。
 /// </summary>
 public class SymbolMapGenerator
 {
     /// <summary>シンボルマップの幅（後方互換性のためデフォルト値を維持）</summary>
-    public const int MapWidth = 70;
+    public const int MapWidth = 220;
 
     /// <summary>集落配置の最大試行回数</summary>
-    private const int MaxSettlementPlacementAttempts = 300;
+    private const int MaxSettlementPlacementAttempts = 1000;
 
     /// <summary>ランダムダンジョン配置の最大試行回数</summary>
-    private const int MaxRandomDungeonPlacementAttempts = 500;
+    private const int MaxRandomDungeonPlacementAttempts = 2000;
 
     /// <summary>シンボルマップの高さ</summary>
-    public const int MapHeight = 50;
+    public const int MapHeight = 160;
 
-    /// <summary>領地ごとのマップサイズ定義（幅×高さ、2300-5000マス範囲）</summary>
+    /// <summary>領地ごとのマップサイズ定義（幅×高さ、23000-50000マス範囲）</summary>
     private static readonly Dictionary<TerritoryId, (int Width, int Height)> TerritorySizes = new()
     {
-        [TerritoryId.Capital]  = (70, 60),  // 4200マス（王都領は広い）
-        [TerritoryId.Forest]   = (65, 55),  // 3575マス
-        [TerritoryId.Mountain] = (60, 50),  // 3000マス
-        [TerritoryId.Coast]    = (65, 50),  // 3250マス
-        [TerritoryId.Southern] = (60, 55),  // 3300マス
-        [TerritoryId.Frontier] = (70, 65),  // 4550マス（辺境は広大）
-        [TerritoryId.Desert]   = (65, 55),  // 3575マス
-        [TerritoryId.Swamp]    = (55, 50),  // 2750マス
-        [TerritoryId.Tundra]   = (60, 50),  // 3000マス
-        [TerritoryId.Lake]     = (55, 50),  // 2750マス
-        [TerritoryId.Volcanic] = (50, 50),  // 2500マス
-        [TerritoryId.Sacred]   = (50, 46),  // 2300マス（聖域は小さい）
+        [TerritoryId.Capital]  = (220, 190), // 41800マス（王都領は広い）
+        [TerritoryId.Forest]   = (205, 175), // 35875マス
+        [TerritoryId.Mountain] = (190, 160), // 30400マス
+        [TerritoryId.Coast]    = (205, 160), // 32800マス
+        [TerritoryId.Southern] = (190, 175), // 33250マス
+        [TerritoryId.Frontier] = (220, 205), // 45100マス（辺境は広大）
+        [TerritoryId.Desert]   = (205, 175), // 35875マス
+        [TerritoryId.Swamp]    = (175, 160), // 28000マス
+        [TerritoryId.Tundra]   = (190, 160), // 30400マス
+        [TerritoryId.Lake]     = (175, 160), // 28000マス
+        [TerritoryId.Volcanic] = (160, 160), // 25600マス
+        [TerritoryId.Sacred]   = (160, 146), // 23360マス（聖域は小さい）
     };
 
     /// <summary>
@@ -45,7 +45,7 @@ public class SymbolMapGenerator
     /// </summary>
     public static (int Width, int Height) GetTerritoryMapSize(TerritoryId territory)
     {
-        return TerritorySizes.TryGetValue(territory, out var size) ? size : (70, 50);
+        return TerritorySizes.TryGetValue(territory, out var size) ? size : (220, 160);
     }
 
     /// <summary>
@@ -173,14 +173,14 @@ public class SymbolMapGenerator
     /// <summary>形状にフィンガー（突起）と湾（凹み）を追加</summary>
     private static void AddComplexFeatures(bool[,] mask, int width, int height, Random random)
     {
-        int featureCount = Math.Max(3, (width + height) / 10);
+        int featureCount = Math.Max(8, (width + height) / 15);
 
         for (int i = 0; i < featureCount; i++)
         {
             bool isProtrusion = random.NextDouble() < 0.5;
             int cx = random.Next(width / 4, width * 3 / 4);
             int cy = random.Next(height / 4, height * 3 / 4);
-            int radius = random.Next(3, 7);
+            int radius = random.Next(8, 22);
 
             for (int dx = -radius; dx <= radius; dx++)
             {
@@ -280,7 +280,7 @@ public class SymbolMapGenerator
         var positions = new Dictionary<Position, LocationDefinition>();
         var usedPositions = new HashSet<Position>();
 
-        int margin = 4;
+        int margin = 12;
         int areaWidth = map.Width - margin * 2;
         int areaHeight = map.Height - margin * 2;
 
@@ -296,9 +296,9 @@ public class SymbolMapGenerator
                 pos = new Position(x, y);
                 attempts++;
             }
-            while (attempts < 200 && (
+            while (attempts < 500 && (
                 !shapeMask[pos.X, pos.Y] ||
-                usedPositions.Any(p => p.ChebyshevDistanceTo(pos) < 4)));
+                usedPositions.Any(p => p.ChebyshevDistanceTo(pos) < 12)));
 
             var tileType = GetTileTypeForLocation(location.Type);
             map.SetTile(pos.X, pos.Y, tileType);
@@ -325,13 +325,13 @@ public class SymbolMapGenerator
         int capitalCount = 1;
 
         var allPositions = new HashSet<Position>(locationPositions.Keys);
-        int margin = 4;
+        int margin = 12;
 
         // 都（首都）を配置（マップ中心付近）
         for (int i = 0; i < capitalCount; i++)
         {
             var pos = FindSettlementPosition(map, shapeMask, allPositions, margin, random,
-                preferCenter: true, minDistance: 8);
+                preferCenter: true, minDistance: 25);
             if (pos.HasValue)
             {
                 map.SetTile(pos.Value.X, pos.Value.Y, TileType.SymbolCapital);
@@ -353,7 +353,7 @@ public class SymbolMapGenerator
         for (int i = 0; i < townCount; i++)
         {
             var pos = FindSettlementPosition(map, shapeMask, allPositions, margin, random,
-                preferCenter: false, minDistance: 6);
+                preferCenter: false, minDistance: 18);
             if (pos.HasValue)
             {
                 map.SetTile(pos.Value.X, pos.Value.Y, TileType.SymbolTown);
@@ -375,7 +375,7 @@ public class SymbolMapGenerator
         for (int i = 0; i < villageCount; i++)
         {
             var pos = FindSettlementPosition(map, shapeMask, allPositions, margin, random,
-                preferCenter: false, minDistance: 4);
+                preferCenter: false, minDistance: 12);
             if (pos.HasValue)
             {
                 map.SetTile(pos.Value.X, pos.Value.Y, TileType.SymbolVillage);
@@ -429,7 +429,7 @@ public class SymbolMapGenerator
 
     /// <summary>
     /// ランダムダンジョン（野盗のねぐら、ゴブリンの巣等）を配置する。
-    /// 条件: 村/町/都から50マス以上離れた場所、他ダンジョンから100マス以上離れた場所
+    /// 条件: 村/町/都から150マス以上離れた場所、他ダンジョンから300マス以上離れた場所
     /// </summary>
     private static void PlaceRandomDungeons(
         DungeonMap map, TerritoryId territory,
@@ -485,8 +485,8 @@ public class SymbolMapGenerator
 
     /// <summary>
     /// ランダムダンジョンの配置位置を探す。
-    /// 集落からの最低距離は50マス（マップ対角線の1/3が上限）、
-    /// 他ダンジョンからの最低距離は100マス（マップ対角線の1/2が上限）。
+    /// 集落からの最低距離は150マス（マップ対角線の1/3が上限）、
+    /// 他ダンジョンからの最低距離は300マス（マップ対角線の1/2が上限）。
     /// 小さいマップではこれらの距離が自動的にスケールダウンされる。
     /// </summary>
     private static Position? FindRandomDungeonPosition(
@@ -495,8 +495,8 @@ public class SymbolMapGenerator
         Random random)
     {
         int mapDiag = (int)Math.Sqrt(map.Width * map.Width + map.Height * map.Height);
-        int settlementMinDist = Math.Min(50, mapDiag / 3);
-        int dungeonMinDist = Math.Min(100, mapDiag / 2);
+        int settlementMinDist = Math.Min(150, mapDiag / 3);
+        int dungeonMinDist = Math.Min(300, mapDiag / 2);
 
         for (int attempt = 0; attempt < MaxRandomDungeonPlacementAttempts; attempt++)
         {
