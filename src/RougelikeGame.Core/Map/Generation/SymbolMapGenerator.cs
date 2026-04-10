@@ -485,8 +485,9 @@ public class SymbolMapGenerator
 
     /// <summary>
     /// ランダムダンジョンの配置位置を探す。
-    /// 集落から50マス以上、他ダンジョンから100マス以上離れた場所。
-    /// マップサイズが小さい場合は距離制限を緩和する。
+    /// 集落からの最低距離は50マス（マップ対角線の1/3が上限）、
+    /// 他ダンジョンからの最低距離は100マス（マップ対角線の1/2が上限）。
+    /// 小さいマップではこれらの距離が自動的にスケールダウンされる。
     /// </summary>
     private static Position? FindRandomDungeonPosition(
         DungeonMap map, bool[,] shapeMask,
