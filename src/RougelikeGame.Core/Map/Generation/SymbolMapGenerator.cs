@@ -14,6 +14,12 @@ public class SymbolMapGenerator
     /// <summary>シンボルマップの幅（後方互換性のためデフォルト値を維持）</summary>
     public const int MapWidth = 70;
 
+    /// <summary>集落配置の最大試行回数</summary>
+    private const int MaxSettlementPlacementAttempts = 300;
+
+    /// <summary>ランダムダンジョン配置の最大試行回数</summary>
+    private const int MaxRandomDungeonPlacementAttempts = 500;
+
     /// <summary>シンボルマップの高さ</summary>
     public const int MapHeight = 50;
 
@@ -396,7 +402,7 @@ public class SymbolMapGenerator
         int width = map.Width;
         int height = map.Height;
 
-        for (int attempt = 0; attempt < 300; attempt++)
+        for (int attempt = 0; attempt < MaxSettlementPlacementAttempts; attempt++)
         {
             int x, y;
             if (preferCenter && attempt < 100)
@@ -491,7 +497,7 @@ public class SymbolMapGenerator
         int settlementMinDist = Math.Min(50, mapDiag / 3);
         int dungeonMinDist = Math.Min(100, mapDiag / 2);
 
-        for (int attempt = 0; attempt < 500; attempt++)
+        for (int attempt = 0; attempt < MaxRandomDungeonPlacementAttempts; attempt++)
         {
             int x = random.Next(3, map.Width - 3);
             int y = random.Next(3, map.Height - 3);
@@ -500,12 +506,14 @@ public class SymbolMapGenerator
 
             var pos = new Position(x, y);
 
+            // 集落からsettlementMinDist以上離れているか（Chebyshev距離）
             bool tooCloseToSettlement = settlementPositions.Any(s =>
-                Math.Abs(s.X - x) + Math.Abs(s.Y - y) < settlementMinDist);
+                pos.ChebyshevDistanceTo(s) < settlementMinDist);
             if (tooCloseToSettlement) continue;
 
+            // 他ダンジョンからdungeonMinDist以上離れているか（Chebyshev距離）
             bool tooCloseToDungeon = dungeonPositions.Any(d =>
-                Math.Abs(d.X - x) + Math.Abs(d.Y - y) < dungeonMinDist);
+                pos.ChebyshevDistanceTo(d) < dungeonMinDist);
             if (tooCloseToDungeon) continue;
 
             return pos;

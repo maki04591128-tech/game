@@ -104,8 +104,9 @@ public class VerAlphaSymbolMapTests
         var result = gen.Generate(territory);
         var dungeons = result.LocationPositions.Values
             .Where(l => l.Type is LocationType.BanditDen or LocationType.GoblinNest).ToList();
-        // ダンジョン距離制限が厳しいため0件もありうるが、通常は1件以上
-        Assert.True(dungeons.Count >= 0);
+        // マップサイズや距離制限により0件もありうるため、非負を確認
+        Assert.True(dungeons.Count >= 0,
+            $"Territory {territory}: random dungeon count should be non-negative");
     }
 
     [Fact]
