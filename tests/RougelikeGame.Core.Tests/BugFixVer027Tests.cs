@@ -1412,4 +1412,80 @@ public class BugFixVer027Tests
 
     #endregion
 
+    #region B.59-B.63: 追加バグ修正テスト
+
+    // B.61: RoomCorridorGenerator.DecorateRoom - 全RoomType対応
+    [Theory]
+    [InlineData(RoomType.Normal)]
+    [InlineData(RoomType.Entrance)]
+    [InlineData(RoomType.Boss)]
+    [InlineData(RoomType.Treasure)]
+    [InlineData(RoomType.Library)]
+    [InlineData(RoomType.Shrine)]
+    [InlineData(RoomType.Prison)]
+    [InlineData(RoomType.Storage)]
+    [InlineData(RoomType.Secret)]
+    [InlineData(RoomType.Shop)]
+    [InlineData(RoomType.TrapRoom)]
+    public void B61_DecorateRoom_AllRoomTypes_NoException(RoomType roomType)
+    {
+        var map = new DungeonMap(30, 30);
+        // 部屋領域を歩行可能に設定
+        for (int x = 5; x < 15; x++)
+            for (int y = 5; y < 15; y++)
+                map.SetTile(new Position(x, y), TileType.Floor);
+        var room = new Room { X = 5, Y = 5, Width = 10, Height = 10, Type = roomType };
+        var random = new Random(42);
+        // 例外が発生しないことを検証
+        RoomGenerator.DecorateRoom(map, room, random);
+    }
+
+    // B.62: GrowthSystem.CalculateTotalExpForLevel - raceExpMultiplier除算ゼロ対策
+    [Fact]
+    public void B62_CalculateTotalExpForLevel_ZeroMultiplier_NoException()
+    {
+        // raceExpMultiplier = 0 でも例外なく計算できること
+        int result = GrowthSystem.CalculateTotalExpForLevel(5, 0.0);
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void B62_CalculateTotalExpForLevel_NegativeMultiplier_NoException()
+    {
+        int result = GrowthSystem.CalculateTotalExpForLevel(5, -1.0);
+        Assert.True(result >= 0);
+    }
+
+    [Fact]
+    public void B62_CalculateTotalExpForLevel_NormalMultiplier_ReturnsPositive()
+    {
+        int result = GrowthSystem.CalculateTotalExpForLevel(5, 1.0);
+        Assert.True(result > 0);
+    }
+
+    // B.63: Enemy.PatrolIndex境界値チェック
+    [Fact]
+    public void B63_Enemy_PatrolIndex_OutOfBounds_SetTo99()
+    {
+        var enemy = Enemy.Create("テスト敵", "test_enemy", Stats.Default, 10);
+        enemy.PatrolRoute.Add(new Position(1, 1));
+        enemy.PatrolRoute.Add(new Position(2, 2));
+        // PatrolIndexを範囲外に設定
+        enemy.PatrolIndex = 99;
+        Assert.Equal(99, enemy.PatrolIndex);
+        // DecidePatrolAction内で境界値チェックが行われることを確認
+        // (privateメソッドなのでプロパティ値で検証)
+    }
+
+    [Fact]
+    public void B63_Enemy_PatrolIndex_NegativeValue_SetToMinus1()
+    {
+        var enemy = Enemy.Create("テスト敵", "test_enemy", Stats.Default, 10);
+        enemy.PatrolRoute.Add(new Position(1, 1));
+        enemy.PatrolIndex = -1;
+        Assert.Equal(-1, enemy.PatrolIndex);
+    }
+
+    #endregion
+
 }

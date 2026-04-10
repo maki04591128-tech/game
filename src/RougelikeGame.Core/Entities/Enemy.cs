@@ -310,6 +310,10 @@ public class Enemy : Character
             return TurnAction.Wait;
         }
 
+        // B.63: PatrolIndex境界値チェック
+        if (PatrolIndex < 0 || PatrolIndex >= PatrolRoute.Count)
+            PatrolIndex = 0;
+
         var targetPos = PatrolRoute[PatrolIndex];
 
         // 目標地点に到達

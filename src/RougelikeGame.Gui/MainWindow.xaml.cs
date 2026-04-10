@@ -384,7 +384,9 @@ public partial class MainWindow : Window
 
         // HP
         HpText.Text = $"{_gameController.Player.CurrentHp}/{_gameController.Player.MaxHp}";
-        double hpRatio = (double)_gameController.Player.CurrentHp / _gameController.Player.MaxHp;
+        double hpRatio = _gameController.Player.MaxHp > 0
+            ? (double)_gameController.Player.CurrentHp / _gameController.Player.MaxHp
+            : 0.0;
         HpText.Foreground = hpRatio switch
         {
             > 0.6 => System.Windows.Media.Brushes.LimeGreen,

@@ -160,6 +160,8 @@ public static class GrowthSystem
     /// <summary>指定レベルまでの累計経験値を計算</summary>
     public static int CalculateTotalExpForLevel(int level, double raceExpMultiplier = 1.0)
     {
+        // B.62: 除算ゼロ対策
+        if (raceExpMultiplier <= 0) raceExpMultiplier = 1.0;
         int total = 0;
         for (int lv = 1; lv < level; lv++)
         {
