@@ -14,14 +14,23 @@ public class SymbolMapGenerator
     /// <summary>シンボルマップの幅（後方互換性のためデフォルト値を維持）</summary>
     public const int MapWidth = 220;
 
+    /// <summary>シンボルマップの高さ</summary>
+    public const int MapHeight = 160;
+
+    /// <summary>シンボルマップ上の視界半径</summary>
+    public const int SymbolMapFovRadius = 40;
+
     /// <summary>集落配置の最大試行回数</summary>
     private const int MaxSettlementPlacementAttempts = 1000;
 
     /// <summary>ランダムダンジョン配置の最大試行回数</summary>
     private const int MaxRandomDungeonPlacementAttempts = 2000;
 
-    /// <summary>シンボルマップの高さ</summary>
-    public const int MapHeight = 160;
+    /// <summary>村1つあたりの必要マス数（総マス数÷この値＝村数）</summary>
+    private const int TilesPerVillage = 500;
+
+    /// <summary>町1つあたりの必要マス数（総マス数÷この値＝町数）</summary>
+    private const int TilesPerTown = 1000;
 
     /// <summary>領地ごとのマップサイズ定義（幅×高さ、23000-50000マス範囲）</summary>
     private static readonly Dictionary<TerritoryId, (int Width, int Height)> TerritorySizes = new()
@@ -320,8 +329,8 @@ public class SymbolMapGenerator
         Dictionary<Position, LocationDefinition> locationPositions,
         bool[,] shapeMask, int totalTiles, Random random)
     {
-        int villageCount = Math.Max(1, totalTiles / 500);
-        int townCount = Math.Max(1, totalTiles / 1000);
+        int villageCount = Math.Max(1, totalTiles / TilesPerVillage);
+        int townCount = Math.Max(1, totalTiles / TilesPerTown);
         int capitalCount = 1;
 
         var allPositions = new HashSet<Position>(locationPositions.Keys);
@@ -485,9 +494,9 @@ public class SymbolMapGenerator
 
     /// <summary>
     /// ランダムダンジョンの配置位置を探す。
-    /// 集落からの最低距離は150マス（マップ対角線の1/3が上限）、
-    /// 他ダンジョンからの最低距離は300マス（マップ対角線の1/2が上限）。
-    /// 小さいマップではこれらの距離が自動的にスケールダウンされる。
+    /// 集落からの最低距離は基本150マス、他ダンジョンからは基本300マス。
+    /// ただしマップ対角線に対して、集落距離は対角線の1/3、ダンジョン距離は対角線の1/2を上限とする。
+    /// これにより小さいマップでは距離制限が自動的にスケールダウンされる。
     /// </summary>
     private static Position? FindRandomDungeonPosition(
         DungeonMap map, bool[,] shapeMask,

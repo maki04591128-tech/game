@@ -31,7 +31,7 @@ public class VerAlphaSymbolMapTests
     [InlineData(TerritoryId.Lake)]
     [InlineData(TerritoryId.Volcanic)]
     [InlineData(TerritoryId.Sacred)]
-    public void AllTerritories_MapSizeInRange_2300To5000(TerritoryId territory)
+    public void AllTerritories_MapSizeInRange_23000To50000(TerritoryId territory)
     {
         var (w, h) = SymbolMapGenerator.GetTerritoryMapSize(territory);
         int totalTiles = w * h;

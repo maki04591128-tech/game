@@ -865,7 +865,7 @@ public class GameController
         GroundItems.Clear();
 
         // 視界計算（シンボルマップは広い視界）
-        symbolMap.ComputeFov(Player.Position, 40);
+        symbolMap.ComputeFov(Player.Position, SymbolMapGenerator.SymbolMapFovRadius);
     }
 
     /// <summary>現在のフロアの状態（マップ・アイテム）をキャッシュに保存</summary>
