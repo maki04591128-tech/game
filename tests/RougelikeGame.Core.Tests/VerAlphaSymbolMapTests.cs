@@ -31,11 +31,11 @@ public class VerAlphaSymbolMapTests
     [InlineData(TerritoryId.Lake)]
     [InlineData(TerritoryId.Volcanic)]
     [InlineData(TerritoryId.Sacred)]
-    public void AllTerritories_MapSizeInRange_23000To50000(TerritoryId territory)
+    public void AllTerritories_MapSizeInRange_230000To500000(TerritoryId territory)
     {
         var (w, h) = SymbolMapGenerator.GetTerritoryMapSize(territory);
         int totalTiles = w * h;
-        Assert.InRange(totalTiles, 23000, 50000);
+        Assert.InRange(totalTiles, 230000, 500000);
     }
 
     [Fact]
@@ -228,7 +228,7 @@ public class VerAlphaSymbolMapTests
         };
 
         var faction = system.GetDominantFactionForTile(
-            TerritoryId.Capital, new Position(50, 50), locations);
+            TerritoryId.Capital, new Position(150, 150), locations);
         // 遠い場所はデフォルト勢力
         Assert.Equal(TerritoryInfluenceSystem.FactionNames.Kingdom, faction);
     }
