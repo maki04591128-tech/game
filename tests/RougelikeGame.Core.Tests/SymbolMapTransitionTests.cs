@@ -718,4 +718,126 @@ public class SymbolMapSystemTests
     }
 
     #endregion
+
+    #region Cleared Dungeon Persistence Tests
+
+    [Fact]
+    public void Generate_ClearedDungeons_AreNotRegenerated()
+    {
+        // 通常生成でランダムダンジョンが存在することを確認
+        var generator = new SymbolMapGenerator();
+        var result1 = generator.Generate(TerritoryId.Capital);
+
+        var randomDungeons1 = result1.LocationPositions
+            .Where(kv => kv.Value.Id.Contains("_random_dungeon_"))
+            .ToList();
+
+        if (randomDungeons1.Count == 0)
+            return; // ダンジョンが生成されない場合はスキップ
+
+        // 全ランダムダンジョンをクリア済みとしてマーク
+        var clearedIds = new HashSet<string>(randomDungeons1.Select(kv => kv.Value.Id));
+
+        // クリア済みダンジョンを除外して再生成
+        var result2 = generator.Generate(TerritoryId.Capital, clearedIds);
+
+        var randomDungeons2 = result2.LocationPositions
+            .Where(kv => kv.Value.Id.Contains("_random_dungeon_"))
+            .ToList();
+
+        // クリア済みダンジョンが存在しないことを確認
+        Assert.True(randomDungeons2.Count < randomDungeons1.Count,
+            $"クリア済みダンジョンが再生成された: 元{randomDungeons1.Count}個 → クリア後{randomDungeons2.Count}個");
+
+        foreach (var clearedId in clearedIds)
+        {
+            Assert.DoesNotContain(result2.LocationPositions.Values,
+                loc => loc.Id == clearedId);
+        }
+    }
+
+    [Fact]
+    public void Generate_WithNullClearedSet_GeneratesAllDungeons()
+    {
+        var generator = new SymbolMapGenerator();
+
+        // null渡しでも正常動作する
+        var result1 = generator.Generate(TerritoryId.Forest);
+        var result2 = generator.Generate(TerritoryId.Forest, null);
+
+        var count1 = result1.LocationPositions.Count(kv => kv.Value.Id.Contains("_random_dungeon_"));
+        var count2 = result2.LocationPositions.Count(kv => kv.Value.Id.Contains("_random_dungeon_"));
+
+        Assert.Equal(count1, count2);
+    }
+
+    [Fact]
+    public void Generate_WithEmptyClearedSet_GeneratesAllDungeons()
+    {
+        var generator = new SymbolMapGenerator();
+
+        var result1 = generator.Generate(TerritoryId.Mountain);
+        var result2 = generator.Generate(TerritoryId.Mountain, new HashSet<string>());
+
+        var count1 = result1.LocationPositions.Count(kv => kv.Value.Id.Contains("_random_dungeon_"));
+        var count2 = result2.LocationPositions.Count(kv => kv.Value.Id.Contains("_random_dungeon_"));
+
+        Assert.Equal(count1, count2);
+    }
+
+    [Fact]
+    public void BackgroundClearSystem_GetFlagsWithPrefix_ReturnsMatchingFlags()
+    {
+        var clearSystem = new BackgroundClearSystem();
+        clearSystem.SetFlag("cleared_Capital_random_dungeon_0");
+        clearSystem.SetFlag("cleared_Capital_random_dungeon_1");
+        clearSystem.SetFlag("dungeon_clear");
+        clearSystem.SetFlag("cleared_Forest_random_dungeon_0");
+
+        var clearedIds = clearSystem.GetFlagsWithPrefix("cleared_");
+
+        Assert.Equal(3, clearedIds.Count);
+        Assert.Contains("Capital_random_dungeon_0", clearedIds);
+        Assert.Contains("Capital_random_dungeon_1", clearedIds);
+        Assert.Contains("Forest_random_dungeon_0", clearedIds);
+    }
+
+    [Fact]
+    public void BackgroundClearSystem_GetFlagsWithPrefix_EmptyWhenNoMatches()
+    {
+        var clearSystem = new BackgroundClearSystem();
+        clearSystem.SetFlag("dungeon_clear");
+        clearSystem.SetFlag("game_clear");
+
+        var clearedIds = clearSystem.GetFlagsWithPrefix("cleared_");
+
+        Assert.Empty(clearedIds);
+    }
+
+    [Fact]
+    public void SymbolMapSystem_GenerateForTerritory_WithClearedDungeons()
+    {
+        var system = new SymbolMapSystem();
+
+        // 通常生成
+        var map1 = system.GenerateForTerritory(TerritoryId.Capital);
+        var dungeonCount1 = system.GetAllLocationPositions()
+            .Count(kv => kv.Value.Id.Contains("_random_dungeon_"));
+
+        if (dungeonCount1 == 0) return;
+
+        // クリア済みセット付き再生成
+        var firstDungeonId = system.GetAllLocationPositions()
+            .First(kv => kv.Value.Id.Contains("_random_dungeon_")).Value.Id;
+        var clearedSet = new HashSet<string> { firstDungeonId };
+
+        var map2 = system.GenerateForTerritory(TerritoryId.Capital, clearedSet);
+        var dungeonCount2 = system.GetAllLocationPositions()
+            .Count(kv => kv.Value.Id.Contains("_random_dungeon_"));
+
+        Assert.True(dungeonCount2 < dungeonCount1,
+            $"クリア済みダンジョンが再生成された: 元{dungeonCount1} → クリア後{dungeonCount2}");
+    }
+
+    #endregion
 }

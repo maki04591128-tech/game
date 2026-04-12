@@ -27,7 +27,15 @@ public class SymbolMapSystem
     /// </summary>
     public DungeonMap GenerateForTerritory(TerritoryId territory)
     {
-        var result = _generator.Generate(territory);
+        return GenerateForTerritory(territory, null);
+    }
+
+    /// <summary>
+    /// 指定領地のシンボルマップを生成して設定する（クリア済みダンジョン除外対応）
+    /// </summary>
+    public DungeonMap GenerateForTerritory(TerritoryId territory, ISet<string>? clearedDungeonIds)
+    {
+        var result = _generator.Generate(territory, clearedDungeonIds);
         CurrentMap = result.Map;
         CurrentTerritory = territory;
         _locationPositions = result.LocationPositions;

@@ -850,7 +850,9 @@ public class GameController
     private void GenerateSymbolMap()
     {
         var territory = _worldMapSystem.CurrentTerritory;
-        var symbolMap = _symbolMapSystem.GenerateForTerritory(territory);
+        // クリア済みランダムダンジョンIDを取得して再生成を防止
+        var clearedIds = _clearSystem.GetFlagsWithPrefix("cleared_");
+        var symbolMap = _symbolMapSystem.GenerateForTerritory(territory, clearedIds);
 
         Map = symbolMap;
         _worldMapSystem.IsOnSurface = true;

@@ -62,6 +62,14 @@ public class SymbolMapGenerator
     /// </summary>
     public SymbolMapResult Generate(TerritoryId territory)
     {
+        return Generate(territory, null);
+    }
+
+    /// <summary>
+    /// 指定領地のシンボルマップを生成する（クリア済みダンジョン除外対応）
+    /// </summary>
+    public SymbolMapResult Generate(TerritoryId territory, ISet<string>? clearedDungeonIds)
+    {
         var (width, height) = GetTerritoryMapSize(territory);
         var locations = LocationDefinition.GetSymbolLocations(territory);
         var random = new Random(GetTerritorySeed(territory));
@@ -92,7 +100,7 @@ public class SymbolMapGenerator
         PlaceSettlements(map, territory, locationPositions, shapeMask, totalTiles, random);
 
         // 7. ランダムダンジョン（野盗のねぐら、ゴブリンの巣等）を配置
-        PlaceRandomDungeons(map, territory, locationPositions, shapeMask, random);
+        PlaceRandomDungeons(map, territory, locationPositions, shapeMask, random, clearedDungeonIds);
 
         // 8. ロケーション間を道で接続（既存ロケーション）
         ConnectLocationsWithRoads(map, locationPositions.Keys.ToList());
@@ -299,8 +307,8 @@ public class SymbolMapGenerator
                     tileType = tertiary.Value;
                 else if (noise < 0.90 && quaternary.HasValue)
                     tileType = quaternary.Value;
-                else if (noise < 0.90)
-                    tileType = secondary;
+                else if (noise < 0.92)
+                    tileType = secondary;  // tertiary/quaternary未定義時のフォールバック
                 else
                     tileType = obstacle;
 
@@ -553,7 +561,7 @@ public class SymbolMapGenerator
     private static void PlaceRandomDungeons(
         DungeonMap map, TerritoryId territory,
         Dictionary<Position, LocationDefinition> locationPositions,
-        bool[,] shapeMask, Random random)
+        bool[,] shapeMask, Random random, ISet<string>? clearedDungeonIds)
     {
         var settlementPositions = locationPositions
             .Where(kv => kv.Value.Type is LocationType.Town or LocationType.Village
@@ -591,10 +599,18 @@ public class SymbolMapGenerator
 
         for (int i = 0; i < maxDungeons; i++)
         {
+            // クリア済みダンジョンはスキップ（位置の決定論性を保つためRNGは消費）
+            string dungeonId = $"{territory}_random_dungeon_{i}";
             var pos = FindRandomDungeonPosition(map, shapeMask, settlementPositions, dungeonPositions, random);
             if (pos == null) break;
 
             var dungeonDef = dungeonTypes[random.Next(dungeonTypes.Length)];
+
+            // クリア済みならタイルを配置せずスキップ
+            if (clearedDungeonIds != null && clearedDungeonIds.Contains(dungeonId))
+            {
+                continue;
+            }
 
             // 首都からの距離に基づく成長曲線
             int distFromCapital = pos.Value.ChebyshevDistanceTo(capitalPos);
@@ -615,7 +631,7 @@ public class SymbolMapGenerator
             EnsureAccessible(map, pos.Value, shapeMask);
 
             var loc = new LocationDefinition(
-                $"{territory}_random_dungeon_{i}",
+                dungeonId,
                 dungeonDef.name,
                 $"全{floors}階層のダンジョン（推奨Lv.{minLevel}）。クリアすると消滅する",
                 dungeonDef.type,
@@ -979,7 +995,20 @@ public class SymbolMapGenerator
                 break;
             }
 
-            if (!gatePos.HasValue) continue;
+            if (!gatePos.HasValue)
+            {
+                // フォールバック: ターゲット座標が有効であれば直接使用
+                int fx = Math.Clamp(targetX, margin, map.Width - margin - 1);
+                int fy = Math.Clamp(targetY, margin, map.Height - margin - 1);
+                if (shapeMask[fx, fy] && !IsMountainOrWater(map, new Position(fx, fy)))
+                {
+                    gatePos = new Position(fx, fy);
+                }
+                else
+                {
+                    continue;
+                }
+            }
 
             var adjName = GetTerritoryDisplayName(adjTerritory);
             map.SetTile(gatePos.Value.X, gatePos.Value.Y, TileType.SymbolBorderGate);
