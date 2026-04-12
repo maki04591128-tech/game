@@ -142,7 +142,7 @@ public class SymbolMapSystem
     }
 
     /// <summary>
-    /// シンボルマップのタイル属性名を取得する（日本語表示用）
+    /// シンボルマップのタイル属性名を取得する（日本語表示用、高度情報付き）
     /// </summary>
     public static string GetTerrainName(TileType type)
     {
@@ -155,6 +155,34 @@ public class SymbolMapSystem
             TileType.SymbolRoad => "街道",
             _ => "野外"
         };
+    }
+
+    /// <summary>
+    /// シンボルマップのタイル属性名を高度付きで取得する
+    /// </summary>
+    public static string GetTerrainNameWithAltitude(Tile tile)
+    {
+        if (tile.Type == TileType.SymbolMountain)
+        {
+            return tile.Altitude switch
+            {
+                >= 4 => "険しい高山",
+                >= 2 => "山岳地帯",
+                _ => "丘陵"
+            };
+        }
+        if (tile.Type == TileType.SymbolWater)
+        {
+            if (tile.RequiresShip)
+                return "深海（船が必要）";
+            return tile.Altitude switch
+            {
+                <= -2 => "深い水域",
+                <= -1 => "浅い水域",
+                _ => "水辺"
+            };
+        }
+        return GetTerrainName(tile.Type);
     }
 
     /// <summary>

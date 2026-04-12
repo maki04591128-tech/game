@@ -352,6 +352,58 @@ public class Tile
     public GatheringType? GatheringNodeType { get; set; }
 
     /// <summary>
+    /// シンボルマップ用の高度（Altitude）。
+    /// 正値=高所（山岳等）、0=平地、負値=低地/深度（水域等）。
+    /// 山岳: 高度が高いほど行動コスト増加。
+    /// 水域: 深度が深いほど行動コスト増加、一定深度以下は船が必要（コスト×2固定）。
+    /// </summary>
+    public int Altitude { get; set; } = 0;
+
+    /// <summary>
+    /// 船が必要かどうか（水域で深度が一定以下の場合）
+    /// </summary>
+    public bool RequiresShip { get; set; } = false;
+
+    /// <summary>
+    /// 船が必要になる水域の深度閾値（この値以下で船が必要）
+    /// </summary>
+    public const int ShipRequiredDepth = -3;
+
+    /// <summary>
+    /// 高度/深度を設定し、行動コストを自動計算する。
+    /// 山岳（高度1-5）: コスト = 1.5 + 高度 × 0.3（最大3.0）
+    /// 水域（深度-1～-2）: コスト = 1.3 + |深度| × 0.25
+    /// 水域（深度-3以下）: 船が必要、コスト = 2.0固定
+    /// </summary>
+    public void SetAltitude(int altitude)
+    {
+        Altitude = altitude;
+
+        if (Type == TileType.SymbolMountain)
+        {
+            // 山岳: 高度が高いほどコスト増加
+            // 高度0=1.5, 高度1=1.8, 高度2=2.1, 高度3=2.4, 高度4=2.7, 高度5=3.0
+            MovementCost = Math.Min(3.0f, 1.5f + Math.Max(0, altitude) * 0.3f);
+        }
+        else if (Type == TileType.SymbolWater)
+        {
+            if (altitude <= ShipRequiredDepth)
+            {
+                // 深い水域: 船が必要、コスト×2固定
+                RequiresShip = true;
+                MovementCost = 2.0f;
+            }
+            else
+            {
+                // 浅い水域: 深度に応じてコスト増加
+                // 深度0=1.3, 深度-1=1.55, 深度-2=1.8
+                RequiresShip = false;
+                MovementCost = 1.3f + Math.Abs(Math.Min(0, altitude)) * 0.25f;
+            }
+        }
+    }
+
+    /// <summary>
     /// 表示文字
     /// </summary>
     public char DisplayChar => GetDisplayChar();
@@ -460,14 +512,18 @@ public class Tile
 
             case TileType.SymbolMountain:
                 tile.BlocksSight = false;
-                tile.BlocksMovement = true;
-                tile.MovementCost = 2.0f;
+                tile.BlocksMovement = false;
+                // 高度に応じた行動コストはSetAltitudeで設定される
+                // デフォルトは高度0の山岳（基本コスト1.5）
+                tile.MovementCost = 1.5f;
                 break;
 
             case TileType.SymbolWater:
                 tile.BlocksSight = false;
-                tile.BlocksMovement = true;
-                tile.MovementCost = 1.8f;
+                tile.BlocksMovement = false;
+                // 深度に応じた行動コストはSetAltitudeで設定される
+                // デフォルトは深度0の浅い水域（基本コスト1.3）
+                tile.MovementCost = 1.3f;
                 break;
 
             case TileType.DebugEnemySpawn:

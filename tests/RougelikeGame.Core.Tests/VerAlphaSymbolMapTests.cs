@@ -139,18 +139,23 @@ public class VerAlphaSymbolMapTests
         var result = gen.Generate(territory);
         var map = result.Map;
 
-        // SymbolMountainが障害物として存在する領地で検証
-        int obstacles = 0;
+        // 山岳タイルが存在する（高度システム導入後は通行可能だが高移動コスト）
+        int mountainTiles = 0;
+        int highCostTiles = 0;
         for (int x = 0; x < map.Width; x++)
             for (int y = 0; y < map.Height; y++)
             {
                 var tile = map.GetTile(new Position(x, y));
-                if (tile.BlocksMovement) obstacles++;
+                if (tile.Type == TileType.SymbolMountain) mountainTiles++;
+                if (tile.MovementCost > 1.0f) highCostTiles++;
             }
 
-        // 障害物が存在する
-        Assert.True(obstacles > 0,
-            $"Territory {territory}: should have blocking tiles (mountains)");
+        // 山岳タイルが存在する
+        Assert.True(mountainTiles > 0,
+            $"Territory {territory}: should have mountain tiles");
+        // 高コストタイルが存在する
+        Assert.True(highCostTiles > 0,
+            $"Territory {territory}: should have high-cost tiles (mountains/forests)");
     }
 
     // ============================================================
@@ -351,5 +356,226 @@ public class VerAlphaSymbolMapTests
             var adjDef = TerritoryDefinition.Get(adj);
             Assert.Contains(territory, adjDef.AdjacentTerritories);
         }
+    }
+
+    // ============================================================
+    // 高度(Altitude)システムテスト
+    // ============================================================
+
+    [Fact]
+    public void Tile_SetAltitude_Mountain_IncreasesMovementCost()
+    {
+        var tile = Tile.FromType(TileType.SymbolMountain);
+        // デフォルトコスト
+        Assert.Equal(1.5f, tile.MovementCost);
+
+        // 高度3に設定 → コスト = 1.5 + 3×0.3 = 2.4
+        tile.SetAltitude(3);
+        Assert.Equal(2.4f, tile.MovementCost, 2);
+        Assert.Equal(3, tile.Altitude);
+        Assert.False(tile.RequiresShip);
+    }
+
+    [Fact]
+    public void Tile_SetAltitude_Mountain_MaxCost3()
+    {
+        var tile = Tile.FromType(TileType.SymbolMountain);
+        tile.SetAltitude(5);
+        Assert.Equal(3.0f, tile.MovementCost, 2);
+    }
+
+    [Fact]
+    public void Tile_SetAltitude_Water_ShallowDepth_IncreasesMovementCost()
+    {
+        var tile = Tile.FromType(TileType.SymbolWater);
+        // 深度-2 → コスト = 1.3 + 2×0.25 = 1.8
+        tile.SetAltitude(-2);
+        Assert.Equal(1.8f, tile.MovementCost, 2);
+        Assert.False(tile.RequiresShip);
+    }
+
+    [Fact]
+    public void Tile_SetAltitude_Water_DeepRequiresShip()
+    {
+        var tile = Tile.FromType(TileType.SymbolWater);
+        // 深度-3以下 → 船が必要、コスト = 2.0固定
+        tile.SetAltitude(-3);
+        Assert.True(tile.RequiresShip);
+        Assert.Equal(2.0f, tile.MovementCost, 2);
+    }
+
+    [Fact]
+    public void Tile_SetAltitude_Water_VeryDeep_StillFixedCost()
+    {
+        var tile = Tile.FromType(TileType.SymbolWater);
+        // 深度-5 → 船が必要、コスト = 2.0固定
+        tile.SetAltitude(-5);
+        Assert.True(tile.RequiresShip);
+        Assert.Equal(2.0f, tile.MovementCost, 2);
+    }
+
+    [Fact]
+    public void Tile_SymbolMountain_IsWalkable()
+    {
+        // 高度概念導入後、山岳は通行可能（高コスト）
+        var tile = Tile.FromType(TileType.SymbolMountain);
+        Assert.False(tile.BlocksMovement);
+    }
+
+    [Fact]
+    public void Tile_SymbolWater_IsWalkable()
+    {
+        // 高度概念導入後、水域は通行可能（高コスト）
+        var tile = Tile.FromType(TileType.SymbolWater);
+        Assert.False(tile.BlocksMovement);
+    }
+
+    [Theory]
+    [InlineData(TerritoryId.Mountain)]
+    [InlineData(TerritoryId.Coast)]
+    [InlineData(TerritoryId.Lake)]
+    public void Generate_AltitudeMap_MountainAndWaterHaveAltitude(TerritoryId territory)
+    {
+        var gen = new SymbolMapGenerator();
+        var result = gen.Generate(territory);
+        var map = result.Map;
+
+        // 高度が設定されたタイルが存在する
+        bool hasNonZeroAltitude = false;
+        for (int x = 0; x < map.Width && !hasNonZeroAltitude; x++)
+            for (int y = 0; y < map.Height && !hasNonZeroAltitude; y++)
+            {
+                var tile = map.GetTile(new Position(x, y));
+                if (tile.Altitude != 0) hasNonZeroAltitude = true;
+            }
+
+        Assert.True(hasNonZeroAltitude,
+            $"Territory {territory}: should have tiles with non-zero altitude");
+    }
+
+    [Theory]
+    [InlineData(TerritoryId.Capital)]
+    [InlineData(TerritoryId.Forest)]
+    [InlineData(TerritoryId.Mountain)]
+    [InlineData(TerritoryId.Coast)]
+    public void Generate_SettlementsNotOnMountainOrWater(TerritoryId territory)
+    {
+        var gen = new SymbolMapGenerator();
+        var result = gen.Generate(territory);
+        var map = result.Map;
+
+        // 集落（村・町・都）が山岳・水域タイル上にないことを確認
+        foreach (var (pos, loc) in result.LocationPositions)
+        {
+            if (loc.Type is LocationType.Town or LocationType.Village or LocationType.Capital)
+            {
+                var tile = map.GetTile(pos);
+                // 集落は自身のタイルタイプに変更されるので、周囲が山岳/水域でないことを確認
+                Assert.True(
+                    tile.Type is TileType.SymbolTown or TileType.SymbolVillage or TileType.SymbolCapital,
+                    $"Settlement at ({pos.X},{pos.Y}) should be a settlement tile, got {tile.Type}");
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(TerritoryId.Capital)]
+    [InlineData(TerritoryId.Forest)]
+    [InlineData(TerritoryId.Frontier)]
+    public void Generate_SettlementsConnectedByRoads(TerritoryId territory)
+    {
+        var gen = new SymbolMapGenerator();
+        var result = gen.Generate(territory);
+        var map = result.Map;
+
+        // 集落の位置を収集
+        var settlements = result.LocationPositions
+            .Where(kv => kv.Value.Type is LocationType.Town or LocationType.Village or LocationType.Capital)
+            .Select(kv => kv.Key)
+            .ToList();
+
+        if (settlements.Count < 2) return;
+
+        // 道路タイルが存在する（集落間に道が引かれている）
+        int roadCount = 0;
+        for (int x = 0; x < map.Width; x++)
+            for (int y = 0; y < map.Height; y++)
+            {
+                var tile = map.GetTile(new Position(x, y));
+                if (tile.Type == TileType.SymbolRoad) roadCount++;
+            }
+
+        Assert.True(roadCount > 0,
+            $"Territory {territory}: should have road tiles connecting settlements");
+    }
+
+    [Fact]
+    public void DungeonMap_SetTileWithAltitude_SetsCorrectly()
+    {
+        var map = new DungeonMap(10, 10);
+        map.SetTileWithAltitude(3, 3, TileType.SymbolMountain, 4);
+
+        var tile = map.GetTile(new Position(3, 3));
+        Assert.Equal(TileType.SymbolMountain, tile.Type);
+        Assert.Equal(4, tile.Altitude);
+        Assert.Equal(2.7f, tile.MovementCost, 2); // 1.5 + 4×0.3
+    }
+
+    [Fact]
+    public void DungeonMap_SetTileWithAltitude_WaterDeep()
+    {
+        var map = new DungeonMap(10, 10);
+        map.SetTileWithAltitude(3, 3, TileType.SymbolWater, -4);
+
+        var tile = map.GetTile(new Position(3, 3));
+        Assert.Equal(TileType.SymbolWater, tile.Type);
+        Assert.Equal(-4, tile.Altitude);
+        Assert.True(tile.RequiresShip);
+        Assert.Equal(2.0f, tile.MovementCost, 2);
+    }
+
+    [Fact]
+    public void SymbolMapSystem_GetTerrainNameWithAltitude_Mountain()
+    {
+        var tile = Tile.FromType(TileType.SymbolMountain);
+        tile.SetAltitude(4);
+        Assert.Equal("険しい高山", SymbolMapSystem.GetTerrainNameWithAltitude(tile));
+    }
+
+    [Fact]
+    public void SymbolMapSystem_GetTerrainNameWithAltitude_Hill()
+    {
+        var tile = Tile.FromType(TileType.SymbolMountain);
+        tile.SetAltitude(1);
+        Assert.Equal("丘陵", SymbolMapSystem.GetTerrainNameWithAltitude(tile));
+    }
+
+    [Fact]
+    public void SymbolMapSystem_GetTerrainNameWithAltitude_DeepSea()
+    {
+        var tile = Tile.FromType(TileType.SymbolWater);
+        tile.SetAltitude(-4);
+        Assert.Equal("深海（船が必要）", SymbolMapSystem.GetTerrainNameWithAltitude(tile));
+    }
+
+    [Fact]
+    public void SymbolMapSystem_GetTerrainNameWithAltitude_ShallowWater()
+    {
+        var tile = Tile.FromType(TileType.SymbolWater);
+        tile.SetAltitude(-1);
+        Assert.Equal("浅い水域", SymbolMapSystem.GetTerrainNameWithAltitude(tile));
+    }
+
+    [Fact]
+    public void SymbolMapSystem_GetTerrainNameWithAltitude_Grass()
+    {
+        var tile = Tile.FromType(TileType.SymbolGrass);
+        Assert.Equal("草原", SymbolMapSystem.GetTerrainNameWithAltitude(tile));
+    }
+
+    [Fact]
+    public void Tile_ShipRequiredDepthConstant()
+    {
+        Assert.Equal(-3, Tile.ShipRequiredDepth);
     }
 }

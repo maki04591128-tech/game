@@ -78,23 +78,29 @@ public class SymbolMapGenerator
         // 2. 複雑な形状マスクを生成（隣接領地と境界一致）
         var shapeMask = GenerateComplexShapeMask(territory, width, height, random);
 
-        // 3. マスクに基づいて基本地形を敷く
-        FillBaseTerrainWithMask(map, territory, shapeMask, random);
+        // 3. 高度マップを生成
+        var altitudeMap = GenerateAltitudeMap(territory, width, height, random);
 
-        // 4. 既存ロケーションを配置
+        // 4. マスクに基づいて基本地形を敷く（高度付き）
+        FillBaseTerrainWithMask(map, territory, shapeMask, random, altitudeMap);
+
+        // 5. 既存ロケーションを配置（山岳・水域は回避）
         var locationPositions = PlaceLocations(map, locations, shapeMask, random);
 
-        // 5. 村・町・都を自動配置
+        // 6. 村・町・都を自動配置（山岳・水域は回避）
         var totalTiles = CountWalkableTiles(map, shapeMask);
         PlaceSettlements(map, territory, locationPositions, shapeMask, totalTiles, random);
 
-        // 6. ランダムダンジョン（野盗のねぐら、ゴブリンの巣等）を配置
+        // 7. ランダムダンジョン（野盗のねぐら、ゴブリンの巣等）を配置
         PlaceRandomDungeons(map, territory, locationPositions, shapeMask, random);
 
-        // 7. ロケーション間を道で接続
+        // 8. ロケーション間を道で接続（既存ロケーション）
         ConnectLocationsWithRoads(map, locationPositions.Keys.ToList());
 
-        // 8. 入口位置を設定（最初のロケーション）
+        // 9. 村・町・都を必ず道で接続する（最小全域木方式）
+        ConnectSettlementsWithRoads(map, locationPositions);
+
+        // 10. 入口位置を設定（最初のロケーション）
         if (locationPositions.Count > 0)
         {
             var entrance = locationPositions.First().Key;
@@ -228,8 +234,8 @@ public class SymbolMapGenerator
         return count;
     }
 
-    /// <summary>マスクに基づいて領地タイプに応じた基本地形を生成</summary>
-    private static void FillBaseTerrainWithMask(DungeonMap map, TerritoryId territory, bool[,] shapeMask, Random random)
+    /// <summary>マスクに基づいて領地タイプに応じた基本地形を生成（高度付き）</summary>
+    private static void FillBaseTerrainWithMask(DungeonMap map, TerritoryId territory, bool[,] shapeMask, Random random, int[,] altitudeMap)
     {
         var (primary, secondary, obstacle) = GetTerrainForTerritory(territory);
 
@@ -253,7 +259,17 @@ public class SymbolMapGenerator
                 else
                     tileType = obstacle;
 
-                map.SetTile(x, y, tileType);
+                int altitude = altitudeMap[x, y];
+
+                // 山岳・水域タイルは高度付きで設定
+                if (tileType is TileType.SymbolMountain or TileType.SymbolWater)
+                {
+                    map.SetTileWithAltitude(x, y, tileType, altitude);
+                }
+                else
+                {
+                    map.SetTile(x, y, tileType);
+                }
             }
         }
     }
@@ -279,7 +295,7 @@ public class SymbolMapGenerator
         };
     }
 
-    /// <summary>ロケーションをマップ上に配置する</summary>
+    /// <summary>ロケーションをマップ上に配置する（集落系は山岳・水域回避）</summary>
     private static Dictionary<Position, LocationDefinition> PlaceLocations(
         DungeonMap map,
         IReadOnlyList<LocationDefinition> locations,
@@ -295,6 +311,7 @@ public class SymbolMapGenerator
 
         foreach (var location in locations)
         {
+            bool isSettlement = location.Type is LocationType.Town or LocationType.Village or LocationType.Capital;
             Position pos;
             int attempts = 0;
 
@@ -307,6 +324,7 @@ public class SymbolMapGenerator
             }
             while (attempts < 500 && (
                 !shapeMask[pos.X, pos.Y] ||
+                (isSettlement && IsMountainOrWater(map, pos)) ||
                 usedPositions.Any(p => p.ChebyshevDistanceTo(pos) < 12)));
 
             var tileType = GetTileTypeForLocation(location.Type);
@@ -403,7 +421,7 @@ public class SymbolMapGenerator
         }
     }
 
-    /// <summary>集落配置位置を探す</summary>
+    /// <summary>集落配置位置を探す（山岳・水域タイルは回避）</summary>
     private static Position? FindSettlementPosition(
         DungeonMap map, bool[,] shapeMask, HashSet<Position> usedPositions,
         int margin, Random random, bool preferCenter, int minDistance)
@@ -429,6 +447,10 @@ public class SymbolMapGenerator
             if (!shapeMask[x, y]) continue;
 
             var pos = new Position(x, y);
+
+            // 山岳・水域タイルへの配置を禁止
+            if (IsMountainOrWater(map, pos)) continue;
+
             if (usedPositions.Any(p => p.ChebyshevDistanceTo(pos) < minDistance)) continue;
 
             return pos;
@@ -688,6 +710,122 @@ public class SymbolMapGenerator
             TerritoryId.Sacred   => "光輝の聖都",
             _ => "首都"
         };
+    }
+
+    /// <summary>
+    /// 高度マップを生成する。
+    /// 領地の地形傾向に基づき、擬似パーリンノイズで自然な高度分布を作る。
+    /// 山岳領地は正の高度(0-5)、海岸/湖/沼は負の高度(0～-5)、それ以外は混在。
+    /// </summary>
+    private static int[,] GenerateAltitudeMap(TerritoryId territory, int width, int height, Random random)
+    {
+        var altitudeMap = new int[width, height];
+
+        // 領地タイプに応じた高度バイアス
+        var (minAlt, maxAlt) = GetAltitudeRange(territory);
+
+        // 複数オクターブのノイズで高度を生成
+        double freqX = 0.02 + random.NextDouble() * 0.01;
+        double freqY = 0.02 + random.NextDouble() * 0.01;
+        double offsetX = random.NextDouble() * 1000;
+        double offsetY = random.NextDouble() * 1000;
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                double noise = 0;
+                noise += 0.5 * Math.Sin((x + offsetX) * freqX * 1.0 + (y + offsetY) * freqY * 0.7);
+                noise += 0.3 * Math.Sin((x + offsetX) * freqX * 2.3 + (y + offsetY) * freqY * 1.9);
+                noise += 0.2 * Math.Sin((x + offsetX) * freqX * 4.1 + (y + offsetY) * freqY * 3.7);
+
+                // -1.0～1.0 を minAlt～maxAlt に線形変換
+                double normalized = (noise + 1.0) / 2.0; // 0.0～1.0
+                int altitude = minAlt + (int)(normalized * (maxAlt - minAlt));
+                altitude = Math.Clamp(altitude, minAlt, maxAlt);
+
+                altitudeMap[x, y] = altitude;
+            }
+        }
+
+        return altitudeMap;
+    }
+
+    /// <summary>領地タイプごとの高度範囲を返す</summary>
+    private static (int Min, int Max) GetAltitudeRange(TerritoryId territory)
+    {
+        return territory switch
+        {
+            TerritoryId.Mountain => (0, 5),     // 山岳領: 高所中心
+            TerritoryId.Volcanic => (0, 4),     // 火山領: 高所
+            TerritoryId.Tundra   => (-1, 3),    // 凍土: やや高め
+            TerritoryId.Coast    => (-4, 1),    // 海岸: 海が多い
+            TerritoryId.Lake     => (-3, 1),    // 湖水: 水域多い
+            TerritoryId.Swamp    => (-2, 0),    // 沼沢: 低湿地
+            TerritoryId.Frontier => (-1, 3),    // 辺境: 起伏あり
+            TerritoryId.Capital  => (-1, 2),    // 王都: 平坦気味
+            TerritoryId.Forest   => (-1, 2),    // 森林: 穏やか
+            TerritoryId.Southern => (-2, 1),    // 南部: 平地＋沿岸
+            TerritoryId.Desert   => (0, 3),     // 砂漠: 砂丘高め
+            TerritoryId.Sacred   => (0, 2),     // 聖域: 高原
+            _ => (-2, 2)
+        };
+    }
+
+    /// <summary>
+    /// 村・町・都を必ず道路で接続する（プリム法ベースの最小全域木）。
+    /// Generate()のステップ9で呼び出される。
+    /// </summary>
+    private static void ConnectSettlementsWithRoads(
+        DungeonMap map, Dictionary<Position, LocationDefinition> locationPositions)
+    {
+        // 集落（村・町・都）の位置を抽出
+        var settlements = locationPositions
+            .Where(kv => kv.Value.Type is LocationType.Town or LocationType.Village or LocationType.Capital)
+            .Select(kv => kv.Key)
+            .ToList();
+
+        if (settlements.Count < 2) return;
+
+        // プリム法で最小全域木を構築（全集落を最短距離で接続）
+        var connected = new HashSet<Position> { settlements[0] };
+        var remaining = new HashSet<Position>(settlements.Skip(1));
+
+        while (remaining.Count > 0)
+        {
+            Position bestFrom = default;
+            Position bestTo = default;
+            int bestDist = int.MaxValue;
+
+            foreach (var from in connected)
+            {
+                foreach (var to in remaining)
+                {
+                    int dist = from.ChebyshevDistanceTo(to);
+                    if (dist < bestDist)
+                    {
+                        bestDist = dist;
+                        bestFrom = from;
+                        bestTo = to;
+                    }
+                }
+            }
+
+            CarveRoad(map, bestFrom, bestTo);
+            connected.Add(bestTo);
+            remaining.Remove(bestTo);
+        }
+    }
+
+    /// <summary>
+    /// 指定位置のタイルが山岳または水域かどうか判定する。
+    /// 集落配置時に使用。
+    /// </summary>
+    private static bool IsMountainOrWater(DungeonMap map, Position pos)
+    {
+        if (!map.IsInBounds(pos)) return true;
+        var tile = map.GetTile(pos);
+        return tile.Type is TileType.SymbolMountain or TileType.SymbolWater;
     }
 }
 
