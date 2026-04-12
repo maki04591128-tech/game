@@ -793,6 +793,41 @@ public class VerAlphaSymbolMapTests
     }
 
     [Fact]
+    public void GetBorderGateTarget_ValidGate_ReturnsTarget()
+    {
+        var gateLoc = new LocationDefinition(
+            "Capital_gate_to_Forest",
+            "森林領方面の関所",
+            "森林領への国境検問所",
+            LocationType.BorderGate,
+            TerritoryId.Capital);
+
+        var target = gateLoc.GetBorderGateTarget();
+        Assert.NotNull(target);
+        Assert.Equal(TerritoryId.Forest, target.Value);
+    }
+
+    [Fact]
+    public void GetBorderGateTarget_NonBorderGate_ReturnsNull()
+    {
+        var loc = new LocationDefinition("test_town", "テスト", "説明",
+            LocationType.Town, TerritoryId.Capital);
+        Assert.Null(loc.GetBorderGateTarget());
+    }
+
+    [Fact]
+    public void GetBorderGateTarget_InvalidId_ReturnsNull()
+    {
+        var gateLoc = new LocationDefinition(
+            "invalid_gate_id",
+            "壊れた関所",
+            "不正なID",
+            LocationType.BorderGate,
+            TerritoryId.Capital);
+        Assert.Null(gateLoc.GetBorderGateTarget());
+    }
+
+    [Fact]
     public void LocationDefinition_MaxFloor_DefaultIsNull()
     {
         var loc = new LocationDefinition("test", "テスト", "説明", LocationType.Dungeon, TerritoryId.Capital);

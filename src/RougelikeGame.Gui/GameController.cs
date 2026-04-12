@@ -6559,21 +6559,20 @@ public class GameController
         // 関所の場合は領地遷移処理
         if (location != null && location.Type == LocationType.BorderGate)
         {
-            // 関所IDから遷移先領地を解析（形式: "{territory}_gate_to_{adjTerritory}"）
-            var idParts = location.Id.Split("_gate_to_");
-            if (idParts.Length == 2 && Enum.TryParse<TerritoryId>(idParts[1], out var targetTerritory))
+            var targetTerritory = location.GetBorderGateTarget();
+            if (targetTerritory.HasValue)
             {
-                var targetDef = TerritoryDefinition.Get(targetTerritory);
+                var targetDef = TerritoryDefinition.Get(targetTerritory.Value);
                 AddMessage($"【{location.Name}】─ 関所を通過し、{targetDef.Name}へ向かう…");
 
                 // 領地を切り替え
-                _worldMapSystem.SetTerritory(targetTerritory);
+                _worldMapSystem.SetTerritory(targetTerritory.Value);
                 _currentDungeonFeature = null;
 
                 // 新しい領地のシンボルマップを生成
                 GenerateSymbolMap();
 
-                _currentAmbientSound = AmbientSoundSystem.GetAmbientForTerritory(targetTerritory);
+                _currentAmbientSound = AmbientSoundSystem.GetAmbientForTerritory(targetTerritory.Value);
                 AddMessage($"{targetDef.Name}に到着した");
                 OnStateChanged?.Invoke();
                 return true;

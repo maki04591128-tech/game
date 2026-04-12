@@ -37,6 +37,22 @@ public record LocationDefinition(
     string[]? SubLocationIds = null,
     int? MaxFloor = null)
 {
+    /// <summary>関所IDの区切り文字列</summary>
+    private const string GateToDelimiter = "_gate_to_";
+
+    /// <summary>
+    /// 関所(BorderGate)の遷移先領地を取得する。
+    /// 関所でない場合やIDが解析できない場合はnullを返す。
+    /// </summary>
+    public TerritoryId? GetBorderGateTarget()
+    {
+        if (Type != LocationType.BorderGate) return null;
+        int idx = Id.IndexOf(GateToDelimiter, StringComparison.Ordinal);
+        if (idx < 0) return null;
+        string targetStr = Id[(idx + GateToDelimiter.Length)..];
+        return Enum.TryParse<TerritoryId>(targetStr, out var target) ? target : null;
+    }
+
     private static readonly Dictionary<string, LocationDefinition> All = new()
     {
         // 王都領 ── 統合: 非ダンジョンを「王都」に集約
