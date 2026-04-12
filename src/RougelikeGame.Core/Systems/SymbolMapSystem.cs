@@ -242,9 +242,12 @@ public class SymbolMapSystem
     /// </summary>
     public bool RemoveLocationById(string locationId)
     {
-        var entry = _locationPositions.FirstOrDefault(kv => kv.Value.Id == locationId);
-        if (entry.Value == null) return false;
-        return RemoveLocation(entry.Key);
+        var match = _locationPositions
+            .Where(kv => kv.Value.Id == locationId)
+            .Select(kv => (Position: kv.Key, Found: true))
+            .FirstOrDefault();
+        if (!match.Found) return false;
+        return RemoveLocation(match.Position);
     }
 
     /// <summary>

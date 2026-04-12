@@ -637,7 +637,8 @@ public class SymbolMapGenerator
                 dungeonDef.type,
                 territory,
                 MinLevel: minLevel,
-                DangerLevel: dangerLevel);
+                DangerLevel: dangerLevel,
+                MaxFloor: floors);
 
             locationPositions[pos.Value] = loc;
             dungeonPositions.Add(pos.Value);

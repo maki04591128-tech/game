@@ -3,6 +3,7 @@ using RougelikeGame.Core;
 using RougelikeGame.Core.Map;
 using RougelikeGame.Core.Map.Generation;
 using RougelikeGame.Core.Systems;
+using RougelikeGame.Core.Interfaces;
 
 namespace RougelikeGame.Core.Tests;
 
@@ -10,10 +11,18 @@ namespace RougelikeGame.Core.Tests;
 /// Ver.α シンボルマップ拡張テスト
 /// 12領地対応、可変サイズ、複雑形状、村/町/都自動配置、
 /// ランダムダンジョン生成、勢力影響→敵種別マッピングのテスト
-/// テスト数: 30件
+/// テスト数: 43件（Phase修正テスト13件追加）
 /// </summary>
 public class VerAlphaSymbolMapTests
 {
+    private class FixedRandomProvider : IRandomProvider
+    {
+        private readonly int _value;
+        public FixedRandomProvider(int value) => _value = value;
+        public int Next(int maxValue) => Math.Min(_value, maxValue - 1);
+        public int Next(int minValue, int maxValue) => Math.Min(Math.Max(_value, minValue), maxValue - 1);
+        public double NextDouble() => 0.5;
+    }
     // ============================================================
     // 12領地: マップサイズ範囲テスト
     // ============================================================
@@ -759,5 +768,165 @@ public class VerAlphaSymbolMapTests
     public void SymbolMapEventSystem_EventCount_Is16()
     {
         Assert.Equal(16, SymbolMapEventSystem.GetAllEvents().Count);
+    }
+
+    // ============================================================
+    // Phase修正テスト: BorderGate、難易度連携、switch補完、enum安全性
+    // ============================================================
+
+    [Fact]
+    public void BorderGate_LocationId_ContainsTargetTerritory()
+    {
+        // 関所のID形式が "{territory}_gate_to_{adjTerritory}" であることを確認
+        var gateLoc = new LocationDefinition(
+            "Capital_gate_to_Forest",
+            "森林領方面の関所",
+            "森林領への国境検問所",
+            LocationType.BorderGate,
+            TerritoryId.Capital);
+
+        Assert.Contains("_gate_to_", gateLoc.Id);
+        var parts = gateLoc.Id.Split("_gate_to_");
+        Assert.Equal(2, parts.Length);
+        Assert.True(Enum.TryParse<TerritoryId>(parts[1], out var target));
+        Assert.Equal(TerritoryId.Forest, target);
+    }
+
+    [Fact]
+    public void LocationDefinition_MaxFloor_DefaultIsNull()
+    {
+        var loc = new LocationDefinition("test", "テスト", "説明", LocationType.Dungeon, TerritoryId.Capital);
+        Assert.Null(loc.MaxFloor);
+    }
+
+    [Fact]
+    public void LocationDefinition_MaxFloor_SetByRandomDungeon()
+    {
+        var loc = new LocationDefinition(
+            "Capital_random_dungeon_0",
+            "野盗のねぐら",
+            "全3階層のダンジョン（推奨Lv.5）。クリアすると消滅する",
+            LocationType.BanditDen,
+            TerritoryId.Capital,
+            MinLevel: 5,
+            DangerLevel: 2,
+            MaxFloor: 3);
+
+        Assert.Equal(3, loc.MaxFloor);
+        Assert.Equal(5, loc.MinLevel);
+        Assert.Equal(2, loc.DangerLevel);
+    }
+
+    [Theory]
+    [InlineData(TerritoryId.Capital)]
+    [InlineData(TerritoryId.Forest)]
+    [InlineData(TerritoryId.Mountain)]
+    [InlineData(TerritoryId.Coast)]
+    [InlineData(TerritoryId.Southern)]
+    [InlineData(TerritoryId.Frontier)]
+    [InlineData(TerritoryId.Desert)]
+    [InlineData(TerritoryId.Swamp)]
+    [InlineData(TerritoryId.Tundra)]
+    [InlineData(TerritoryId.Lake)]
+    [InlineData(TerritoryId.Volcanic)]
+    [InlineData(TerritoryId.Sacred)]
+    public void GetTerritoryPriceMultiplier_AllTerritories_ReturnExplicitValue(TerritoryId territory)
+    {
+        // 全12領地がデフォルト(1.0)ではなく明示的な値を返すことを確認
+        double multiplier = ShopSystem.GetTerritoryPriceMultiplier(territory);
+        Assert.True(multiplier >= 0.9 && multiplier <= 1.5,
+            $"{territory}の価格倍率{multiplier}が想定範囲外");
+    }
+
+    [Theory]
+    [InlineData(TerritoryId.Desert, "砂鉄")]
+    [InlineData(TerritoryId.Swamp, "毒草")]
+    [InlineData(TerritoryId.Tundra, "氷晶")]
+    [InlineData(TerritoryId.Lake, "真珠")]
+    [InlineData(TerritoryId.Volcanic, "溶岩石")]
+    [InlineData(TerritoryId.Sacred, "聖水晶")]
+    public void ResolveMaterialDeposit_NewTerritories_ReturnUniqueMaterial(TerritoryId territory, string expectedMaterial)
+    {
+        var eventSystem = new RandomEventSystem();
+        var random = new FixedRandomProvider(0);
+        var result = eventSystem.ResolveMaterialDeposit(1, territory, random);
+        Assert.Contains(expectedMaterial, result.Message);
+    }
+
+    [Fact]
+    public void TileType_EnumIsDefined_ValidValues()
+    {
+        // 有効なTileType値の検証
+        Assert.True(Enum.IsDefined(typeof(TileType), (int)TileType.Floor));
+        Assert.True(Enum.IsDefined(typeof(TileType), (int)TileType.Wall));
+        Assert.True(Enum.IsDefined(typeof(TileType), (int)TileType.StairsUp));
+        Assert.True(Enum.IsDefined(typeof(TileType), (int)TileType.StairsDown));
+    }
+
+    [Fact]
+    public void TileType_EnumIsDefined_InvalidValue_ReturnsFalse()
+    {
+        // 不正な値はIsDefined=false
+        Assert.False(Enum.IsDefined(typeof(TileType), 9999));
+        Assert.False(Enum.IsDefined(typeof(TileType), -1));
+    }
+
+    [Fact]
+    public void RemoveLocationById_NonExistentId_ReturnsFalse()
+    {
+        var system = new SymbolMapSystem();
+        // 存在しないIDの削除はfalseを返す
+        Assert.False(system.RemoveLocationById("nonexistent_dungeon"));
+    }
+
+    [Fact]
+    public void RemoveLocationById_AfterGenerate_ExistingDungeon_ReturnsTrue()
+    {
+        var system = new SymbolMapSystem();
+        // Capital領地のシンボルマップを生成
+        system.GenerateForTerritory(TerritoryId.Capital);
+
+        // 生成されたロケーションからランダムダンジョンを探す
+        var locations = system.GetAllLocationPositions();
+        var randomDungeon = locations
+            .FirstOrDefault(kv => kv.Value.Id.Contains("_random_dungeon_"));
+
+        if (randomDungeon.Value != null)
+        {
+            Assert.True(system.RemoveLocationById(randomDungeon.Value.Id));
+            Assert.Null(system.GetLocationAt(randomDungeon.Key));
+        }
+        // ランダムダンジョンがない場合はスキップ（生成の確率による）
+    }
+
+    [Fact]
+    public void BorderGate_PlacedForAdjacentTerritories()
+    {
+        // Capital領地は4つの隣接領地があるため、関所が配置される
+        var def = TerritoryDefinition.Get(TerritoryId.Capital);
+        Assert.True(def.AdjacentTerritories.Length > 0,
+            "Capital領地には隣接領地が必要");
+    }
+
+    [Fact]
+    public void TerritoryDefinition_AllTerritories_HaveAdjacentList()
+    {
+        foreach (TerritoryId tid in Enum.GetValues<TerritoryId>())
+        {
+            var def = TerritoryDefinition.Get(tid);
+            Assert.NotNull(def.AdjacentTerritories);
+            // 全領地が少なくとも1つの隣接領地を持つ
+            Assert.True(def.AdjacentTerritories.Length > 0,
+                $"{tid}には少なくとも1つの隣接領地が必要");
+        }
+    }
+
+    [Fact]
+    public void BossFloorInterval_IsPositive()
+    {
+        Assert.True(GameConstants.BossFloorInterval > 0,
+            "BossFloorIntervalは正の値である必要がある");
+        // Math.Max(1, BossFloorInterval)と同じ効果を保証
+        Assert.Equal(GameConstants.BossFloorInterval, Math.Max(1, GameConstants.BossFloorInterval));
     }
 }

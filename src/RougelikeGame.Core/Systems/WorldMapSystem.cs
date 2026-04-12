@@ -34,7 +34,8 @@ public record LocationDefinition(
     TerritoryId Territory,
     int MinLevel = 1,
     int DangerLevel = 1,
-    string[]? SubLocationIds = null)
+    string[]? SubLocationIds = null,
+    int? MaxFloor = null)
 {
     private static readonly Dictionary<string, LocationDefinition> All = new()
     {
@@ -626,6 +627,12 @@ public class ShopSystem
         TerritoryId.Coast => 0.9,
         TerritoryId.Southern => 1.3,
         TerritoryId.Frontier => 1.5,
+        TerritoryId.Desert => 1.4,
+        TerritoryId.Swamp => 1.2,
+        TerritoryId.Tundra => 1.3,
+        TerritoryId.Lake => 1.0,
+        TerritoryId.Volcanic => 1.5,
+        TerritoryId.Sacred => 1.1,
         _ => 1.0
     };
 
@@ -1071,11 +1078,18 @@ public class RandomEventSystem
     {
         string material = territory switch
         {
+            TerritoryId.Capital => "薬草",
             TerritoryId.Forest => "薬草",
             TerritoryId.Mountain => "鉱石",
             TerritoryId.Coast => "珊瑚",
             TerritoryId.Southern => "砂金",
             TerritoryId.Frontier => "魔石",
+            TerritoryId.Desert => "砂鉄",
+            TerritoryId.Swamp => "毒草",
+            TerritoryId.Tundra => "氷晶",
+            TerritoryId.Lake => "真珠",
+            TerritoryId.Volcanic => "溶岩石",
+            TerritoryId.Sacred => "聖水晶",
             _ => "素材"
         };
         int quantity = 1 + random.Next(3) + depth / 5;

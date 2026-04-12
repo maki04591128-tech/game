@@ -78,6 +78,12 @@ public class GameController
     /// <summary>現在のダンジョン特徴タイプ</summary>
     private DungeonFeatureType? _currentDungeonFeature;
 
+    /// <summary>現在のダンジョンの推奨レベル（ランダムダンジョン難易度連携用）</summary>
+    private int _currentDungeonMinLevel;
+
+    /// <summary>現在のダンジョンの最大階層数（null=デフォルトMaxDungeonFloor使用）</summary>
+    private int? _currentDungeonMaxFloor;
+
     /// <summary>現在の環境音タイプ</summary>
     private AmbientSoundType _currentAmbientSound = AmbientSoundType.Silence;
 
@@ -894,7 +900,8 @@ public class GameController
         _currentDungeonFeature = DungeonFeatureGenerator.SelectFeatureForTerritory(territory, CurrentFloor, _random);
 
         // 環境音を更新（AmbientSoundSystem）
-        bool isBossFloor = CurrentFloor % GameConstants.BossFloorInterval == 0;
+        int bossInterval = Math.Max(1, GameConstants.BossFloorInterval);
+        bool isBossFloor = CurrentFloor % bossInterval == 0;
         _currentAmbientSound = AmbientSoundSystem.GetAmbientForDungeon(CurrentFloor, isBossFloor);
 
         // フロアキャッシュ確認（有効期限内ならマップ構造を再利用）
@@ -938,7 +945,7 @@ public class GameController
             RoomCount = baseRoomCount + CurrentFloor,
             TrapDensity = featureTrapDensity,
             DungeonId = _currentMapName,
-            IsBossFloor = CurrentFloor % GameConstants.BossFloorInterval == 0
+            IsBossFloor = CurrentFloor % bossInterval == 0
         };
 
         var generator = new DungeonGenerator();
@@ -1007,6 +1014,9 @@ public class GameController
         // 階層補正: 3階ごとに全ステータス+1
         int floorBonus = CurrentFloor / 3;
 
+        // ランダムダンジョン推奨レベルによる難易度補正（MinLevel/3をベースボーナスとして加算）
+        int dungeonLevelBonus = _currentDungeonMinLevel / 3;
+
         // NG+段階による敵強化倍率
         float ngPlusMultiplier = _ngPlusTier.HasValue
             ? NewGamePlusSystem.GetEnemyStatMultiplier(_ngPlusTier.Value)
@@ -1015,12 +1025,13 @@ public class GameController
         float difficultyStatMult = (float)DifficultyConfig.EnemyStatMultiplier;
         int ngPlusBonus = (int)((ngPlusMultiplier * difficultyStatMult - 1.0f) * 10);
 
-        StatModifier? bonus = (floorBonus > 0 || ngPlusBonus > 0)
+        int totalBonus = floorBonus + dungeonLevelBonus + ngPlusBonus;
+        StatModifier? bonus = totalBonus > 0
             ? new StatModifier(
-                Strength: floorBonus + ngPlusBonus,
-                Vitality: floorBonus + ngPlusBonus,
-                Agility: floorBonus / 2 + ngPlusBonus / 2,
-                Dexterity: floorBonus / 2 + ngPlusBonus / 2)
+                Strength: floorBonus + dungeonLevelBonus + ngPlusBonus,
+                Vitality: floorBonus + dungeonLevelBonus + ngPlusBonus,
+                Agility: floorBonus / 2 + dungeonLevelBonus / 2 + ngPlusBonus / 2,
+                Dexterity: floorBonus / 2 + dungeonLevelBonus / 2 + ngPlusBonus / 2)
             : null;
 
         // フロアボスを配置（5階ごと）
@@ -3741,7 +3752,8 @@ public class GameController
                 }
             }
 
-            if (CurrentFloor >= GameConstants.MaxDungeonFloor)
+            int effectiveMaxFloor = _currentDungeonMaxFloor ?? GameConstants.MaxDungeonFloor;
+            if (CurrentFloor >= effectiveMaxFloor)
             {
                 // 最深部到達 → ダンジョンクリアフラグ
                 _clearSystem.SetFlag("dungeon_clear");
@@ -3758,6 +3770,8 @@ public class GameController
                     SaveFloorToCache();
                     _worldMapSystem.IsOnSurface = true;
                     _currentDungeonFeature = null;
+                    _currentDungeonMinLevel = 0;
+                    _currentDungeonMaxFloor = null;
                     GenerateSymbolMap();
 
                     var currentTerritory = _worldMapSystem.GetCurrentTerritoryInfo().Id;
@@ -3798,7 +3812,7 @@ public class GameController
                 var bossName = bossDef?.Name ?? "ボス";
                 AddMessage($"⚠ 強大な気配を感じる...{bossName}がいるフロアだ！");
 
-                if (CurrentFloor == GameConstants.MaxDungeonFloor)
+                if (CurrentFloor == effectiveMaxFloor)
                 {
                     AddMessage("⚠ ここがダンジョン最深部！ 最終ボスが待ち受けている！");
                 }
@@ -3836,6 +3850,8 @@ public class GameController
             AddMessage("ダンジョンから脱出した！ 地上に帰還する...");
             _worldMapSystem.IsOnSurface = true;
             _currentDungeonFeature = null;
+            _currentDungeonMinLevel = 0;
+            _currentDungeonMaxFloor = null;
             GenerateSymbolMap();
 
             // 環境音を地上用に更新（AmbientSoundSystem）
@@ -6540,11 +6556,42 @@ public class GameController
         // シンボルマップ上のロケーションを判定
         var location = _symbolMapSystem.GetLocationAt(Player.Position);
 
+        // 関所の場合は領地遷移処理
+        if (location != null && location.Type == LocationType.BorderGate)
+        {
+            // 関所IDから遷移先領地を解析（形式: "{territory}_gate_to_{adjTerritory}"）
+            var idParts = location.Id.Split("_gate_to_");
+            if (idParts.Length == 2 && Enum.TryParse<TerritoryId>(idParts[1], out var targetTerritory))
+            {
+                var targetDef = TerritoryDefinition.Get(targetTerritory);
+                AddMessage($"【{location.Name}】─ 関所を通過し、{targetDef.Name}へ向かう…");
+
+                // 領地を切り替え
+                _worldMapSystem.SetTerritory(targetTerritory);
+                _currentDungeonFeature = null;
+
+                // 新しい領地のシンボルマップを生成
+                GenerateSymbolMap();
+
+                _currentAmbientSound = AmbientSoundSystem.GetAmbientForTerritory(targetTerritory);
+                AddMessage($"{targetDef.Name}に到着した");
+                OnStateChanged?.Invoke();
+                return true;
+            }
+            else
+            {
+                AddMessage("関所の行き先が不明です");
+                return false;
+            }
+        }
+
         // ダンジョンの場合はダンジョン入場処理（通常ダンジョン、野盗のねぐら、ゴブリンの巣）
         if (location != null && location.Type is LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest)
         {
             _worldMapSystem.IsOnSurface = false;
             _currentMapName = location.Id;
+            _currentDungeonMinLevel = location.MinLevel;
+            _currentDungeonMaxFloor = location.MaxFloor;
             CurrentFloor = 1;
             GenerateFloor();
             var featureName = GetCurrentDungeonFeatureName();
@@ -9498,7 +9545,10 @@ public class GameController
                 int index = y * mapData.Width + x;
                 if (index < mapData.TileTypes.Count)
                 {
-                    var tileType = (TileType)mapData.TileTypes[index];
+                    var rawTileType = mapData.TileTypes[index];
+                    var tileType = Enum.IsDefined(typeof(TileType), rawTileType)
+                        ? (TileType)rawTileType
+                        : TileType.Floor;
                     restoredMap.SetTile(new Position(x, y), Tile.FromType(tileType));
 
                     // 階段位置を設定
