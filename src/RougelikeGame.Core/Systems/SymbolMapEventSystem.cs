@@ -1,3 +1,5 @@
+using RougelikeGame.Core.Map;
+
 namespace RougelikeGame.Core.Systems;
 
 /// <summary>
@@ -75,5 +77,25 @@ public static class SymbolMapEventSystem
                 return evt;
         }
         return null; // イベントなし
+    }
+
+    /// <summary>
+    /// バイオーム固有タイルに踏み入った際の環境イベントを返す。
+    /// 確率的にダメージやバフ/デバフを適用するイベントを生成する。
+    /// </summary>
+    public static MapEvent? GetTerrainEvent(TileType terrainType, double randomValue)
+    {
+        return terrainType switch
+        {
+            TileType.SymbolDune when randomValue < 0.08 =>
+                new MapEvent("terrain_dune_heat", "灼熱の砂丘", "焼けるような砂に体力を奪われる", 0.08f, Array.Empty<Season>(), Array.Empty<TerritoryId>()),
+            TileType.SymbolLava when randomValue < 0.12 =>
+                new MapEvent("terrain_lava_eruption", "溶岩噴出", "足元から溶岩が噴き出す！", 0.12f, Array.Empty<Season>(), Array.Empty<TerritoryId>()),
+            TileType.SymbolIce when randomValue < 0.10 =>
+                new MapEvent("terrain_ice_slip", "氷上滑走", "滑りやすい氷の上で足を取られる", 0.10f, Array.Empty<Season>(), Array.Empty<TerritoryId>()),
+            TileType.SymbolSwamp when randomValue < 0.10 =>
+                new MapEvent("terrain_swamp_poison", "毒沼", "有毒な瘴気に包まれる", 0.10f, Array.Empty<Season>(), Array.Empty<TerritoryId>()),
+            _ => null
+        };
     }
 }

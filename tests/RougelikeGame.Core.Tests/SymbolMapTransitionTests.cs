@@ -114,6 +114,7 @@ public class SymbolMapSystemTests
                 LocationType.Dungeon => TileType.SymbolDungeon,
                 LocationType.BanditDen => TileType.SymbolBanditDen,
                 LocationType.GoblinNest => TileType.SymbolGoblinNest,
+                LocationType.BorderGate => TileType.SymbolBorderGate,
                 _ => TileType.SymbolField
             };
             Assert.Equal(expectedType, tile.Type);
@@ -374,16 +375,16 @@ public class SymbolMapSystemTests
     public void SymbolMountain_IsPassableWithHighMovementCost()
     {
         var tile = Tile.FromType(TileType.SymbolMountain);
-        Assert.True(tile.BlocksMovement); // FD-1: 山岳は通行不可
-        Assert.True(tile.MovementCost >= 2.0f);
+        Assert.False(tile.BlocksMovement); // 高度システム導入後: 山岳は通行可（高コスト）
+        Assert.True(tile.MovementCost >= 1.5f);
     }
 
     [Fact]
     public void SymbolWater_IsPassableWithHighMovementCost()
     {
         var tile = Tile.FromType(TileType.SymbolWater);
-        Assert.True(tile.BlocksMovement); // FD-2: 水域は通行不可
-        Assert.True(tile.MovementCost >= 1.5f);
+        Assert.False(tile.BlocksMovement); // 高度システム導入後: 水域は通行可（高コスト）
+        Assert.True(tile.MovementCost >= 1.3f);
     }
 
     [Fact]

@@ -187,6 +187,31 @@ public enum TileType
     /// </summary>
     SymbolGoblinNest,
 
+    /// <summary>
+    /// シンボルマップ: 関所（領地間の境界ゲート）
+    /// </summary>
+    SymbolBorderGate,
+
+    /// <summary>
+    /// シンボルマップ: 砂丘（砂漠バイオーム専用）
+    /// </summary>
+    SymbolDune,
+
+    /// <summary>
+    /// シンボルマップ: 溶岩地帯（火山バイオーム専用）
+    /// </summary>
+    SymbolLava,
+
+    /// <summary>
+    /// シンボルマップ: 凍土・氷原（凍土バイオーム専用）
+    /// </summary>
+    SymbolIce,
+
+    /// <summary>
+    /// シンボルマップ: 沼地（沼沢バイオーム専用）
+    /// </summary>
+    SymbolSwamp,
+
     // === デバッグ専用タイル ===
 
     /// <summary>
@@ -500,8 +525,33 @@ public class Tile
             case TileType.SymbolCapital:
             case TileType.SymbolBanditDen:
             case TileType.SymbolGoblinNest:
+            case TileType.SymbolBorderGate:
                 tile.BlocksSight = false;
                 tile.BlocksMovement = false;
+                break;
+
+            case TileType.SymbolDune:
+                tile.BlocksSight = false;
+                tile.BlocksMovement = false;
+                tile.MovementCost = 1.8f;
+                break;
+
+            case TileType.SymbolLava:
+                tile.BlocksSight = false;
+                tile.BlocksMovement = false;
+                tile.MovementCost = 2.5f;
+                break;
+
+            case TileType.SymbolIce:
+                tile.BlocksSight = false;
+                tile.BlocksMovement = false;
+                tile.MovementCost = 1.6f;
+                break;
+
+            case TileType.SymbolSwamp:
+                tile.BlocksSight = false;
+                tile.BlocksMovement = false;
+                tile.MovementCost = 2.0f;
                 break;
 
             case TileType.SymbolForest:
@@ -602,6 +652,11 @@ public class Tile
             TileType.SymbolCapital => '★',
             TileType.SymbolBanditDen => '☠',
             TileType.SymbolGoblinNest => '⚔',
+            TileType.SymbolBorderGate => '⛩',
+            TileType.SymbolDune => '≈',
+            TileType.SymbolLava => '≋',
+            TileType.SymbolIce => '❄',
+            TileType.SymbolSwamp => '♨',
             TileType.NpcGuildReceptionist => 'G',
             TileType.NpcPriest => 'P',
             TileType.NpcShopkeeper => 'S',

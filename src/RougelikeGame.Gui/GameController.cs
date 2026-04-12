@@ -1832,6 +1832,14 @@ public class GameController
                 AddMessage($"🎲 【{mapEvent.Name}】{mapEvent.Description}");
                 ResolveMapEvent(mapEvent);
             }
+
+            // バイオーム固有地形イベント発動
+            var terrainEvent = SymbolMapEventSystem.GetTerrainEvent(tile.Type, _random.NextDouble());
+            if (terrainEvent != null)
+            {
+                AddMessage($"⚠ 【{terrainEvent.Name}】{terrainEvent.Description}");
+                ResolveMapEvent(terrainEvent);
+            }
         }
 
         // シンボルマップ上のロケーション到着処理
@@ -3736,6 +3744,28 @@ public class GameController
                 // 最深部到達 → ダンジョンクリアフラグ
                 _clearSystem.SetFlag("dungeon_clear");
                 AddMessage("🏆 ダンジョン最深部に到達した！");
+
+                // ランダムダンジョンの場合はクリアすると消滅する
+                if (_currentMapName.Contains("_random_dungeon_"))
+                {
+                    _clearSystem.SetFlag($"cleared_{_currentMapName}");
+                    AddMessage("⚡ このダンジョンは崩壊を始めた…地上に帰還する！");
+                    _symbolMapSystem.RemoveLocationById(_currentMapName);
+
+                    // 地上帰還
+                    SaveFloorToCache();
+                    _worldMapSystem.IsOnSurface = true;
+                    _currentDungeonFeature = null;
+                    GenerateSymbolMap();
+
+                    var currentTerritory = _worldMapSystem.GetCurrentTerritoryInfo().Id;
+                    _currentAmbientSound = AmbientSoundSystem.GetAmbientForTerritory(currentTerritory);
+
+                    var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
+                    AddMessage($"{territoryName}のシンボルマップに戻った");
+                    OnStateChanged?.Invoke();
+                    return true;
+                }
                 return false;
             }
 
@@ -11011,7 +11041,47 @@ public class GameController
                 break;
 
             default:
-                // 未定義イベント（効果なし）
+                // バイオーム地形イベント処理
+                if (mapEvent.Id.StartsWith("terrain_"))
+                {
+                    ResolveTerrainEvent(mapEvent);
+                }
+                break;
+        }
+    }
+
+    /// <summary>
+    /// バイオーム固有地形イベントの効果を発動する。
+    /// </summary>
+    private void ResolveTerrainEvent(SymbolMapEventSystem.MapEvent terrainEvent)
+    {
+        switch (terrainEvent.Id)
+        {
+            case "terrain_dune_heat":
+                int heatDmg = Math.Max(1, Player.MaxHp / 20);
+                Player.TakeDamage(Damage.Physical(heatDmg));
+                AddMessage($"    → 灼熱の砂に体力を奪われた！ {heatDmg}のダメージ！");
+                break;
+
+            case "terrain_lava_eruption":
+                int lavaEruptDmg = Math.Max(3, Player.MaxHp / 8);
+                Player.TakeDamage(Damage.Magical(lavaEruptDmg, Element.Fire));
+                AddMessage($"    → 溶岩が噴出した！ {lavaEruptDmg}の炎ダメージ！");
+                break;
+
+            case "terrain_ice_slip":
+                int iceDmg = Math.Max(1, Player.MaxHp / 25);
+                Player.TakeDamage(Damage.Physical(iceDmg));
+                AddMessage($"    → 氷の上で滑って転倒！ {iceDmg}のダメージ！");
+                break;
+
+            case "terrain_swamp_poison":
+                int poisonDmg = Math.Max(1, Player.MaxHp / 15);
+                Player.TakeDamage(Damage.Magical(poisonDmg, Element.Poison));
+                AddMessage($"    → 毒沼の瘴気に侵された！ {poisonDmg}の毒ダメージ！");
+                break;
+
+            default:
                 break;
         }
     }

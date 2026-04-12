@@ -18,7 +18,9 @@ public enum LocationType
     /// <summary>野盗のねぐら（ランダム生成ダンジョン）</summary>
     BanditDen,
     /// <summary>ゴブリンの巣（ランダム生成ダンジョン）</summary>
-    GoblinNest
+    GoblinNest,
+    /// <summary>関所（領地間の境界ゲート）</summary>
+    BorderGate
 }
 
 /// <summary>

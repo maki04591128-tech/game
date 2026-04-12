@@ -109,6 +109,7 @@ public class SymbolMapSystem
             LocationType.GoblinNest => $"【{location.Name}】を発見した。（>キーでダンジョンに入る）",
             LocationType.Town or LocationType.Village => $"【{location.Name}】に到着した。（Tキーで街に入る）",
             LocationType.Capital => $"【{location.Name}】に到着した。（Tキーで都に入る）",
+            LocationType.BorderGate => $"【{location.Name}】に到着した。{location.Description}",
             LocationType.Facility => $"【{location.Name}】に到着した。{location.Description}",
             LocationType.ReligiousSite => $"【{location.Name}】に到着した。{location.Description}",
             LocationType.Field => $"【{location.Name}】に到着した。{location.Description}",
@@ -138,7 +139,9 @@ public class SymbolMapSystem
     {
         return type is TileType.SymbolGrass or TileType.SymbolForest
             or TileType.SymbolMountain or TileType.SymbolWater
-            or TileType.SymbolRoad;
+            or TileType.SymbolRoad or TileType.SymbolDune
+            or TileType.SymbolLava or TileType.SymbolIce
+            or TileType.SymbolSwamp;
     }
 
     /// <summary>
@@ -153,6 +156,10 @@ public class SymbolMapSystem
             TileType.SymbolMountain => "山岳地帯",
             TileType.SymbolWater => "水辺",
             TileType.SymbolRoad => "街道",
+            TileType.SymbolDune => "砂丘",
+            TileType.SymbolLava => "溶岩地帯",
+            TileType.SymbolIce => "氷原",
+            TileType.SymbolSwamp => "沼地",
             _ => "野外"
         };
     }
@@ -205,5 +212,39 @@ public class SymbolMapSystem
         CurrentMap = null;
         CurrentTerritory = null;
         _locationPositions.Clear();
+    }
+
+    /// <summary>
+    /// 指定位置のロケーションを削除する（ランダムダンジョンのクリア消滅用）。
+    /// マップ上のタイルを草原に変え、ロケーション辞書からも除去する。
+    /// </summary>
+    public bool RemoveLocation(Position position)
+    {
+        if (!_locationPositions.ContainsKey(position)) return false;
+        _locationPositions.Remove(position);
+        if (CurrentMap != null && CurrentMap.IsInBounds(position))
+        {
+            CurrentMap.SetTile(position.X, position.Y, TileType.SymbolGrass);
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// 指定IDのロケーションを削除する（ランダムダンジョンのクリア消滅用）。
+    /// </summary>
+    public bool RemoveLocationById(string locationId)
+    {
+        var entry = _locationPositions.FirstOrDefault(kv => kv.Value.Id == locationId);
+        if (entry.Value == null) return false;
+        return RemoveLocation(entry.Key);
+    }
+
+    /// <summary>
+    /// 関所ロケーションかどうかを判定する
+    /// </summary>
+    public bool IsBorderGate(Position position)
+    {
+        var location = GetLocationAt(position);
+        return location?.Type == LocationType.BorderGate;
     }
 }

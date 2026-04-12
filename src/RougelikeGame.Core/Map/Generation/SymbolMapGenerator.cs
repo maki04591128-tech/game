@@ -100,8 +100,19 @@ public class SymbolMapGenerator
         // 9. 村・町・都を必ず道で接続する（最小全域木方式）
         ConnectSettlementsWithRoads(map, locationPositions);
 
-        // 10. 入口位置を設定（最初のロケーション）
-        if (locationPositions.Count > 0)
+        // 10. 関所（BorderGate）を隣接領地の方角に配置し、入口を関所に設定
+        PlaceBorderGates(map, territory, locationPositions, shapeMask, random);
+
+        // 入口は最初の関所、無ければ最初のロケーション
+        var gatePos = locationPositions
+            .Where(kv => kv.Value.Type == LocationType.BorderGate)
+            .Select(kv => kv.Key)
+            .FirstOrDefault();
+        if (gatePos != default)
+        {
+            map.SetEntrance(gatePos);
+        }
+        else if (locationPositions.Count > 0)
         {
             var entrance = locationPositions.First().Key;
             map.SetEntrance(entrance);
@@ -171,18 +182,45 @@ public class SymbolMapGenerator
         return mask;
     }
 
-    /// <summary>角度に基づく境界ノイズ値を返す（-1.0～1.0）</summary>
+    /// <summary>
+    /// 角度に基づく境界ノイズ値を返す（-1.0～1.0）。
+    /// 隣接領地と共有する辺のノイズは、両領地で同一のシード値から生成され、
+    /// 境界形状が一致するようにする。
+    /// </summary>
     private static double GetBorderNoise(double angle, TerritoryId territory)
     {
-        int baseSeed = (int)territory * 31337 + 42;
+        // 方角に応じた隣接領地を特定し、共有シードを使う
+        var adjacentTerritories = TerritoryDefinition.Get(territory).AdjacentTerritories;
+        int sharedSeed = GetSharedBorderSeed(territory, angle, adjacentTerritories);
 
         double noise = 0;
-        noise += 0.4 * Math.Sin(angle * 3 + baseSeed * 0.01);
-        noise += 0.3 * Math.Sin(angle * 5 + baseSeed * 0.02);
-        noise += 0.2 * Math.Sin(angle * 7 + baseSeed * 0.03);
-        noise += 0.1 * Math.Sin(angle * 11 + baseSeed * 0.05);
+        noise += 0.4 * Math.Sin(angle * 3 + sharedSeed * 0.01);
+        noise += 0.3 * Math.Sin(angle * 5 + sharedSeed * 0.02);
+        noise += 0.2 * Math.Sin(angle * 7 + sharedSeed * 0.03);
+        noise += 0.1 * Math.Sin(angle * 11 + sharedSeed * 0.05);
 
         return noise;
+    }
+
+    /// <summary>
+    /// 2つの領地間で共有する境界シード値を取得する。
+    /// 角度から最も近い隣接領地を判定し、両領地のIDの組み合わせから決定論的シードを生成。
+    /// これにより同じ辺を共有する2領地で同一のノイズカーブが使われ境界が一致する。
+    /// </summary>
+    private static int GetSharedBorderSeed(TerritoryId territory, double angle, TerritoryId[] adjacentTerritories)
+    {
+        if (adjacentTerritories.Length == 0)
+            return (int)territory * 31337 + 42;
+
+        // 角度を0-2πに正規化して隣接領地を均等に割り当て
+        double normalizedAngle = (angle + Math.PI) / (2 * Math.PI); // 0.0-1.0
+        int adjacentIndex = (int)(normalizedAngle * adjacentTerritories.Length) % adjacentTerritories.Length;
+        var adjacentTerritory = adjacentTerritories[adjacentIndex];
+
+        // 両領地IDの組み合わせで決定論的シード（順序非依存）
+        int id1 = Math.Min((int)territory, (int)adjacentTerritory);
+        int id2 = Math.Max((int)territory, (int)adjacentTerritory);
+        return id1 * 10007 + id2 * 31337 + 42;
     }
 
     /// <summary>形状にフィンガー（突起）と湾（凹み）を追加</summary>
@@ -234,10 +272,11 @@ public class SymbolMapGenerator
         return count;
     }
 
-    /// <summary>マスクに基づいて領地タイプに応じた基本地形を生成（高度付き）</summary>
+    /// <summary>マスクに基づいて領地タイプに応じた基本地形を生成（高度付き、バイオーム固有タイル対応）</summary>
     private static void FillBaseTerrainWithMask(DungeonMap map, TerritoryId territory, bool[,] shapeMask, Random random, int[,] altitudeMap)
     {
         var (primary, secondary, obstacle) = GetTerrainForTerritory(territory);
+        var (tertiary, quaternary) = GetExtraBiomeTiles(territory);
 
         for (int x = 0; x < map.Width; x++)
         {
@@ -252,9 +291,15 @@ public class SymbolMapGenerator
                 double noise = random.NextDouble();
                 TileType tileType;
 
-                if (noise < 0.60)
+                if (noise < 0.50)
                     tileType = primary;
-                else if (noise < 0.85)
+                else if (noise < 0.75)
+                    tileType = secondary;
+                else if (noise < 0.85 && tertiary.HasValue)
+                    tileType = tertiary.Value;
+                else if (noise < 0.90 && quaternary.HasValue)
+                    tileType = quaternary.Value;
+                else if (noise < 0.90)
                     tileType = secondary;
                 else
                     tileType = obstacle;
@@ -274,7 +319,7 @@ public class SymbolMapGenerator
         }
     }
 
-    /// <summary>領地タイプごとの地形構成を返す</summary>
+    /// <summary>領地タイプごとの地形構成を返す（バイオーム固有タイルを含む拡張版）</summary>
     private static (TileType primary, TileType secondary, TileType obstacle) GetTerrainForTerritory(TerritoryId territory)
     {
         return territory switch
@@ -285,13 +330,37 @@ public class SymbolMapGenerator
             TerritoryId.Coast    => (TileType.SymbolGrass, TileType.SymbolWater, TileType.SymbolWater),
             TerritoryId.Southern => (TileType.SymbolGrass, TileType.SymbolForest, TileType.SymbolWater),
             TerritoryId.Frontier => (TileType.SymbolGrass, TileType.SymbolForest, TileType.SymbolMountain),
-            TerritoryId.Desert   => (TileType.SymbolGrass, TileType.SymbolMountain, TileType.SymbolMountain),
-            TerritoryId.Swamp    => (TileType.SymbolGrass, TileType.SymbolWater, TileType.SymbolWater),
-            TerritoryId.Tundra   => (TileType.SymbolGrass, TileType.SymbolMountain, TileType.SymbolMountain),
+            TerritoryId.Desert   => (TileType.SymbolDune, TileType.SymbolGrass, TileType.SymbolMountain),
+            TerritoryId.Swamp    => (TileType.SymbolSwamp, TileType.SymbolGrass, TileType.SymbolWater),
+            TerritoryId.Tundra   => (TileType.SymbolIce, TileType.SymbolGrass, TileType.SymbolMountain),
             TerritoryId.Lake     => (TileType.SymbolGrass, TileType.SymbolWater, TileType.SymbolWater),
-            TerritoryId.Volcanic => (TileType.SymbolMountain, TileType.SymbolGrass, TileType.SymbolMountain),
+            TerritoryId.Volcanic => (TileType.SymbolLava, TileType.SymbolGrass, TileType.SymbolMountain),
             TerritoryId.Sacred   => (TileType.SymbolGrass, TileType.SymbolForest, TileType.SymbolForest),
             _ => (TileType.SymbolGrass, TileType.SymbolForest, TileType.SymbolMountain)
+        };
+    }
+
+    /// <summary>
+    /// 領地ごとの第3・第4地形（バイオーム固有の追加バリエーション）を返す。
+    /// primary/secondaryに加え、低確率で配置される特徴的な地形。
+    /// </summary>
+    private static (TileType? tertiary, TileType? quaternary) GetExtraBiomeTiles(TerritoryId territory)
+    {
+        return territory switch
+        {
+            TerritoryId.Capital  => (TileType.SymbolForest, null),
+            TerritoryId.Forest   => (TileType.SymbolMountain, null),
+            TerritoryId.Mountain => (TileType.SymbolWater, null),
+            TerritoryId.Coast    => (TileType.SymbolForest, TileType.SymbolMountain),
+            TerritoryId.Southern => (TileType.SymbolMountain, TileType.SymbolDune),
+            TerritoryId.Frontier => (TileType.SymbolWater, TileType.SymbolSwamp),
+            TerritoryId.Desert   => (TileType.SymbolLava, TileType.SymbolMountain),
+            TerritoryId.Swamp    => (TileType.SymbolForest, null),
+            TerritoryId.Tundra   => (TileType.SymbolWater, null),
+            TerritoryId.Lake     => (TileType.SymbolForest, TileType.SymbolSwamp),
+            TerritoryId.Volcanic => (TileType.SymbolMountain, TileType.SymbolDune),
+            TerritoryId.Sacred   => (TileType.SymbolWater, TileType.SymbolMountain),
+            _ => (null, null)
         };
     }
 
@@ -613,6 +682,7 @@ public class SymbolMapGenerator
             LocationType.Dungeon => TileType.SymbolDungeon,
             LocationType.BanditDen => TileType.SymbolBanditDen,
             LocationType.GoblinNest => TileType.SymbolGoblinNest,
+            LocationType.BorderGate => TileType.SymbolBorderGate,
             _ => TileType.SymbolField
         };
     }
@@ -700,7 +770,7 @@ public class SymbolMapGenerator
             or TileType.SymbolFacility or TileType.SymbolShrine
             or TileType.SymbolField or TileType.SymbolVillage
             or TileType.SymbolCapital or TileType.SymbolBanditDen
-            or TileType.SymbolGoblinNest;
+            or TileType.SymbolGoblinNest or TileType.SymbolBorderGate;
     }
 
     /// <summary>シンボルマップ用タイルかどうか判定</summary>
@@ -712,7 +782,10 @@ public class SymbolMapGenerator
             or TileType.SymbolDungeon or TileType.SymbolFacility
             or TileType.SymbolShrine or TileType.SymbolField
             or TileType.SymbolVillage or TileType.SymbolCapital
-            or TileType.SymbolBanditDen or TileType.SymbolGoblinNest;
+            or TileType.SymbolBanditDen or TileType.SymbolGoblinNest
+            or TileType.SymbolBorderGate or TileType.SymbolDune
+            or TileType.SymbolLava or TileType.SymbolIce
+            or TileType.SymbolSwamp;
     }
 
     /// <summary>領地名を日本語で取得</summary>
@@ -859,6 +932,79 @@ public class SymbolMapGenerator
             CarveRoad(map, bestFrom, bestTo);
             connected.Add(bestTo);
             remaining.Remove(bestTo);
+        }
+    }
+
+    /// <summary>
+    /// 隣接領地方向にBorderGate（関所）を配置する。
+    /// 各隣接領地につき1つの関所をマップ辺境付近に配置し、
+    /// 道路で最寄りの集落と接続する。
+    /// </summary>
+    private static void PlaceBorderGates(
+        DungeonMap map, TerritoryId territory,
+        Dictionary<Position, LocationDefinition> locationPositions,
+        bool[,] shapeMask, Random random)
+    {
+        var territoryDef = TerritoryDefinition.Get(territory);
+        var adjacentTerritories = territoryDef.AdjacentTerritories;
+        if (adjacentTerritories.Length == 0) return;
+
+        int margin = 5;
+        var allPositions = new HashSet<Position>(locationPositions.Keys);
+
+        for (int i = 0; i < adjacentTerritories.Length; i++)
+        {
+            var adjTerritory = adjacentTerritories[i];
+
+            // 隣接領地の方向を等角分割で決定
+            double angle = (2 * Math.PI * i) / adjacentTerritories.Length;
+            int targetX = map.Width / 2 + (int)((map.Width / 2 - margin - 5) * Math.Cos(angle));
+            int targetY = map.Height / 2 + (int)((map.Height / 2 - margin - 5) * Math.Sin(angle));
+
+            // 目標座標付近で配置可能な位置を探す
+            Position? gatePos = null;
+            for (int attempt = 0; attempt < 200; attempt++)
+            {
+                int x = targetX + random.Next(-15, 16);
+                int y = targetY + random.Next(-15, 16);
+                x = Math.Clamp(x, margin, map.Width - margin - 1);
+                y = Math.Clamp(y, margin, map.Height - margin - 1);
+
+                if (!shapeMask[x, y]) continue;
+                var pos = new Position(x, y);
+                if (IsMountainOrWater(map, pos)) continue;
+                if (allPositions.Any(p => p.ChebyshevDistanceTo(pos) < 8)) continue;
+
+                gatePos = pos;
+                break;
+            }
+
+            if (!gatePos.HasValue) continue;
+
+            var adjName = GetTerritoryDisplayName(adjTerritory);
+            map.SetTile(gatePos.Value.X, gatePos.Value.Y, TileType.SymbolBorderGate);
+            EnsureAccessible(map, gatePos.Value, shapeMask);
+
+            var loc = new LocationDefinition(
+                $"{territory}_gate_to_{adjTerritory}",
+                $"{adjName}方面の関所",
+                $"{adjName}領への国境検問所。ここから{adjName}領へ渡れる",
+                LocationType.BorderGate,
+                territory,
+                DangerLevel: 1);
+            locationPositions[gatePos.Value] = loc;
+            allPositions.Add(gatePos.Value);
+
+            // 関所と最寄集落を道路で接続
+            var nearestSettlement = locationPositions
+                .Where(kv => kv.Value.Type is LocationType.Town or LocationType.Village or LocationType.Capital)
+                .OrderBy(kv => kv.Key.ChebyshevDistanceTo(gatePos.Value))
+                .Select(kv => kv.Key)
+                .FirstOrDefault();
+            if (nearestSettlement != default)
+            {
+                CarveRoad(map, gatePos.Value, nearestSettlement);
+            }
         }
     }
 
