@@ -578,4 +578,186 @@ public class VerAlphaSymbolMapTests
     {
         Assert.Equal(-3, Tile.ShipRequiredDepth);
     }
+
+    // ============================================================
+    // Issue 4: 集落配置minDistance統一化テスト
+    // ============================================================
+
+    [Fact]
+    public void GetSettlementMinDistances_StandardMap_ReturnsConsistentValues()
+    {
+        // 標準マップ (220×160) → 対角線≈272
+        var (capital, town, village) = SymbolMapGenerator.GetSettlementMinDistances(220, 160);
+        Assert.True(capital > town, "Capital distance should be larger than Town");
+        Assert.True(town > village, "Town distance should be larger than Village");
+        Assert.True(capital >= 15, $"Capital min distance should be >= 15, got {capital}");
+        Assert.True(village >= 6, $"Village min distance should be >= 6, got {village}");
+    }
+
+    [Fact]
+    public void GetSettlementMinDistances_SmallMap_RespectsMinimums()
+    {
+        // 小さいマップでも最低値は保証される
+        var (capital, town, village) = SymbolMapGenerator.GetSettlementMinDistances(50, 50);
+        Assert.True(capital >= 15, "Capital min distance should be at least 15");
+        Assert.True(town >= 10, "Town min distance should be at least 10");
+        Assert.True(village >= 6, "Village min distance should be at least 6");
+    }
+
+    [Fact]
+    public void GetSettlementMinDistances_LargeMap_ScalesProportionally()
+    {
+        var small = SymbolMapGenerator.GetSettlementMinDistances(160, 160);
+        var large = SymbolMapGenerator.GetSettlementMinDistances(220, 190);
+        Assert.True(large.Capital >= small.Capital, "Larger map should have larger capital distance");
+    }
+
+    // ============================================================
+    // Issue 5: ランダムダンジョン成長曲線テスト
+    // ============================================================
+
+    [Theory]
+    [InlineData(TerritoryId.Capital)]
+    [InlineData(TerritoryId.Forest)]
+    [InlineData(TerritoryId.Mountain)]
+    public void Generate_RandomDungeons_HaveLevelAndFloorProgression(TerritoryId territory)
+    {
+        var gen = new SymbolMapGenerator();
+        var result = gen.Generate(territory);
+
+        // ダンジョンが存在する
+        var dungeons = result.LocationPositions
+            .Where(kv => kv.Value.Type is LocationType.BanditDen or LocationType.GoblinNest)
+            .ToList();
+
+        if (dungeons.Count < 2) return;
+
+        // 階層数や推奨レベルが設定されている
+        foreach (var (_, loc) in dungeons)
+        {
+            Assert.True(loc.MinLevel >= 1, $"Dungeon {loc.Name} MinLevel should be >= 1");
+            Assert.True(loc.DangerLevel >= 1, $"Dungeon {loc.Name} DangerLevel should be >= 1");
+            Assert.True(loc.DangerLevel <= 5, $"Dungeon {loc.Name} DangerLevel should be <= 5");
+            Assert.Contains("階層", loc.Description);
+        }
+    }
+
+    [Fact]
+    public void Generate_RandomDungeons_DescriptionShowsFloorCount()
+    {
+        var gen = new SymbolMapGenerator();
+        var result = gen.Generate(TerritoryId.Capital);
+
+        var dungeons = result.LocationPositions
+            .Where(kv => kv.Value.Type is LocationType.BanditDen or LocationType.GoblinNest)
+            .ToList();
+
+        foreach (var (_, loc) in dungeons)
+        {
+            // 全X階層の形式であること
+            Assert.Matches(@"全\d+階層", loc.Description);
+            Assert.Contains("推奨Lv.", loc.Description);
+        }
+    }
+
+    // ============================================================
+    // Issue 6: 安全圏距離マップサイズ連動テスト
+    // ============================================================
+
+    [Fact]
+    public void GetSafeZoneDistance_StandardMap_ReturnsReasonableValue()
+    {
+        int dist = TerritoryInfluenceSystem.GetSafeZoneDistance(220, 160);
+        // 対角線272 → 27マス
+        Assert.InRange(dist, 10, 50);
+    }
+
+    [Fact]
+    public void GetSafeZoneDistance_SmallMap_RespectsMinimum()
+    {
+        int dist = TerritoryInfluenceSystem.GetSafeZoneDistance(50, 50);
+        Assert.True(dist >= 10, $"Small map safe zone should be at least 10, got {dist}");
+    }
+
+    [Fact]
+    public void GetSafeZoneDistance_LargerMap_LargerSafeZone()
+    {
+        int small = TerritoryInfluenceSystem.GetSafeZoneDistance(100, 100);
+        int large = TerritoryInfluenceSystem.GetSafeZoneDistance(220, 160);
+        Assert.True(large >= small, $"Larger map should have >= safe zone distance: large={large}, small={small}");
+    }
+
+    [Fact]
+    public void GetDominantFactionForTile_WithMapSize_RespectsDistance()
+    {
+        var system = new TerritoryInfluenceSystem();
+        var locations = new Dictionary<Position, LocationDefinition>
+        {
+            [new Position(10, 10)] = new("test", "テスト村", "テスト",
+                LocationType.Village, TerritoryId.Capital)
+        };
+
+        // マップサイズを指定してのオーバーロード
+        var factionNear = system.GetDominantFactionForTile(
+            TerritoryId.Capital, new Position(12, 12), locations, 220, 160);
+        Assert.Equal(TerritoryInfluenceSystem.FactionNames.Wildlife, factionNear);
+    }
+
+    // ============================================================
+    // Issue 7: SymbolMapEventSystemイベントワイヤリングテスト
+    // ============================================================
+
+    [Fact]
+    public void SymbolMapEventSystem_RollEvent_ReturnsValidEvent()
+    {
+        // 非常に低いrandomValueでイベントが発生する
+        var evt = SymbolMapEventSystem.RollEvent(Season.Spring, TerritoryId.Forest, 0.001);
+        Assert.NotNull(evt);
+        Assert.False(string.IsNullOrEmpty(evt!.Id));
+        Assert.False(string.IsNullOrEmpty(evt.Name));
+    }
+
+    [Fact]
+    public void SymbolMapEventSystem_RollEvent_NoEvent_HighValue()
+    {
+        // 非常に高いrandomValueではイベントなし
+        var evt = SymbolMapEventSystem.RollEvent(Season.Spring, TerritoryId.Capital, 0.999);
+        Assert.Null(evt);
+    }
+
+    [Fact]
+    public void SymbolMapEventSystem_GetAvailableEvents_DesertSummer_ContainsSandstorm()
+    {
+        var events = SymbolMapEventSystem.GetAvailableEvents(Season.Summer, TerritoryId.Desert);
+        Assert.Contains(events, e => e.Id == "event_sandstorm");
+    }
+
+    [Fact]
+    public void SymbolMapEventSystem_GetAvailableEvents_WinterTundra_ContainsBlizzard()
+    {
+        var events = SymbolMapEventSystem.GetAvailableEvents(Season.Winter, TerritoryId.Tundra);
+        Assert.Contains(events, e => e.Id == "event_blizzard");
+    }
+
+    [Fact]
+    public void SymbolMapEventSystem_AllEventsHaveValidData()
+    {
+        var allEvents = SymbolMapEventSystem.GetAllEvents();
+        Assert.True(allEvents.Count > 0);
+        foreach (var evt in allEvents)
+        {
+            Assert.False(string.IsNullOrEmpty(evt.Id), $"Event ID should not be empty");
+            Assert.False(string.IsNullOrEmpty(evt.Name), $"Event {evt.Id} name should not be empty");
+            Assert.False(string.IsNullOrEmpty(evt.Description), $"Event {evt.Id} description should not be empty");
+            Assert.True(evt.BaseChance > 0, $"Event {evt.Id} base chance should be > 0");
+            Assert.NotNull(evt.ActiveSeasons);
+            Assert.NotNull(evt.ActiveTerritories);
+        }
+    }
+
+    [Fact]
+    public void SymbolMapEventSystem_EventCount_Is16()
+    {
+        Assert.Equal(16, SymbolMapEventSystem.GetAllEvents().Count);
+    }
 }

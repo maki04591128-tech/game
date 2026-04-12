@@ -339,8 +339,24 @@ public class SymbolMapGenerator
     }
 
     /// <summary>
+    /// マップ対角線長から集落配置の最小距離を算出する。
+    /// 都: 対角線の1/8、町: 対角線の1/12、村: 対角線の1/20。
+    /// これにより全マップサイズで一貫した配置密度が得られる。
+    /// </summary>
+    public static (int Capital, int Town, int Village) GetSettlementMinDistances(int mapWidth, int mapHeight)
+    {
+        int diag = (int)Math.Sqrt(mapWidth * mapWidth + mapHeight * mapHeight);
+        return (
+            Capital: Math.Max(15, diag / 8),   // 対角線272→34, 対角線200→25
+            Town: Math.Max(10, diag / 12),      // 対角線272→22, 対角線200→16
+            Village: Math.Max(6, diag / 20)     // 対角線272→13, 対角線200→10
+        );
+    }
+
+    /// <summary>
     /// 村・町・都を自動配置する。
     /// 村: 総マス数/500箇所、町: 総マス数/1000箇所、都: 1箇所
+    /// minDistanceはマップ対角線比例で統一的に算出。
     /// </summary>
     private static void PlaceSettlements(
         DungeonMap map, TerritoryId territory,
@@ -354,11 +370,13 @@ public class SymbolMapGenerator
         var allPositions = new HashSet<Position>(locationPositions.Keys);
         int margin = 12;
 
+        var (capitalDist, townDist, villageDist) = GetSettlementMinDistances(map.Width, map.Height);
+
         // 都（首都）を配置（マップ中心付近）
         for (int i = 0; i < capitalCount; i++)
         {
             var pos = FindSettlementPosition(map, shapeMask, allPositions, margin, random,
-                preferCenter: true, minDistance: 25);
+                preferCenter: true, minDistance: capitalDist);
             if (pos.HasValue)
             {
                 map.SetTile(pos.Value.X, pos.Value.Y, TileType.SymbolCapital);
@@ -380,7 +398,7 @@ public class SymbolMapGenerator
         for (int i = 0; i < townCount; i++)
         {
             var pos = FindSettlementPosition(map, shapeMask, allPositions, margin, random,
-                preferCenter: false, minDistance: 18);
+                preferCenter: false, minDistance: townDist);
             if (pos.HasValue)
             {
                 map.SetTile(pos.Value.X, pos.Value.Y, TileType.SymbolTown);
@@ -402,7 +420,7 @@ public class SymbolMapGenerator
         for (int i = 0; i < villageCount; i++)
         {
             var pos = FindSettlementPosition(map, shapeMask, allPositions, margin, random,
-                preferCenter: false, minDistance: 12);
+                preferCenter: false, minDistance: villageDist);
             if (pos.HasValue)
             {
                 map.SetTile(pos.Value.X, pos.Value.Y, TileType.SymbolVillage);
@@ -461,6 +479,7 @@ public class SymbolMapGenerator
     /// <summary>
     /// ランダムダンジョン（野盗のねぐら、ゴブリンの巣等）を配置する。
     /// 条件: 村/町/都から25マス以上離れた場所、他ダンジョンから50マス以上離れた場所
+    /// 階層数・レベルは首都からの距離に基づく成長曲線で決定。
     /// </summary>
     private static void PlaceRandomDungeons(
         DungeonMap map, TerritoryId territory,
@@ -478,13 +497,25 @@ public class SymbolMapGenerator
             .Select(kv => kv.Key)
             .ToList();
 
+        // 首都位置を特定（成長曲線の基準点）
+        var capitalPos = locationPositions
+            .Where(kv => kv.Value.Type == LocationType.Capital)
+            .Select(kv => kv.Key)
+            .FirstOrDefault();
+
+        // 首都が無い場合はマップ中心を基準
+        if (capitalPos == default)
+            capitalPos = new Position(map.Width / 2, map.Height / 2);
+
+        int mapDiag = (int)Math.Sqrt(map.Width * map.Width + map.Height * map.Height);
+
         var dungeonTypes = new[]
         {
-            (name: "野盗のねぐら", type: LocationType.BanditDen, tile: TileType.SymbolBanditDen, danger: 2),
-            (name: "ゴブリンの巣", type: LocationType.GoblinNest, tile: TileType.SymbolGoblinNest, danger: 2),
-            (name: "オーク族の砦", type: LocationType.BanditDen, tile: TileType.SymbolBanditDen, danger: 3),
-            (name: "盗賊団のアジト", type: LocationType.BanditDen, tile: TileType.SymbolBanditDen, danger: 3),
-            (name: "コボルドの穴", type: LocationType.GoblinNest, tile: TileType.SymbolGoblinNest, danger: 1),
+            (name: "野盗のねぐら", type: LocationType.BanditDen, tile: TileType.SymbolBanditDen),
+            (name: "ゴブリンの巣", type: LocationType.GoblinNest, tile: TileType.SymbolGoblinNest),
+            (name: "オーク族の砦", type: LocationType.BanditDen, tile: TileType.SymbolBanditDen),
+            (name: "盗賊団のアジト", type: LocationType.BanditDen, tile: TileType.SymbolBanditDen),
+            (name: "コボルドの穴", type: LocationType.GoblinNest, tile: TileType.SymbolGoblinNest),
         };
 
         int maxDungeons = Math.Max(2, (map.Width * map.Height) / 800);
@@ -495,7 +526,21 @@ public class SymbolMapGenerator
             if (pos == null) break;
 
             var dungeonDef = dungeonTypes[random.Next(dungeonTypes.Length)];
-            int floors = random.Next(1, 4);
+
+            // 首都からの距離に基づく成長曲線
+            int distFromCapital = pos.Value.ChebyshevDistanceTo(capitalPos);
+            float distRatio = Math.Clamp((float)distFromCapital / mapDiag, 0f, 1f);
+
+            // 階層数: 近距離1-2階、中距離2-4階、遠距離3-6階
+            int minFloors = Math.Max(1, (int)(1 + distRatio * 3));
+            int maxFloors = Math.Max(minFloors + 1, (int)(2 + distRatio * 5));
+            int floors = random.Next(minFloors, maxFloors + 1);
+
+            // 危険度: 近距離1-2、中距離2-3、遠距離3-5
+            int dangerLevel = Math.Clamp((int)(1 + distRatio * 4), 1, 5);
+
+            // 推奨レベル: danger×3 + 距離ボーナス（遠いほど高レベル）
+            int minLevel = Math.Max(1, dangerLevel * 3 + (int)(distRatio * 10));
 
             map.SetTile(pos.Value.X, pos.Value.Y, dungeonDef.tile);
             EnsureAccessible(map, pos.Value, shapeMask);
@@ -503,11 +548,11 @@ public class SymbolMapGenerator
             var loc = new LocationDefinition(
                 $"{territory}_random_dungeon_{i}",
                 dungeonDef.name,
-                $"1～{floors}階層のダンジョン。クリアすると消滅する",
+                $"全{floors}階層のダンジョン（推奨Lv.{minLevel}）。クリアすると消滅する",
                 dungeonDef.type,
                 territory,
-                MinLevel: Math.Max(1, dungeonDef.danger * 3),
-                DangerLevel: dungeonDef.danger);
+                MinLevel: minLevel,
+                DangerLevel: dangerLevel);
 
             locationPositions[pos.Value] = loc;
             dungeonPositions.Add(pos.Value);

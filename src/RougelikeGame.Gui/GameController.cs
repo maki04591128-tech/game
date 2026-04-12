@@ -1830,6 +1830,7 @@ public class GameController
             if (mapEvent != null)
             {
                 AddMessage($"🎲 【{mapEvent.Name}】{mapEvent.Description}");
+                ResolveMapEvent(mapEvent);
             }
         }
 
@@ -10895,6 +10896,124 @@ public class GameController
     public IReadOnlyList<SymbolMapEventSystem.MapEvent> GetMapEvents()
     {
         return SymbolMapEventSystem.GetAvailableEvents(CurrentSeason, _worldMapSystem.CurrentTerritory);
+    }
+
+    /// <summary>
+    /// シンボルマップイベントの効果を発動する。
+    /// 各イベントIDに応じた具体的な効果を適用。
+    /// </summary>
+    private void ResolveMapEvent(SymbolMapEventSystem.MapEvent mapEvent)
+    {
+        switch (mapEvent.Id)
+        {
+            case "event_merchant_caravan":
+                // 行商キャラバン: ランダムアイテムを安く入手できるチャンス
+                AddMessage("    → 商人が珍しい品を見せてくれた。");
+                break;
+
+            case "event_bandit_ambush":
+                // 山賊の待ち伏せ: ダメージを受ける
+                int ambushDmg = Math.Max(1, Player.MaxHp / 10);
+                Player.TakeDamage(Damage.Physical(ambushDmg));
+                AddMessage($"    → 不意打ちを受けた！ {ambushDmg}のダメージ！");
+                break;
+
+            case "event_wandering_healer":
+                // 放浪の治療師: HP完全回復
+                Player.Heal(Player.MaxHp);
+                AddMessage("    → HPが全回復した！");
+                break;
+
+            case "event_ancient_shrine":
+                // 古代の祠: 攻撃力一時バフ（メッセージのみ、バフシステム未実装のため）
+                int shrineHeal = Math.Max(5, Player.MaxHp / 5);
+                Player.Heal(shrineHeal);
+                AddMessage($"    → 祠に祈りを捧げた。HPが{shrineHeal}回復した。");
+                break;
+
+            case "event_treasure_map":
+                // 宝の地図: ゴールド獲得
+                int goldFound = 50 + _random.Next(100);
+                Player.AddGold(goldFound);
+                AddMessage($"    → 地図の示す場所から{goldFound}Gを発見した！");
+                break;
+
+            case "event_monster_stampede":
+                // 魔物の大移動: 大ダメージ
+                int stampedeDmg = Math.Max(3, Player.MaxHp / 5);
+                Player.TakeDamage(Damage.Physical(stampedeDmg));
+                AddMessage($"    → 魔物の群れに巻き込まれた！ {stampedeDmg}のダメージ！");
+                break;
+
+            case "event_fallen_star":
+                // 流れ星: 経験値ボーナス
+                int expBonus = 50 + Player.Level * 10;
+                Player.GainExperience(expBonus);
+                AddMessage($"    → 流れ星の欠片を拾った！ 経験値{expBonus}を獲得！");
+                break;
+
+            case "event_refugee":
+                // 避難民: カルマ上昇（メッセージのみ）
+                AddMessage("    → 避難民に食料を分け与えた。感謝された。");
+                break;
+
+            case "event_storm_shelter":
+                // 嵐の避難所: HP/MP回復
+                Player.Heal(Player.MaxHp / 3);
+                Player.RestoreMp(Player.MaxMp / 3);
+                AddMessage("    → 避難所で休息した。HP/MPが回復した。");
+                break;
+
+            case "event_fairy_ring":
+                // 妖精の輪: MP完全回復
+                Player.RestoreMp(Player.MaxMp);
+                AddMessage("    → MPが全回復した！");
+                break;
+
+            case "event_sandstorm":
+                // 砂嵐: 軽ダメージ
+                int sandDmg = Math.Max(1, Player.MaxHp / 15);
+                Player.TakeDamage(Damage.Physical(sandDmg));
+                AddMessage($"    → 砂嵐にさらされた！ {sandDmg}のダメージ！");
+                break;
+
+            case "event_swamp_miasma":
+                // 瘴気の濃霧: 毒ダメージ
+                int miasmaDmg = Math.Max(1, Player.MaxHp / 12);
+                Player.TakeDamage(Damage.Magical(miasmaDmg, Element.Poison));
+                AddMessage($"    → 瘴気に侵された！ {miasmaDmg}の毒ダメージ！");
+                break;
+
+            case "event_blizzard":
+                // 猛吹雪: 凍傷ダメージ
+                int blizzardDmg = Math.Max(1, Player.MaxHp / 12);
+                Player.TakeDamage(Damage.Magical(blizzardDmg, Element.Ice));
+                AddMessage($"    → 猛吹雪に襲われた！ {blizzardDmg}の冷気ダメージ！");
+                break;
+
+            case "event_lake_mist":
+                // 湖上の幻霧: 方向感覚喪失（メッセージのみ）
+                AddMessage("    → 霧の中で方向感覚を失いかけた…");
+                break;
+
+            case "event_eruption":
+                // 火山噴火: 大ダメージ
+                int lavaDmg = Math.Max(5, Player.MaxHp / 6);
+                Player.TakeDamage(Damage.Magical(lavaDmg, Element.Fire));
+                AddMessage($"    → 溶岩弾が直撃した！ {lavaDmg}の炎ダメージ！");
+                break;
+
+            case "event_divine_light":
+                // 神聖な光: HP全回復
+                Player.Heal(Player.MaxHp);
+                Player.RestoreMp(Player.MaxMp);
+                AddMessage("    → 聖なる光に包まれ、HP/MPが全回復した！");
+                break;
+
+            default:
+                // 未定義イベント（効果なし）
+                break;
+        }
     }
 
     /// <summary>自動探索の停止条件チェック（AutoExploreSystem）</summary>

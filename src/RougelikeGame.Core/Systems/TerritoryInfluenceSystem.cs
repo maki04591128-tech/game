@@ -63,14 +63,51 @@ public class TerritoryInfluenceSystem
     }
 
     /// <summary>
+    /// 安全圏距離の基本値。GetSafeZoneDistance()で取得すること。
+    /// </summary>
+    public const int DefaultSafeZoneDistance = 30;
+
+    /// <summary>
+    /// マップサイズに連動した安全圏距離を算出する。
+    /// 対角線の1/10をベースに、最低10マス、最大50マスの範囲。
+    /// </summary>
+    public static int GetSafeZoneDistance(int mapWidth, int mapHeight)
+    {
+        int diag = (int)Math.Sqrt(mapWidth * mapWidth + mapHeight * mapHeight);
+        return Math.Clamp(diag / 10, 10, 50);
+    }
+
+    /// <summary>
     /// タイルレベルの支配勢力を取得する。
-    /// ロケーション近くは「野生動物」、それ以外は領地全体の支配勢力を返す。
+    /// ロケーション近くは「野生動物」（安全圏）、それ以外は領地全体の支配勢力を返す。
+    /// 安全圏距離はマップサイズに連動。
+    /// </summary>
+    public string GetDominantFactionForTile(
+        TerritoryId territory, Position tilePos,
+        IReadOnlyDictionary<Position, LocationDefinition>? locationPositions,
+        int mapWidth = 220, int mapHeight = 160)
+    {
+        int safeZone = GetSafeZoneDistance(mapWidth, mapHeight);
+        return GetDominantFactionForTileInternal(territory, tilePos, locationPositions, safeZone);
+    }
+
+    /// <summary>
+    /// タイルレベルの支配勢力を取得する（後方互換性のためのオーバーロード）。
     /// </summary>
     public string GetDominantFactionForTile(
         TerritoryId territory, Position tilePos,
         IReadOnlyDictionary<Position, LocationDefinition>? locationPositions)
     {
-        // 集落（村/町/都）近くのタイルは野生動物
+        return GetDominantFactionForTileInternal(territory, tilePos, locationPositions, DefaultSafeZoneDistance);
+    }
+
+    /// <summary>内部実装: 安全圏距離を指定して支配勢力を取得</summary>
+    private string GetDominantFactionForTileInternal(
+        TerritoryId territory, Position tilePos,
+        IReadOnlyDictionary<Position, LocationDefinition>? locationPositions,
+        int safeZoneDistance)
+    {
+        // 集落（村/町/都）近くのタイルは野生動物（安全圏）
         if (locationPositions != null)
         {
             foreach (var (pos, loc) in locationPositions)
@@ -78,7 +115,7 @@ public class TerritoryInfluenceSystem
                 if (loc.Type is LocationType.Town or LocationType.Village or LocationType.Capital)
                 {
                     int dist = Math.Abs(pos.X - tilePos.X) + Math.Abs(pos.Y - tilePos.Y);
-                    if (dist < 30) return FactionNames.Wildlife;
+                    if (dist < safeZoneDistance) return FactionNames.Wildlife;
                 }
             }
         }
