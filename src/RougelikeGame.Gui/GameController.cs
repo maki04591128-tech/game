@@ -851,8 +851,8 @@ public class GameController
     {
         var territory = _worldMapSystem.CurrentTerritory;
         // クリア済みランダムダンジョンIDを取得して再生成を防止
-        var clearedIds = _clearSystem.GetFlagsWithPrefix("cleared_");
-        var symbolMap = _symbolMapSystem.GenerateForTerritory(territory, clearedIds);
+        var clearedDungeonIds = _clearSystem.GetFlagsWithPrefix("cleared_");
+        var symbolMap = _symbolMapSystem.GenerateForTerritory(territory, clearedDungeonIds);
 
         Map = symbolMap;
         _worldMapSystem.IsOnSurface = true;

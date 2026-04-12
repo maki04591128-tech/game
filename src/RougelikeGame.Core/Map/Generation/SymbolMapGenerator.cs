@@ -599,18 +599,12 @@ public class SymbolMapGenerator
 
         for (int i = 0; i < maxDungeons; i++)
         {
-            // クリア済みダンジョンはスキップ（位置の決定論性を保つためRNGは消費）
+            // RNG消費を一貫させるため、クリア済みかどうかに関わらず位置・種別を決定
             string dungeonId = $"{territory}_random_dungeon_{i}";
             var pos = FindRandomDungeonPosition(map, shapeMask, settlementPositions, dungeonPositions, random);
             if (pos == null) break;
 
             var dungeonDef = dungeonTypes[random.Next(dungeonTypes.Length)];
-
-            // クリア済みならタイルを配置せずスキップ
-            if (clearedDungeonIds != null && clearedDungeonIds.Contains(dungeonId))
-            {
-                continue;
-            }
 
             // 首都からの距離に基づく成長曲線
             int distFromCapital = pos.Value.ChebyshevDistanceTo(capitalPos);
@@ -620,6 +614,12 @@ public class SymbolMapGenerator
             int minFloors = Math.Max(1, (int)(1 + distRatio * 3));
             int maxFloors = Math.Max(minFloors + 1, (int)(2 + distRatio * 5));
             int floors = random.Next(minFloors, maxFloors + 1);
+
+            // クリア済みダンジョンはRNG消費後にスキップ（後続ダンジョンの位置決定論性を維持）
+            if (clearedDungeonIds != null && clearedDungeonIds.Contains(dungeonId))
+            {
+                continue;
+            }
 
             // 危険度: 近距離1-2、中距離2-3、遠距離3-5
             int dangerLevel = Math.Clamp((int)(1 + distRatio * 4), 1, 5);
@@ -997,12 +997,14 @@ public class SymbolMapGenerator
 
             if (!gatePos.HasValue)
             {
-                // フォールバック: ターゲット座標が有効であれば直接使用
+                // フォールバック: ターゲット座標が有効かつ他ロケーションと十分離れていれば使用
                 int fx = Math.Clamp(targetX, margin, map.Width - margin - 1);
                 int fy = Math.Clamp(targetY, margin, map.Height - margin - 1);
-                if (shapeMask[fx, fy] && !IsMountainOrWater(map, new Position(fx, fy)))
+                var fallbackPos = new Position(fx, fy);
+                if (shapeMask[fx, fy] && !IsMountainOrWater(map, fallbackPos)
+                    && !allPositions.Any(p => p.ChebyshevDistanceTo(fallbackPos) < 5))
                 {
-                    gatePos = new Position(fx, fy);
+                    gatePos = fallbackPos;
                 }
                 else
                 {
