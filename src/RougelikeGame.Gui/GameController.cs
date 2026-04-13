@@ -6640,8 +6640,9 @@ public class GameController
             }
         }
 
-        // ダンジョンの場合はダンジョン入場処理（通常ダンジョン、野盗のねぐら、ゴブリンの巣）
-        if (location != null && location.Type is LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest)
+        // ダンジョンの場合はダンジョン入場処理（通常ダンジョン、野盗のねぐら、ゴブリンの巣、アンデッドの墓所、魔族の門）
+        if (location != null && location.Type is LocationType.Dungeon or LocationType.BanditDen
+            or LocationType.GoblinNest or LocationType.UndeadCrypt or LocationType.DemonPortal)
         {
             _worldMapSystem.IsOnSurface = false;
             _currentMapName = location.Id;

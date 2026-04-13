@@ -19,6 +19,10 @@ public enum LocationType
     BanditDen,
     /// <summary>ゴブリンの巣（ランダム生成ダンジョン）</summary>
     GoblinNest,
+    /// <summary>アンデッドの墓所（ランダム生成ダンジョン）</summary>
+    UndeadCrypt,
+    /// <summary>魔族の門（ランダム生成ダンジョン）</summary>
+    DemonPortal,
     /// <summary>関所（領地間の境界ゲート）</summary>
     BorderGate
 }

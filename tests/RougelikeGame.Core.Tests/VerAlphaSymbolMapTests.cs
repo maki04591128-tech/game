@@ -119,7 +119,8 @@ public class VerAlphaSymbolMapTests
         var gen = new SymbolMapGenerator();
         var result = gen.Generate(territory);
         var dungeons = result.LocationPositions.Values
-            .Where(l => l.Type is LocationType.BanditDen or LocationType.GoblinNest).ToList();
+            .Where(l => l.Type is LocationType.BanditDen or LocationType.GoblinNest
+                or LocationType.UndeadCrypt or LocationType.DemonPortal).ToList();
         // マップサイズや距離制限により0件もありうるため、非負を確認
         Assert.True(dungeons.Count >= 0,
             $"Territory {territory}: random dungeon count should be non-negative");
@@ -131,7 +132,8 @@ public class VerAlphaSymbolMapTests
         var gen = new SymbolMapGenerator();
         var result = gen.Generate(TerritoryId.Capital);
         var dungeons = result.LocationPositions.Values
-            .Where(l => l.Type is LocationType.BanditDen or LocationType.GoblinNest).ToList();
+            .Where(l => l.Type is LocationType.BanditDen or LocationType.GoblinNest
+                or LocationType.UndeadCrypt or LocationType.DemonPortal).ToList();
 
         foreach (var dungeon in dungeons)
         {
@@ -643,7 +645,8 @@ public class VerAlphaSymbolMapTests
 
         // ダンジョンが存在する
         var dungeons = result.LocationPositions
-            .Where(kv => kv.Value.Type is LocationType.BanditDen or LocationType.GoblinNest)
+            .Where(kv => kv.Value.Type is LocationType.BanditDen or LocationType.GoblinNest
+                or LocationType.UndeadCrypt or LocationType.DemonPortal)
             .ToList();
 
         if (dungeons.Count < 2) return;
@@ -665,7 +668,8 @@ public class VerAlphaSymbolMapTests
         var result = gen.Generate(TerritoryId.Capital);
 
         var dungeons = result.LocationPositions
-            .Where(kv => kv.Value.Type is LocationType.BanditDen or LocationType.GoblinNest)
+            .Where(kv => kv.Value.Type is LocationType.BanditDen or LocationType.GoblinNest
+                or LocationType.UndeadCrypt or LocationType.DemonPortal)
             .ToList();
 
         foreach (var (_, loc) in dungeons)
@@ -1164,12 +1168,14 @@ public class VerAlphaSymbolMapTests
     }
 
     /// <summary>
-    /// A1-4: Dungeon/BanditDen/GoblinNestは安全圏判定対象外
+    /// A1-4: Dungeon/BanditDen/GoblinNest/UndeadCrypt/DemonPortalは安全圏判定対象外
     /// </summary>
     [Theory]
     [InlineData(LocationType.Dungeon)]
     [InlineData(LocationType.BanditDen)]
     [InlineData(LocationType.GoblinNest)]
+    [InlineData(LocationType.UndeadCrypt)]
+    [InlineData(LocationType.DemonPortal)]
     public void DungeonLocationsExcludedFromSafeZone(LocationType dungeonType)
     {
         var system = new TerritoryInfluenceSystem();
@@ -1846,12 +1852,15 @@ public class VerAlphaSymbolMapTests
     [Fact]
     public void RandomDungeons_OnlyHostileTypes()
     {
-        // SymbolMapGeneratorの dungeonTypes は BanditDen と GoblinNest のみ
-        // これらは全て敵対派閥
+        // 全敵対派閥がダンジョン生成可能
         Assert.True(TerritoryInfluenceSystem.CanFactionGenerateDungeon(
             TerritoryInfluenceSystem.FactionNames.Bandit));
         Assert.True(TerritoryInfluenceSystem.CanFactionGenerateDungeon(
             TerritoryInfluenceSystem.FactionNames.Goblin));
+        Assert.True(TerritoryInfluenceSystem.CanFactionGenerateDungeon(
+            TerritoryInfluenceSystem.FactionNames.Undead));
+        Assert.True(TerritoryInfluenceSystem.CanFactionGenerateDungeon(
+            TerritoryInfluenceSystem.FactionNames.Demon));
         // 中立/味方はダンジョン生成不可
         Assert.False(TerritoryInfluenceSystem.CanFactionGenerateDungeon(
             TerritoryInfluenceSystem.FactionNames.Kingdom));
@@ -1861,5 +1870,33 @@ public class VerAlphaSymbolMapTests
             TerritoryInfluenceSystem.FactionNames.Dwarf));
         Assert.False(TerritoryInfluenceSystem.CanFactionGenerateDungeon(
             TerritoryInfluenceSystem.FactionNames.Wildlife));
+    }
+
+    [Fact]
+    public void GetFactionForDungeonType_ReturnsCorrectFaction()
+    {
+        Assert.Equal(TerritoryInfluenceSystem.FactionNames.Bandit,
+            SymbolMapSystem.GetFactionForDungeonType(LocationType.BanditDen));
+        Assert.Equal(TerritoryInfluenceSystem.FactionNames.Goblin,
+            SymbolMapSystem.GetFactionForDungeonType(LocationType.GoblinNest));
+        Assert.Equal(TerritoryInfluenceSystem.FactionNames.Undead,
+            SymbolMapSystem.GetFactionForDungeonType(LocationType.UndeadCrypt));
+        Assert.Equal(TerritoryInfluenceSystem.FactionNames.Demon,
+            SymbolMapSystem.GetFactionForDungeonType(LocationType.DemonPortal));
+        Assert.Null(SymbolMapSystem.GetFactionForDungeonType(LocationType.Town));
+    }
+
+    [Fact]
+    public void TileType_SymbolUndeadCrypt_DisplayChar()
+    {
+        var tile = Tile.FromType(TileType.SymbolUndeadCrypt);
+        Assert.Equal('⚰', tile.DisplayChar);
+    }
+
+    [Fact]
+    public void TileType_SymbolDemonPortal_DisplayChar()
+    {
+        var tile = Tile.FromType(TileType.SymbolDemonPortal);
+        Assert.Equal('☽', tile.DisplayChar);
     }
 }

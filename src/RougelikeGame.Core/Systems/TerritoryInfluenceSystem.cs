@@ -330,8 +330,9 @@ public class TerritoryInfluenceSystem
 
             foreach (var (pos, loc) in locationPositions)
             {
-                // Dungeon/BanditDen/GoblinNestは圏域判定対象外
-                if (loc.Type is LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest)
+                // Dungeon/BanditDen/GoblinNest/UndeadCrypt/DemonPortalは圏域判定対象外
+                if (loc.Type is LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest
+                    or LocationType.UndeadCrypt or LocationType.DemonPortal)
                     continue;
 
                 if (loc.Type is LocationType.Town or LocationType.Village or LocationType.Capital

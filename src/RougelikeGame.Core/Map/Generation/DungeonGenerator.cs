@@ -358,6 +358,10 @@ public class DungeonGenerator : IMapGenerator
             return FactionDungeonStyle.Bandit;
         if (dungeonId.Contains("random_dungeon_goblin"))
             return FactionDungeonStyle.Goblin;
+        if (dungeonId.Contains("random_dungeon_undead"))
+            return FactionDungeonStyle.Undead;
+        if (dungeonId.Contains("random_dungeon_demon"))
+            return FactionDungeonStyle.Demon;
 
         // 固定ダンジョンのIDからテーマを判定
         return dungeonId switch

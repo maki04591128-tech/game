@@ -188,6 +188,16 @@ public enum TileType
     SymbolGoblinNest,
 
     /// <summary>
+    /// シンボルマップ: アンデッドの墓所（ランダム生成ダンジョン）
+    /// </summary>
+    SymbolUndeadCrypt,
+
+    /// <summary>
+    /// シンボルマップ: 魔族の門（ランダム生成ダンジョン）
+    /// </summary>
+    SymbolDemonPortal,
+
+    /// <summary>
     /// シンボルマップ: 関所（領地間の境界ゲート）
     /// </summary>
     SymbolBorderGate,
@@ -524,6 +534,8 @@ public class Tile
             case TileType.SymbolCapital:
             case TileType.SymbolBanditDen:
             case TileType.SymbolGoblinNest:
+            case TileType.SymbolUndeadCrypt:
+            case TileType.SymbolDemonPortal:
             case TileType.SymbolBorderGate:
                 tile.BlocksSight = false;
                 tile.BlocksMovement = false;
@@ -657,6 +669,8 @@ public class Tile
             TileType.SymbolCapital => '★',
             TileType.SymbolBanditDen => '☠',
             TileType.SymbolGoblinNest => '⚔',
+            TileType.SymbolUndeadCrypt => '⚰',
+            TileType.SymbolDemonPortal => '☽',
             TileType.SymbolBorderGate => '⛩',
             TileType.SymbolDune => '≈',
             TileType.SymbolLava => '≋',

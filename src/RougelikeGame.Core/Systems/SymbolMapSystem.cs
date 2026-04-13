@@ -67,11 +67,14 @@ public class SymbolMapSystem
     /// Dungeon: 固定ダンジョン（ストーリー関連、複数階層）
     /// BanditDen: 野盗のねぐら（盗賊系敵、近距離攻撃中心、罠多め、金品報酬多い）
     /// GoblinNest: ゴブリンの巣（ゴブリン系敵、群体戦、階層浅め、装備品報酬多い）
+    /// UndeadCrypt: アンデッドの墓所（骸骨兵等、十字形の墓地・聖堂テーマ）
+    /// DemonPortal: 魔族の門（小悪魔等、円形・十字形の儀式的テーマ）
     /// </summary>
     public bool IsDungeonEntrance(Position position)
     {
         var location = GetLocationAt(position);
-        return location?.Type is LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest;
+        return location?.Type is LocationType.Dungeon or LocationType.BanditDen
+            or LocationType.GoblinNest or LocationType.UndeadCrypt or LocationType.DemonPortal;
     }
 
     /// <summary>指定位置が野盗のねぐらかどうか判定する</summary>
@@ -88,6 +91,20 @@ public class SymbolMapSystem
         return location?.Type == LocationType.GoblinNest;
     }
 
+    /// <summary>指定位置がアンデッドの墓所かどうか判定する</summary>
+    public bool IsUndeadCrypt(Position position)
+    {
+        var location = GetLocationAt(position);
+        return location?.Type == LocationType.UndeadCrypt;
+    }
+
+    /// <summary>指定位置が魔族の門かどうか判定する</summary>
+    public bool IsDemonPortal(Position position)
+    {
+        var location = GetLocationAt(position);
+        return location?.Type == LocationType.DemonPortal;
+    }
+
     /// <summary>
     /// ランダムダンジョンの派閥名を取得する（派閥消失判定用）
     /// </summary>
@@ -97,6 +114,8 @@ public class SymbolMapSystem
         {
             LocationType.BanditDen => TerritoryInfluenceSystem.FactionNames.Bandit,
             LocationType.GoblinNest => TerritoryInfluenceSystem.FactionNames.Goblin,
+            LocationType.UndeadCrypt => TerritoryInfluenceSystem.FactionNames.Undead,
+            LocationType.DemonPortal => TerritoryInfluenceSystem.FactionNames.Demon,
             _ => null
         };
     }
@@ -161,6 +180,8 @@ public class SymbolMapSystem
             LocationType.Dungeon => $"【{location.Name}】の入口に到着した。（>キーでダンジョンに入る）",
             LocationType.BanditDen => $"【{location.Name}】を発見した。（>キーでダンジョンに入る）",
             LocationType.GoblinNest => $"【{location.Name}】を発見した。（>キーでダンジョンに入る）",
+            LocationType.UndeadCrypt => $"【{location.Name}】を発見した。（>キーでダンジョンに入る）",
+            LocationType.DemonPortal => $"【{location.Name}】を発見した。（>キーでダンジョンに入る）",
             LocationType.Town or LocationType.Village => $"【{location.Name}】に到着した。（Tキーで街に入る）",
             LocationType.Capital => $"【{location.Name}】に到着した。（Tキーで都に入る）",
             LocationType.BorderGate => $"【{location.Name}】に到着した。{location.Description}",
@@ -179,7 +200,8 @@ public class SymbolMapSystem
     {
         var location = GetLocationAt(position);
         if (location != null)
-            return location.Type is not (LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest);
+            return location.Type is not (LocationType.Dungeon or LocationType.BanditDen
+                or LocationType.GoblinNest or LocationType.UndeadCrypt or LocationType.DemonPortal);
 
         if (CurrentMap == null) return false;
         var tile = CurrentMap.GetTile(position);

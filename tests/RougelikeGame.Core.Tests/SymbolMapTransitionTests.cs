@@ -114,6 +114,8 @@ public class SymbolMapSystemTests
                 LocationType.Dungeon => TileType.SymbolDungeon,
                 LocationType.BanditDen => TileType.SymbolBanditDen,
                 LocationType.GoblinNest => TileType.SymbolGoblinNest,
+                LocationType.UndeadCrypt => TileType.SymbolUndeadCrypt,
+                LocationType.DemonPortal => TileType.SymbolDemonPortal,
                 LocationType.BorderGate => TileType.SymbolBorderGate,
                 _ => TileType.SymbolField
             };
@@ -459,7 +461,8 @@ public class SymbolMapSystemTests
         // ダンジョン入口を見つける
         var allPositions = system.GetAllLocationPositions();
         var dungeonEntry = allPositions
-            .FirstOrDefault(p => p.Value.Type is LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest);
+            .FirstOrDefault(p => p.Value.Type is LocationType.Dungeon or LocationType.BanditDen
+                or LocationType.GoblinNest or LocationType.UndeadCrypt or LocationType.DemonPortal);
 
         if (dungeonEntry.Value != null)
         {

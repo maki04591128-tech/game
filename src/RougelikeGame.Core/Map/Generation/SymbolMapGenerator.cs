@@ -7,7 +7,7 @@ namespace RougelikeGame.Core.Map.Generation;
 /// 領地ごとの地上マップを生成する。Elona/The Door of Trithius風の
 /// ロケーションシンボルが配置されたオーバーワールドマップ。
 /// Ver.α: 12領地対応、可変サイズ(23000-50000マス)、複雑形状、村/町/都自動配置、
-/// ランダムダンジョン(野盗のねぐら/ゴブリンの巣)生成、勢力影響マップ対応。
+/// ランダムダンジョン(野盗のねぐら/ゴブリンの巣/アンデッドの墓所/魔族の門)生成、勢力影響マップ対応。
 /// </summary>
 public class SymbolMapGenerator
 {
@@ -596,9 +596,11 @@ public class SymbolMapGenerator
     private const int MinRandomDungeons = 2;
 
     /// <summary>
-    /// ランダムダンジョン（野盗のねぐら、ゴブリンの巣等）を配置する。
+    /// ランダムダンジョン（野盗のねぐら、ゴブリンの巣、アンデッドの墓所、魔族の門等）を配置する。
+    /// 領地の敵対派閥に基づき、その派閥に対応するダンジョンタイプを生成する。
     /// 条件: 村/町/都からSettlementMinDistBaseマス以上離れた場所、他ダンジョンからDungeonMinDistBaseマス以上離れた場所
     /// 階層数・レベルは首都からの距離に基づく成長曲線で決定。
+    /// 中立・味方派閥はダンジョンを生成しない（CanFactionGenerateDungeon判定）。
     /// </summary>
     private static void PlaceRandomDungeons(
         DungeonMap map, TerritoryId territory,
@@ -612,7 +614,8 @@ public class SymbolMapGenerator
             .ToList();
 
         var dungeonPositions = locationPositions
-            .Where(kv => kv.Value.Type is LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest)
+            .Where(kv => kv.Value.Type is LocationType.Dungeon or LocationType.BanditDen
+                or LocationType.GoblinNest or LocationType.UndeadCrypt or LocationType.DemonPortal)
             .Select(kv => kv.Key)
             .ToList();
 
@@ -628,14 +631,21 @@ public class SymbolMapGenerator
 
         int mapDiag = CalculateMapDiagonal(map.Width, map.Height);
 
-        var dungeonTypes = new[]
+        // 領地の敵対派閥に基づくダンジョンタイプ候補を構築
+        var factionConfig = TerritoryInfluenceSystem.GetTerritoryFactionConfig(territory);
+        var dungeonTypes = new List<(string name, LocationType type, TileType tile)>();
+
+        foreach (var faction in factionConfig.HostileFactions)
         {
-            (name: "野盗のねぐら", type: LocationType.BanditDen, tile: TileType.SymbolBanditDen),
-            (name: "ゴブリンの巣", type: LocationType.GoblinNest, tile: TileType.SymbolGoblinNest),
-            (name: "オーク族の砦", type: LocationType.BanditDen, tile: TileType.SymbolBanditDen),
-            (name: "盗賊団のアジト", type: LocationType.BanditDen, tile: TileType.SymbolBanditDen),
-            (name: "コボルドの穴", type: LocationType.GoblinNest, tile: TileType.SymbolGoblinNest),
-        };
+            // 中立・味方派閥はダンジョン生成不可
+            if (!TerritoryInfluenceSystem.CanFactionGenerateDungeon(faction)) continue;
+
+            var factionDungeons = GetDungeonTypesForFaction(faction);
+            dungeonTypes.AddRange(factionDungeons);
+        }
+
+        // 敵対派閥がダンジョン生成可能でない場合はスキップ
+        if (dungeonTypes.Count == 0) return;
 
         int maxDungeons = Math.Max(MinRandomDungeons, (map.Width * map.Height) / TilesPerRandomDungeon);
 
@@ -645,9 +655,9 @@ public class SymbolMapGenerator
             var pos = FindRandomDungeonPosition(map, shapeMask, settlementPositions, dungeonPositions, random);
             if (pos == null) break;
 
-            var dungeonDef = dungeonTypes[random.Next(dungeonTypes.Length)];
+            var dungeonDef = dungeonTypes[random.Next(dungeonTypes.Count)];
             // IDに派閥タイプを含める（ダンジョン形状の派閥別生成に使用）
-            string factionTag = dungeonDef.type == LocationType.BanditDen ? "bandit" : "goblin";
+            string factionTag = GetFactionTagForLocationType(dungeonDef.type);
             string dungeonId = $"{territory}_random_dungeon_{factionTag}_{i}";
 
             // 首都からの距離に基づく成長曲線
@@ -687,6 +697,53 @@ public class SymbolMapGenerator
             locationPositions[pos.Value] = loc;
             dungeonPositions.Add(pos.Value);
         }
+    }
+
+    /// <summary>
+    /// 派閥名に対応するダンジョンタイプ候補を返す。
+    /// 各派閥は複数のダンジョンバリエーションを持つ。
+    /// </summary>
+    private static IEnumerable<(string name, LocationType type, TileType tile)> GetDungeonTypesForFaction(string factionName)
+    {
+        return factionName switch
+        {
+            TerritoryInfluenceSystem.FactionNames.Bandit => new[]
+            {
+                ("野盗のねぐら", LocationType.BanditDen, TileType.SymbolBanditDen),
+                ("盗賊団のアジト", LocationType.BanditDen, TileType.SymbolBanditDen),
+                ("オーク族の砦", LocationType.BanditDen, TileType.SymbolBanditDen),
+            },
+            TerritoryInfluenceSystem.FactionNames.Goblin => new[]
+            {
+                ("ゴブリンの巣", LocationType.GoblinNest, TileType.SymbolGoblinNest),
+                ("コボルドの穴", LocationType.GoblinNest, TileType.SymbolGoblinNest),
+            },
+            TerritoryInfluenceSystem.FactionNames.Undead => new[]
+            {
+                ("古代の墓所", LocationType.UndeadCrypt, TileType.SymbolUndeadCrypt),
+                ("骸骨の洞窟", LocationType.UndeadCrypt, TileType.SymbolUndeadCrypt),
+                ("亡者の祠", LocationType.UndeadCrypt, TileType.SymbolUndeadCrypt),
+            },
+            TerritoryInfluenceSystem.FactionNames.Demon => new[]
+            {
+                ("魔族の門", LocationType.DemonPortal, TileType.SymbolDemonPortal),
+                ("魔の祭壇", LocationType.DemonPortal, TileType.SymbolDemonPortal),
+            },
+            _ => Array.Empty<(string, LocationType, TileType)>()
+        };
+    }
+
+    /// <summary>LocationTypeから派閥タグ文字列を取得（ダンジョンID生成用）</summary>
+    private static string GetFactionTagForLocationType(LocationType type)
+    {
+        return type switch
+        {
+            LocationType.BanditDen => "bandit",
+            LocationType.GoblinNest => "goblin",
+            LocationType.UndeadCrypt => "undead",
+            LocationType.DemonPortal => "demon",
+            _ => "unknown"
+        };
     }
 
     /// <summary>
@@ -746,6 +803,8 @@ public class SymbolMapGenerator
             LocationType.Dungeon => TileType.SymbolDungeon,
             LocationType.BanditDen => TileType.SymbolBanditDen,
             LocationType.GoblinNest => TileType.SymbolGoblinNest,
+            LocationType.UndeadCrypt => TileType.SymbolUndeadCrypt,
+            LocationType.DemonPortal => TileType.SymbolDemonPortal,
             LocationType.BorderGate => TileType.SymbolBorderGate,
             _ => TileType.SymbolField
         };
