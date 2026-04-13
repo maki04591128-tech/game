@@ -327,15 +327,84 @@ public class WorldMapSystem
         return current.AdjacentTerritories.Select(TerritoryDefinition.Get).ToList();
     }
 
-    /// <summary>隣接領地への移動が可能か</summary>
+    /// <summary>プレイヤーが手配中かどうか</summary>
+    public bool IsPlayerWanted { get; set; } = false;
+
+    /// <summary>所持金（通行料判定用、外部から設定）</summary>
+    public int PlayerGold { get; set; } = 0;
+
+    /// <summary>関所通行料（1回あたりの固定額）</summary>
+    public const int BorderGateToll = 100;
+
+    /// <summary>戦争システム参照（外部から設定）</summary>
+    public FactionWarSystem? FactionWarSystem { get; set; }
+
+    /// <summary>
+    /// 隣接領地への移動が可能か。
+    /// 条件: (1)隣接であること (2)手配されていないこと (3)通行料を支払えること (4)戦争状態でないこと
+    /// </summary>
     public bool CanTravelTo(TerritoryId destination, int playerLevel)
     {
         var current = TerritoryDefinition.Get(CurrentTerritory);
         if (!current.AdjacentTerritories.Contains(destination))
             return false;
 
-        var dest = TerritoryDefinition.Get(destination);
-        return playerLevel >= dest.MinLevel;
+        // 手配中は通行不可
+        if (IsPlayerWanted)
+            return false;
+
+        // 通行料を支払えるか
+        if (PlayerGold < BorderGateToll)
+            return false;
+
+        // 戦争状態にある領地間は通行不可
+        if (FactionWarSystem != null)
+        {
+            var wars = FactionWarSystem.ActiveWars;
+            foreach (var war in wars)
+            {
+                if (war.Phase is WarPhase.Skirmish or WarPhase.Battle)
+                {
+                    bool involvesFrom = war.Attacker == CurrentTerritory || war.Defender == CurrentTerritory;
+                    bool involvesTo = war.Attacker == destination || war.Defender == destination;
+                    if (involvesFrom && involvesTo)
+                        return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>通行拒否理由を取得する（UI表示用）</summary>
+    public string GetTravelDeniedReason(TerritoryId destination, int playerLevel)
+    {
+        var current = TerritoryDefinition.Get(CurrentTerritory);
+        if (!current.AdjacentTerritories.Contains(destination))
+            return "この領地には直接移動できない";
+
+        if (IsPlayerWanted)
+            return "手配中のため関所を通過できない";
+
+        if (PlayerGold < BorderGateToll)
+            return $"通行料が足りない（必要: {BorderGateToll}G、所持: {PlayerGold}G）";
+
+        if (FactionWarSystem != null)
+        {
+            var wars = FactionWarSystem.ActiveWars;
+            foreach (var war in wars)
+            {
+                if (war.Phase is WarPhase.Skirmish or WarPhase.Battle)
+                {
+                    bool involvesFrom = war.Attacker == CurrentTerritory || war.Defender == CurrentTerritory;
+                    bool involvesTo = war.Attacker == destination || war.Defender == destination;
+                    if (involvesFrom && involvesTo)
+                        return $"戦争中のため通行不可（{war.Name}）";
+                }
+            }
+        }
+
+        return string.Empty;
     }
 
     /// <summary>領地間移動を実行</summary>
@@ -343,11 +412,14 @@ public class WorldMapSystem
     {
         if (!CanTravelTo(destination, playerLevel))
         {
-            var dest = TerritoryDefinition.Get(destination);
-            if (playerLevel < dest.MinLevel)
-                return new TravelResult(false, $"レベルが足りない（必要Lv.{dest.MinLevel}）", 0);
-            return new TravelResult(false, "この領地には直接移動できない", 0);
+            string reason = GetTravelDeniedReason(destination, playerLevel);
+            if (string.IsNullOrEmpty(reason))
+                reason = "この領地には移動できない";
+            return new TravelResult(false, reason, 0);
         }
+
+        // 通行料を差し引き
+        PlayerGold -= BorderGateToll;
 
         var destination_def = TerritoryDefinition.Get(destination);
         CurrentTerritory = destination;
@@ -355,7 +427,7 @@ public class WorldMapSystem
         IsOnSurface = true;
 
         return new TravelResult(true,
-            $"{destination_def.Name}に到着した（{destination_def.TravelTurnCost / TimeConstants.TurnsPerDay}日経過）",
+            $"{destination_def.Name}に到着した（通行料{BorderGateToll}G支払い、{destination_def.TravelTurnCost / TimeConstants.TurnsPerDay}日経過）",
             destination_def.TravelTurnCost);
     }
 
@@ -385,11 +457,18 @@ public class WorldMapSystem
         IsOnSurface = true;
     }
 
+    /// <summary>旅イベントの基本発生確率（%）</summary>
+    private const int BaseTravelEventChance = 30;
+
     /// <summary>領地間移動時のランダムイベント判定</summary>
     public TravelEvent? RollTravelEvent(TerritoryId from, TerritoryId to, IRandomProvider random)
     {
-        // 30%の確率でイベント発生
-        if (random.Next(100) >= 30) return null;
+        // 基本確率を領地危険度で調整: 危険な領地ほどイベント発生率上昇
+        var destDef = TerritoryDefinition.Get(to);
+        int eventChance = BaseTravelEventChance + (destDef.MaxDungeonDepth / 5);
+        eventChance = Math.Clamp(eventChance, 10, 60);
+
+        if (random.Next(100) >= eventChance) return null;
 
         var events = new[]
         {
@@ -407,7 +486,11 @@ public class WorldMapSystem
     /// <summary>領地間移動時のランダムイベント判定（System.Random版）</summary>
     public TravelEvent? RollTravelEvent(TerritoryId from, TerritoryId to, Random random)
     {
-        if (random.Next(100) >= 30) return null;
+        var destDef = TerritoryDefinition.Get(to);
+        int eventChance = BaseTravelEventChance + (destDef.MaxDungeonDepth / 5);
+        eventChance = Math.Clamp(eventChance, 10, 60);
+
+        if (random.Next(100) >= eventChance) return null;
 
         var events = new[]
         {

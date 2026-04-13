@@ -152,16 +152,18 @@ public class WorldMapSystemTests
     }
 
     [Fact]
-    public void WorldMapSystem_CanTravelTo_AdjacentTerritory_WithSufficientLevel()
+    public void WorldMapSystem_CanTravelTo_AdjacentTerritory_WithSufficientGold()
     {
         var system = new WorldMapSystem();
+        system.PlayerGold = 10000;
         Assert.True(system.CanTravelTo(TerritoryId.Coast, 5));
     }
 
     [Fact]
-    public void WorldMapSystem_CanTravelTo_AdjacentTerritory_InsufficientLevel()
+    public void WorldMapSystem_CanTravelTo_AdjacentTerritory_InsufficientGold()
     {
         var system = new WorldMapSystem();
+        system.PlayerGold = 0; // 通行料を支払えない
         Assert.False(system.CanTravelTo(TerritoryId.Mountain, 1));
     }
 
@@ -169,6 +171,7 @@ public class WorldMapSystemTests
     public void WorldMapSystem_CanTravelTo_NonAdjacentTerritory_ReturnsFalse()
     {
         var system = new WorldMapSystem();
+        system.PlayerGold = 10000;
         Assert.False(system.CanTravelTo(TerritoryId.Frontier, 30));
     }
 
@@ -176,6 +179,7 @@ public class WorldMapSystemTests
     public void WorldMapSystem_TravelTo_Success_ChangesTerritory()
     {
         var system = new WorldMapSystem();
+        system.PlayerGold = 10000;
         var result = system.TravelTo(TerritoryId.Forest, 10);
 
         Assert.True(result.Success);
@@ -185,20 +189,22 @@ public class WorldMapSystemTests
     }
 
     [Fact]
-    public void WorldMapSystem_TravelTo_InsufficientLevel_Fails()
+    public void WorldMapSystem_TravelTo_InsufficientGold_Fails()
     {
         var system = new WorldMapSystem();
+        system.PlayerGold = 0;
         var result = system.TravelTo(TerritoryId.Mountain, 1);
 
         Assert.False(result.Success);
         Assert.Equal(TerritoryId.Capital, system.CurrentTerritory);
-        Assert.Contains("レベルが足りない", result.Message);
+        Assert.Contains("通行料が足りない", result.Message);
     }
 
     [Fact]
     public void WorldMapSystem_TravelTo_NonAdjacent_Fails()
     {
         var system = new WorldMapSystem();
+        system.PlayerGold = 10000;
         var result = system.TravelTo(TerritoryId.Frontier, 30);
 
         Assert.False(result.Success);
@@ -209,6 +215,7 @@ public class WorldMapSystemTests
     public void WorldMapSystem_TravelTo_SetsIsOnSurface()
     {
         var system = new WorldMapSystem();
+        system.PlayerGold = 10000;
         system.IsOnSurface = false;
         system.TravelTo(TerritoryId.Forest, 10);
         Assert.True(system.IsOnSurface);
@@ -904,12 +911,13 @@ public class WorldMapSystemTests
     public void Integration_TravelChain_CapitalToFrontier()
     {
         var system = new WorldMapSystem();
+        system.PlayerGold = 100000;
 
-        // Capital → Mountain (要Lv10)
+        // Capital → Mountain
         var r1 = system.TravelTo(TerritoryId.Mountain, 10);
         Assert.True(r1.Success);
 
-        // Mountain → Frontier (要Lv20)
+        // Mountain → Frontier
         var r2 = system.TravelTo(TerritoryId.Frontier, 20);
         Assert.True(r2.Success);
 

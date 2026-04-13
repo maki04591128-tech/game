@@ -107,12 +107,13 @@ public class TerritoryInfluenceSystem
         IReadOnlyDictionary<Position, LocationDefinition>? locationPositions,
         int safeZoneDistance)
     {
-        // 集落（村/町/都）近くのタイルは野生動物（安全圏）
+        // 集落（村/町/都）および施設（Facility/ReligiousSite）近くのタイルは野生動物（安全圏）
         if (locationPositions != null)
         {
             foreach (var (pos, loc) in locationPositions)
             {
-                if (loc.Type is LocationType.Town or LocationType.Village or LocationType.Capital)
+                if (loc.Type is LocationType.Town or LocationType.Village or LocationType.Capital
+                    or LocationType.Facility or LocationType.ReligiousSite)
                 {
                     int dist = Math.Abs(pos.X - tilePos.X) + Math.Abs(pos.Y - tilePos.Y);
                     if (dist < safeZoneDistance) return FactionNames.Wildlife;
@@ -218,5 +219,68 @@ public class TerritoryInfluenceSystem
         {
             _influence[territory] = new Dictionary<string, float>(factions);
         }
+    }
+
+    // === 敵対派閥消失システム ===
+
+    /// <summary>派閥ダンジョンクリアで派閥消失に必要なクリア数</summary>
+    public static readonly Dictionary<string, int> FactionEliminationThresholds = new()
+    {
+        [FactionNames.Goblin] = 1000,
+        [FactionNames.Bandit] = 800,
+        [FactionNames.Undead] = 1200,
+        [FactionNames.Demon] = 1500,
+    };
+
+    /// <summary>領地×派閥ごとのダンジョンクリア数</summary>
+    private readonly Dictionary<(TerritoryId Territory, string Faction), int> _factionClearCounts = new();
+
+    /// <summary>消失済み派閥の領地別記録</summary>
+    private readonly HashSet<(TerritoryId Territory, string Faction)> _eliminatedFactions = new();
+
+    /// <summary>
+    /// 敵対派閥ダンジョンをクリアした際に呼び出す。
+    /// 該当領地での派閥クリア数をインクリメントし、閾値到達で派閥消失を判定する。
+    /// </summary>
+    /// <returns>派閥が消失した場合はtrue</returns>
+    public bool RecordFactionDungeonClear(TerritoryId territory, string factionName)
+    {
+        var key = (territory, factionName);
+        _factionClearCounts[key] = _factionClearCounts.GetValueOrDefault(key) + 1;
+
+        if (!FactionEliminationThresholds.TryGetValue(factionName, out int threshold))
+            return false;
+
+        if (_factionClearCounts[key] >= threshold && !_eliminatedFactions.Contains(key))
+        {
+            _eliminatedFactions.Add(key);
+            // 領地での該当派閥の勢力をゼロにする
+            if (_influence.TryGetValue(territory, out var factions) && factions.ContainsKey(factionName))
+            {
+                factions[factionName] = 0f;
+                NormalizeInfluence(territory);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>指定領地で派閥が消失済みかどうか判定</summary>
+    public bool IsFactionEliminated(TerritoryId territory, string factionName)
+    {
+        return _eliminatedFactions.Contains((territory, factionName));
+    }
+
+    /// <summary>指定領地でのダンジョンクリア数を取得</summary>
+    public int GetFactionClearCount(TerritoryId territory, string factionName)
+    {
+        return _factionClearCounts.GetValueOrDefault((territory, factionName));
+    }
+
+    /// <summary>派閥消失データをリセットする（死に戻り用）</summary>
+    public void ResetFactionElimination()
+    {
+        _factionClearCounts.Clear();
+        _eliminatedFactions.Clear();
     }
 }

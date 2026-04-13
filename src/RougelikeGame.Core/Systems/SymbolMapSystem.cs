@@ -59,12 +59,42 @@ public class SymbolMapSystem
     }
 
     /// <summary>
-    /// 指定位置がダンジョン入口かどうか判定する
+    /// 指定位置がダンジョン入口かどうか判定する。
+    /// Dungeon: 固定ダンジョン（ストーリー関連、複数階層）
+    /// BanditDen: 野盗のねぐら（盗賊系敵、近距離攻撃中心、罠多め、金品報酬多い）
+    /// GoblinNest: ゴブリンの巣（ゴブリン系敵、群体戦、階層浅め、装備品報酬多い）
     /// </summary>
     public bool IsDungeonEntrance(Position position)
     {
         var location = GetLocationAt(position);
         return location?.Type is LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest;
+    }
+
+    /// <summary>指定位置が野盗のねぐらかどうか判定する</summary>
+    public bool IsBanditDen(Position position)
+    {
+        var location = GetLocationAt(position);
+        return location?.Type == LocationType.BanditDen;
+    }
+
+    /// <summary>指定位置がゴブリンの巣かどうか判定する</summary>
+    public bool IsGoblinNest(Position position)
+    {
+        var location = GetLocationAt(position);
+        return location?.Type == LocationType.GoblinNest;
+    }
+
+    /// <summary>
+    /// ランダムダンジョンの派閥名を取得する（派閥消失判定用）
+    /// </summary>
+    public static string? GetFactionForDungeonType(LocationType type)
+    {
+        return type switch
+        {
+            LocationType.BanditDen => TerritoryInfluenceSystem.FactionNames.Bandit,
+            LocationType.GoblinNest => TerritoryInfluenceSystem.FactionNames.Goblin,
+            _ => null
+        };
     }
 
     /// <summary>
@@ -77,7 +107,8 @@ public class SymbolMapSystem
     }
 
     /// <summary>
-    /// 指定位置が施設かどうか判定する
+    /// 指定位置が施設かどうか判定する。
+    /// Facility: 冒険者ギルド、鍛冶場、市場等の実用施設（物品売買・依頼受注等が可能）
     /// </summary>
     public bool IsFacility(Position position)
     {
@@ -86,12 +117,23 @@ public class SymbolMapSystem
     }
 
     /// <summary>
-    /// 指定位置が宗教施設かどうか判定する
+    /// 指定位置が宗教施設かどうか判定する。
+    /// ReligiousSite: 祠・神殿・祭壇等の信仰関連施設（祈り・呪い解除・バフ取得等が可能）
     /// </summary>
     public bool IsShrine(Position position)
     {
         var location = GetLocationAt(position);
         return location?.Type == LocationType.ReligiousSite;
+    }
+
+    /// <summary>
+    /// 指定位置が野外エリアかどうか判定する。
+    /// Field: 荒野・平原・森等のオープンフィールド（ランダムエンカウント・採集・探索が可能）
+    /// </summary>
+    public bool IsField(Position position)
+    {
+        var location = GetLocationAt(position);
+        return location?.Type == LocationType.Field;
     }
 
     /// <summary>
@@ -251,6 +293,14 @@ public class SymbolMapSystem
     }
 
     /// <summary>
+    /// 指定IDのロケーション定義を取得する。
+    /// </summary>
+    public LocationDefinition? GetLocationById(string locationId)
+    {
+        return _locationPositions.Values.FirstOrDefault(l => l.Id == locationId);
+    }
+
+    /// <summary>
     /// 関所ロケーションかどうかを判定する
     /// </summary>
     public bool IsBorderGate(Position position)
@@ -258,4 +308,41 @@ public class SymbolMapSystem
         var location = GetLocationAt(position);
         return location?.Type == LocationType.BorderGate;
     }
+
+    /// <summary>
+    /// 集落間の交易ルート（道路タイル上の経路）を取得する。
+    /// 各ルートは始点集落・終点集落のペアと経路上の道路タイル座標リスト。
+    /// </summary>
+    public IReadOnlyList<TradeRoute> GetTradeRoutes()
+    {
+        if (CurrentMap == null) return Array.Empty<TradeRoute>();
+
+        var settlements = _locationPositions
+            .Where(kv => kv.Value.Type is LocationType.Town or LocationType.Village or LocationType.Capital)
+            .ToList();
+
+        var routes = new List<TradeRoute>();
+
+        // 各集落ペア間で道路タイルが接続しているか簡易判定
+        for (int i = 0; i < settlements.Count; i++)
+        {
+            for (int j = i + 1; j < settlements.Count; j++)
+            {
+                var (posA, locA) = settlements[i];
+                var (posB, locB) = settlements[j];
+
+                // 2集落間のチェビシェフ距離が一定以内のもの（直結ルート候補）
+                int dist = posA.ChebyshevDistanceTo(posB);
+                if (dist <= CurrentMap.Width / 3)
+                {
+                    routes.Add(new TradeRoute(locA.Id, locB.Id, posA, posB, dist));
+                }
+            }
+        }
+
+        return routes;
+    }
+
+    /// <summary>交易ルート定義</summary>
+    public record TradeRoute(string FromId, string ToId, Position FromPos, Position ToPos, int Distance);
 }

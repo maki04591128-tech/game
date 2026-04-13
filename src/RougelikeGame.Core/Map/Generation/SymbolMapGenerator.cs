@@ -71,7 +71,11 @@ public class SymbolMapGenerator
     public SymbolMapResult Generate(TerritoryId territory, ISet<string>? clearedDungeonIds)
     {
         var (width, height) = GetTerritoryMapSize(territory);
-        var locations = LocationDefinition.GetSymbolLocations(territory);
+        var allLocations = LocationDefinition.GetSymbolLocations(territory);
+        // クリア済みダンジョンを固定ロケーションからも除外
+        var locations = clearedDungeonIds != null
+            ? allLocations.Where(l => !clearedDungeonIds.Contains(l.Id)).ToList()
+            : allLocations.ToList();
         var random = new Random(GetTerritorySeed(territory));
 
         var map = new DungeonMap(width, height)
@@ -553,9 +557,15 @@ public class SymbolMapGenerator
         return null;
     }
 
+    /// <summary>ランダムダンジョン1つあたりの必要マス数（総マス数÷この値＝最大ダンジョン数）</summary>
+    private const int TilesPerRandomDungeon = 800;
+
+    /// <summary>ランダムダンジョンの最低配置数</summary>
+    private const int MinRandomDungeons = 2;
+
     /// <summary>
     /// ランダムダンジョン（野盗のねぐら、ゴブリンの巣等）を配置する。
-    /// 条件: 村/町/都から25マス以上離れた場所、他ダンジョンから50マス以上離れた場所
+    /// 条件: 村/町/都からSettlementMinDistBaseマス以上離れた場所、他ダンジョンからDungeonMinDistBaseマス以上離れた場所
     /// 階層数・レベルは首都からの距離に基づく成長曲線で決定。
     /// </summary>
     private static void PlaceRandomDungeons(
@@ -595,7 +605,7 @@ public class SymbolMapGenerator
             (name: "コボルドの穴", type: LocationType.GoblinNest, tile: TileType.SymbolGoblinNest),
         };
 
-        int maxDungeons = Math.Max(2, (map.Width * map.Height) / 800);
+        int maxDungeons = Math.Max(MinRandomDungeons, (map.Width * map.Height) / TilesPerRandomDungeon);
 
         for (int i = 0; i < maxDungeons; i++)
         {
@@ -647,19 +657,22 @@ public class SymbolMapGenerator
 
     /// <summary>
     /// ランダムダンジョンの配置位置を探す。
-    /// 集落からの最低距離は基本25マス、他ダンジョンからは基本50マス。
-    /// （元の値: 集落50マス/ダンジョン間100マスの1/2）
-    /// ただしマップ対角線に対して、集落距離は対角線の1/3、ダンジョン距離は対角線の1/2を上限とする。
-    /// これにより小さいマップでは距離制限が自動的にスケールダウンされる。
+    /// 集落からの最低距離は SettlementMinDistBase マス、他ダンジョンからは DungeonMinDistBase マス。
+    /// ただしマップ対角線に対して自動的にスケールダウンされる。
     /// </summary>
+    private const int SettlementMinDistBase = 25;
+    private const int DungeonMinDistBase = 50;
+    private const int SettlementDiagDivisor = 3;
+    private const int DungeonDiagDivisor = 2;
+
     private static Position? FindRandomDungeonPosition(
         DungeonMap map, bool[,] shapeMask,
         List<Position> settlementPositions, List<Position> dungeonPositions,
         Random random)
     {
         int mapDiag = (int)Math.Sqrt(map.Width * map.Width + map.Height * map.Height);
-        int settlementMinDist = Math.Min(25, mapDiag / 3);
-        int dungeonMinDist = Math.Min(50, mapDiag / 2);
+        int settlementMinDist = Math.Min(SettlementMinDistBase, mapDiag / SettlementDiagDivisor);
+        int dungeonMinDist = Math.Min(DungeonMinDistBase, mapDiag / DungeonDiagDivisor);
 
         for (int attempt = 0; attempt < MaxRandomDungeonPlacementAttempts; attempt++)
         {

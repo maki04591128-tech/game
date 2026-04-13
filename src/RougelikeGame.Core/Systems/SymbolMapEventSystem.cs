@@ -56,7 +56,10 @@ public static class SymbolMapEventSystem
     /// <summary>全イベント定義を取得</summary>
     public static IReadOnlyList<MapEvent> GetAllEvents() => Events;
 
-    /// <summary>現在の条件で発生可能なイベントを取得</summary>
+    /// <summary>
+    /// 現在の条件で発生可能なイベントを取得。
+    /// ActiveSeasons空配列 = 全季節対象、ActiveTerritories空配列 = 全領地対象。
+    /// </summary>
     public static IReadOnlyList<MapEvent> GetAvailableEvents(Season season, TerritoryId territory)
     {
         return Events.Where(e =>
@@ -97,5 +100,41 @@ public static class SymbolMapEventSystem
                 new MapEvent("terrain_swamp_poison", "毒沼", "有毒な瘴気に包まれる", 0.10f, Array.Empty<Season>(), Array.Empty<TerritoryId>()),
             _ => null
         };
+    }
+
+    /// <summary>
+    /// イベント発生中のマップタイル一時変更を記録するスナップショット。
+    /// ApplyTemporaryChange()で変更し、RestoreFromSnapshot()で元に戻す。
+    /// </summary>
+    public class MapTileSnapshot
+    {
+        private readonly Dictionary<Position, TileType> _savedTiles = new();
+
+        /// <summary>変更済みタイル数</summary>
+        public int ChangedTileCount => _savedTiles.Count;
+
+        /// <summary>タイルを一時変更し、元の状態を記録する</summary>
+        public void ApplyTemporaryChange(DungeonMap map, Position pos, TileType newType)
+        {
+            if (!map.IsInBounds(pos)) return;
+            if (!_savedTiles.ContainsKey(pos))
+            {
+                _savedTiles[pos] = map.GetTile(pos).Type;
+            }
+            map.SetTile(pos.X, pos.Y, newType);
+        }
+
+        /// <summary>記録した全タイルを元に戻す</summary>
+        public void RestoreAll(DungeonMap map)
+        {
+            foreach (var (pos, originalType) in _savedTiles)
+            {
+                if (map.IsInBounds(pos))
+                {
+                    map.SetTile(pos.X, pos.Y, originalType);
+                }
+            }
+            _savedTiles.Clear();
+        }
     }
 }

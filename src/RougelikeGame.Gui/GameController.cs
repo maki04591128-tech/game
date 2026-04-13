@@ -1926,6 +1926,12 @@ public class GameController
             _lastMoveActionCost = (int)(_lastMoveActionCost * weatherMoveMod);
         }
 
+        // シンボルマップ地形コスト補正（タイルのMovementCostが1.0を超える場合に適用）
+        if (_worldMapSystem.IsOnSurface && tile.MovementCost > 1.0f)
+        {
+            _lastMoveActionCost = (int)(_lastMoveActionCost * tile.MovementCost);
+        }
+
         // 地表面による移動コスト補正（EnvironmentalCombatSystem）
         if (_surfaceMap.TryGetValue(newPos, out var moveSurface))
         {
@@ -3759,11 +3765,30 @@ public class GameController
                 _clearSystem.SetFlag("dungeon_clear");
                 AddMessage("🏆 ダンジョン最深部に到達した！");
 
-                // ランダムダンジョンの場合はクリアすると消滅する
+                // ランダムダンジョンの場合はクリアすると永久消滅する
                 if (_currentMapName.Contains("_random_dungeon_"))
                 {
                     _clearSystem.SetFlag($"cleared_{_currentMapName}");
                     AddMessage("⚡ このダンジョンは崩壊を始めた…地上に帰還する！");
+
+                    // 派閥ダンジョンクリア数を記録し、消失判定を行う
+                    var dungeonLoc = _symbolMapSystem.GetLocationById(_currentMapName);
+                    if (dungeonLoc != null)
+                    {
+                        var factionName = SymbolMapSystem.GetFactionForDungeonType(dungeonLoc.Type);
+                        if (factionName != null)
+                        {
+                            var currentTerritory2 = _worldMapSystem.CurrentTerritory;
+                            bool eliminated = _territoryInfluenceSystem.RecordFactionDungeonClear(currentTerritory2, factionName);
+                            if (eliminated)
+                            {
+                                int threshold = TerritoryInfluenceSystem.FactionEliminationThresholds[factionName];
+                                var territoryName2 = _worldMapSystem.GetCurrentTerritoryInfo().Name;
+                                AddMessage($"🎉 {territoryName2}における{factionName}の脅威が完全に消滅した！（{threshold}拠点制圧）");
+                            }
+                        }
+                    }
+
                     _symbolMapSystem.RemoveLocationById(_currentMapName);
 
                     // 地上帰還
@@ -6562,11 +6587,25 @@ public class GameController
             var targetTerritory = location.GetBorderGateTarget();
             if (targetTerritory.HasValue)
             {
+                // 通行条件チェック（手配/通行料/戦争状態）
+                _worldMapSystem.PlayerGold = Player.Gold;
+                if (!_worldMapSystem.CanTravelTo(targetTerritory.Value, Player.Level))
+                {
+                    string reason = _worldMapSystem.GetTravelDeniedReason(targetTerritory.Value, Player.Level);
+                    AddMessage($"【{location.Name}】─ 通過できない: {reason}");
+                    return false;
+                }
+
                 var targetDef = TerritoryDefinition.Get(targetTerritory.Value);
-                AddMessage($"【{location.Name}】─ 関所を通過し、{targetDef.Name}へ向かう…");
+
+                // 通行料を差し引き
+                Player.AddGold(-WorldMapSystem.BorderGateToll);
+                _worldMapSystem.PlayerGold = Player.Gold;
+                AddMessage($"【{location.Name}】─ 通行料{WorldMapSystem.BorderGateToll}Gを支払い、{targetDef.Name}へ向かう…");
 
                 // 領地を切り替え
                 _worldMapSystem.SetTerritory(targetTerritory.Value);
+                _worldMapSystem.VisitedTerritories.Add(targetTerritory.Value);
                 _currentDungeonFeature = null;
 
                 // 新しい領地のシンボルマップを生成
