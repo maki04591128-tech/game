@@ -141,7 +141,7 @@ public class TerritoryInfluenceSystem
             int adjustedSafeZone = safeZoneDistance;
             if (elapsedDays > 0)
             {
-                int shrink = elapsedDays / DangerExpansionDaysPerTile;
+                int shrink = Math.Min(elapsedDays / DangerExpansionDaysPerTile, safeZoneDistance);
                 adjustedSafeZone = Math.Max(safeZoneDistance / 2, safeZoneDistance - shrink);
             }
 

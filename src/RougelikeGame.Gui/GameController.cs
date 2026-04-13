@@ -6499,6 +6499,7 @@ public class GameController
     /// A2: ワールドマップからの直接移動は廃止。関所（BorderGate）経由のみ許可。
     /// このメソッドは後方互換性のために残すが、関所案内メッセージを表示する。
     /// </summary>
+    [System.Obsolete("A2: ワールドマップ廃止。領地間移動はBorderGate経由のTryEnterTown()を使用してください。")]
     public bool TryTravelTo(TerritoryId destination)
     {
         // A2: ワールドマップ廃止→関所NPC統一

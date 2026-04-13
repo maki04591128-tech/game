@@ -10,8 +10,9 @@ namespace RougelikeGame.Core.Tests;
 /// <summary>
 /// Ver.α シンボルマップ拡張テスト
 /// 12領地対応、可変サイズ、複雑形状、村/町/都自動配置、
-/// ランダムダンジョン生成、勢力影響→敵種別マッピングのテスト
-/// テスト数: 43件（Phase修正テスト13件追加）
+/// ランダムダンジョン生成、勢力影響→敵種別マッピング、
+/// A1（安全圏/危険圏重複処理）、A2（関所NPC統一）のテスト
+/// テスト数: 167件
 /// </summary>
 public class VerAlphaSymbolMapTests
 {
@@ -1128,7 +1129,8 @@ public class VerAlphaSymbolMapTests
             TerritoryId.Frontier, borderTile, locations, safeZone,
             TerritoryInfluenceSystem.DangerExpansionDaysPerTile * safeZone);
         // 安全圏の最小値は元の半分なので、borderTile が危険圏になっているはず
-        Assert.NotEqual(TerritoryInfluenceSystem.FactionNames.Wildlife, factionLate);
+        // Frontier領地のデフォルト勢力（賊）が支配
+        Assert.Equal(TerritoryInfluenceSystem.FactionNames.Bandit, factionLate);
     }
 
     /// <summary>
