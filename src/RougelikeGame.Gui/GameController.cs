@@ -993,9 +993,25 @@ public class GameController
     private void SpawnEnemies()
     {
         // ダンジョンIDがある場合はテーマ別敵リスト、なければ階層ベース
-        var definitions = !string.IsNullOrEmpty(_currentMapName) && !_isInLocationMap
-            ? EnemyDefinitions.GetEnemiesForDungeon(_currentMapName, CurrentFloor)
-            : EnemyDefinitions.GetEnemiesForDepth(CurrentFloor);
+        IReadOnlyList<EnemyDefinition> definitions;
+        if (_isLocationField)
+        {
+            // フィールドマップ: 領地の派閥影響に基づく敵選択
+            var territory = _worldMapSystem.CurrentTerritory;
+            var locationPositions = _symbolMapSystem.GetLocationPositions();
+            var (mapWidth, mapHeight) = SymbolMapGenerator.GetTerritoryMapSize(territory);
+            string dominantFaction = _territoryInfluenceSystem.GetDominantFactionForTile(
+                territory, _symbolMapReturnPosition ?? Player.Position, locationPositions, mapWidth, mapHeight);
+            definitions = EnemyDefinitions.GetEnemiesForFaction(dominantFaction, territory);
+        }
+        else if (!string.IsNullOrEmpty(_currentMapName) && !_isInLocationMap)
+        {
+            definitions = EnemyDefinitions.GetEnemiesForDungeon(_currentMapName, CurrentFloor);
+        }
+        else
+        {
+            definitions = EnemyDefinitions.GetEnemiesForDepth(CurrentFloor);
+        }
         int enemyCount = 4 + CurrentFloor * 2;
 
         // ダンジョン特徴によるエネミー密度修正（DungeonFeatureGenerator）
@@ -6722,7 +6738,14 @@ public class GameController
 
         Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
 
+        // 派閥影響度の可視化メッセージ
+        var territory = _worldMapSystem.CurrentTerritory;
+        var locationPositions = _symbolMapSystem.GetLocationPositions();
+        var (mw, mh) = SymbolMapGenerator.GetTerritoryMapSize(territory);
+        string influenceText = _territoryInfluenceSystem.GetTileInfluenceDisplayText(
+            territory, _symbolMapReturnPosition ?? Player.Position, locationPositions, mw, mh);
         AddMessage($"【{terrainName}】に足を踏み入れた（Tキーで脱出）");
+        AddMessage(influenceText);
         OnSymbolMapEnterTown?.Invoke();
         OnStateChanged?.Invoke();
         return true;

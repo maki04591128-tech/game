@@ -22,6 +22,189 @@ public class TerritoryInfluenceSystem
         public const string Dwarf = "ドワーフ";
     }
 
+    /// <summary>派閥スタンス: プレイヤーとの関係性</summary>
+    public enum FactionStance
+    {
+        /// <summary>敵対: 常に敵として出現（野盗、ゴブリン、アンデッド、魔族）</summary>
+        Hostile,
+        /// <summary>中立: 攻撃しなければ敵対しない（野生動物）</summary>
+        Neutral,
+        /// <summary>友好: 味方として扱う、カルマ/評判で変動可能（王国、エルフ、ドワーフ）</summary>
+        Friendly,
+    }
+
+    /// <summary>領地の派閥構成情報</summary>
+    public record TerritoryFactionConfig(
+        string TerritoryName,
+        IReadOnlyList<string> HostileFactions,
+        IReadOnlyList<string> NeutralFactions,
+        IReadOnlyList<string> FriendlyFactions,
+        string Description);
+
+    /// <summary>派閥のスタンスを取得</summary>
+    public static FactionStance GetFactionStance(string factionName)
+    {
+        return factionName switch
+        {
+            FactionNames.Bandit => FactionStance.Hostile,
+            FactionNames.Goblin => FactionStance.Hostile,
+            FactionNames.Undead => FactionStance.Hostile,
+            FactionNames.Demon => FactionStance.Hostile,
+            FactionNames.Wildlife => FactionStance.Neutral,
+            FactionNames.Kingdom => FactionStance.Friendly,
+            FactionNames.Elf => FactionStance.Friendly,
+            FactionNames.Dwarf => FactionStance.Friendly,
+            _ => FactionStance.Neutral
+        };
+    }
+
+    /// <summary>領地ごとの派閥構成を取得（王都領: 敵対=野盗/ゴブリン、中立=野生動物、友好=王国 etc）</summary>
+    public static TerritoryFactionConfig GetTerritoryFactionConfig(TerritoryId territory)
+    {
+        return territory switch
+        {
+            TerritoryId.Capital => new("王都領",
+                new[] { FactionNames.Bandit, FactionNames.Goblin },
+                new[] { FactionNames.Wildlife },
+                new[] { FactionNames.Kingdom },
+                "王国の中心。野盗やゴブリンが出没するが、王国軍が治安を維持"),
+            TerritoryId.Forest => new("森林領",
+                new[] { FactionNames.Bandit, FactionNames.Goblin },
+                new[] { FactionNames.Wildlife },
+                new[] { FactionNames.Elf },
+                "エルフの守護する森。盗賊やゴブリンが住み着いている"),
+            TerritoryId.Mountain => new("山岳領",
+                new[] { FactionNames.Bandit, FactionNames.Goblin },
+                new[] { FactionNames.Wildlife },
+                new[] { FactionNames.Dwarf },
+                "ドワーフの鉱山地帯。山賊やゴブリンが鉱脈を狙う"),
+            TerritoryId.Coast => new("沿岸領",
+                new[] { FactionNames.Bandit },
+                new[] { FactionNames.Wildlife },
+                new[] { FactionNames.Kingdom },
+                "海沿いの領地。海賊を含む賊が出没"),
+            TerritoryId.Southern => new("南方領",
+                new[] { FactionNames.Bandit, FactionNames.Undead },
+                new[] { FactionNames.Wildlife },
+                new[] { FactionNames.Kingdom },
+                "王国南部。古い戦場の影響でアンデッドが出現"),
+            TerritoryId.Frontier => new("辺境領",
+                new[] { FactionNames.Bandit, FactionNames.Goblin, FactionNames.Undead },
+                new[] { FactionNames.Wildlife },
+                new string[] { },
+                "文明の及ばぬ辺境。多数の敵対派閥が跋扈する危険地帯"),
+            TerritoryId.Desert => new("砂漠領",
+                new[] { FactionNames.Bandit, FactionNames.Undead },
+                new[] { FactionNames.Wildlife },
+                new string[] { },
+                "灼熱の砂漠。盗賊団と古代のアンデッドが潜む"),
+            TerritoryId.Swamp => new("沼地領",
+                new[] { FactionNames.Goblin, FactionNames.Undead },
+                new[] { FactionNames.Wildlife },
+                new string[] { },
+                "毒気の沼地。ゴブリンの大集落とアンデッドの溜まり場"),
+            TerritoryId.Tundra => new("凍土領",
+                new[] { FactionNames.Undead },
+                new[] { FactionNames.Wildlife },
+                new string[] { },
+                "極寒の地。アンデッドが彷徨い、野生動物も凶暴"),
+            TerritoryId.Lake => new("湖水領",
+                new[] { FactionNames.Bandit },
+                new[] { FactionNames.Wildlife },
+                new[] { FactionNames.Kingdom },
+                "湖を中心とした穏やかな領地。水賊が出没する程度"),
+            TerritoryId.Volcanic => new("火山領",
+                new[] { FactionNames.Demon, FactionNames.Undead },
+                new[] { FactionNames.Wildlife },
+                new string[] { },
+                "火山地帯。魔族とアンデッドが蠢く最危険地域"),
+            TerritoryId.Sacred => new("聖域領",
+                new[] { FactionNames.Demon, FactionNames.Undead },
+                new[] { FactionNames.Wildlife },
+                new[] { FactionNames.Kingdom },
+                "神聖な地。魔族とアンデッドの侵攻を王国が防衛"),
+            _ => new("未知領",
+                new[] { FactionNames.Wildlife },
+                new string[] { },
+                new string[] { },
+                "未知の領地")
+        };
+    }
+
+    /// <summary>
+    /// 指定派閥がダンジョンを生成可能かどうか判定する。
+    /// 敵対派閥のみダンジョンを生成する。中立・味方派閥はダンジョンを生成しない。
+    /// </summary>
+    public static bool CanFactionGenerateDungeon(string factionName)
+    {
+        return GetFactionStance(factionName) == FactionStance.Hostile;
+    }
+
+    /// <summary>
+    /// 現在タイルの派閥影響度を可視化用テキストとして取得する。
+    /// 例: "【王都領】支配: 王国(40%) | 賊(30%) | ゴブリン(20%) | 野生動物(10%)"
+    /// </summary>
+    public string GetInfluenceDisplayText(TerritoryId territory)
+    {
+        var config = GetTerritoryFactionConfig(territory);
+        var influenceMap = GetInfluenceMap(territory);
+
+        var parts = new List<string>();
+        parts.Add($"【{config.TerritoryName}】");
+
+        if (influenceMap != null && influenceMap.Count > 0)
+        {
+            var sortedFactions = influenceMap
+                .OrderByDescending(f => f.Value)
+                .Where(f => f.Value > 0.01f);
+
+            var factionTexts = sortedFactions.Select(f =>
+            {
+                var stance = GetFactionStance(f.Key);
+                string stanceIcon = stance switch
+                {
+                    FactionStance.Hostile => "⚔",
+                    FactionStance.Neutral => "―",
+                    FactionStance.Friendly => "♦",
+                    _ => "?"
+                };
+                return $"{stanceIcon}{f.Key}({f.Value:P0})";
+            });
+
+            parts.Add(string.Join(" | ", factionTexts));
+        }
+        else
+        {
+            parts.Add($"支配: {GetDefaultFaction(territory)}");
+        }
+
+        return string.Join(" ", parts);
+    }
+
+    /// <summary>
+    /// タイルレベルの派閥影響度を可視化用テキストとして取得する。
+    /// 安全圏/危険圏の判定結果を含む。
+    /// </summary>
+    public string GetTileInfluenceDisplayText(
+        TerritoryId territory, Position tilePos,
+        IReadOnlyDictionary<Position, LocationDefinition>? locationPositions,
+        int mapWidth = 220, int mapHeight = 160)
+    {
+        var config = GetTerritoryFactionConfig(territory);
+        string dominantFaction = GetDominantFactionForTile(territory, tilePos, locationPositions, mapWidth, mapHeight);
+        var stance = GetFactionStance(dominantFaction);
+
+        string zoneType = stance switch
+        {
+            FactionStance.Hostile => "危険圏",
+            FactionStance.Neutral => "安全圏",
+            FactionStance.Friendly => "安全圏",
+            _ => "不明圏"
+        };
+
+        return $"【{config.TerritoryName}】{zoneType}: {dominantFaction} | {config.Description}";
+    }
+
     /// <summary>領地ごとの勢力割合</summary>
     private readonly Dictionary<TerritoryId, Dictionary<string, float>> _influence = new();
 

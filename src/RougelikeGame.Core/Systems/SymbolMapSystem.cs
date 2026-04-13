@@ -22,6 +22,10 @@ public class SymbolMapSystem
     /// <summary>配置されたロケーション数</summary>
     public int LocationCount => _locationPositions.Count;
 
+    /// <summary>配置されたロケーション位置辞書を取得（派閥影響判定用）</summary>
+    public IReadOnlyDictionary<Position, LocationDefinition> GetLocationPositions()
+        => _locationPositions;
+
     /// <summary>
     /// 指定領地のシンボルマップを生成して設定する
     /// </summary>

@@ -642,11 +642,13 @@ public class SymbolMapGenerator
         for (int i = 0; i < maxDungeons; i++)
         {
             // RNG消費を一貫させるため、クリア済みかどうかに関わらず位置・種別を決定
-            string dungeonId = $"{territory}_random_dungeon_{i}";
             var pos = FindRandomDungeonPosition(map, shapeMask, settlementPositions, dungeonPositions, random);
             if (pos == null) break;
 
             var dungeonDef = dungeonTypes[random.Next(dungeonTypes.Length)];
+            // IDに派閥タイプを含める（ダンジョン形状の派閥別生成に使用）
+            string factionTag = dungeonDef.type == LocationType.BanditDen ? "bandit" : "goblin";
+            string dungeonId = $"{territory}_random_dungeon_{factionTag}_{i}";
 
             // 首都からの距離に基づく成長曲線
             int distFromCapital = pos.Value.ChebyshevDistanceTo(capitalPos);
