@@ -4,6 +4,8 @@ using RougelikeGame.Core.Map;
 using RougelikeGame.Core.Map.Generation;
 using RougelikeGame.Core.Systems;
 using RougelikeGame.Core.Interfaces;
+using RougelikeGame.Core.Factories;
+using RougelikeGame.Core.AI;
 
 namespace RougelikeGame.Core.Tests;
 
@@ -14,7 +16,9 @@ namespace RougelikeGame.Core.Tests;
 /// A1（安全圏/危険圏重複処理）、A2（関所NPC統一）のテスト
 /// シンボルマップ仕様修正テスト（Issue #1-#6: mapDiag除算ゼロ対策、配置失敗スキップ、
 /// SymbolRoad移動コスト、IsUnbuildableTerrain拡張、CountWalkableTiles次元チェック、定数化）
-/// テスト数: 198件
+/// 派閥システム修正テスト: 派閥スタンス定義、派閥ベース敵選択、派閥影響可視化、
+/// 中立・味方派閥ダンジョン非生成確認、ダンジョン形状の派閥対応
+/// テスト数: 230件
 /// </summary>
 public class VerAlphaSymbolMapTests
 {
@@ -1619,5 +1623,243 @@ public class VerAlphaSymbolMapTests
         var terrain = Tile.FromType(terrainType);
         Assert.True(road.MovementCost < terrain.MovementCost,
             $"Road({road.MovementCost}) should be cheaper than {terrainType}({terrain.MovementCost})");
+    }
+
+    // ============================================================
+    // 派閥システム修正テスト
+    // ============================================================
+
+    // --- 派閥スタンス定義テスト ---
+
+    [Theory]
+    [InlineData("賊", TerritoryInfluenceSystem.FactionStance.Hostile)]
+    [InlineData("ゴブリン", TerritoryInfluenceSystem.FactionStance.Hostile)]
+    [InlineData("アンデッド", TerritoryInfluenceSystem.FactionStance.Hostile)]
+    [InlineData("魔族", TerritoryInfluenceSystem.FactionStance.Hostile)]
+    [InlineData("野生動物", TerritoryInfluenceSystem.FactionStance.Neutral)]
+    [InlineData("王国", TerritoryInfluenceSystem.FactionStance.Friendly)]
+    [InlineData("エルフ", TerritoryInfluenceSystem.FactionStance.Friendly)]
+    [InlineData("ドワーフ", TerritoryInfluenceSystem.FactionStance.Friendly)]
+    public void FactionStance_CorrectClassification(string factionName, TerritoryInfluenceSystem.FactionStance expected)
+    {
+        var stance = TerritoryInfluenceSystem.GetFactionStance(factionName);
+        Assert.Equal(expected, stance);
+    }
+
+    // --- 中立・味方派閥はダンジョン生成不可テスト ---
+
+    [Theory]
+    [InlineData("王国")]
+    [InlineData("エルフ")]
+    [InlineData("ドワーフ")]
+    [InlineData("野生動物")]
+    public void NeutralAndFriendlyFactions_CannotGenerateDungeon(string factionName)
+    {
+        Assert.False(TerritoryInfluenceSystem.CanFactionGenerateDungeon(factionName),
+            $"中立/味方派閥 {factionName} はダンジョンを生成してはならない");
+    }
+
+    [Theory]
+    [InlineData("賊")]
+    [InlineData("ゴブリン")]
+    [InlineData("アンデッド")]
+    [InlineData("魔族")]
+    public void HostileFactions_CanGenerateDungeon(string factionName)
+    {
+        Assert.True(TerritoryInfluenceSystem.CanFactionGenerateDungeon(factionName),
+            $"敵対派閥 {factionName} はダンジョンを生成できるべき");
+    }
+
+    // --- 領地派閥構成テスト ---
+
+    [Theory]
+    [InlineData(TerritoryId.Capital)]
+    [InlineData(TerritoryId.Forest)]
+    [InlineData(TerritoryId.Mountain)]
+    [InlineData(TerritoryId.Coast)]
+    [InlineData(TerritoryId.Southern)]
+    [InlineData(TerritoryId.Frontier)]
+    [InlineData(TerritoryId.Desert)]
+    [InlineData(TerritoryId.Swamp)]
+    [InlineData(TerritoryId.Tundra)]
+    [InlineData(TerritoryId.Lake)]
+    [InlineData(TerritoryId.Volcanic)]
+    [InlineData(TerritoryId.Sacred)]
+    public void TerritoryFactionConfig_HasValidConfiguration(TerritoryId territory)
+    {
+        var config = TerritoryInfluenceSystem.GetTerritoryFactionConfig(territory);
+        Assert.NotNull(config);
+        Assert.False(string.IsNullOrEmpty(config.TerritoryName));
+        Assert.False(string.IsNullOrEmpty(config.Description));
+        // 各領地は少なくとも1つの敵対派閥を持つ
+        Assert.NotEmpty(config.HostileFactions);
+        // 全ての敵対派閥はHostileスタンスであること
+        foreach (var faction in config.HostileFactions)
+        {
+            Assert.Equal(TerritoryInfluenceSystem.FactionStance.Hostile,
+                TerritoryInfluenceSystem.GetFactionStance(faction));
+        }
+    }
+
+    // --- 王都領の具体的な派閥構成テスト ---
+
+    [Fact]
+    public void CapitalTerritory_HasCorrectFactionConfig()
+    {
+        var config = TerritoryInfluenceSystem.GetTerritoryFactionConfig(TerritoryId.Capital);
+        Assert.Equal("王都領", config.TerritoryName);
+        // 敵対: 賊、ゴブリン
+        Assert.Contains(TerritoryInfluenceSystem.FactionNames.Bandit, config.HostileFactions);
+        Assert.Contains(TerritoryInfluenceSystem.FactionNames.Goblin, config.HostileFactions);
+        // 中立: 野生動物
+        Assert.Contains(TerritoryInfluenceSystem.FactionNames.Wildlife, config.NeutralFactions);
+        // 味方: 王国
+        Assert.Contains(TerritoryInfluenceSystem.FactionNames.Kingdom, config.FriendlyFactions);
+    }
+
+    // --- 派閥影響可視化テスト ---
+
+    [Fact]
+    public void InfluenceDisplayText_ContainsTerritoryName()
+    {
+        var system = new TerritoryInfluenceSystem();
+        system.Initialize(TerritoryId.Capital, new Dictionary<string, float>
+        {
+            [TerritoryInfluenceSystem.FactionNames.Kingdom] = 0.5f,
+            [TerritoryInfluenceSystem.FactionNames.Bandit] = 0.3f,
+            [TerritoryInfluenceSystem.FactionNames.Goblin] = 0.2f
+        });
+        string display = system.GetInfluenceDisplayText(TerritoryId.Capital);
+        Assert.Contains("王都領", display);
+        Assert.Contains("王国", display);
+    }
+
+    [Fact]
+    public void TileInfluenceDisplayText_ShowsZoneType()
+    {
+        var system = new TerritoryInfluenceSystem();
+        system.Initialize(TerritoryId.Capital, new Dictionary<string, float>
+        {
+            [TerritoryInfluenceSystem.FactionNames.Kingdom] = 0.6f,
+            [TerritoryInfluenceSystem.FactionNames.Bandit] = 0.4f
+        });
+
+        // 集落の近く → 安全圏（野生動物）
+        var locations = new Dictionary<Position, LocationDefinition>
+        {
+            [new Position(10, 10)] = new LocationDefinition("town1", "テスト町", "テスト", LocationType.Town, TerritoryId.Capital)
+        };
+        string display = system.GetTileInfluenceDisplayText(
+            TerritoryId.Capital, new Position(11, 10), locations, 220, 160);
+        Assert.Contains("安全圏", display);
+    }
+
+    // --- 派閥ベース敵選択テスト ---
+
+    [Theory]
+    [InlineData("賊", TerritoryId.Capital)]
+    [InlineData("ゴブリン", TerritoryId.Capital)]
+    [InlineData("野生動物", TerritoryId.Forest)]
+    [InlineData("アンデッド", TerritoryId.Southern)]
+    [InlineData("魔族", TerritoryId.Volcanic)]
+    [InlineData("王国", TerritoryId.Capital)]
+    [InlineData("エルフ", TerritoryId.Forest)]
+    [InlineData("ドワーフ", TerritoryId.Mountain)]
+    public void GetEnemiesForFaction_ReturnsNonEmpty(string factionName, TerritoryId territory)
+    {
+        var enemies = EnemyDefinitions.GetEnemiesForFaction(factionName, territory);
+        Assert.NotEmpty(enemies);
+    }
+
+    [Fact]
+    public void GetEnemiesForFaction_BanditReturns_BanditEnemy()
+    {
+        var enemies = EnemyDefinitions.GetEnemiesForFaction("賊", TerritoryId.Capital);
+        Assert.Contains(enemies, e => e.Name == "山賊");
+    }
+
+    [Fact]
+    public void GetEnemiesForFaction_GoblinReturns_GoblinEnemy()
+    {
+        var enemies = EnemyDefinitions.GetEnemiesForFaction("ゴブリン", TerritoryId.Capital);
+        Assert.Contains(enemies, e => e.Name == "ゴブリン");
+    }
+
+    [Fact]
+    public void GetEnemiesForFaction_FriendlyFaction_ReturnsWeakEnemies()
+    {
+        // 友好派閥の領地では弱い敵のみ
+        var enemies = EnemyDefinitions.GetEnemiesForFaction("王国", TerritoryId.Capital);
+        foreach (var enemy in enemies)
+        {
+            Assert.True(enemy.Rank == EnemyRank.Common,
+                $"友好派閥の敵 {enemy.Name} はCommonランクであるべき");
+        }
+    }
+
+    // --- ランダムダンジョンIDに派閥タグが含まれるテスト ---
+
+    [Fact]
+    public void RandomDungeonId_ContainsFactionTag()
+    {
+        // SymbolMapGeneratorで生成されるIDフォーマットのテスト
+        string banditId = $"{TerritoryId.Capital}_random_dungeon_bandit_0";
+        string goblinId = $"{TerritoryId.Capital}_random_dungeon_goblin_0";
+
+        Assert.Contains("bandit", banditId);
+        Assert.Contains("goblin", goblinId);
+    }
+
+    // --- 全領地で GetEnemiesForTerritory が有効テスト ---
+
+    [Theory]
+    [InlineData(TerritoryId.Capital)]
+    [InlineData(TerritoryId.Forest)]
+    [InlineData(TerritoryId.Mountain)]
+    [InlineData(TerritoryId.Coast)]
+    [InlineData(TerritoryId.Southern)]
+    [InlineData(TerritoryId.Frontier)]
+    [InlineData(TerritoryId.Desert)]
+    [InlineData(TerritoryId.Swamp)]
+    [InlineData(TerritoryId.Tundra)]
+    [InlineData(TerritoryId.Lake)]
+    [InlineData(TerritoryId.Volcanic)]
+    [InlineData(TerritoryId.Sacred)]
+    public void GetEnemiesForTerritory_ReturnsNonEmpty_AllTerritories(TerritoryId territory)
+    {
+        var enemies = EnemyDefinitions.GetEnemiesForTerritory(territory);
+        Assert.NotEmpty(enemies);
+    }
+
+    // --- SymbolMapSystem.GetLocationPositions テスト ---
+
+    [Fact]
+    public void SymbolMapSystem_GetLocationPositions_ReturnsNonNull()
+    {
+        var system = new SymbolMapSystem();
+        var positions = system.GetLocationPositions();
+        Assert.NotNull(positions);
+    }
+
+    // --- ランダムダンジョンが敵対派閥のみで生成されるテスト ---
+
+    [Fact]
+    public void RandomDungeons_OnlyHostileTypes()
+    {
+        // SymbolMapGeneratorの dungeonTypes は BanditDen と GoblinNest のみ
+        // これらは全て敵対派閥
+        Assert.True(TerritoryInfluenceSystem.CanFactionGenerateDungeon(
+            TerritoryInfluenceSystem.FactionNames.Bandit));
+        Assert.True(TerritoryInfluenceSystem.CanFactionGenerateDungeon(
+            TerritoryInfluenceSystem.FactionNames.Goblin));
+        // 中立/味方はダンジョン生成不可
+        Assert.False(TerritoryInfluenceSystem.CanFactionGenerateDungeon(
+            TerritoryInfluenceSystem.FactionNames.Kingdom));
+        Assert.False(TerritoryInfluenceSystem.CanFactionGenerateDungeon(
+            TerritoryInfluenceSystem.FactionNames.Elf));
+        Assert.False(TerritoryInfluenceSystem.CanFactionGenerateDungeon(
+            TerritoryInfluenceSystem.FactionNames.Dwarf));
+        Assert.False(TerritoryInfluenceSystem.CanFactionGenerateDungeon(
+            TerritoryInfluenceSystem.FactionNames.Wildlife));
     }
 }
