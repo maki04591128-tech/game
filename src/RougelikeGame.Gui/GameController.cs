@@ -1476,6 +1476,8 @@ public class GameController
                 // ショップは外部UIから InitializeShop/Buy/Sell を呼ぶ
                 return;
             case GameAction.OpenWorldMap:
+                // A2: ワールドマップ廃止→関所NPC統一。情報参照のみ許可
+                AddMessage("📍 領地間の移動は関所（BorderGate）を通じて行ってください。");
                 OnShowWorldMap?.Invoke();
                 return;
             case GameAction.TalkToNpc:
@@ -1695,11 +1697,11 @@ public class GameController
                 return TryLeaveTown();
             }
 
-            // シンボルマップの外周から外へ移動しようとした場合はワールドマップを表示
+            // シンボルマップの外周から外へ移動しようとした場合は関所案内メッセージを表示
+            // A2: ワールドマップ廃止→関所NPC統一
             if (_worldMapSystem.IsOnSurface)
             {
-                AddMessage("領地の境界に到達した。ワールドマップを開く…");
-                OnShowWorldMap?.Invoke();
+                AddMessage("領地の境界に到達した。関所（BorderGate）を通じて隣接領地に移動できます。");
                 return false;
             }
 
@@ -6492,81 +6494,50 @@ public class GameController
     public LocationDefinition? GetLocationAtPlayerPosition() =>
         _symbolMapSystem.GetLocationAt(Player.Position);
 
-    /// <summary>領地間移動を実行</summary>
+    /// <summary>
+    /// 領地間移動を実行。
+    /// A2: ワールドマップからの直接移動は廃止。関所（BorderGate）経由のみ許可。
+    /// このメソッドは後方互換性のために残すが、関所案内メッセージを表示する。
+    /// </summary>
     public bool TryTravelTo(TerritoryId destination)
     {
-        if (!_worldMapSystem.IsOnSurface)
+        // A2: ワールドマップ廃止→関所NPC統一
+        AddMessage("📍 領地間の移動は関所（BorderGate）のNPCにインタラクトして行ってください。");
+        AddMessage("関所はシンボルマップの端に配置されています。");
+        return false;
+    }
+
+    /// <summary>関所経由の旅路イベントを解決する（A2: 関所NPC統一）</summary>
+    private void ResolveBorderGateTravelEvent(TravelEvent travelEvent)
+    {
+        switch (travelEvent.Type)
         {
-            AddMessage("ダンジョン内から直接移動できない。まず地上に戻ること");
-            return false;
-        }
-
-        // BM-2: 評判が「嫌悪」の場合、領地への入場を拒否
-        if (!_reputationSystem.IsWelcome(destination))
-        {
-            AddMessage($"⛔ {destination}の住人から追い返された！評判が低すぎて入場できない。");
-            return false;
-        }
-
-        var result = _worldMapSystem.TravelTo(destination, Player.Level);
-        AddMessage(result.Message);
-
-        if (result.Success)
-        {
-            // ターンコスト適用
-            TurnCount += result.TurnCost;
-            GameTime.AdvanceTurn(result.TurnCost);
-
-            // 移動イベント判定
-            var travelEvent = _worldMapSystem.RollTravelEvent(
-                _worldMapSystem.CurrentTerritory, destination, _random);
-            if (travelEvent != null)
-            {
-                AddMessage($"【旅路イベント】{travelEvent.Name}: {travelEvent.Description}");
-                // AF-1/AF-2/AF-3: イベントタイプに応じた解決処理
-                switch (travelEvent.Type)
+            case TravelEventType.Merchant:
+                AddMessage("旅の商人から品物を見せてもらえそうだ。（Bキーで商店）");
+                break;
+            case TravelEventType.Ambush:
+                AddMessage("⚠ 待ち伏せだ！戦闘に備えろ！");
+                SpawnEnemies();
+                break;
+            case TravelEventType.TreasureChest:
+                var lootItem = _itemFactory.GenerateRandomItem(CurrentFloor);
+                if (lootItem != null)
                 {
-                    case TravelEventType.Merchant:
-                        AddMessage("旅の商人から品物を見せてもらえそうだ。（Bキーで商店）");
-                        break;
-                    case TravelEventType.Ambush:
-                        AddMessage("⚠ 待ち伏せだ！戦闘に備えろ！");
-                        SpawnEnemies();
-                        break;
-                    case TravelEventType.TreasureChest:
-                        var lootItem = _itemFactory.GenerateRandomItem(CurrentFloor);
-                        if (lootItem != null)
-                        {
-                            GroundItems.Add((lootItem, Player.Position));
-                            AddMessage($"💎 宝箱を発見！{lootItem.GetDisplayName()}が見つかった！");
-                        }
-                        break;
-                    case TravelEventType.Shrine:
-                        Player.Heal(Player.MaxHp / 4);
-                        AddMessage("🏛 祠で体力を回復した");
-                        break;
-                    case TravelEventType.HelpRequest:
-                        AddMessage("救援依頼を受けた。近くに困っている人がいるようだ。");
-                        break;
-                    case TravelEventType.BadWeather:
-                        AddMessage("🌧 悪天候に見舞われ、移動に時間がかかった");
-                        break;
+                    GroundItems.Add((lootItem, Player.Position));
+                    AddMessage($"💎 宝箱を発見！{lootItem.GetDisplayName()}が見つかった！");
                 }
-            }
-
-            // ショップ在庫リセット
-            _shopSystem.ClearShopInventory();
-
-            // 新しい領地のシンボルマップを生成
-            GenerateSymbolMap();
-
-            OnTerritoryChanged?.Invoke(destination);
-            // α.21: 領地到着時のフレーバーテキスト
-            AddMessage(RougelikeGame.Core.Data.TerritoryLoreData.GetArrivalDescription(destination));
-            OnStateChanged?.Invoke();
+                break;
+            case TravelEventType.Shrine:
+                Player.Heal(Player.MaxHp / 4);
+                AddMessage("🏛 祠で体力を回復した");
+                break;
+            case TravelEventType.HelpRequest:
+                AddMessage("救援依頼を受けた。近くに困っている人がいるようだ。");
+                break;
+            case TravelEventType.BadWeather:
+                AddMessage("🌧 悪天候に見舞われ、移動に時間がかかった");
+                break;
         }
-
-        return result.Success;
     }
 
     /// <summary>街・施設・宗教施設・フィールド・地形タイルに入る（ロケーションマップ遷移）</summary>
@@ -6581,38 +6552,67 @@ public class GameController
         // シンボルマップ上のロケーションを判定
         var location = _symbolMapSystem.GetLocationAt(Player.Position);
 
-        // 関所の場合は領地遷移処理
+        // 関所の場合は領地遷移処理（A2: 関所NPC統一、ここが唯一の領地間移動手段）
         if (location != null && location.Type == LocationType.BorderGate)
         {
             var targetTerritory = location.GetBorderGateTarget();
             if (targetTerritory.HasValue)
             {
+                // BM-2: 評判が「嫌悪」の場合、領地への入場を拒否
+                if (!_reputationSystem.IsWelcome(targetTerritory.Value))
+                {
+                    AddMessage($"⛔ 関所の番兵：「{targetTerritory.Value}の住人からの通達で、お前の通行は拒否する。」");
+                    return false;
+                }
+
                 // 通行条件チェック（手配/通行料/戦争状態）
                 _worldMapSystem.PlayerGold = Player.Gold;
                 if (!_worldMapSystem.CanTravelTo(targetTerritory.Value, Player.Level))
                 {
                     string reason = _worldMapSystem.GetTravelDeniedReason(targetTerritory.Value, Player.Level);
-                    AddMessage($"【{location.Name}】─ 通過できない: {reason}");
+                    AddMessage($"🏰 関所の番兵：「{reason}」");
                     return false;
                 }
 
                 var targetDef = TerritoryDefinition.Get(targetTerritory.Value);
+
+                // NPCインタラクト風の演出
+                AddMessage($"🏰 関所の番兵：「{targetDef.Name}への通行ですね。通行料は{WorldMapSystem.BorderGateToll}Gになります。」");
 
                 // 通行料を差し引き
                 Player.AddGold(-WorldMapSystem.BorderGateToll);
                 _worldMapSystem.PlayerGold = Player.Gold;
                 AddMessage($"【{location.Name}】─ 通行料{WorldMapSystem.BorderGateToll}Gを支払い、{targetDef.Name}へ向かう…");
 
+                // 旅路イベント判定（A2: 関所経由の移動でも旅路イベント発生）
+                var fromTerritory = _worldMapSystem.CurrentTerritory;
+                var travelEvent = _worldMapSystem.RollTravelEvent(fromTerritory, targetTerritory.Value, _random);
+                if (travelEvent != null)
+                {
+                    AddMessage($"【旅路イベント】{travelEvent.Name}: {travelEvent.Description}");
+                    ResolveBorderGateTravelEvent(travelEvent);
+                }
+
+                // ターンコスト適用（移動日数）
+                int travelTurnCost = targetDef.TravelTurnCost;
+                TurnCount += travelTurnCost;
+                GameTime.AdvanceTurn(travelTurnCost);
+
                 // 領地を切り替え
                 _worldMapSystem.SetTerritory(targetTerritory.Value);
                 _worldMapSystem.VisitedTerritories.Add(targetTerritory.Value);
                 _currentDungeonFeature = null;
 
+                // ショップ在庫リセット
+                _shopSystem.ClearShopInventory();
+
                 // 新しい領地のシンボルマップを生成
                 GenerateSymbolMap();
 
                 _currentAmbientSound = AmbientSoundSystem.GetAmbientForTerritory(targetTerritory.Value);
-                AddMessage($"{targetDef.Name}に到着した");
+                AddMessage($"🏰 関所の番兵：「ようこそ{targetDef.Name}へ。お気をつけて。」");
+                OnTerritoryChanged?.Invoke(targetTerritory.Value);
+                AddMessage(RougelikeGame.Core.Data.TerritoryLoreData.GetArrivalDescription(targetTerritory.Value));
                 OnStateChanged?.Invoke();
                 return true;
             }

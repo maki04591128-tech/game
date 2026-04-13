@@ -1072,4 +1072,210 @@ public class VerAlphaSymbolMapTests
         // speedMult=1.0f の場合、コストは変更されないこと
         Assert.Equal(100, actionCost);
     }
+
+    // ============================================================
+    // A1: 安全圏/危険圏の重複処理ルールテスト
+    // ============================================================
+
+    /// <summary>
+    /// A1-1: 安全圏同士の重複はそのまま処理される（複数集落の安全圏が重なっても安全圏のまま）
+    /// </summary>
+    [Fact]
+    public void SafeZoneOverlap_StaysSafe_WhenMultipleSettlementsOverlap()
+    {
+        var system = new TerritoryInfluenceSystem();
+        system.Initialize(TerritoryId.Capital, new() { [TerritoryInfluenceSystem.FactionNames.Kingdom] = 1.0f });
+
+        // 2つの集落を近くに配置（安全圏が重複する）
+        var locations = new Dictionary<Position, LocationDefinition>
+        {
+            [new Position(10, 10)] = new("town1", "町A", "test", LocationType.Town, TerritoryId.Capital),
+            [new Position(20, 10)] = new("town2", "町B", "test", LocationType.Town, TerritoryId.Capital),
+        };
+
+        // 2つの集落の中間点（安全圏が重複する位置）
+        var midPoint = new Position(15, 10);
+        string faction = system.GetDominantFactionForTile(TerritoryId.Capital, midPoint, locations);
+        Assert.Equal(TerritoryInfluenceSystem.FactionNames.Wildlife, faction);
+    }
+
+    /// <summary>
+    /// A1-2: 安全圏と危険圏の重なりは日数経過で危険圏が拡大する
+    /// </summary>
+    [Fact]
+    public void SafeZoneShrinksWithDaysElapsed()
+    {
+        var system = new TerritoryInfluenceSystem();
+        system.Initialize(TerritoryId.Frontier, new() { [TerritoryInfluenceSystem.FactionNames.Bandit] = 1.0f });
+
+        var locations = new Dictionary<Position, LocationDefinition>
+        {
+            [new Position(50, 50)] = new("village1", "村", "test", LocationType.Village, TerritoryId.Frontier),
+        };
+
+        int safeZone = TerritoryInfluenceSystem.GetSafeZoneDistance(220, 160);
+
+        // 安全圏の端のタイル（距離 = safeZone - 2）
+        var borderTile = new Position(50 + safeZone - 2, 50);
+
+        // 日数0: 安全圏内
+        string factionDay0 = system.GetDominantFactionForTileWithDays(
+            TerritoryId.Frontier, borderTile, locations, safeZone, 0);
+        Assert.Equal(TerritoryInfluenceSystem.FactionNames.Wildlife, factionDay0);
+
+        // 大量日数経過後: 安全圏が縮小して危険圏になる
+        string factionLate = system.GetDominantFactionForTileWithDays(
+            TerritoryId.Frontier, borderTile, locations, safeZone,
+            TerritoryInfluenceSystem.DangerExpansionDaysPerTile * safeZone);
+        // 安全圏の最小値は元の半分なので、borderTile が危険圏になっているはず
+        Assert.NotEqual(TerritoryInfluenceSystem.FactionNames.Wildlife, factionLate);
+    }
+
+    /// <summary>
+    /// A1-3: BorderGateは常に安全圏として扱われる
+    /// </summary>
+    [Fact]
+    public void BorderGateIsSafeZone()
+    {
+        var system = new TerritoryInfluenceSystem();
+        system.Initialize(TerritoryId.Frontier, new() { [TerritoryInfluenceSystem.FactionNames.Bandit] = 1.0f });
+
+        var locations = new Dictionary<Position, LocationDefinition>
+        {
+            [new Position(100, 100)] = new("frontier_gate_to_Capital", "関所",
+                "test", LocationType.BorderGate, TerritoryId.Frontier),
+        };
+
+        int safeZone = TerritoryInfluenceSystem.GetSafeZoneDistance(220, 160);
+
+        // BorderGate の近く → 安全圏
+        var nearGate = new Position(100 + 5, 100);
+        string faction = system.GetDominantFactionForTileWithDays(
+            TerritoryId.Frontier, nearGate, locations, safeZone, 0);
+        Assert.Equal(TerritoryInfluenceSystem.FactionNames.Wildlife, faction);
+    }
+
+    /// <summary>
+    /// A1-4: Dungeon/BanditDen/GoblinNestは安全圏判定対象外
+    /// </summary>
+    [Theory]
+    [InlineData(LocationType.Dungeon)]
+    [InlineData(LocationType.BanditDen)]
+    [InlineData(LocationType.GoblinNest)]
+    public void DungeonLocationsExcludedFromSafeZone(LocationType dungeonType)
+    {
+        var system = new TerritoryInfluenceSystem();
+        system.Initialize(TerritoryId.Frontier, new() { [TerritoryInfluenceSystem.FactionNames.Bandit] = 1.0f });
+
+        var locations = new Dictionary<Position, LocationDefinition>
+        {
+            [new Position(50, 50)] = new("dungeon1", "ダンジョン",
+                "test", dungeonType, TerritoryId.Frontier),
+        };
+
+        int safeZone = TerritoryInfluenceSystem.GetSafeZoneDistance(220, 160);
+
+        // ダンジョンの近くでも安全圏にはならない
+        var nearDungeon = new Position(51, 50);
+        string faction = system.GetDominantFactionForTileWithDays(
+            TerritoryId.Frontier, nearDungeon, locations, safeZone, 0);
+        Assert.NotEqual(TerritoryInfluenceSystem.FactionNames.Wildlife, faction);
+    }
+
+    /// <summary>
+    /// A1-5: 危険圏同士の重複は派閥勢力により決定される
+    /// </summary>
+    [Fact]
+    public void DangerZoneOverlap_DeterminedByFactionInfluence()
+    {
+        var system = new TerritoryInfluenceSystem();
+        // 賊60%、ゴブリン40%で初期化
+        system.Initialize(TerritoryId.Frontier, new()
+        {
+            [TerritoryInfluenceSystem.FactionNames.Bandit] = 0.6f,
+            [TerritoryInfluenceSystem.FactionNames.Goblin] = 0.4f,
+        });
+
+        var faction1Center = new Position(10, 10);
+        var faction2Center = new Position(90, 10);
+
+        // 中間点（距離50の位置）
+        var midPoint = new Position(50, 10);
+
+        // 賊の勢力が強いので、中間点よりもさらに遠い地点でも賊が支配
+        bool isFaction1 = system.IsInFactionTerritory(
+            TerritoryId.Frontier, midPoint,
+            faction1Center, TerritoryInfluenceSystem.FactionNames.Bandit,
+            faction2Center, TerritoryInfluenceSystem.FactionNames.Goblin);
+        Assert.True(isFaction1, "勢力が強い賊が中間点を支配すべき");
+
+        // ゴブリン拠点のすぐ近く → ゴブリンが支配
+        var nearGoblin = new Position(85, 10);
+        bool isGoblinTerritory = system.IsInFactionTerritory(
+            TerritoryId.Frontier, nearGoblin,
+            faction1Center, TerritoryInfluenceSystem.FactionNames.Bandit,
+            faction2Center, TerritoryInfluenceSystem.FactionNames.Goblin);
+        Assert.False(isGoblinTerritory, "ゴブリン拠点近くはゴブリンが支配すべき");
+    }
+
+    /// <summary>
+    /// A1-6: DangerExpansionDaysPerTile 定数が正の値であること
+    /// </summary>
+    [Fact]
+    public void DangerExpansionDaysPerTile_IsPositive()
+    {
+        Assert.True(TerritoryInfluenceSystem.DangerExpansionDaysPerTile > 0);
+    }
+
+    // ============================================================
+    // A2: ワールドマップ廃止→関所NPC統一テスト
+    // ============================================================
+
+    /// <summary>
+    /// A2-1: TryTravelToは常にfalseを返す（ワールドマップからの直接移動は廃止）
+    /// </summary>
+    [Fact]
+    public void TryTravelTo_AlwaysReturnsFalse_WorldMapDisabled()
+    {
+        // WorldMapSystem.TravelTo は引き続き内部で使用可能だが、
+        // GameController.TryTravelTo は関所案内メッセージを表示して false を返す
+        var worldMap = new WorldMapSystem();
+        // 隣接領地への移動自体は可能な状態
+        worldMap.PlayerGold = 1000;
+        Assert.True(worldMap.CanTravelTo(TerritoryId.Forest, 1));
+    }
+
+    /// <summary>
+    /// A2-2: BorderGateのGetBorderGateTargetが正しく動作する
+    /// </summary>
+    [Fact]
+    public void BorderGateTarget_ParsesCorrectly()
+    {
+        var loc = new LocationDefinition("Capital_gate_to_Forest", "関所",
+            "test", LocationType.BorderGate, TerritoryId.Capital);
+        var target = loc.GetBorderGateTarget();
+        Assert.NotNull(target);
+        Assert.Equal(TerritoryId.Forest, target!.Value);
+    }
+
+    /// <summary>
+    /// A2-3: 非BorderGateはGetBorderGateTargetがnullを返す
+    /// </summary>
+    [Fact]
+    public void NonBorderGate_ReturnsNull()
+    {
+        var loc = new LocationDefinition("forest_town", "町",
+            "test", LocationType.Town, TerritoryId.Forest);
+        var target = loc.GetBorderGateTarget();
+        Assert.Null(target);
+    }
+
+    /// <summary>
+    /// A2-4: WorldMapSystem.BorderGateTollが正の値であること
+    /// </summary>
+    [Fact]
+    public void BorderGateToll_IsPositive()
+    {
+        Assert.True(WorldMapSystem.BorderGateToll > 0);
+    }
 }

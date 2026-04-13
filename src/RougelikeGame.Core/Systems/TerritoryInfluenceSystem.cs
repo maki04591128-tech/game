@@ -107,23 +107,104 @@ public class TerritoryInfluenceSystem
         IReadOnlyDictionary<Position, LocationDefinition>? locationPositions,
         int safeZoneDistance)
     {
-        // 集落（村/町/都）および施設（Facility/ReligiousSite）近くのタイルは野生動物（安全圏）
+        return GetDominantFactionForTileWithDays(territory, tilePos, locationPositions, safeZoneDistance, 0);
+    }
+
+    /// <summary>
+    /// 日数経過を考慮した安全圏/危険圏の重複処理付き支配勢力取得。
+    /// A1仕様:
+    /// - 安全圏同士の重複: そのまま処理（安全圏のまま）
+    /// - 安全圏と危険圏の重なり: 日数経過ごとに危険圏が拡大（安全圏距離が縮小）
+    /// - 危険圏同士の重複: 派閥勢力によって縮小拡大が決定
+    /// - BorderGate: 常に安全圏
+    /// - Dungeon/BanditDen/GoblinNest: 判定対象外（圏域計算に含めない）
+    /// </summary>
+    public string GetDominantFactionForTileWithDays(
+        TerritoryId territory, Position tilePos,
+        IReadOnlyDictionary<Position, LocationDefinition>? locationPositions,
+        int safeZoneDistance, int elapsedDays)
+    {
         if (locationPositions != null)
         {
+            // --- BorderGateは常に安全圏 ---
             foreach (var (pos, loc) in locationPositions)
             {
-                if (loc.Type is LocationType.Town or LocationType.Village or LocationType.Capital
-                    or LocationType.Facility or LocationType.ReligiousSite)
+                if (loc.Type == LocationType.BorderGate)
                 {
                     int dist = Math.Abs(pos.X - tilePos.X) + Math.Abs(pos.Y - tilePos.Y);
                     if (dist < safeZoneDistance) return FactionNames.Wildlife;
                 }
             }
+
+            // --- 安全圏判定: 集落/施設/宗教施設近傍（Dungeon系は判定対象外） ---
+            // 日数経過で安全圏距離が縮小（危険圏が拡大）: 30日ごとに1マス縮小、最小は元の半分
+            int adjustedSafeZone = safeZoneDistance;
+            if (elapsedDays > 0)
+            {
+                int shrink = elapsedDays / DangerExpansionDaysPerTile;
+                adjustedSafeZone = Math.Max(safeZoneDistance / 2, safeZoneDistance - shrink);
+            }
+
+            foreach (var (pos, loc) in locationPositions)
+            {
+                // Dungeon/BanditDen/GoblinNestは圏域判定対象外
+                if (loc.Type is LocationType.Dungeon or LocationType.BanditDen or LocationType.GoblinNest)
+                    continue;
+
+                if (loc.Type is LocationType.Town or LocationType.Village or LocationType.Capital
+                    or LocationType.Facility or LocationType.ReligiousSite)
+                {
+                    int dist = Math.Abs(pos.X - tilePos.X) + Math.Abs(pos.Y - tilePos.Y);
+                    if (dist < adjustedSafeZone) return FactionNames.Wildlife;
+                }
+            }
         }
 
-        // 領地全体の支配勢力
+        // --- 危険圏同士の重複: 派閥勢力による判定 ---
+        // 領地内の複数危険圏が重なる場合、勢力値の高い派閥が支配
         var dominant = GetDominantFaction(territory);
         return dominant ?? GetDefaultFaction(territory);
+    }
+
+    /// <summary>危険圏が拡大するまでの日数（この日数ごとに安全圏距離が1マス縮小）</summary>
+    public const int DangerExpansionDaysPerTile = 30;
+
+    /// <summary>
+    /// 危険圏同士の重複における勢力境界を計算する。
+    /// 2つの危険圏拠点間で、各派閥の勢力比によって支配範囲が決定される。
+    /// </summary>
+    /// <returns>tilePos が faction1 の支配下なら true、faction2 なら false</returns>
+    public bool IsInFactionTerritory(
+        TerritoryId territory,
+        Position tilePos,
+        Position faction1Center, string faction1Name,
+        Position faction2Center, string faction2Name)
+    {
+        float influence1 = GetInfluence(territory, faction1Name);
+        float influence2 = GetInfluence(territory, faction2Name);
+
+        // 勢力が等しい場合は距離で判定
+        if (Math.Abs(influence1 - influence2) < 0.01f)
+        {
+            int dist1 = Math.Abs(faction1Center.X - tilePos.X) + Math.Abs(faction1Center.Y - tilePos.Y);
+            int dist2 = Math.Abs(faction2Center.X - tilePos.X) + Math.Abs(faction2Center.Y - tilePos.Y);
+            return dist1 <= dist2;
+        }
+
+        // 勢力比で境界を決定: 勢力が強い方がより広い範囲を支配
+        float totalInfluence = influence1 + influence2;
+        if (totalInfluence <= 0) return true;
+
+        float ratio1 = influence1 / totalInfluence;
+        int dist1Total = Math.Abs(faction1Center.X - tilePos.X) + Math.Abs(faction1Center.Y - tilePos.Y);
+        int dist2Total = Math.Abs(faction2Center.X - tilePos.X) + Math.Abs(faction2Center.Y - tilePos.Y);
+        int totalDist = Math.Abs(faction1Center.X - faction2Center.X) + Math.Abs(faction1Center.Y - faction2Center.Y);
+
+        if (totalDist <= 0) return true;
+
+        // faction1 の支配範囲 = 全距離 × faction1 の勢力比率
+        float faction1Range = totalDist * ratio1;
+        return dist1Total <= faction1Range;
     }
 
     /// <summary>
