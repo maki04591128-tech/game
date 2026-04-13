@@ -41,6 +41,18 @@ public class SymbolMapGenerator
     /// <summary>領地形状マスクのノイズ強度（境界の凹凸の大きさ）</summary>
     private const double ShapeMaskNoiseAmplitude = 0.25;
 
+    /// <summary>マップ対角線長の最小値（除算ゼロ防止）</summary>
+    private const int MinMapDiagonal = 1;
+
+    /// <summary>
+    /// マップの対角線長を算出する（除算ゼロ防止付き）
+    /// </summary>
+    private static int CalculateMapDiagonal(int width, int height)
+    {
+        int diag = (int)Math.Sqrt(width * width + height * height);
+        return Math.Max(diag, MinMapDiagonal);
+    }
+
     /// <summary>領地ごとのマップサイズ定義（幅×高さ、23000-50000マス範囲）</summary>
     private static readonly Dictionary<TerritoryId, (int Width, int Height)> TerritorySizes = new()
     {
@@ -614,8 +626,7 @@ public class SymbolMapGenerator
         if (capitalPos == default)
             capitalPos = new Position(map.Width / 2, map.Height / 2);
 
-        int mapDiag = (int)Math.Sqrt(map.Width * map.Width + map.Height * map.Height);
-        if (mapDiag <= 0) mapDiag = 1; // 除算ゼロ防止
+        int mapDiag = CalculateMapDiagonal(map.Width, map.Height);
 
         var dungeonTypes = new[]
         {
@@ -691,8 +702,7 @@ public class SymbolMapGenerator
         List<Position> settlementPositions, List<Position> dungeonPositions,
         Random random)
     {
-        int mapDiag = (int)Math.Sqrt(map.Width * map.Width + map.Height * map.Height);
-        if (mapDiag <= 0) mapDiag = 1; // 除算ゼロ防止
+        int mapDiag = CalculateMapDiagonal(map.Width, map.Height);
         int settlementMinDist = Math.Min(SettlementMinDistBase, mapDiag / SettlementDiagDivisor);
         int dungeonMinDist = Math.Min(DungeonMinDistBase, mapDiag / DungeonDiagDivisor);
 
