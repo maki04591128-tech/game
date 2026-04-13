@@ -1580,7 +1580,7 @@ public class GameController
             foreach (var petId in _petSystem.Pets.Keys)
             {
                 float speedMult = _petSystem.GetMoveSpeedMultiplier(petId);
-                if (speedMult > 1.0f && actionCost <= TurnCosts.AttackNormal)
+                if (speedMult > 0.0f && speedMult != 1.0f && actionCost <= TurnCosts.AttackNormal)
                 {
                     actionCost = Math.Max(1, (int)(actionCost / speedMult));
                     break; // 最初の騎乗ペットのみ適用
@@ -9247,8 +9247,9 @@ public class GameController
         if (save.BuiltFacilities.Count > 0)
         {
             var facilities = save.BuiltFacilities
-                .Where(f => Enum.TryParse<FacilityCategory>(f, out _))
-                .Select(f => Enum.Parse<FacilityCategory>(f))
+                .Select(f => Enum.TryParse<FacilityCategory>(f, out var cat) ? (FacilityCategory?)cat : null)
+                .Where(f => f.HasValue)
+                .Select(f => f!.Value)
                 .ToList();
             _baseConstructionSystem.RestoreFromSave(facilities);
         }
@@ -9355,8 +9356,9 @@ public class GameController
         if (save.ActiveOaths.Count > 0)
         {
             var oaths = save.ActiveOaths
-                .Where(s => Enum.TryParse<OathType>(s, out _))
-                .Select(s => Enum.Parse<OathType>(s));
+                .Select(s => Enum.TryParse<OathType>(s, out var oath) ? (OathType?)oath : null)
+                .Where(s => s.HasValue)
+                .Select(s => s!.Value);
             _oathSystem.RestoreOaths(oaths);
         }
 

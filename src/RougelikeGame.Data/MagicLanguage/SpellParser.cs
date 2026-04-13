@@ -92,7 +92,7 @@ public class SpellParser
             TurnCost = finalTurn,
             PowerMultiplier = powerMultiplier,
             SuccessRate = successRate,
-            EffectWord = words.First(w => w.Category == RuneWordCategory.Effect),
+            EffectWord = words.FirstOrDefault(w => w.Category == RuneWordCategory.Effect),
             TargetWord = words.FirstOrDefault(w => w.Category == RuneWordCategory.Target),
             ElementWord = words.FirstOrDefault(w => w.Category == RuneWordCategory.Element),
             RangeWord = words.FirstOrDefault(w => w.Category == RuneWordCategory.Range),

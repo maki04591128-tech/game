@@ -32,9 +32,10 @@ public static class SaveManager
             File.WriteAllText(path, json);
             return true;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // CA-5: ディスク容量不足/権限エラー等を安全に処理
+            System.Diagnostics.Debug.WriteLine($"[SaveManager] Save failed (slot {slot}): {ex.GetType().Name}: {ex.Message}");
             return false;
         }
     }
@@ -61,9 +62,10 @@ public static class SaveManager
 
             return data;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // CA-6: 破損JSONやI/Oエラーを安全に処理
+            System.Diagnostics.Debug.WriteLine($"[SaveManager] Load failed (slot {slot}): {ex.GetType().Name}: {ex.Message}");
             return null;
         }
     }
