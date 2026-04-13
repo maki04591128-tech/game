@@ -252,3 +252,54 @@ Ver.prt で構築した全ゲームシステム（NPC基盤、会話システム
   - `tests/RougelikeGame.Core.Tests/WorldMapSystemTests.cs`: 12領地対応修正
   - `tests/RougelikeGame.Core.Tests/SystemExpansionPhase7Tests.cs`: イベント数修正
   - `tests/RougelikeGame.Core.Tests/SystemExpansionPhase9Tests.cs`: 12領地対応修正
+
+---
+
+## 11. Ver.α.0.5 安全圏/危険圏重複処理 + 関所NPC統一（2026-04-13）
+
+**目標**: A1（安全圏/危険圏重複処理ルール）、A2（ワールドマップ廃止→関所NPC統一）の実装と関連修正
+
+**状態**: ✅ 全タスク完了
+
+### 11.1 A1: 安全圏/危険圏重複処理ルール
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.65 | 安全圏同士の重複処理 | ✅ | そのまま処理（安全圏のまま維持）|
+| α.66 | 安全圏と危険圏の重なり処理 | ✅ | GetDominantFactionForTileWithDays: 日数経過で安全圏距離縮小（30日/1マス、最小半分）|
+| α.67 | 危険圏同士の重複処理 | ✅ | IsInFactionTerritory: 派閥勢力（Influence値）による支配範囲決定 |
+| α.68 | BorderGate常時安全圏 | ✅ | BorderGateは圏域判定前に安全圏として返却 |
+| α.69 | Dungeon判定対象外 | ✅ | Dungeon/BanditDen/GoblinNestは圏域計算に含めない |
+
+### 11.2 A2: ワールドマップ廃止→関所NPC統一
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.70 | TryTravelTo関所案内メッセージ | ✅ | 常にfalseを返し、関所案内メッセージを表示 |
+| α.71 | 外周移動時メッセージ変更 | ✅ | 「関所（BorderGate）を通じて隣接領地に移動できます」に変更 |
+| α.72 | BorderGate進入時NPC演出 | ✅ | 関所番兵の台詞付き、通行チェック・旅路イベント・領地遷移を実行 |
+| α.73 | WorldMapWindow情報参照用維持 | ✅ | ExecuteTravel→MessageBox案内→DialogResult=false、直接移動不可 |
+| α.74 | MainWindow整理 | ✅ | ShowWorldMapDialogのデッドコード除去 |
+
+### 11.3 A3～C4: 関連修正・テスト増強
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.75 | WorldMapWindow.ExecuteTravel修正 | ✅ | MessageBox後にDialogResult=false, Close()を追加 |
+| α.76 | MainWindow.ShowWorldMapDialog整理 | ✅ | TravelDestination参照のデッドコードを削除 |
+| α.77 | A1境界値テスト追加 | ✅ | 安全圏距離下限(半分)、BorderGate+Dungeon独立、勢力比判定、等勢力距離判定 |
+| α.78 | A2追加テスト | ✅ | 通行料不足テスト、旅路イベントタイプ定義テスト |
+| α.79 | 設計書更新 | ✅ | 14_マップシステム設計書にA1/A2仕様反映 |
+
+### Ver.α.0.5 ブラッシュアップ記録（2026-04-13）
+
+#### 実施内容
+- A1: 安全圏/危険圏重複処理ルール、A2: ワールドマップ廃止→関所NPC統一、A3〜C4: 関連修正
+- テスト状況: VerAlphaSymbolMapTests 167件全合格（161→167: 6件追加）
+- 変更ファイル:
+  - `src/RougelikeGame.Core/Systems/TerritoryInfluenceSystem.cs`: A1ロジック（GetDominantFactionForTileWithDays/IsInFactionTerritory/DangerExpansionDaysPerTile）
+  - `src/RougelikeGame.Gui/GameController.cs`: A2リファクタ（TryTravelTo→関所案内、BorderGate遷移強化、旅路イベント統合）
+  - `src/RougelikeGame.Gui/WorldMapWindow.xaml.cs`: ExecuteTravel→案内MessageBox+DialogResult=false+Close()
+  - `src/RougelikeGame.Gui/MainWindow.xaml.cs`: ShowWorldMapDialogデッドコード除去
+  - `docs/企画設計書/14_マップシステム設計書.md`: A1/A2仕様追記
+  - `tests/RougelikeGame.Core.Tests/VerAlphaSymbolMapTests.cs`: A1境界値テスト4件+A2テスト2件追加

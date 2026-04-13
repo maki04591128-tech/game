@@ -133,10 +133,13 @@ public partial class WorldMapWindow : Window
     private void ExecuteTravel()
     {
         // A2: ワールドマップからの直接移動は廃止。関所経由のみ許可。
-        // ワールドマップは情報参照用に維持。
+        // ワールドマップは情報参照用に維持。移動ボタン押下時は案内メッセージを表示して閉じる。
         MessageBox.Show("領地間の移動は関所（BorderGate）のNPCにインタラクトして行ってください。\n"
             + "関所はシンボルマップの端に配置されています。",
             "領地移動", MessageBoxButton.OK, MessageBoxImage.Information);
+        // TravelDestinationは設定しない（移動不可）。ダイアログを閉じる。
+        DialogResult = false;
+        Close();
     }
 
     private static string GetFacilityName(FacilityType facility) => facility switch

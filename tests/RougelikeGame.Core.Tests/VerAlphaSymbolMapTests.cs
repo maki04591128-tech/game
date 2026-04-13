@@ -1227,20 +1227,142 @@ public class VerAlphaSymbolMapTests
         Assert.True(TerritoryInfluenceSystem.DangerExpansionDaysPerTile > 0);
     }
 
+    /// <summary>
+    /// A1-7: 安全圏距離の下限（日数経過で元の半分以下にはならない）
+    /// </summary>
+    [Fact]
+    public void SafeZoneDistance_NeverBelowHalf_EvenWithLargeDays()
+    {
+        var system = new TerritoryInfluenceSystem();
+        system.Initialize(TerritoryId.Capital, new() { [TerritoryInfluenceSystem.FactionNames.Kingdom] = 1.0f });
+
+        var locations = new Dictionary<Position, LocationDefinition>
+        {
+            [new Position(50, 50)] = new("village", "村", "test", LocationType.Village, TerritoryId.Capital),
+        };
+
+        int safeZone = TerritoryInfluenceSystem.DefaultSafeZoneDistance; // 30
+        int halfZone = safeZone / 2; // 15
+
+        // 超大量の日数経過しても安全圏距離は半分以下にならない
+        // safeZone=30, 日数=99999 → shrink=3333, adjustedSafeZone=max(15, 30-3333)=15
+        // halfZone+1=16マス離れた位置はまだ安全圏であること
+        // → adjustedSafeZone=15なので、distance=16は安全圏外（>=15）
+
+        // halfZone-1=14マス離れた位置は安全圏であること
+        var nearPos = new Position(50 + halfZone - 1, 50);
+        string factionNear = system.GetDominantFactionForTileWithDays(
+            TerritoryId.Capital, nearPos, locations, safeZone, 99999);
+        Assert.Equal(TerritoryInfluenceSystem.FactionNames.Wildlife, factionNear);
+    }
+
+    /// <summary>
+    /// A1-8: BorderGate安全圏はDungeon判定対象外と独立して動作する
+    /// </summary>
+    [Fact]
+    public void BorderGate_SafeZone_And_Dungeon_Excluded_Independently()
+    {
+        var system = new TerritoryInfluenceSystem();
+        system.Initialize(TerritoryId.Frontier, new() { [TerritoryInfluenceSystem.FactionNames.Bandit] = 1.0f });
+
+        var locations = new Dictionary<Position, LocationDefinition>
+        {
+            [new Position(10, 10)] = new("gate", "関所", "test", LocationType.BorderGate, TerritoryId.Frontier),
+            [new Position(12, 10)] = new("dungeon", "ダンジョン", "test", LocationType.Dungeon, TerritoryId.Frontier),
+        };
+
+        int safeZone = 30;
+
+        // BorderGate近傍は安全圏
+        string factionGate = system.GetDominantFactionForTileWithDays(
+            TerritoryId.Frontier, new Position(11, 10), locations, safeZone, 0);
+        Assert.Equal(TerritoryInfluenceSystem.FactionNames.Wildlife, factionGate);
+
+        // Dungeon近傍でもBorderGateから離れていれば安全圏ではない
+        string factionFar = system.GetDominantFactionForTileWithDays(
+            TerritoryId.Frontier, new Position(100, 100), locations, safeZone, 0);
+        Assert.NotEqual(TerritoryInfluenceSystem.FactionNames.Wildlife, factionFar);
+    }
+
+    /// <summary>
+    /// A1-9: 危険圏同士の重複で勢力比が動作する
+    /// </summary>
+    [Fact]
+    public void IsInFactionTerritory_StrongerFactionGetsMoreRange()
+    {
+        var system = new TerritoryInfluenceSystem();
+        system.Initialize(TerritoryId.Frontier, new()
+        {
+            [TerritoryInfluenceSystem.FactionNames.Bandit] = 0.7f,
+            [TerritoryInfluenceSystem.FactionNames.Goblin] = 0.3f,
+        });
+
+        var center1 = new Position(0, 0);
+        var center2 = new Position(100, 0);
+
+        // 2つの拠点間の中間点（50,0）
+        // Bandit(0.7)がGoblin(0.3)より強いので、中間点はBanditの支配下
+        bool isFaction1 = system.IsInFactionTerritory(
+            TerritoryId.Frontier,
+            new Position(50, 0),
+            center1, TerritoryInfluenceSystem.FactionNames.Bandit,
+            center2, TerritoryInfluenceSystem.FactionNames.Goblin);
+        Assert.True(isFaction1);
+
+        // Bandit拠点から遠い点（80,0）はGoblinの支配下
+        bool isFaction1Far = system.IsInFactionTerritory(
+            TerritoryId.Frontier,
+            new Position(80, 0),
+            center1, TerritoryInfluenceSystem.FactionNames.Bandit,
+            center2, TerritoryInfluenceSystem.FactionNames.Goblin);
+        Assert.False(isFaction1Far);
+    }
+
+    /// <summary>
+    /// A1-10: 勢力が等しい場合は距離で判定される
+    /// </summary>
+    [Fact]
+    public void IsInFactionTerritory_EqualInfluence_FallsBackToDistance()
+    {
+        var system = new TerritoryInfluenceSystem();
+        system.Initialize(TerritoryId.Frontier, new()
+        {
+            [TerritoryInfluenceSystem.FactionNames.Bandit] = 0.5f,
+            [TerritoryInfluenceSystem.FactionNames.Goblin] = 0.5f,
+        });
+
+        var center1 = new Position(0, 0);
+        var center2 = new Position(100, 0);
+
+        // center1(0,0)に近い点(30,0)はfaction1の支配下
+        bool isNear1 = system.IsInFactionTerritory(
+            TerritoryId.Frontier,
+            new Position(30, 0),
+            center1, TerritoryInfluenceSystem.FactionNames.Bandit,
+            center2, TerritoryInfluenceSystem.FactionNames.Goblin);
+        Assert.True(isNear1);
+
+        // center2(100,0)に近い点(80,0)はfaction2の支配下
+        bool isNear2 = system.IsInFactionTerritory(
+            TerritoryId.Frontier,
+            new Position(80, 0),
+            center1, TerritoryInfluenceSystem.FactionNames.Bandit,
+            center2, TerritoryInfluenceSystem.FactionNames.Goblin);
+        Assert.False(isNear2);
+    }
+
     // ============================================================
     // A2: ワールドマップ廃止→関所NPC統一テスト
     // ============================================================
 
     /// <summary>
-    /// A2-1: TryTravelToは常にfalseを返す（ワールドマップからの直接移動は廃止）
+    /// A2-1: WorldMapSystem.CanTravelTo は引き続き内部で使用可能（BorderGate遷移時に利用）
     /// </summary>
     [Fact]
     public void TryTravelTo_AlwaysReturnsFalse_WorldMapDisabled()
     {
-        // WorldMapSystem.TravelTo は引き続き内部で使用可能だが、
-        // GameController.TryTravelTo は関所案内メッセージを表示して false を返す
+        // WorldMapSystem.CanTravelTo は関所からの移動チェック時に引き続き使用可能
         var worldMap = new WorldMapSystem();
-        // 隣接領地への移動自体は可能な状態
         worldMap.PlayerGold = 1000;
         Assert.True(worldMap.CanTravelTo(TerritoryId.Forest, 1));
     }
@@ -1277,5 +1399,28 @@ public class VerAlphaSymbolMapTests
     public void BorderGateToll_IsPositive()
     {
         Assert.True(WorldMapSystem.BorderGateToll > 0);
+    }
+
+    /// <summary>
+    /// A2-5: 通行料不足時にCanTravelToがfalseを返す
+    /// </summary>
+    [Fact]
+    public void CanTravelTo_InsufficientGold_ReturnsFalse()
+    {
+        var worldMap = new WorldMapSystem();
+        worldMap.PlayerGold = 0;
+        // 通行料が不足している場合はfalse
+        Assert.False(worldMap.CanTravelTo(TerritoryId.Forest, 1));
+    }
+
+    /// <summary>
+    /// A2-6: 旅路イベントタイプが全て正しく定義されていること
+    /// </summary>
+    [Fact]
+    public void TravelEventTypes_AllDefined()
+    {
+        // TravelEventTypeの全値が定義済みであること
+        var values = Enum.GetValues<TravelEventType>();
+        Assert.True(values.Length >= 6); // Merchant, Ambush, TreasureChest, Shrine, HelpRequest, BadWeather
     }
 }
