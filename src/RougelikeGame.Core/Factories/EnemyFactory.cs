@@ -963,7 +963,7 @@ public static class EnemyDefinitions
                 TerritoryId.Volcanic => new[] { Skeleton, Draugr, DarkElf },
                 _ => new[] { Skeleton, Draugr }
             },
-            "魔族" => new[] { DarkElf, Troll, (EnemyDefinition)Chimera },
+            "魔族" => new[] { DarkElf, Troll, Chimera },
             "エルフ" => new[] { ForestSprite, Rat, Slime },         // エルフ領の安全圏: 弱い敵
             "ドワーフ" => new[] { Rat, Slime },                      // ドワーフ領の安全圏: 弱い敵
             "王国" => new[] { Rat, Slime },                          // 王国領の安全圏: 弱い敵のみ
