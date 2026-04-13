@@ -26,11 +26,20 @@ public class SymbolMapGenerator
     /// <summary>ランダムダンジョン配置の最大試行回数</summary>
     private const int MaxRandomDungeonPlacementAttempts = 2000;
 
+    /// <summary>固定ロケーション配置の最大試行回数</summary>
+    private const int MaxLocationPlacementAttempts = 500;
+
     /// <summary>村1つあたりの必要マス数（総マス数÷この値＝村数）</summary>
     private const int TilesPerVillage = 500;
 
     /// <summary>町1つあたりの必要マス数（総マス数÷この値＝町数）</summary>
     private const int TilesPerTown = 1000;
+
+    /// <summary>領地形状マスクの丸み制御閾値（0.0=最も尖る、1.0=完全な楕円）</summary>
+    private const double ShapeMaskRoundness = 0.85;
+
+    /// <summary>領地形状マスクのノイズ強度（境界の凹凸の大きさ）</summary>
+    private const double ShapeMaskNoiseAmplitude = 0.25;
 
     /// <summary>領地ごとのマップサイズ定義（幅×高さ、23000-50000マス範囲）</summary>
     private static readonly Dictionary<TerritoryId, (int Width, int Height)> TerritorySizes = new()
@@ -184,7 +193,7 @@ public class SymbolMapGenerator
                 double angle = Math.Atan2(dy, dx);
                 double noise = GetBorderNoise(angle, territory);
 
-                double threshold = 0.85 + noise * 0.25;
+                double threshold = ShapeMaskRoundness + noise * ShapeMaskNoiseAmplitude;
                 mask[x, y] = dist < threshold;
             }
         }
@@ -276,6 +285,9 @@ public class SymbolMapGenerator
     /// <summary>歩行可能タイル数をカウント</summary>
     private static int CountWalkableTiles(DungeonMap map, bool[,] shapeMask)
     {
+        if (shapeMask.GetLength(0) != map.Width || shapeMask.GetLength(1) != map.Height)
+            return 0;
+
         int count = 0;
         for (int x = 0; x < map.Width; x++)
             for (int y = 0; y < map.Height; y++)
@@ -403,10 +415,18 @@ public class SymbolMapGenerator
                 pos = new Position(x, y);
                 attempts++;
             }
-            while (attempts < 500 && (
+            while (attempts < MaxLocationPlacementAttempts && (
                 !shapeMask[pos.X, pos.Y] ||
-                (isSettlement && IsMountainOrWater(map, pos)) ||
+                (isSettlement && IsUnbuildableTerrain(map, pos)) ||
                 usedPositions.Any(p => p.ChebyshevDistanceTo(pos) < 12)));
+
+            // 配置失敗時はスキップ（不正な位置への強制配置を防止）
+            if (attempts >= MaxLocationPlacementAttempts &&
+                (!shapeMask[pos.X, pos.Y] ||
+                 (isSettlement && IsUnbuildableTerrain(map, pos))))
+            {
+                continue;
+            }
 
             var tileType = GetTileTypeForLocation(location.Type);
             map.SetTile(pos.X, pos.Y, tileType);
@@ -547,8 +567,8 @@ public class SymbolMapGenerator
 
             var pos = new Position(x, y);
 
-            // 山岳・水域タイルへの配置を禁止
-            if (IsMountainOrWater(map, pos)) continue;
+            // 山岳・水域・溶岩・沼地・氷原タイルへの配置を禁止
+            if (IsUnbuildableTerrain(map, pos)) continue;
 
             if (usedPositions.Any(p => p.ChebyshevDistanceTo(pos) < minDistance)) continue;
 
@@ -595,6 +615,7 @@ public class SymbolMapGenerator
             capitalPos = new Position(map.Width / 2, map.Height / 2);
 
         int mapDiag = (int)Math.Sqrt(map.Width * map.Width + map.Height * map.Height);
+        if (mapDiag <= 0) mapDiag = 1; // 除算ゼロ防止
 
         var dungeonTypes = new[]
         {
@@ -671,6 +692,7 @@ public class SymbolMapGenerator
         Random random)
     {
         int mapDiag = (int)Math.Sqrt(map.Width * map.Width + map.Height * map.Height);
+        if (mapDiag <= 0) mapDiag = 1; // 除算ゼロ防止
         int settlementMinDist = Math.Min(SettlementMinDistBase, mapDiag / SettlementDiagDivisor);
         int dungeonMinDist = Math.Min(DungeonMinDistBase, mapDiag / DungeonDiagDivisor);
 
@@ -1002,7 +1024,7 @@ public class SymbolMapGenerator
 
                 if (!shapeMask[x, y]) continue;
                 var pos = new Position(x, y);
-                if (IsMountainOrWater(map, pos)) continue;
+                if (IsUnbuildableTerrain(map, pos)) continue;
                 if (allPositions.Any(p => p.ChebyshevDistanceTo(pos) < 8)) continue;
 
                 gatePos = pos;
@@ -1015,7 +1037,7 @@ public class SymbolMapGenerator
                 int fx = Math.Clamp(targetX, margin, map.Width - margin - 1);
                 int fy = Math.Clamp(targetY, margin, map.Height - margin - 1);
                 var fallbackPos = new Position(fx, fy);
-                if (shapeMask[fx, fy] && !IsMountainOrWater(map, fallbackPos)
+                if (shapeMask[fx, fy] && !IsUnbuildableTerrain(map, fallbackPos)
                     && !allPositions.Any(p => p.ChebyshevDistanceTo(fallbackPos) < 5))
                 {
                     gatePos = fallbackPos;
@@ -1054,14 +1076,15 @@ public class SymbolMapGenerator
     }
 
     /// <summary>
-    /// 指定位置のタイルが山岳または水域かどうか判定する。
-    /// 集落配置時に使用。
+    /// 指定位置のタイルが集落建設不可地形かどうか判定する。
+    /// 山岳・水域・溶岩・沼地・氷原が該当する。
     /// </summary>
-    private static bool IsMountainOrWater(DungeonMap map, Position pos)
+    private static bool IsUnbuildableTerrain(DungeonMap map, Position pos)
     {
         if (!map.IsInBounds(pos)) return true;
         var tile = map.GetTile(pos);
-        return tile.Type is TileType.SymbolMountain or TileType.SymbolWater;
+        return tile.Type is TileType.SymbolMountain or TileType.SymbolWater
+            or TileType.SymbolLava or TileType.SymbolSwamp or TileType.SymbolIce;
     }
 }
 

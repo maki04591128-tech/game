@@ -515,7 +515,6 @@ public class Tile
 
             // シンボルマップ用タイル
             case TileType.SymbolGrass:
-            case TileType.SymbolRoad:
             case TileType.SymbolTown:
             case TileType.SymbolDungeon:
             case TileType.SymbolFacility:
@@ -528,6 +527,12 @@ public class Tile
             case TileType.SymbolBorderGate:
                 tile.BlocksSight = false;
                 tile.BlocksMovement = false;
+                break;
+
+            case TileType.SymbolRoad:
+                tile.BlocksSight = false;
+                tile.BlocksMovement = false;
+                tile.MovementCost = 0.8f; // 道は移動コスト低
                 break;
 
             case TileType.SymbolDune:
