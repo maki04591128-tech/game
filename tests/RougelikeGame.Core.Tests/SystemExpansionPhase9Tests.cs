@@ -194,7 +194,7 @@ public class Phase9_NpcSystemTests
     public void NpcDefinition_GetAll_Returns16Npcs()
     {
         var all = NpcDefinition.GetAll();
-        Assert.Equal(16, all.Count);
+        Assert.Equal(24, all.Count);
         Assert.All(all, npc => Assert.NotNull(npc));
     }
 

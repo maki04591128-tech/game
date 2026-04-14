@@ -349,6 +349,22 @@ public partial class MainWindow : Window
         _heldMovementKeys.Remove(e.Key);
     }
 
+    /// <summary>
+    /// β.15: ウィンドウリサイズ時にフォントサイズ・レイアウトを動的調整
+    /// </summary>
+    private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // 基準サイズ 1024x720 に対する縮尺を計算
+        double widthScale = e.NewSize.Width / 1024.0;
+        double heightScale = e.NewSize.Height / 720.0;
+        double scale = Math.Min(widthScale, heightScale);
+
+        // ステータスバーとキーヘルプのフォントサイズを縮尺に合わせて調整
+        double baseFontSize = 11.0;
+        double adjustedFontSize = Math.Max(9.0, Math.Min(14.0, baseFontSize * scale));
+        KeyHelpText.FontSize = adjustedFontSize;
+    }
+
     private void UpdateDisplay()
     {
         // ステータス更新

@@ -63,6 +63,28 @@ public record NpcDefinition(
             NpcType.QuestGiver, TerritoryId.Frontier, new[] { "dlg_wolf_intro" }, 40),
         new("npc_frontier_hermit", "隠者イゴール", "辺境の洞窟に住む謎の隠者",
             NpcType.Sage, TerritoryId.Frontier, new[] { "dlg_igor_intro" }, 20),
+        // 砂漠領
+        new("npc_desert_elder", "砂漠の長老ファリス", "砂漠の遊牧民を率いる長老。砂の下に眠る遺跡の秘密を知る",
+            NpcType.Sage, TerritoryId.Desert, new[] { "dlg_faris_intro" }, 40),
+        // 沼地領
+        new("npc_swamp_herbalist", "沼地の薬師モーラ", "沼地に自生する希少な薬草を採取する薬師。毒や瘴気に詳しい",
+            NpcType.Alchemist, TerritoryId.Swamp, new[] { "dlg_mora_intro" }, 50),
+        // 凍土領
+        new("npc_tundra_hunter", "凍土の狩人ヨルン", "極寒の地で獣を狩る熟練の猟師。氷の魔物の弱点を知り尽くす",
+            NpcType.QuestGiver, TerritoryId.Tundra, new[] { "dlg_jorn_intro" }, 40),
+        new("npc_tundra_scholar", "氷原の学者エーリカ", "凍土の古代遺跡を研究する学者。古代文明の知識に長ける",
+            NpcType.Sage, TerritoryId.Tundra, new[] { "dlg_erika_intro" }, 30),
+        // 湖畔領
+        new("npc_lake_fisherman", "湖畔の漁師ルーカス", "湖で暮らす漁師。最近湖に出没する魔物に悩まされている",
+            NpcType.Villager, TerritoryId.Lake, new[] { "dlg_lucas_intro" }, 60),
+        new("npc_lake_priestess", "湖の巫女アリア", "湖畔の神殿に仕える巫女。水の精霊と対話できるという",
+            NpcType.Priest, TerritoryId.Lake, new[] { "dlg_aria_intro" }, 40),
+        // 火山領
+        new("npc_volcanic_smith", "火山の鍛冶師イグナス", "火山の溶岩を利用して武具を鍛える伝説の鍛冶師",
+            NpcType.Blacksmith, TerritoryId.Volcanic, new[] { "dlg_ignas_intro" }, 30),
+        // 聖域領
+        new("npc_sacred_priest", "聖域の大神官テオドール", "聖域を守護する大神官。聖なる力で邪悪を退ける",
+            NpcType.Priest, TerritoryId.Sacred, new[] { "dlg_theodor_intro" }, 40),
     };
 
     /// <summary>領地のNPC一覧を取得</summary>

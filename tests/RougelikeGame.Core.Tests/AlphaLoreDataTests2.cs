@@ -259,7 +259,7 @@ public class AlphaLoreDataTests2
     [Fact]
     public void CompanionNpc_AllCompanions_HasFourEntries()
     {
-        Assert.Equal(4, CompanionNpcData.AllCompanions.Count);
+        Assert.Equal(8, CompanionNpcData.AllCompanions.Count);
     }
 
     [Theory]
