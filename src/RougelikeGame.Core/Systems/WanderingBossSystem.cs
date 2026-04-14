@@ -32,7 +32,19 @@ public record WanderingBossDefinition(
     /// <summary>最高高度（この値以下のタイルでのみ徘徊）</summary>
     int MaxAltitude,
     /// <summary>表示文字</summary>
-    char DisplayChar = '龍'
+    char DisplayChar = '龍',
+    /// <summary>中立モブかどうか（trueの場合、先制攻撃しない）</summary>
+    bool IsNeutral = false,
+    /// <summary>領地の信仰対象かどうか（trueの場合、討伐時に領地評判が低下する）</summary>
+    bool IsWorshipped = false,
+    /// <summary>カルマ連動かどうか（trueの場合、プレイヤーのカルマで敵味方が変わる）</summary>
+    bool IsKarmaLinked = false,
+    /// <summary>カルマ連動時の味方閾値（カルマがこの値以上で味方行動する）</summary>
+    int KarmaAllyThreshold = 50,
+    /// <summary>カルマ連動時の敵対閾値（カルマがこの値以下で強制敵対する）</summary>
+    int KarmaHostileThreshold = -20,
+    /// <summary>討伐時のカルマペナルティ（0以外の場合、討伐時にカルマが変動する）</summary>
+    int DefeatKarmaPenalty = 0
 );
 
 /// <summary>
@@ -68,31 +80,36 @@ public static class WanderingBossSystem
             "wandering_boss_mountain", "バハムート", "山岳を支配する古竜王。息吹は山をも砕く",
             TerritoryId.Mountain, Level: 50, Hp: 5000, Attack: 200, Defense: 150,
             WalkableTerrain: new[] { TileType.SymbolMountain },
-            MinAltitude: 3, MaxAltitude: 5, DisplayChar: '龍'),
+            MinAltitude: 3, MaxAltitude: 5, DisplayChar: '龍',
+            IsNeutral: true, IsWorshipped: true),
 
         [TerritoryId.Coast] = new WanderingBossDefinition(
             "wandering_boss_coast", "リヴァイアサン", "深海に潜む大海蛇。津波を起こす力を持つ",
             TerritoryId.Coast, Level: 48, Hp: 4800, Attack: 180, Defense: 160,
             WalkableTerrain: new[] { TileType.SymbolWater },
-            MinAltitude: -4, MaxAltitude: -2, DisplayChar: '龍'),
+            MinAltitude: -4, MaxAltitude: -2, DisplayChar: '龍',
+            IsNeutral: true, IsWorshipped: true),
 
         [TerritoryId.Volcanic] = new WanderingBossDefinition(
             "wandering_boss_volcanic", "イフリート", "火山に棲む炎の魔王。溶岩を従え灼熱の嵐を呼ぶ",
             TerritoryId.Volcanic, Level: 52, Hp: 4500, Attack: 220, Defense: 120,
             WalkableTerrain: new[] { TileType.SymbolLava, TileType.SymbolMountain },
-            MinAltitude: 2, MaxAltitude: 4, DisplayChar: '龍'),
+            MinAltitude: 2, MaxAltitude: 4, DisplayChar: '龍',
+            IsNeutral: true, IsWorshipped: true),
 
         [TerritoryId.Forest] = new WanderingBossDefinition(
-            "wandering_boss_forest", "世界樹の守護者", "太古の森に宿る精霊王。森そのものが意思を持つ",
+            "wandering_boss_forest", "ヨルムンガンド", "太古の森に棲む世界蛇。世界樹に巻きつく巨大な蛇であり、森の生態系そのものを司る",
             TerritoryId.Forest, Level: 45, Hp: 4200, Attack: 160, Defense: 180,
             WalkableTerrain: new[] { TileType.SymbolForest },
-            MinAltitude: 0, MaxAltitude: 2, DisplayChar: '龍'),
+            MinAltitude: 0, MaxAltitude: 2, DisplayChar: '龍',
+            IsNeutral: true, IsWorshipped: true),
 
         [TerritoryId.Tundra] = new WanderingBossDefinition(
             "wandering_boss_tundra", "フェンリル", "凍土の王。吹雪を纏い氷原を駆ける巨狼",
             TerritoryId.Tundra, Level: 47, Hp: 4600, Attack: 190, Defense: 140,
             WalkableTerrain: new[] { TileType.SymbolIce, TileType.SymbolMountain },
-            MinAltitude: 1, MaxAltitude: 3, DisplayChar: '龍'),
+            MinAltitude: 1, MaxAltitude: 3, DisplayChar: '龍',
+            IsNeutral: true, IsWorshipped: true),
 
         [TerritoryId.Desert] = new WanderingBossDefinition(
             "wandering_boss_desert", "サンドワーム", "砂漠の支配者。砂丘を泳ぐ巨大蟲",
@@ -107,16 +124,20 @@ public static class WanderingBossSystem
             MinAltitude: -2, MaxAltitude: 0, DisplayChar: '龍'),
 
         [TerritoryId.Lake] = new WanderingBossDefinition(
-            "wandering_boss_lake", "湖の主", "湖底に眠る太古の水龍。穏やかな湖面の下に潜む脅威",
+            "wandering_boss_lake", "ウンディーネ", "湖底に眠る水精霊の王。穏やかな湖面の下に潜む太古の存在",
             TerritoryId.Lake, Level: 43, Hp: 3800, Attack: 165, Defense: 145,
             WalkableTerrain: new[] { TileType.SymbolWater },
-            MinAltitude: -3, MaxAltitude: -1, DisplayChar: '龍'),
+            MinAltitude: -3, MaxAltitude: -1, DisplayChar: '龍',
+            IsNeutral: true, IsWorshipped: true),
 
         [TerritoryId.Sacred] = new WanderingBossDefinition(
-            "wandering_boss_sacred", "熾天使", "聖域を守護する堕ちた天使。かつての神の使い",
+            "wandering_boss_sacred", "ライブラ", "聖域を守護する天秤の裁定者。善悪を見極め正義を執行する",
             TerritoryId.Sacred, Level: 55, Hp: 5500, Attack: 210, Defense: 170,
             WalkableTerrain: new[] { TileType.SymbolMountain, TileType.SymbolGrass },
-            MinAltitude: 1, MaxAltitude: 2, DisplayChar: '龍'),
+            MinAltitude: 1, MaxAltitude: 2, DisplayChar: '龍',
+            IsNeutral: true, IsWorshipped: true,
+            IsKarmaLinked: true, KarmaAllyThreshold: 50, KarmaHostileThreshold: -20,
+            DefeatKarmaPenalty: -30),
 
         [TerritoryId.Frontier] = new WanderingBossDefinition(
             "wandering_boss_frontier", "ベヒーモス", "辺境の荒野を支配する巨獣。大地を揺るがす咆哮",
@@ -248,5 +269,75 @@ public static class WanderingBossSystem
     {
         if (boss == null || boss.IsDefeated) return false;
         return playerPos == boss.Position;
+    }
+
+    /// <summary>
+    /// 中立ボスとの接触時に戦闘が発生するかを判定する。
+    /// 中立ボスは通常は戦闘にならないが、カルマ連動ボスは条件により強制敵対する。
+    /// </summary>
+    /// <param name="boss">対象ボスの定義</param>
+    /// <param name="playerKarma">プレイヤーの現在のカルマ値</param>
+    /// <returns>true: 戦闘発生、false: 戦闘なし（中立のまま通過）</returns>
+    public static bool ShouldEngageCombat(WanderingBossDefinition boss, int playerKarma)
+    {
+        // 中立ボスでなければ常に戦闘
+        if (!boss.IsNeutral) return true;
+
+        // カルマ連動ボスの場合、低カルマで強制敵対
+        if (boss.IsKarmaLinked && playerKarma <= boss.KarmaHostileThreshold)
+        {
+            return true;
+        }
+
+        // 中立ボスは通常戦闘しない
+        return false;
+    }
+
+    /// <summary>
+    /// カルマ連動ボスが味方として行動するかを判定する。
+    /// 高カルマのプレイヤーに対して味方行動を取る。
+    /// </summary>
+    /// <param name="boss">対象ボスの定義</param>
+    /// <param name="playerKarma">プレイヤーの現在のカルマ値</param>
+    /// <returns>true: 味方として行動する</returns>
+    public static bool IsAllyBehavior(WanderingBossDefinition boss, int playerKarma)
+    {
+        if (!boss.IsKarmaLinked) return false;
+        return playerKarma >= boss.KarmaAllyThreshold;
+    }
+
+    /// <summary>
+    /// ボス討伐時の評判ペナルティを計算する。
+    /// 信仰対象ボスの討伐は所属領地の評判を大きく低下させる。
+    /// </summary>
+    /// <param name="boss">討伐されたボスの定義</param>
+    /// <returns>評判変動値（負の値）。信仰対象でなければ0</returns>
+    public static int GetDefeatReputationPenalty(WanderingBossDefinition boss)
+    {
+        if (!boss.IsWorshipped) return 0;
+        // 信仰対象ボス討伐: 領地評判-30
+        return -30;
+    }
+
+    /// <summary>
+    /// ボス討伐時のカルマペナルティを取得する。
+    /// </summary>
+    /// <param name="boss">討伐されたボスの定義</param>
+    /// <returns>カルマ変動値（定義されたペナルティ値、通常は負の値）</returns>
+    public static int GetDefeatKarmaPenalty(WanderingBossDefinition boss)
+    {
+        return boss.DefeatKarmaPenalty;
+    }
+
+    /// <summary>
+    /// ボス討伐時のペナルティ理由テキストを取得する。
+    /// </summary>
+    public static string GetDefeatPenaltyReason(WanderingBossDefinition boss)
+    {
+        if (boss.IsWorshipped)
+        {
+            return $"{boss.Territory}領の信仰対象「{boss.Name}」を討伐した";
+        }
+        return $"徘徊ボス「{boss.Name}」を討伐した";
     }
 }

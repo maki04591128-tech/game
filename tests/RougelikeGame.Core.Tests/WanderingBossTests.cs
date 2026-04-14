@@ -1,4 +1,5 @@
 using RougelikeGame.Core;
+using RougelikeGame.Core.Data;
 using RougelikeGame.Core.Map;
 using RougelikeGame.Core.Map.Generation;
 using RougelikeGame.Core.Systems;
@@ -266,23 +267,251 @@ public class WanderingBossTests
     }
 
     [Fact]
-    public void GetBossForTerritory_Southern_ReturnsChimera()
+    public void GetBossForTerritory_Forest_ReturnsJormungandr()
     {
-        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Southern);
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Forest);
         Assert.NotNull(boss);
-        Assert.Equal("キマイラ", boss.Name);
-        Assert.Equal(TerritoryId.Southern, boss.Territory);
-        Assert.Contains(TileType.SymbolGrass, boss.WalkableTerrain);
-        Assert.True(boss.MinAltitude <= 0);
+        Assert.Equal("ヨルムンガンド", boss.Name);
+        Assert.Equal(TerritoryId.Forest, boss.Territory);
+        Assert.True(boss.IsNeutral);
+        Assert.True(boss.IsWorshipped);
     }
 
     [Fact]
-    public void CanBossOccupy_SouthernBoss_GrassWithinAltitude_ReturnsTrue()
+    public void GetBossForTerritory_Lake_ReturnsUndine()
     {
-        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Southern)!;
-        var tile = new Tile { Type = TileType.SymbolGrass };
-        tile.SetAltitude(0); // 高度0は範囲-1〜1内
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Lake);
+        Assert.NotNull(boss);
+        Assert.Equal("ウンディーネ", boss.Name);
+        Assert.Equal(TerritoryId.Lake, boss.Territory);
+        Assert.True(boss.IsNeutral);
+        Assert.True(boss.IsWorshipped);
+    }
 
-        Assert.True(WanderingBossSystem.CanBossOccupy(boss, tile));
+    [Fact]
+    public void GetBossForTerritory_Sacred_ReturnsLibra()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Sacred);
+        Assert.NotNull(boss);
+        Assert.Equal("ライブラ", boss.Name);
+        Assert.Equal(TerritoryId.Sacred, boss.Territory);
+        Assert.True(boss.IsNeutral);
+        Assert.True(boss.IsWorshipped);
+        Assert.True(boss.IsKarmaLinked);
+    }
+
+    // --- 中立モブフラグテスト ---
+
+    [Fact]
+    public void NeutralBosses_AllSevenAreNeutral()
+    {
+        var neutralTerritories = new[]
+        {
+            TerritoryId.Mountain, TerritoryId.Coast, TerritoryId.Volcanic,
+            TerritoryId.Forest, TerritoryId.Tundra, TerritoryId.Lake,
+            TerritoryId.Sacred
+        };
+
+        foreach (var territory in neutralTerritories)
+        {
+            var boss = WanderingBossSystem.GetBossForTerritory(territory);
+            Assert.NotNull(boss);
+            Assert.True(boss.IsNeutral, $"{boss.Name}はIsNeutral=trueであるべき");
+            Assert.True(boss.IsWorshipped, $"{boss.Name}はIsWorshipped=trueであるべき");
+        }
+    }
+
+    [Fact]
+    public void NonNeutralBosses_AreNotNeutral()
+    {
+        // サンドワーム、ヒュドラ、ベヒーモス、キマイラは中立ではない
+        var nonNeutralTerritories = new[]
+        {
+            TerritoryId.Desert, TerritoryId.Swamp, TerritoryId.Frontier, TerritoryId.Southern
+        };
+
+        foreach (var territory in nonNeutralTerritories)
+        {
+            var boss = WanderingBossSystem.GetBossForTerritory(territory);
+            Assert.NotNull(boss);
+            Assert.False(boss.IsNeutral, $"{boss.Name}はIsNeutral=falseであるべき");
+        }
+    }
+
+    // --- カルマ連動テスト ---
+
+    [Fact]
+    public void Libra_IsKarmaLinked()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Sacred)!;
+        Assert.True(boss.IsKarmaLinked);
+        Assert.Equal(50, boss.KarmaAllyThreshold);
+        Assert.Equal(-20, boss.KarmaHostileThreshold);
+        Assert.Equal(-30, boss.DefeatKarmaPenalty);
+    }
+
+    [Fact]
+    public void ShouldEngageCombat_NeutralBoss_NoCombat()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Mountain)!;
+        Assert.False(WanderingBossSystem.ShouldEngageCombat(boss, 0));
+    }
+
+    [Fact]
+    public void ShouldEngageCombat_NonNeutralBoss_AlwaysCombat()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Desert)!;
+        Assert.True(WanderingBossSystem.ShouldEngageCombat(boss, 100));
+    }
+
+    [Fact]
+    public void ShouldEngageCombat_Libra_LowKarma_ForcedCombat()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Sacred)!;
+        Assert.True(WanderingBossSystem.ShouldEngageCombat(boss, -20));
+        Assert.True(WanderingBossSystem.ShouldEngageCombat(boss, -50));
+    }
+
+    [Fact]
+    public void ShouldEngageCombat_Libra_HighKarma_NoCombat()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Sacred)!;
+        Assert.False(WanderingBossSystem.ShouldEngageCombat(boss, 50));
+        Assert.False(WanderingBossSystem.ShouldEngageCombat(boss, 0));
+    }
+
+    [Fact]
+    public void IsAllyBehavior_Libra_HighKarma_IsAlly()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Sacred)!;
+        Assert.True(WanderingBossSystem.IsAllyBehavior(boss, 50));
+        Assert.True(WanderingBossSystem.IsAllyBehavior(boss, 100));
+    }
+
+    [Fact]
+    public void IsAllyBehavior_Libra_LowKarma_NotAlly()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Sacred)!;
+        Assert.False(WanderingBossSystem.IsAllyBehavior(boss, 49));
+        Assert.False(WanderingBossSystem.IsAllyBehavior(boss, -20));
+    }
+
+    [Fact]
+    public void IsAllyBehavior_NonKarmaLinked_NeverAlly()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Mountain)!;
+        Assert.False(WanderingBossSystem.IsAllyBehavior(boss, 100));
+    }
+
+    // --- 討伐ペナルティテスト ---
+
+    [Fact]
+    public void GetDefeatReputationPenalty_WorshippedBoss_ReturnsMinus30()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Mountain)!;
+        Assert.Equal(-30, WanderingBossSystem.GetDefeatReputationPenalty(boss));
+    }
+
+    [Fact]
+    public void GetDefeatReputationPenalty_NonWorshippedBoss_ReturnsZero()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Desert)!;
+        Assert.Equal(0, WanderingBossSystem.GetDefeatReputationPenalty(boss));
+    }
+
+    [Fact]
+    public void GetDefeatKarmaPenalty_Libra_ReturnsMinus30()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Sacred)!;
+        Assert.Equal(-30, WanderingBossSystem.GetDefeatKarmaPenalty(boss));
+    }
+
+    [Fact]
+    public void GetDefeatKarmaPenalty_NonKarmaLinked_ReturnsZero()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Mountain)!;
+        Assert.Equal(0, WanderingBossSystem.GetDefeatKarmaPenalty(boss));
+    }
+
+    [Fact]
+    public void GetDefeatPenaltyReason_WorshippedBoss_ContainsFaithText()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Mountain)!;
+        var reason = WanderingBossSystem.GetDefeatPenaltyReason(boss);
+        Assert.Contains("信仰対象", reason);
+        Assert.Contains("バハムート", reason);
+    }
+
+    // --- ボスサブストーリー・クエストラインテスト ---
+
+    [Fact]
+    public void BossSubStory_AllBosses_HaveStory()
+    {
+        var bossIds = new[]
+        {
+            "wandering_boss_mountain", "wandering_boss_coast", "wandering_boss_volcanic",
+            "wandering_boss_forest", "wandering_boss_tundra", "wandering_boss_lake",
+            "wandering_boss_sacred", "wandering_boss_desert", "wandering_boss_swamp",
+            "wandering_boss_frontier", "wandering_boss_southern"
+        };
+
+        foreach (var id in bossIds)
+        {
+            var story = QuestLoreData.GetBossSubStory(id);
+            Assert.False(string.IsNullOrEmpty(story), $"{id}のサブストーリーが空");
+            Assert.DoesNotContain("見つからない", story);
+        }
+    }
+
+    [Fact]
+    public void BossQuestDescription_AllBosses_HaveQuest()
+    {
+        var bossIds = new[]
+        {
+            "wandering_boss_mountain", "wandering_boss_coast", "wandering_boss_volcanic",
+            "wandering_boss_forest", "wandering_boss_tundra", "wandering_boss_lake",
+            "wandering_boss_sacred", "wandering_boss_desert", "wandering_boss_swamp",
+            "wandering_boss_frontier", "wandering_boss_southern"
+        };
+
+        foreach (var id in bossIds)
+        {
+            var quest = QuestLoreData.GetBossQuestDescription(id);
+            Assert.False(string.IsNullOrEmpty(quest), $"{id}のクエストが空");
+            Assert.DoesNotContain("見つからない", quest);
+        }
+    }
+
+    [Fact]
+    public void BossQuestComplete_AllBosses_HaveCompleteText()
+    {
+        var bossIds = new[]
+        {
+            "wandering_boss_mountain", "wandering_boss_coast", "wandering_boss_volcanic",
+            "wandering_boss_forest", "wandering_boss_tundra", "wandering_boss_lake",
+            "wandering_boss_sacred", "wandering_boss_desert", "wandering_boss_swamp",
+            "wandering_boss_frontier", "wandering_boss_southern"
+        };
+
+        foreach (var id in bossIds)
+        {
+            var text = QuestLoreData.GetBossQuestCompleteText(id);
+            Assert.False(string.IsNullOrEmpty(text), $"{id}の完了テキストが空");
+            Assert.DoesNotContain("達成した。", text.TrimEnd());
+        }
+    }
+
+    [Fact]
+    public void BossSubStory_Libra_ContainsKarmaReference()
+    {
+        var story = QuestLoreData.GetBossSubStory("wandering_boss_sacred");
+        Assert.Contains("善悪", story);
+    }
+
+    [Fact]
+    public void BossQuestDescription_Libra_ContainsKarmaReference()
+    {
+        var quest = QuestLoreData.GetBossQuestDescription("wandering_boss_sacred");
+        Assert.Contains("カルマ", quest);
     }
 }
