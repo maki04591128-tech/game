@@ -123,6 +123,12 @@ public static class WanderingBossSystem
             TerritoryId.Frontier, Level: 42, Hp: 4000, Attack: 185, Defense: 125,
             WalkableTerrain: new[] { TileType.SymbolGrass, TileType.SymbolMountain },
             MinAltitude: 0, MaxAltitude: 3, DisplayChar: '龍'),
+
+        [TerritoryId.Southern] = new WanderingBossDefinition(
+            "wandering_boss_southern", "キマイラ", "南部の荒野を徘徊する合成獣。獅子の頭、山羊の胴、蛇の尾を持つ",
+            TerritoryId.Southern, Level: 44, Hp: 4100, Attack: 175, Defense: 140,
+            WalkableTerrain: new[] { TileType.SymbolGrass, TileType.SymbolForest },
+            MinAltitude: -1, MaxAltitude: 1, DisplayChar: '龍'),
     };
 
     /// <summary>

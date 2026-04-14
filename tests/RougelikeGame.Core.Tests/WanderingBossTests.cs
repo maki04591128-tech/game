@@ -57,7 +57,7 @@ public class WanderingBossTests
             TerritoryId.Mountain, TerritoryId.Coast, TerritoryId.Volcanic,
             TerritoryId.Forest, TerritoryId.Tundra, TerritoryId.Desert,
             TerritoryId.Swamp, TerritoryId.Lake, TerritoryId.Sacred,
-            TerritoryId.Frontier
+            TerritoryId.Frontier, TerritoryId.Southern
         };
 
         foreach (var territory in territoriesWithBoss)
@@ -235,7 +235,7 @@ public class WanderingBossTests
             TerritoryId.Mountain, TerritoryId.Coast, TerritoryId.Volcanic,
             TerritoryId.Forest, TerritoryId.Tundra, TerritoryId.Desert,
             TerritoryId.Swamp, TerritoryId.Lake, TerritoryId.Sacred,
-            TerritoryId.Frontier
+            TerritoryId.Frontier, TerritoryId.Southern
         };
 
         foreach (var territory in territories)
@@ -254,7 +254,7 @@ public class WanderingBossTests
             TerritoryId.Mountain, TerritoryId.Coast, TerritoryId.Volcanic,
             TerritoryId.Forest, TerritoryId.Tundra, TerritoryId.Desert,
             TerritoryId.Swamp, TerritoryId.Lake, TerritoryId.Sacred,
-            TerritoryId.Frontier
+            TerritoryId.Frontier, TerritoryId.Southern
         };
 
         foreach (var territory in territories)
@@ -263,5 +263,26 @@ public class WanderingBossTests
             Assert.True(boss.MinAltitude <= boss.MaxAltitude,
                 $"{boss.Name}の高度範囲が不正: Min={boss.MinAltitude}, Max={boss.MaxAltitude}");
         }
+    }
+
+    [Fact]
+    public void GetBossForTerritory_Southern_ReturnsChimera()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Southern);
+        Assert.NotNull(boss);
+        Assert.Equal("キマイラ", boss.Name);
+        Assert.Equal(TerritoryId.Southern, boss.Territory);
+        Assert.Contains(TileType.SymbolGrass, boss.WalkableTerrain);
+        Assert.True(boss.MinAltitude <= 0);
+    }
+
+    [Fact]
+    public void CanBossOccupy_SouthernBoss_GrassWithinAltitude_ReturnsTrue()
+    {
+        var boss = WanderingBossSystem.GetBossForTerritory(TerritoryId.Southern)!;
+        var tile = new Tile { Type = TileType.SymbolGrass };
+        tile.SetAltitude(0); // 高度0は範囲-1〜1内
+
+        Assert.True(WanderingBossSystem.CanBossOccupy(boss, tile));
     }
 }
