@@ -136,6 +136,25 @@ public class SymbolMapGenerator
         // 10. 関所（BorderGate）を隣接領地の方角に配置し、入口を関所に設定
         PlaceBorderGates(map, territory, locationPositions, shapeMask, random);
 
+        // 11. 徘徊ボスモンスター配置
+        WanderingBossInstance? bossInstance = null;
+        var bossDef = WanderingBossSystem.GetBossForTerritory(territory);
+        if (bossDef != null)
+        {
+            // 撃破済みでなければ配置
+            string bossId = bossDef.Id;
+            bool bossDefeated = clearedDungeonIds != null && clearedDungeonIds.Contains(bossId);
+            if (!bossDefeated)
+            {
+                var usedPositions = new HashSet<Position>(locationPositions.Keys);
+                var bossPos = WanderingBossSystem.FindBossSpawnPosition(map, bossDef, shapeMask, usedPositions, random);
+                if (bossPos.HasValue)
+                {
+                    bossInstance = new WanderingBossInstance(bossDef, bossPos.Value);
+                }
+            }
+        }
+
         // 入口は最初の関所、無ければ最初のロケーション
         var gatePos = locationPositions
             .Where(kv => kv.Value.Type == LocationType.BorderGate)
@@ -151,7 +170,7 @@ public class SymbolMapGenerator
             map.SetEntrance(entrance);
         }
 
-        return new SymbolMapResult(map, locationPositions);
+        return new SymbolMapResult(map, locationPositions, bossInstance);
     }
 
     /// <summary>領地IDから決定論的シードを生成</summary>
@@ -1164,5 +1183,6 @@ public class SymbolMapGenerator
 /// </summary>
 public record SymbolMapResult(
     DungeonMap Map,
-    Dictionary<Position, LocationDefinition> LocationPositions
+    Dictionary<Position, LocationDefinition> LocationPositions,
+    WanderingBossInstance? WanderingBoss = null
 );

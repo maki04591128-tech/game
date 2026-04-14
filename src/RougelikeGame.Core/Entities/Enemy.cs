@@ -41,6 +41,11 @@ public class Enemy : Character
     public EnemyRank Rank { get; init; } = EnemyRank.Common;
 
     /// <summary>
+    /// 徘徊ボスモンスターかどうか（シンボルマップ上のシンボルエンカウント型ボス）
+    /// </summary>
+    public bool IsBoss { get; set; } = false;
+
+    /// <summary>
     /// 視界範囲
     /// </summary>
     public int SightRange { get; init; } = 8;

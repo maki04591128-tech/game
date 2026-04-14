@@ -94,6 +94,7 @@ public class GameRenderer
         { TileType.SymbolLava, (new SolidColorBrush(Color.FromRgb(60, 15, 0)), new SolidColorBrush(Color.FromRgb(255, 100, 30))) },
         { TileType.SymbolIce, (new SolidColorBrush(Color.FromRgb(30, 40, 55)), new SolidColorBrush(Color.FromRgb(180, 220, 255))) },
         { TileType.SymbolSwamp, (new SolidColorBrush(Color.FromRgb(20, 30, 15)), new SolidColorBrush(Color.FromRgb(100, 160, 80))) },
+        { TileType.SymbolWanderingBoss, (new SolidColorBrush(Color.FromRgb(60, 10, 10)), new SolidColorBrush(Color.FromRgb(255, 40, 40))) },
     };
 
     private static readonly Brush ExploredBackground = new SolidColorBrush(Color.FromRgb(15, 15, 20));
@@ -373,7 +374,7 @@ public class GameRenderer
             or TileType.SymbolBanditDen or TileType.SymbolGoblinNest
             or TileType.SymbolBorderGate or TileType.SymbolDune
             or TileType.SymbolLava or TileType.SymbolIce
-            or TileType.SymbolSwamp;
+            or TileType.SymbolSwamp or TileType.SymbolWanderingBoss;
     }
 
     /// <summary>ミニマップ用のWriteableBitmapとImageコントロール</summary>

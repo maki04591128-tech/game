@@ -24,7 +24,9 @@ public enum LocationType
     /// <summary>魔族の門（ランダム生成ダンジョン）</summary>
     DemonPortal,
     /// <summary>関所（領地間の境界ゲート）</summary>
-    BorderGate
+    BorderGate,
+    /// <summary>徘徊ボスモンスター（シンボルエンカウント）</summary>
+    WanderingBoss
 }
 
 /// <summary>

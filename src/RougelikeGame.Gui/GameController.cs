@@ -1894,6 +1894,22 @@ public class GameController
             AddMessage($"【{terrainName}】に到着した。（Tキーでフィールドに入る）");
         }
 
+        // 徘徊ボスモンスター接触チェック（シンボルマップ上）
+        if (_worldMapSystem.IsOnSurface && _symbolMapSystem.IsPlayerContactingBoss(newPos))
+        {
+            HandleWanderingBossEncounter();
+        }
+        // 徘徊ボスの移動（プレイヤーのターン毎）
+        else if (_worldMapSystem.IsOnSurface)
+        {
+            _symbolMapSystem.MoveWanderingBoss(_random);
+            // ボスが移動してプレイヤーと接触した場合
+            if (_symbolMapSystem.IsPlayerContactingBoss(Player.Position))
+            {
+                HandleWanderingBossEncounter();
+            }
+        }
+
         // 階段メッセージ
         if (tile.Type == TileType.StairsDown)
         {
@@ -6752,6 +6768,109 @@ public class GameController
         return true;
     }
 
+    /// <summary>
+    /// 徘徊ボスモンスターとのエンカウント処理。
+    /// 強制的にフィールドマップに遷移し、ボスモンスターとの戦闘を開始する。
+    /// </summary>
+    private void HandleWanderingBossEncounter()
+    {
+        var boss = _symbolMapSystem.CurrentWanderingBoss;
+        if (boss == null || boss.IsDefeated) return;
+
+        var bossDef = boss.Definition;
+        AddMessage($"🐉 【{bossDef.Name}】が立ちはだかる！ 「{bossDef.Description}」");
+        AddMessage($"⚔ 強制エンカウント！ フィールドに引き込まれた！");
+
+        // フィールドマップに遷移
+        var generator = new LocationMapGenerator();
+        var tile = Map.GetTile(Player.Position);
+        var fieldMap = generator.GenerateTerrainFieldMap(tile.Type, Player.Position);
+
+        _symbolMapReturnPosition = Player.Position;
+        _worldMapSystem.IsOnSurface = false;
+        _isInLocationMap = true;
+        _isLocationField = true;
+        _currentMapName = $"wandering_boss_{bossDef.Territory}";
+        _wanderingBossEncounter = true;
+
+        Map = fieldMap;
+        var startPos = fieldMap.EntrancePosition ?? new Position(fieldMap.Width / 2, fieldMap.Height - 1);
+        Player.Position = startPos;
+
+        Enemies.Clear();
+        GroundItems.Clear();
+
+        // ボスモンスターを敵として配置
+        var bossEnemy = CreateWanderingBossEnemy(bossDef, fieldMap);
+        if (bossEnemy != null)
+        {
+            Enemies.Add(bossEnemy);
+        }
+
+        // 通常の雑魚敵も少数配置
+        SpawnEnemies();
+
+        Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
+
+        OnSymbolMapEnterTown?.Invoke();
+        OnStateChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// 徘徊ボス定義からEnemy実体を生成する
+    /// </summary>
+    private Enemy? CreateWanderingBossEnemy(WanderingBossDefinition bossDef, DungeonMap fieldMap)
+    {
+        // ボスの配置位置（プレイヤーから適度に離れた位置）
+        Position? bossPos = null;
+        for (int attempt = 0; attempt < 100; attempt++)
+        {
+            var candidatePos = fieldMap.GetRandomWalkablePosition(_random);
+            if (candidatePos.HasValue)
+            {
+                int dist = candidatePos.Value.ChebyshevDistanceTo(Player.Position);
+                if (dist >= 5 && dist <= 15)
+                {
+                    bossPos = candidatePos;
+                    break;
+                }
+            }
+        }
+        bossPos ??= fieldMap.GetRandomWalkablePosition(_random) ?? new Position(fieldMap.Width / 2, fieldMap.Height / 2);
+
+        var bossDef2 = new EnemyDefinition(
+            TypeId: $"wandering_boss_{bossDef.Territory}",
+            Name: bossDef.Name,
+            Description: bossDef.Description,
+            BaseStats: new Stats(
+                bossDef.Attack,   // Strength
+                bossDef.Hp / 10,  // Vitality
+                bossDef.Level,    // Agility
+                bossDef.Level,    // Dexterity
+                bossDef.Level,    // Intelligence
+                bossDef.Level,    // Mind
+                bossDef.Level,    // Perception
+                bossDef.Level / 2,// Charisma
+                bossDef.Level / 2 // Luck
+            ),
+            EnemyType: EnemyType.Boss,
+            Rank: EnemyRank.Boss,
+            ExperienceReward: bossDef.Level * 100,
+            SightRange: 15,
+            HearingRange: 12,
+            GiveUpDistance: 99,
+            FleeThreshold: 0f,
+            Race: MonsterRace.Dragon
+        );
+
+        var enemy = _enemyFactory.CreateEnemy(bossDef2, bossPos.Value, null);
+        enemy.IsBoss = true;
+        return enemy;
+    }
+
+    /// <summary>徘徊ボスエンカウント中フラグ</summary>
+    private bool _wanderingBossEncounter;
+
     /// <summary>タイルがNPCタイルかどうか判定</summary>
     private static bool IsNpcTile(TileType type) => type is
         TileType.NpcGuildReceptionist or
@@ -6953,6 +7072,26 @@ public class GameController
         _isInLocationMap = false;
         _isLocationField = false;
         _visitedBuildings.Clear();
+
+        // 徘徊ボスエンカウントからの帰還時、ボス撃破判定
+        if (_wanderingBossEncounter)
+        {
+            // フィールド内にボス（IsBoss=true）が残っていなければ撃破
+            bool bossAlive = Enemies.Any(e => e.IsBoss && e.IsAlive);
+            if (!bossAlive)
+            {
+                _symbolMapSystem.DefeatWanderingBoss();
+                var boss = _symbolMapSystem.CurrentWanderingBoss;
+                if (boss != null)
+                {
+                    // 撃破フラグを永続化（再生成時に出現しないように）
+                    _clearSystem.SetFlag($"cleared_{boss.Definition.Id}");
+                    AddMessage($"🏆 【{boss.Definition.Name}】を討伐した！");
+                }
+            }
+            _wanderingBossEncounter = false;
+        }
+
         GenerateSymbolMap();
 
         // 帰還位置を決定（保存された復帰位置 > ロケーションID検索 > デフォルト）

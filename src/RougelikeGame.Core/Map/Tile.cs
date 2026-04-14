@@ -222,6 +222,11 @@ public enum TileType
     /// </summary>
     SymbolSwamp,
 
+    /// <summary>
+    /// シンボルマップ: 徘徊ボスモンスター（シンボルエンカウント）
+    /// </summary>
+    SymbolWanderingBoss,
+
     // === デバッグ専用タイル ===
 
     /// <summary>
@@ -537,6 +542,7 @@ public class Tile
             case TileType.SymbolUndeadCrypt:
             case TileType.SymbolDemonPortal:
             case TileType.SymbolBorderGate:
+            case TileType.SymbolWanderingBoss:
                 tile.BlocksSight = false;
                 tile.BlocksMovement = false;
                 break;
@@ -676,6 +682,7 @@ public class Tile
             TileType.SymbolLava => '≋',
             TileType.SymbolIce => '❄',
             TileType.SymbolSwamp => '♨',
+            TileType.SymbolWanderingBoss => '龍',
             TileType.NpcGuildReceptionist => 'G',
             TileType.NpcPriest => 'P',
             TileType.NpcShopkeeper => 'S',

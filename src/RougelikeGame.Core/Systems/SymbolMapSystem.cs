@@ -1,3 +1,4 @@
+using RougelikeGame.Core.Interfaces;
 using RougelikeGame.Core.Map;
 using RougelikeGame.Core.Map.Generation;
 
@@ -18,6 +19,9 @@ public class SymbolMapSystem
 
     /// <summary>現在の領地</summary>
     public TerritoryId? CurrentTerritory { get; private set; }
+
+    /// <summary>現在のシンボルマップ上の徘徊ボスモンスター</summary>
+    public WanderingBossInstance? CurrentWanderingBoss { get; private set; }
 
     /// <summary>配置されたロケーション数</summary>
     public int LocationCount => _locationPositions.Count;
@@ -43,6 +47,7 @@ public class SymbolMapSystem
         CurrentMap = result.Map;
         CurrentTerritory = territory;
         _locationPositions = result.LocationPositions;
+        CurrentWanderingBoss = result.WanderingBoss;
         return result.Map;
     }
 
@@ -288,6 +293,7 @@ public class SymbolMapSystem
         CurrentMap = null;
         CurrentTerritory = null;
         _locationPositions.Clear();
+        CurrentWanderingBoss = null;
     }
 
     /// <summary>
@@ -371,4 +377,41 @@ public class SymbolMapSystem
 
     /// <summary>交易ルート定義</summary>
     public record TradeRoute(string FromId, string ToId, Position FromPos, Position ToPos, int Distance);
+
+    /// <summary>
+    /// 徘徊ボスを1ステップ移動させる（毎ターン呼び出し）
+    /// </summary>
+    public void MoveWanderingBoss(IRandomProvider random)
+    {
+        if (CurrentWanderingBoss == null || CurrentMap == null) return;
+        WanderingBossSystem.MoveBoss(CurrentWanderingBoss, CurrentMap, random);
+    }
+
+    /// <summary>
+    /// プレイヤーが徘徊ボスと接触しているかチェックする
+    /// </summary>
+    public bool IsPlayerContactingBoss(Position playerPos)
+    {
+        return WanderingBossSystem.IsPlayerContactingBoss(playerPos, CurrentWanderingBoss);
+    }
+
+    /// <summary>
+    /// 徘徊ボスを撃破済みにする
+    /// </summary>
+    public void DefeatWanderingBoss()
+    {
+        if (CurrentWanderingBoss != null)
+        {
+            CurrentWanderingBoss.IsDefeated = true;
+        }
+    }
+
+    /// <summary>
+    /// 徘徊ボスの到着メッセージを取得する
+    /// </summary>
+    public string GetWanderingBossArrivalMessage()
+    {
+        if (CurrentWanderingBoss == null) return string.Empty;
+        return $"⚠ 【{CurrentWanderingBoss.Definition.Name}】が接近している！ 逃げるなら今のうちだ！";
+    }
 }
