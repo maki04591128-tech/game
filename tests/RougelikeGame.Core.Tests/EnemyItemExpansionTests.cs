@@ -1101,6 +1101,231 @@ public class EnemyItemExpansionTests
 
     #endregion
 
+    #region Ver.α.0.9 クエスト大規模拡充テスト
+
+    [Fact]
+    public void QuestDatabase_TotalQuestCount_Is33()
+    {
+        Assert.Equal(33, QuestDatabase.AllQuests.Count);
+    }
+
+    [Fact]
+    public void QuestDatabase_AllQuests_HaveUniqueIds()
+    {
+        var ids = QuestDatabase.AllQuests.Select(q => q.Id).ToList();
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+    }
+
+    [Fact]
+    public void QuestDatabase_AllQuests_HaveNonEmptyDescriptions()
+    {
+        Assert.All(QuestDatabase.AllQuests, q =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(q.Name), $"Quest '{q.Id}' has empty name");
+            Assert.False(string.IsNullOrWhiteSpace(q.Description), $"Quest '{q.Id}' has empty description");
+        });
+    }
+
+    [Fact]
+    public void QuestDatabase_AllQuests_HaveObjectives()
+    {
+        Assert.All(QuestDatabase.AllQuests, q =>
+        {
+            Assert.NotNull(q.Objectives);
+            Assert.True(q.Objectives.Length > 0, $"Quest '{q.Id}' has no objectives");
+        });
+    }
+
+    [Fact]
+    public void QuestDatabase_AllQuests_HavePositiveRewards()
+    {
+        Assert.All(QuestDatabase.AllQuests, q =>
+        {
+            Assert.True(q.Reward.Gold > 0, $"Quest '{q.Id}' has no gold reward");
+            Assert.True(q.Reward.Experience > 0, $"Quest '{q.Id}' has no exp reward");
+            Assert.True(q.Reward.GuildPoints > 0, $"Quest '{q.Id}' has no guild points");
+        });
+    }
+
+    [Theory]
+    [InlineData(GuildRank.Copper, 4)]
+    [InlineData(GuildRank.Iron, 11)]
+    [InlineData(GuildRank.Silver, 19)]
+    [InlineData(GuildRank.Gold, 26)]
+    [InlineData(GuildRank.Platinum, 29)]
+    [InlineData(GuildRank.Mythril, 31)]
+    [InlineData(GuildRank.Adamantine, 33)]
+    public void QuestDatabase_GetByRank_ReturnsCorrectCount(GuildRank rank, int expectedCount)
+    {
+        var quests = QuestDatabase.GetByRank(rank);
+        Assert.Equal(expectedCount, quests.Count);
+    }
+
+    [Fact]
+    public void QuestDatabase_DesertQuests_ExistAndCorrect()
+    {
+        var scorpion = QuestDatabase.GetById("quest_desert_scorpion");
+        Assert.NotNull(scorpion);
+        Assert.Equal(QuestType.Kill, scorpion!.Type);
+        Assert.Equal(GuildRank.Iron, scorpion.RequiredGuildRank);
+
+        var oasis = QuestDatabase.GetById("quest_desert_oasis");
+        Assert.NotNull(oasis);
+        Assert.Equal(QuestType.Explore, oasis!.Type);
+
+        var pharaoh = QuestDatabase.GetById("quest_desert_pharaoh");
+        Assert.NotNull(pharaoh);
+        Assert.Equal(GuildRank.Gold, pharaoh!.RequiredGuildRank);
+    }
+
+    [Fact]
+    public void QuestDatabase_SwampQuests_ExistAndCorrect()
+    {
+        var toad = QuestDatabase.GetById("quest_swamp_toad");
+        Assert.NotNull(toad);
+        Assert.Equal(QuestType.Kill, toad!.Type);
+
+        var herb = QuestDatabase.GetById("quest_swamp_herb");
+        Assert.NotNull(herb);
+        Assert.Equal(QuestType.Collect, herb!.Type);
+
+        var witch = QuestDatabase.GetById("quest_swamp_witch");
+        Assert.NotNull(witch);
+        Assert.Equal(GuildRank.Silver, witch!.RequiredGuildRank);
+    }
+
+    [Fact]
+    public void QuestDatabase_TundraQuests_ExistAndCorrect()
+    {
+        var wolf = QuestDatabase.GetById("quest_tundra_wolf");
+        Assert.NotNull(wolf);
+        Assert.Equal(QuestType.Kill, wolf!.Type);
+
+        var crystal = QuestDatabase.GetById("quest_tundra_crystal");
+        Assert.NotNull(crystal);
+        Assert.Equal(QuestType.Collect, crystal!.Type);
+
+        var wyrm = QuestDatabase.GetById("quest_tundra_wyrm");
+        Assert.NotNull(wyrm);
+        Assert.Equal(GuildRank.Gold, wyrm!.RequiredGuildRank);
+    }
+
+    [Fact]
+    public void QuestDatabase_LakeQuests_ExistAndCorrect()
+    {
+        var fish = QuestDatabase.GetById("quest_lake_fish");
+        Assert.NotNull(fish);
+        Assert.Equal(GuildRank.Copper, fish!.RequiredGuildRank);
+
+        var nymph = QuestDatabase.GetById("quest_lake_nymph");
+        Assert.NotNull(nymph);
+        Assert.Equal(QuestType.Talk, nymph!.Type);
+
+        var serpent = QuestDatabase.GetById("quest_lake_serpent");
+        Assert.NotNull(serpent);
+        Assert.Equal(GuildRank.Gold, serpent!.RequiredGuildRank);
+    }
+
+    [Fact]
+    public void QuestDatabase_VolcanicQuests_ExistAndCorrect()
+    {
+        var ore = QuestDatabase.GetById("quest_volcanic_ore");
+        Assert.NotNull(ore);
+        Assert.Equal(QuestType.Collect, ore!.Type);
+
+        var salamander = QuestDatabase.GetById("quest_volcanic_salamander");
+        Assert.NotNull(salamander);
+        Assert.Equal(QuestType.Kill, salamander!.Type);
+
+        var titan = QuestDatabase.GetById("quest_volcanic_titan");
+        Assert.NotNull(titan);
+        Assert.Equal(GuildRank.Platinum, titan!.RequiredGuildRank);
+    }
+
+    [Fact]
+    public void QuestDatabase_SacredQuests_ExistAndCorrect()
+    {
+        var phantom = QuestDatabase.GetById("quest_sacred_phantom");
+        Assert.NotNull(phantom);
+        Assert.True(phantom!.Reward.FaithPoints > 0, "Sacred quest should give faith points");
+
+        var seal = QuestDatabase.GetById("quest_sacred_seal");
+        Assert.NotNull(seal);
+        Assert.True(seal!.Reward.FaithPoints > 0);
+
+        var demon = QuestDatabase.GetById("quest_sacred_demon");
+        Assert.NotNull(demon);
+        Assert.Equal(GuildRank.Platinum, demon!.RequiredGuildRank);
+        Assert.True(demon.Reward.FaithPoints >= 150);
+    }
+
+    [Fact]
+    public void QuestDatabase_MythrilQuests_ExistAndCorrect()
+    {
+        var abyss = QuestDatabase.GetById("quest_mythril_deep_abyss");
+        Assert.NotNull(abyss);
+        Assert.Equal(GuildRank.Mythril, abyss!.RequiredGuildRank);
+        Assert.Equal(QuestType.Explore, abyss.Type);
+
+        var dragonSlayer = QuestDatabase.GetById("quest_mythril_dragon_slayer");
+        Assert.NotNull(dragonSlayer);
+        Assert.Equal(GuildRank.Mythril, dragonSlayer!.RequiredGuildRank);
+    }
+
+    [Fact]
+    public void QuestDatabase_AdamantineQuests_ExistAndCorrect()
+    {
+        var abyssLord = QuestDatabase.GetById("quest_adamantine_abyss_lord");
+        Assert.NotNull(abyssLord);
+        Assert.Equal(GuildRank.Adamantine, abyssLord!.RequiredGuildRank);
+        Assert.True(abyssLord.Reward.Gold >= 20000);
+
+        var worldPeace = QuestDatabase.GetById("quest_adamantine_world_peace");
+        Assert.NotNull(worldPeace);
+        Assert.Equal(GuildRank.Adamantine, worldPeace!.RequiredGuildRank);
+        Assert.True(worldPeace.Reward.Gold >= 50000);
+    }
+
+    [Fact]
+    public void QuestDatabase_RewardsScaleWithRank()
+    {
+        var copperAvg = QuestDatabase.AllQuests.Where(q => q.RequiredGuildRank == GuildRank.Copper).Average(q => q.Reward.Gold);
+        var goldAvg = QuestDatabase.AllQuests.Where(q => q.RequiredGuildRank == GuildRank.Gold).Average(q => q.Reward.Gold);
+        var platAvg = QuestDatabase.AllQuests.Where(q => q.RequiredGuildRank == GuildRank.Platinum).Average(q => q.Reward.Gold);
+
+        Assert.True(copperAvg < goldAvg, "Gold rank rewards should be higher than Copper");
+        Assert.True(goldAvg < platAvg, "Platinum rank rewards should be higher than Gold");
+    }
+
+    [Fact]
+    public void QuestDatabase_LevelRequirements_IncreaseWithRank()
+    {
+        var copperMaxLvl = QuestDatabase.AllQuests.Where(q => q.RequiredGuildRank == GuildRank.Copper).Max(q => q.RequiredLevel);
+        var ironMinLvl = QuestDatabase.AllQuests.Where(q => q.RequiredGuildRank == GuildRank.Iron).Min(q => q.RequiredLevel);
+        Assert.True(ironMinLvl >= copperMaxLvl - 2, "Iron rank quests should have similar or higher level than Copper");
+    }
+
+    [Fact]
+    public void QuestDatabase_AllQuestTypes_AreUsed()
+    {
+        var usedTypes = QuestDatabase.AllQuests.Select(q => q.Type).Distinct().ToHashSet();
+        Assert.Contains(QuestType.Kill, usedTypes);
+        Assert.Contains(QuestType.Collect, usedTypes);
+        Assert.Contains(QuestType.Explore, usedTypes);
+        Assert.Contains(QuestType.Escort, usedTypes);
+        Assert.Contains(QuestType.Deliver, usedTypes);
+        Assert.Contains(QuestType.Talk, usedTypes);
+    }
+
+    [Fact]
+    public void QuestDatabase_GetById_InvalidId_ReturnsNull()
+    {
+        var result = QuestDatabase.GetById("quest_nonexistent");
+        Assert.Null(result);
+    }
+
+    #endregion
+
     /// <summary>テスト用乱数プロバイダ</summary>
     private class TestRandomProvider : IRandomProvider
     {
