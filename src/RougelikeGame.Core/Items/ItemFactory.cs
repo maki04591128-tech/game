@@ -104,7 +104,7 @@ public class ItemFactory
     {
         ItemId = "weapon_battle_axe",
         Name = "戦斧",
-        Description = "重量級の戦闘用斧。一撃が重い。",
+        Description = "分厚い鋼鉄を打ち出した戦闘用の斧。その重量は並の戦士では片手で振ることすら叶わないが、熟練の戦士が全力で叩きつければ鎧諸共に敵を両断する。血溝が刻まれた刃は、幾多の戦場を潜り抜けてきた証でもある。",
         WeaponType = WeaponType.Axe,
         BaseDamage = 18,
         DamageRange = (14, 22),
@@ -124,7 +124,7 @@ public class ItemFactory
     {
         ItemId = "weapon_wooden_staff",
         Name = "木の杖",
-        Description = "魔力を込めやすい木製の杖。",
+        Description = "魔力伝導率の高い霊木から削り出された杖。木目には微かな魔力の脈動が走り、術者の意思に応じて先端が淡く光る。初学の魔術師が最初に手にする入門用の杖として広く流通している。",
         WeaponType = WeaponType.Staff,
         BaseDamage = 3,
         DamageRange = (2, 4),
@@ -140,7 +140,7 @@ public class ItemFactory
     {
         ItemId = "weapon_short_bow",
         Name = "ショートボウ",
-        Description = "軽量な短弓。扱いやすいが射程は短め。",
+        Description = "狩猟用に設計された小型の短弓。軽量で取り回しがよく、ダンジョンの狭い通路でも素早く射撃できる。射程は長弓に劣るものの、初心者でも直感的に扱えるため、冒険者の間で根強い人気がある。",
         WeaponType = WeaponType.Bow,
         BaseDamage = 6,
         DamageRange = (4, 8),
@@ -158,7 +158,7 @@ public class ItemFactory
     {
         ItemId = "weapon_greatsword",
         Name = "グレートソード",
-        Description = "両手で振るう巨大な剣。一撃の威力は絶大。",
+        Description = "成人の背丈ほどもある巨大な両手剣。その圧倒的な質量から繰り出される一撃は、硬い甲殻を持つ魔物すら粉砕する。扱うには相当の筋力と体力が求められるが、戦場での制圧力は他の追随を許さない。",
         WeaponType = WeaponType.Greatsword,
         BaseDamage = 22,
         DamageRange = (16, 28),
@@ -178,7 +178,7 @@ public class ItemFactory
     {
         ItemId = "weapon_spear",
         Name = "槍",
-        Description = "リーチの長い槍。突きに優れる。",
+        Description = "堅木の柄に鋼の穂先を備えた歩兵用の槍。長いリーチを活かした突き攻撃は敵の間合いの外から一方的に攻撃でき、集団戦では無類の強さを発揮する。軽量で扱いやすく、初心者の冒険者にも推奨される武器。",
         WeaponType = WeaponType.Spear,
         BaseDamage = 9,
         DamageRange = (7, 12),
@@ -197,7 +197,7 @@ public class ItemFactory
     {
         ItemId = "weapon_war_hammer",
         Name = "ウォーハンマー",
-        Description = "重厚な戦鎚。鎧ごと叩き潰す。",
+        Description = "鍛鉄の塊を柄に据えた重厚な戦鎚。斬れ味ではなく純粋な打撃力で敵を叩き潰す。板金鎧の上からでもダメージを通す貫通力を持ち、骨を砕く鈍い衝撃音は戦場に恐怖を撒き散らす。",
         WeaponType = WeaponType.Hammer,
         BaseDamage = 16,
         DamageRange = (12, 20),
@@ -218,7 +218,7 @@ public class ItemFactory
     {
         ItemId = "weapon_crossbow",
         Name = "クロスボウ",
-        Description = "弦を機械仕掛けで引く弩。威力が高いが装填に時間がかかる。",
+        Description = "精密な歯車機構で弦を引く機械式の弩。腕力に頼らず安定した威力を発揮できるため、非力な者でも扱える。装填に時間を要するのが弱点だが、一撃の貫通力は通常の弓を大きく凌駕する。",
         WeaponType = WeaponType.Crossbow,
         BaseDamage = 12,
         DamageRange = (9, 15),
@@ -237,7 +237,7 @@ public class ItemFactory
     {
         ItemId = "weapon_whip",
         Name = "鞭",
-        Description = "長い革の鞭。リーチがあり、柔軟に攻撃できる。",
+        Description = "上質な革を幾重にも編み込んだ長鞭。しなやかな動きで敵の武器を絡め取ったり、離れた位置から正確に打ち据えることができる。使いこなすには高い技術が求められるが、その変幻自在な攻撃は敵の防御を翻弄する。",
         WeaponType = WeaponType.Whip,
         BaseDamage = 5,
         DamageRange = (3, 7),
@@ -247,6 +247,156 @@ public class ItemFactory
         BasePrice = 100,
         Weight = 1.5f,
         StatModifier = new StatModifier(Dexterity: 2, Agility: 1)
+    };
+
+    public static Weapon CreateMithrilSword() => new()
+    {
+        ItemId = "weapon_mithril_sword",
+        Name = "ミスリルの剣",
+        Description = "伝説の金属ミスリルから鍛え上げられた銀白色の剣。羽根のように軽く、しかし鋼の数倍の硬度を誇る。刃は永遠に錆びず、月光の下では青白い燐光を放つ。その切れ味はあらゆる鎧を紙のように切り裂くと言われる。",
+        WeaponType = WeaponType.Sword,
+        BaseDamage = 25,
+        DamageRange = (20, 30),
+        AttackSpeed = 1.2f,
+        Range = 1,
+        Rarity = ItemRarity.Legendary,
+        BasePrice = 2000,
+        Weight = 2.5f,
+        RequiredLevel = 15,
+        StatModifier = new StatModifier(Strength: 5, Dexterity: 3)
+    };
+
+    public static Weapon CreateAncientStaff() => new()
+    {
+        ItemId = "weapon_ancient_staff",
+        Name = "古代賢者の杖",
+        Description = "アルカナス帝国の大賢者が愛用した杖。ルーン語による魔法の威力が大幅に増幅される。その表面には古代ルーン語が刻まれている。",
+        WeaponType = WeaponType.Staff,
+        BaseDamage = 8,
+        DamageRange = (6, 10),
+        AttackSpeed = 1.0f,
+        Range = 1,
+        Rarity = ItemRarity.Epic,
+        BasePrice = 1500,
+        Weight = 2.5f,
+        RequiredLevel = 12,
+        StatModifier = new StatModifier(Intelligence: 6, Mind: 4)
+    };
+
+    public static Weapon CreateDragonslayerSword() => new()
+    {
+        ItemId = "weapon_dragonslayer_sword",
+        Name = "竜殺しの大剣",
+        Description = "太古の英雄が竜王を討伐するために鍛えた伝説の大剣。竜の血を浴びた刃は赤黒く輝き、竜族に対して絶大な威力を発揮する。",
+        WeaponType = WeaponType.Greatsword,
+        BaseDamage = 35,
+        DamageRange = (28, 42),
+        AttackSpeed = 0.5f,
+        Range = 1,
+        IsTwoHanded = true,
+        Rarity = ItemRarity.Legendary,
+        BasePrice = 5000,
+        Weight = 14.0f,
+        RequiredLevel = 20,
+        RequiredStats = new Stats(Strength: 18, Vitality: 12, Agility: 0, Dexterity: 0,
+            Intelligence: 0, Mind: 0, Perception: 0, Charisma: 0, Luck: 0),
+        StatModifier = new StatModifier(Strength: 7, Vitality: 3)
+    };
+
+    public static Weapon CreateShadowDagger() => new()
+    {
+        ItemId = "weapon_shadow_dagger",
+        Name = "影の短剣",
+        Description = "闇の教団に伝わる儀式用の短剣。影から影へ渡り歩く暗殺者が愛用したと言われ、使用者の姿を薄暗く揺らがせる効果がある。",
+        WeaponType = WeaponType.Dagger,
+        BaseDamage = 12,
+        DamageRange = (9, 15),
+        AttackSpeed = 1.8f,
+        Range = 1,
+        Rarity = ItemRarity.Epic,
+        BasePrice = 1200,
+        Weight = 0.7f,
+        RequiredLevel = 12,
+        StatModifier = new StatModifier(Agility: 5, Dexterity: 4),
+        Element = Element.Dark
+    };
+
+    public static Weapon CreateHolyMace() => new()
+    {
+        ItemId = "weapon_holy_mace",
+        Name = "聖なる戦槌",
+        Description = "光の神殿で祝福を受けた戦槌。アンデッドや悪魔に対して神聖な力を発揮し、振るうたびに淡い光を放つ。",
+        WeaponType = WeaponType.Hammer,
+        BaseDamage = 20,
+        DamageRange = (16, 24),
+        AttackSpeed = 0.8f,
+        Range = 1,
+        Rarity = ItemRarity.Epic,
+        BasePrice = 1000,
+        Weight = 6.0f,
+        RequiredLevel = 10,
+        StatModifier = new StatModifier(Strength: 4, Mind: 3),
+        Element = Element.Holy
+    };
+
+    public static Weapon CreateGalebow() => new()
+    {
+        ItemId = "weapon_galebow",
+        Name = "疾風の弓",
+        Description = "風の精霊と契約した弓匠が生涯最後に作り上げた弓。放った矢は風に乗って加速し、通常の弓よりも遥かに速い連射が可能。",
+        WeaponType = WeaponType.Bow,
+        BaseDamage = 14,
+        DamageRange = (10, 18),
+        AttackSpeed = 1.5f,
+        Range = 8,
+        IsTwoHanded = true,
+        AttackType = AttackType.Ranged,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 600,
+        Weight = 1.8f,
+        RequiredLevel = 8,
+        StatModifier = new StatModifier(Dexterity: 4, Agility: 3)
+    };
+
+    public static Weapon CreateVolcanicAxe() => new()
+    {
+        ItemId = "weapon_volcanic_axe",
+        Name = "火山の戦斧",
+        Description = "火山地帯の溶岩から打ち出された伝説の戦斧。刃は常に赤熱し、斬りつけた対象を炎上させる。",
+        WeaponType = WeaponType.Axe,
+        BaseDamage = 28,
+        DamageRange = (22, 34),
+        AttackSpeed = 0.6f,
+        Range = 1,
+        IsTwoHanded = true,
+        Rarity = ItemRarity.Epic,
+        BasePrice = 1800,
+        Weight = 9.0f,
+        RequiredLevel = 15,
+        RequiredStats = new Stats(Strength: 16, Vitality: 10, Agility: 0, Dexterity: 0,
+            Intelligence: 0, Mind: 0, Perception: 0, Charisma: 0, Luck: 0),
+        StatModifier = new StatModifier(Strength: 6),
+        Element = Element.Fire
+    };
+
+    public static Weapon CreateFrostSpear() => new()
+    {
+        ItemId = "weapon_frost_spear",
+        Name = "凍結の槍",
+        Description = "凍土の奥深くから発掘された古代の槍。穂先は永遠に凍りつき、突き刺すと対象に深い凍結を与える。",
+        WeaponType = WeaponType.Spear,
+        BaseDamage = 16,
+        DamageRange = (12, 20),
+        AttackSpeed = 1.0f,
+        Range = 2,
+        IsTwoHanded = true,
+        AttackType = AttackType.Pierce,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 700,
+        Weight = 4.5f,
+        RequiredLevel = 10,
+        StatModifier = new StatModifier(Dexterity: 3, Agility: 2),
+        Element = Element.Ice
     };
 
     #endregion
@@ -449,6 +599,142 @@ public class ItemFactory
         PassiveAbility = "SpeedUp"
     };
 
+    public static Armor CreateMithrilChainmail() => new()
+    {
+        ItemId = "armor_mithril_chainmail",
+        Name = "ミスリル鎖帷子",
+        Description = "ミスリル鍛造の鎖帷子。驚くほど軽量でありながら、通常の鋼鉄を遥かに凌ぐ防御力を持つ。エルフの技術で編まれた逸品。",
+        ArmorType = ArmorType.Chainmail,
+        Slot = EquipmentSlot.Body,
+        BaseDefense = 16,
+        MagicDefense = 8,
+        EvasionModifier = 0.02f,
+        SpeedModifier = 0.98f,
+        Rarity = ItemRarity.Epic,
+        BasePrice = 1200,
+        Weight = 8.0f,
+        RequiredLevel = 12,
+        StatModifier = new StatModifier(Vitality: 4, Agility: 2)
+    };
+
+    public static Armor CreateDragonScaleArmor() => new()
+    {
+        ItemId = "armor_dragon_scale",
+        Name = "竜鱗の鎧",
+        Description = "竜の鱗を幾重にも重ねて鍛え上げた最高級の鎧。火・氷属性への高い耐性を持ち、その堅牢さは城壁に匹敵するとも言われる。",
+        ArmorType = ArmorType.Plate,
+        Slot = EquipmentSlot.Body,
+        BaseDefense = 25,
+        MagicDefense = 12,
+        EvasionModifier = -0.05f,
+        SpeedModifier = 0.9f,
+        Rarity = ItemRarity.Legendary,
+        BasePrice = 5000,
+        Weight = 20.0f,
+        RequiredLevel = 20,
+        RequiredStats = new Stats(Strength: 14, Vitality: 12, Agility: 0, Dexterity: 0,
+            Intelligence: 0, Mind: 0, Perception: 0, Charisma: 0, Luck: 0),
+        StatModifier = new StatModifier(Vitality: 6, Strength: 3)
+    };
+
+    public static Shield CreateMithrilShield() => new()
+    {
+        ItemId = "shield_mithril",
+        Name = "ミスリルの盾",
+        Description = "ミスリルで鋳造された輝く盾。軽量で扱いやすく、魔法攻撃をも跳ね返す力を持つ。",
+        BaseDefense = 10,
+        MagicDefense = 5,
+        BlockChance = 0.28f,
+        BlockReduction = 0.5f,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 800,
+        Weight = 4.0f,
+        RequiredLevel = 10,
+        StatModifier = new StatModifier(Vitality: 3, Strength: 2)
+    };
+
+    public static Armor CreateSageCirclet() => new()
+    {
+        ItemId = "armor_sage_circlet",
+        Name = "賢者の冠",
+        Description = "古代の賢者が知識の結晶として鍛えた冠。装着者の魔力を大幅に増幅し、ルーン語の理解を助ける。",
+        ArmorType = ArmorType.Plate,
+        Slot = EquipmentSlot.Head,
+        BaseDefense = 4,
+        MagicDefense = 12,
+        EvasionModifier = 0.0f,
+        SpeedModifier = 1.0f,
+        Rarity = ItemRarity.Epic,
+        BasePrice = 1500,
+        Weight = 1.0f,
+        RequiredLevel = 15,
+        StatModifier = new StatModifier(Intelligence: 5, Mind: 4)
+    };
+
+    public static Armor CreateAssassinGloves() => new()
+    {
+        ItemId = "armor_assassin_gloves",
+        Name = "暗殺者の手袋",
+        Description = "闇の教団で使われていた特殊な手袋。指先の感覚を鋭敏にし、鍵開けや罠解除の精度を高める。",
+        ArmorType = ArmorType.Leather,
+        Slot = EquipmentSlot.Hands,
+        BaseDefense = 4,
+        MagicDefense = 2,
+        EvasionModifier = 0.05f,
+        SpeedModifier = 1.02f,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 500,
+        Weight = 0.3f,
+        RequiredLevel = 8,
+        StatModifier = new StatModifier(Dexterity: 4, Agility: 3)
+    };
+
+    public static Armor CreateWingedBoots() => new()
+    {
+        ItemId = "armor_winged_boots",
+        Name = "翼のブーツ",
+        Description = "風の魔法が編み込まれた革靴。着用者の歩みを限りなく軽くし、まるで風に乗っているかのような機動性をもたらす。",
+        ArmorType = ArmorType.Leather,
+        Slot = EquipmentSlot.Feet,
+        BaseDefense = 3,
+        MagicDefense = 3,
+        EvasionModifier = 0.08f,
+        SpeedModifier = 1.1f,
+        Rarity = ItemRarity.Epic,
+        BasePrice = 1200,
+        Weight = 1.0f,
+        RequiredLevel = 12,
+        StatModifier = new StatModifier(Agility: 5, Dexterity: 2)
+    };
+
+    public static Accessory CreateDragonboneRing() => new()
+    {
+        ItemId = "accessory_dragonbone_ring",
+        Name = "竜骨の指輪",
+        Description = "竜の骨から削り出された指輪。竜の生命力の残滓が宿り、装着者の全身に力がみなぎる。",
+        Slot = EquipmentSlot.Ring1,
+        Rarity = ItemRarity.Epic,
+        BasePrice = 1500,
+        Weight = 0.2f,
+        RequiredLevel = 15,
+        StatModifier = new StatModifier(Strength: 4, Vitality: 4, Intelligence: 2),
+        PassiveAbility = "DragonPower"
+    };
+
+    public static Accessory CreateHolyAmulet() => new()
+    {
+        ItemId = "accessory_holy_amulet",
+        Name = "聖なるアミュレット",
+        Description = "光の神殿の大司祭が祝福した首飾り。聖なる力が宿り、闇属性や呪いへの耐性を高める。持つ者の心を清め、精神攻撃にも強くなる。",
+        Slot = EquipmentSlot.Neck,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 600,
+        Weight = 0.2f,
+        RequiredLevel = 10,
+        StatModifier = new StatModifier(Mind: 4, Vitality: 2, Intelligence: 2),
+        PassiveAbility = "HolyProtection"
+    };
+
     #endregion
 
     #region Predefined Consumables
@@ -647,6 +933,82 @@ public class ItemFactory
         Weight = 0.5f
     };
 
+    public static Potion CreateStaminaPotionMinor() => new()
+    {
+        ItemId = "potion_stamina_minor",
+        Name = "小スタミナ薬",
+        Description = "草色の液体。筋肉の疲労を和らげる成分が含まれ、少量の体力を回復する。冒険者が常備する基本的な回復薬。",
+        PotionType = PotionType.StaminaMinor,
+        EffectValue = 15,
+        Rarity = ItemRarity.Common,
+        BasePrice = 20,
+        Weight = 0.5f
+    };
+
+    public static Potion CreateStaminaPotion() => new()
+    {
+        ItemId = "potion_stamina",
+        Name = "スタミナ薬",
+        Description = "深い緑色の液体。高濃度の活力成分を含み、疲弊した筋肉を急速に回復させる。長期戦で重宝される。",
+        PotionType = PotionType.StaminaMajor,
+        EffectValue = 40,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 60,
+        Weight = 0.5f
+    };
+
+    public static Potion CreateLightningResistPotion() => new()
+    {
+        ItemId = "potion_lightning_resist",
+        Name = "耐雷薬",
+        Description = "黄金色に帯電する液体。雷精霊の毛を煎じて作られ、飲むと全身に静電気への耐性が生まれる。雷系の魔物と対峙する前に推奨。",
+        PotionType = PotionType.FireResistance,
+        EffectValue = 50,
+        Duration = 50,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 80,
+        Weight = 0.5f
+    };
+
+    public static Potion CreateBerserkerPotion() => new()
+    {
+        ItemId = "potion_berserker",
+        Name = "狂戦士の薬",
+        Description = "血のように赤い液体。飲むと理性の一部を失う代わりに攻撃力が爆発的に上昇する。効果切れ後の反動に注意が必要。",
+        PotionType = PotionType.StrengthBoost,
+        EffectValue = 10,
+        Duration = 20,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 150,
+        Weight = 0.5f
+    };
+
+    public static Potion CreateVitalityPotion() => new()
+    {
+        ItemId = "potion_vitality",
+        Name = "生命力増強薬",
+        Description = "琥珀色の粘性ある液体。大地の精霊から抽出した生命エネルギーが含まれ、一時的に生命力を大幅に高める。",
+        PotionType = PotionType.StrengthBoost,
+        EffectValue = 5,
+        Duration = 30,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 100,
+        Weight = 0.5f
+    };
+
+    public static Potion CreateLiquidLuck() => new()
+    {
+        ItemId = "potion_liquid_luck",
+        Name = "幸運の霊薬",
+        Description = "虹色に揺れる幻想的な液体。七色の花の蜜と星の破片から錬成された至高の霊薬。飲んだ者にありとあらゆる幸運をもたらすと言われる。",
+        PotionType = PotionType.AgilityBoost,
+        EffectValue = 3,
+        Duration = 50,
+        Rarity = ItemRarity.Epic,
+        BasePrice = 500,
+        Weight = 0.5f
+    };
+
     public static Food CreateBread() => new()
     {
         ItemId = "food_bread",
@@ -748,6 +1110,59 @@ public class ItemFactory
         Rarity = ItemRarity.Uncommon,
         BasePrice = 25,
         Weight = 0.5f
+    };
+
+    public static Food CreateDesertDateFruit() => new()
+    {
+        ItemId = "food_desert_date",
+        Name = "砂漠のナツメヤシ",
+        Description = "砂漠地帯で栽培される甘い果実。渇きと飢えを同時に癒す。砂漠の民の主食であり、ハッサンが仕入れる交易品の一つ。",
+        FoodType = FoodType.Fruit,
+        NutritionValue = 35,
+        HealValue = 5,
+        Rarity = ItemRarity.Common,
+        BasePrice = 12,
+        Weight = 0.2f
+    };
+
+    public static Food CreateTundraJerky() => new()
+    {
+        ItemId = "food_tundra_jerky",
+        Name = "凍土の干し肉",
+        Description = "凍土で狩った獣の肉を干して保存したもの。噛めば噛むほど味が出る。厳しい寒さの中でも凍らず、栄養価が非常に高い。",
+        FoodType = FoodType.CookedMeat,
+        NutritionValue = 70,
+        HealValue = 15,
+        IsCooked = true,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 30,
+        Weight = 0.4f
+    };
+
+    public static Food CreateSacredBerry() => new()
+    {
+        ItemId = "food_sacred_berry",
+        Name = "聖域の木の実",
+        Description = "聖域にのみ自生する輝く木の実。食べると心身ともに清められ、体力と精神力の両方が回復する。自然崇拝の信者にとって神聖な食物。",
+        FoodType = FoodType.Lembas,
+        NutritionValue = 60,
+        HealValue = 30,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 80,
+        Weight = 0.2f
+    };
+
+    public static Food CreateVolcanicSpice() => new()
+    {
+        ItemId = "food_volcanic_spice",
+        Name = "火山香辛料",
+        Description = "火山地帯に自生する激辛の香辛料。そのまま食べると口が焼けるほど辛いが、体が温まり、一時的に耐火効果を得られるという。",
+        FoodType = FoodType.Bread,
+        NutritionValue = 15,
+        HealValue = 0,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 25,
+        Weight = 0.1f
     };
 
     public static Scroll CreateScrollOfTeleport() => new()
@@ -918,6 +1333,72 @@ public class ItemFactory
         Weight = 0.5f
     };
 
+    public static Scroll CreateScrollOfHaste() => new()
+    {
+        ItemId = "scroll_haste",
+        Name = "加速の巻物",
+        Description = "読むと一時的に時間の流れが遅くなったように感じ、行動速度が大幅に上昇する。",
+        ScrollType = ScrollType.Teleport,
+        TargetType = TargetType.Self,
+        EffectValue = 30,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 180,
+        Weight = 0.1f
+    };
+
+    public static Scroll CreateScrollOfEarthquake() => new()
+    {
+        ItemId = "scroll_earthquake",
+        Name = "地震の巻物",
+        Description = "読むと大地が激しく揺れ、周囲の全ての存在にダメージを与える。",
+        ScrollType = ScrollType.Fireball,
+        TargetType = TargetType.Area,
+        EffectRadius = 5,
+        EffectValue = 60,
+        Rarity = ItemRarity.Epic,
+        BasePrice = 300,
+        Weight = 0.1f
+    };
+
+    public static Scroll CreateScrollOfHolyWard() => new()
+    {
+        ItemId = "scroll_holy_ward",
+        Name = "聖なる結界の巻物",
+        Description = "読むと聖なる光の結界が展開され、アンデッドと悪魔を寄せ付けない。",
+        ScrollType = ScrollType.Sanctuary,
+        TargetType = TargetType.Self,
+        EffectRadius = 3,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 250,
+        Weight = 0.1f
+    };
+
+    public static Scroll CreateScrollOfCurse() => new()
+    {
+        ItemId = "scroll_curse",
+        Name = "呪いの巻物",
+        Description = "禁忌の呪文が記された巻物。対象に強力な呪いをかけ、全ステータスを低下させる。",
+        ScrollType = ScrollType.Confusion,
+        TargetType = TargetType.SingleEnemy,
+        EffectValue = 20,
+        Rarity = ItemRarity.Rare,
+        BasePrice = 200,
+        Weight = 0.1f
+    };
+
+    public static Scroll CreateScrollOfDivination() => new()
+    {
+        ItemId = "scroll_divination",
+        Name = "千里眼の巻物",
+        Description = "読むと意識が拡大し、階層全体の地形と敵の位置が把握できる。",
+        ScrollType = ScrollType.MagicMapping,
+        TargetType = TargetType.Self,
+        EffectValue = 50,
+        Rarity = ItemRarity.Uncommon,
+        BasePrice = 100,
+        Weight = 0.1f
+    };
+
     #endregion
 
     #region Random Generation
@@ -960,7 +1441,7 @@ public class ItemFactory
         // BT-1: 全装備種から深さに応じてランダム生成
         var shallowWeapons = new Func<Item>[] { CreateRustySword, CreateDagger, CreateWoodenStaff, CreateShortBow, CreateWoodenShield };
         var midWeapons = new Func<Item>[] { CreateIronSword, CreateBattleAxe, CreateSpear, CreateLeatherArmor, CreateIronShield, CreateCrossbow };
-        var deepWeapons = new Func<Item>[] { CreateSteelSword, CreateGreatsword, CreateWarHammer, CreateMithrilDagger, CreatePlateArmor, CreateWhip, CreateIronHelm };
+        var deepWeapons = new Func<Item>[] { CreateSteelSword, CreateGreatsword, CreateWarHammer, CreateMithrilDagger, CreatePlateArmor, CreateWhip, CreateIronHelm, CreateMithrilSword, CreateAncientStaff, CreateHolyMace, CreateGalebow, CreateFrostSpear, CreateShadowDagger };
 
         Func<Item>[] pool;
         if (depth <= 5)
@@ -1021,7 +1502,10 @@ public class ItemFactory
             CreateScrollOfRemoveCurse,
             CreateIntelligenceBoostPotion,  // B-7
             CreatePoisonPotion,  // B-11
-            CreateConfusionPotion  // B-12
+            CreateConfusionPotion,  // B-12
+            CreateStaminaPotionMinor,
+            CreateStaminaPotion,
+            CreateVitalityPotion
         };
         var rarePool = new Func<Item>[] {
             CreateStrengthPotion,
@@ -1033,11 +1517,23 @@ public class ItemFactory
             CreateScrollOfFireball,
             CreateScrollOfLightning,
             CreateScrollOfFreeze,
-            CreateScrollOfEnchant
+            CreateScrollOfEnchant,
+            CreateBerserkerPotion,
+            CreateLightningResistPotion,
+            CreateLiquidLuck,
+            CreateScrollOfHaste,
+            CreateScrollOfDivination
+        };
+        var epicPool = new Func<Item>[] {
+            CreateScrollOfEarthquake,
+            CreateScrollOfHolyWard,
+            CreateScrollOfCurse
         };
 
         Func<Item>[] pool;
-        if (rarity >= ItemRarity.Rare)
+        if (rarity >= ItemRarity.Epic)
+            pool = commonPool.Concat(uncommonPool).Concat(rarePool).Concat(epicPool).ToArray();
+        else if (rarity >= ItemRarity.Rare)
             pool = commonPool.Concat(uncommonPool).Concat(rarePool).ToArray();
         else if (rarity >= ItemRarity.Uncommon)
             pool = commonPool.Concat(uncommonPool).ToArray();
@@ -1058,7 +1554,7 @@ public class ItemFactory
     private Item GenerateRandomFood()
     {
         // U-1: 全食品タイプから生成
-        int foodType = _random.Next(8);
+        int foodType = _random.Next(12);
 
         return foodType switch
         {
@@ -1070,6 +1566,10 @@ public class ItemFactory
             5 => CreateWater(),
             6 => CreateCleanWater(),
             7 => CreateLembas(),
+            8 => CreateDesertDateFruit(),
+            9 => CreateTundraJerky(),
+            10 => CreateSacredBerry(),
+            11 => CreateVolcanicSpice(),
             _ => CreateBread()
         };
     }
@@ -1217,6 +1717,14 @@ public class ItemFactory
     public static Item CreateOreMithril() => CreateMaterialItem("ore_mithril", "ミスリル鉱石", "伝説の金属ミスリルを含む希少鉱石", MaterialCategory.Metal, 200, ItemRarity.Epic, 80);
     public static Item CreateGemRough() => CreateMaterialItem("gem_rough", "未加工宝石", "磨けば輝く未加工の宝石", MaterialCategory.Gem, 60, ItemRarity.Uncommon, 50);
 
+    // 追加素材
+    public static Item CreateSacredWater() => CreateMaterialItem("material_sacred_water", "聖水", "光の神殿で祝福された水。浄化や聖なる調合に使用される", MaterialCategory.Magical, 80, ItemRarity.Uncommon, 60);
+    public static Item CreateChaosFragment() => CreateMaterialItem("material_chaos_fragment", "混沌の欠片", "混沌の力が結晶化した不安定な素材。形状が常に変化し続ける", MaterialCategory.Magical, 150, ItemRarity.Rare, 70);
+    public static Item CreateWorldTreeLeaf() => CreateMaterialItem("material_world_tree_leaf", "世界樹の葉", "世界樹から落ちた一枚の葉。強大な自然の力が宿る", MaterialCategory.Herb, 200, ItemRarity.Epic, 85);
+    public static Item CreateDeathEssence() => CreateMaterialItem("material_death_essence", "死のエッセンス", "死神タナトスの領域に近い場所で採取される暗黒の精髄", MaterialCategory.Magical, 180, ItemRarity.Rare, 75);
+    public static Item CreateVolcanicite() => CreateMaterialItem("material_volcanite", "火山鉱", "火山の溶岩から生成される希少鉱石。鍛冶に使うと炎属性を武器に付与できる", MaterialCategory.Metal, 120, ItemRarity.Rare, 65);
+    public static Item CreateFrozenCrystal() => CreateMaterialItem("material_frozen_crystal", "永久凍結晶", "凍土の最深部で採取される決して溶けない結晶。氷属性付与の素材", MaterialCategory.Gem, 130, ItemRarity.Rare, 65);
+
     #endregion
 
     #region Dungeon Floor & Enemy Drop Generation
@@ -1351,6 +1859,14 @@ public static class ItemDefinitions
         ["weapon_war_hammer"] = ItemFactory.CreateWarHammer,
         ["weapon_crossbow"] = ItemFactory.CreateCrossbow,
         ["weapon_whip"] = ItemFactory.CreateWhip,
+        ["weapon_mithril_sword"] = ItemFactory.CreateMithrilSword,
+        ["weapon_ancient_staff"] = ItemFactory.CreateAncientStaff,
+        ["weapon_dragonslayer_sword"] = ItemFactory.CreateDragonslayerSword,
+        ["weapon_shadow_dagger"] = ItemFactory.CreateShadowDagger,
+        ["weapon_holy_mace"] = ItemFactory.CreateHolyMace,
+        ["weapon_galebow"] = ItemFactory.CreateGalebow,
+        ["weapon_volcanic_axe"] = ItemFactory.CreateVolcanicAxe,
+        ["weapon_frost_spear"] = ItemFactory.CreateFrostSpear,
 
         // 防具
         ["armor_leather"] = ItemFactory.CreateLeatherArmor,
@@ -1362,11 +1878,19 @@ public static class ItemDefinitions
         ["armor_iron_helm"] = ItemFactory.CreateIronHelm,
         ["armor_leather_gloves"] = ItemFactory.CreateLeatherGloves,
         ["armor_iron_boots"] = ItemFactory.CreateIronBoots,
+        ["armor_mithril_chainmail"] = ItemFactory.CreateMithrilChainmail,
+        ["armor_dragon_scale"] = ItemFactory.CreateDragonScaleArmor,
+        ["shield_mithril"] = ItemFactory.CreateMithrilShield,
+        ["armor_sage_circlet"] = ItemFactory.CreateSageCirclet,
+        ["armor_assassin_gloves"] = ItemFactory.CreateAssassinGloves,
+        ["armor_winged_boots"] = ItemFactory.CreateWingedBoots,
 
         // アクセサリ
         ["accessory_iron_ring"] = ItemFactory.CreateIronRing,
         ["accessory_protection_amulet"] = ItemFactory.CreateProtectionAmulet,
         ["accessory_speed_cloak"] = ItemFactory.CreateSpeedCloak,
+        ["accessory_dragonbone_ring"] = ItemFactory.CreateDragonboneRing,
+        ["accessory_holy_amulet"] = ItemFactory.CreateHolyAmulet,
 
         // ポーション
         ["potion_healing_minor"] = ItemFactory.CreateMinorHealingPotion,
@@ -1384,6 +1908,12 @@ public static class ItemDefinitions
         ["potion_intelligence_boost"] = ItemFactory.CreateIntelligenceBoostPotion,  // B-7
         ["potion_poison"] = ItemFactory.CreatePoisonPotion,  // B-11
         ["potion_confusion"] = ItemFactory.CreateConfusionPotion,  // B-12
+        ["potion_stamina_minor"] = ItemFactory.CreateStaminaPotionMinor,
+        ["potion_stamina"] = ItemFactory.CreateStaminaPotion,
+        ["potion_lightning_resist"] = ItemFactory.CreateLightningResistPotion,
+        ["potion_berserker"] = ItemFactory.CreateBerserkerPotion,
+        ["potion_vitality"] = ItemFactory.CreateVitalityPotion,
+        ["potion_liquid_luck"] = ItemFactory.CreateLiquidLuck,
 
         // 食料
         ["food_bread"] = ItemFactory.CreateBread,
@@ -1394,6 +1924,10 @@ public static class ItemDefinitions
         ["food_fruit"] = ItemFactory.CreateFruit,
         ["food_water"] = ItemFactory.CreateWater,
         ["food_clean_water"] = ItemFactory.CreateCleanWater,
+        ["food_desert_date"] = ItemFactory.CreateDesertDateFruit,
+        ["food_tundra_jerky"] = ItemFactory.CreateTundraJerky,
+        ["food_sacred_berry"] = ItemFactory.CreateSacredBerry,
+        ["food_volcanic_spice"] = ItemFactory.CreateVolcanicSpice,
 
         // 巻物
         ["scroll_teleport"] = ItemFactory.CreateScrollOfTeleport,
@@ -1409,6 +1943,11 @@ public static class ItemDefinitions
         ["scroll_summon"] = ItemFactory.CreateScrollOfSummon,  // B-3
         ["scroll_confusion"] = ItemFactory.CreateScrollOfConfusion,  // B-4
         ["ancient_book"] = ItemFactory.CreateAncientBook,
+        ["scroll_haste"] = ItemFactory.CreateScrollOfHaste,
+        ["scroll_earthquake"] = ItemFactory.CreateScrollOfEarthquake,
+        ["scroll_holy_ward"] = ItemFactory.CreateScrollOfHolyWard,
+        ["scroll_curse"] = ItemFactory.CreateScrollOfCurse,
+        ["scroll_divination"] = ItemFactory.CreateScrollOfDivination,
 
         // 素材 - 魔物素材
         ["material_beast_hide"] = ItemFactory.CreateBeastHide,
@@ -1467,7 +2006,15 @@ public static class ItemDefinitions
         ["ore_silver"] = ItemFactory.CreateOreSilver,
         ["ore_gold"] = ItemFactory.CreateOreGold,
         ["ore_mithril"] = ItemFactory.CreateOreMithril,
-        ["gem_rough"] = ItemFactory.CreateGemRough
+        ["gem_rough"] = ItemFactory.CreateGemRough,
+
+        // 追加素材
+        ["material_sacred_water"] = ItemFactory.CreateSacredWater,
+        ["material_chaos_fragment"] = ItemFactory.CreateChaosFragment,
+        ["material_world_tree_leaf"] = ItemFactory.CreateWorldTreeLeaf,
+        ["material_death_essence"] = ItemFactory.CreateDeathEssence,
+        ["material_volcanite"] = ItemFactory.CreateVolcanicite,
+        ["material_frozen_crystal"] = ItemFactory.CreateFrozenCrystal
     };
 
     /// <summary>

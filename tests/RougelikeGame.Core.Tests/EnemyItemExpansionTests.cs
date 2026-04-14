@@ -381,8 +381,8 @@ public class EnemyItemExpansionTests
     public void ItemDefinitions_TotalItemCount()
     {
         var ids = ItemDefinitions.GetAllItemIds().ToList();
-        // 武器13 + 防具9 + アクセサリ3 + ポーション12 + 食料8 + 巻物12 + 素材27 + 追加素材20 + 追加4 = 108
-        Assert.Equal(108, ids.Count);
+        // 武器21 + 防具15 + アクセサリ5 + ポーション18 + 食料12 + 巻物17 + 素材27 + 追加素材26 + 追加4 = 145
+        Assert.Equal(145, ids.Count);
     }
 
     [Fact]
