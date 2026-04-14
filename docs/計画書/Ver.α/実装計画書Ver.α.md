@@ -303,3 +303,106 @@ Ver.prt で構築した全ゲームシステム（NPC基盤、会話システム
   - `src/RougelikeGame.Gui/MainWindow.xaml.cs`: ShowWorldMapDialogデッドコード除去
   - `docs/企画設計書/14_マップシステム設計書.md`: A1/A2仕様追記
   - `tests/RougelikeGame.Core.Tests/VerAlphaSymbolMapTests.cs`: A1境界値テスト4件+A2テスト2件追加
+
+---
+
+## 12. Ver.α.0.6 コンテンツ大規模拡充（2026-04-14）
+
+**目標**: メインストーリー・クエスト・図鑑・アイテム・NPC・スキル・魔法・信仰の全コンテンツを大幅拡充
+**状態**: ✅ 全タスク完了
+
+### 12.1 メインストーリー拡充
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.80 | チャプター間遷移テキスト追加 | ✅ | GetChapterIntermissionText: 4章間遷移テキスト（MainStoryData.cs 327→662行）|
+| α.81 | 隠しエンディング3種追加 | ✅ | GetSecretEndingText: hidden_truth/eternal_loop/new_world |
+| α.82 | ループ変化テキスト拡張 | ✅ | 4新コンテキスト: npc_memory/item_persistence/world_decay/self_awareness |
+| α.83 | 素性別クエストヒント追加 | ✅ | GetBackgroundSpecificQuestHint: 全10素性分 |
+
+### 12.2 クエストライン拡充
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.84 | サブクエスト15件追加 | ✅ | lost_child/undead_graveyard/merchant_debt/cursed_well等（QuestLoreData.cs 573→1040行）|
+| α.85 | ギルド掲示板テキスト8件追加 | ✅ | 新クエスト8件分のギルド掲示板形式テキスト |
+| α.86 | クエスト完了テキスト15件追加 | ✅ | 全新クエストの完了感謝テキスト |
+| α.87 | 後日談テキスト10件追加 | ✅ | 新クエスト10件の後日談 |
+| α.88 | 信仰クエスト6件追加 | ✅ | GetFaithQuestDescription: 6宗教固有クエスト |
+| α.89 | 信仰クエスト完了テキスト追加 | ✅ | GetFaithQuestCompleteText: 6件 |
+| α.90 | 領地固有クエスト6件追加 | ✅ | GetTerritoryQuestDescription: desert_oasis/swamp_cure等 |
+
+### 12.3 図鑑説明拡充
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.91 | 討伐マイルストーン全種族拡張 | ✅ | 全10種族×5段階(1/10/25/50/100)の討伐メッセージ（MonsterLoreData.cs 219→585行）|
+| α.92 | 希少種バリアント20種追加 | ✅ | GetRareVariantDescription: 各種族2バリアント=20種 |
+| α.93 | 生態系関連テキスト10組追加 | ✅ | GetEcosystemRelation: 種族間の生態関係10組 |
+| α.94 | 討伐報酬テキスト30件追加 | ✅ | GetHuntRewardText: 全10種族×3マイルストーン(25/50/100) |
+
+### 12.4 NPC会話テキスト・設定拡充
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.95 | 新NPC 8体追加 | ✅ | ガルド/サラ/ハッサン/イゴール/ミラ/トーマス/ユキ/ダンテ（NpcCharacterData.cs 291→741行）|
+| α.96 | 時間帯別会話テキスト追加 | ✅ | GetTimeOfDayDialogue: 主要8NPC×4時間帯=32パターン |
+| α.97 | 好感度別会話テキスト追加 | ✅ | GetAffinityDialogue: 全16NPC×4好感度=64パターン |
+| α.98 | 新領地ショップ台詞追加 | ✅ | 6新領地(Desert/Swamp/Tundra/Lake/Volcanic/Sacred)×2状況 |
+| α.99 | 特殊NPC台詞3種追加 | ✅ | ドワーフ鍛冶師/砂漠商人/沼地薬師の台詞（SpecialNpcData.cs 353→494行）|
+| α.100 | 新仲間NPC 4体追加 | ✅ | カエル/フレイヤ/ロック/ルナ+全会話テキスト（CompanionNpcData.cs 342→506行）|
+
+### 12.5 スキル拡充
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.101 | 上位戦闘スキル10種追加 | ✅ | blade_dance/counter_stance/assassinate/rain_of_arrows等（SkillSystem.cs 420→486行）|
+| α.102 | 上位魔法スキル10種追加 | ✅ | meteor/blizzard/thunder_god/resurrection/mass_heal等 |
+| α.103 | 上位支援スキル6種追加 | ✅ | war_cry/song_of_peace/philosopher_stone/elixir等 |
+| α.104 | 隠しパッシブスキル6種追加 | ✅ | death_defiance/mana_shield/berserker_rage等 |
+| α.105 | スキルツリーTier3拡張 | ✅ | 全10クラスのスキルツリーにTier3ノード追加 |
+
+### 12.6 魔法拡充
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.106 | 新ルーン語15語追加 | ✅ | dreypa/skapa/tima/rúm/daudr/líf等（RuneWordLoreData.cs 186→268行）|
+| α.107 | ダンジョン碑文8件追加 | ✅ | 禁呪・古代警告・失われた文明テキスト |
+| α.108 | 古代の書4件追加 | ✅ | 時間魔法/死神/創造文明/ルーン組み合わせ |
+| α.109 | 詠唱演出テキスト9語追加 | ✅ | snida/stinga/brjota/granda/hrada/styrkja等 |
+| α.110 | 詠唱失敗テキスト4件追加 | ✅ | 新規失敗パターン |
+
+### 12.7 信仰関係拡充
+
+| # | タスク | 状態 | 備考 |
+|---|--------|------|------|
+| α.111 | 神殿描写テキスト6件追加 | ✅ | GetTempleDescription: 6宗教の神殿描写（ReligionLoreData.cs 201→563行）|
+| α.112 | 奇跡テキスト15件追加 | ✅ | GetMiracleText: 5宗教×3奇跡 |
+| α.113 | 予言テキスト6件追加 | ✅ | GetProphecyText: 6宗教の終末予言 |
+| α.114 | 宗教間対立テキスト5組追加 | ✅ | GetReligiousConflictText: 主要対立5組 |
+| α.115 | 信仰ランクアップテキスト18件追加 | ✅ | GetFaithRankUpText: 6宗教×ランク2/4/5 |
+| α.116 | 司祭挨拶中間ティア追加 | ✅ | NatureWorship/ChaosCultにfaithPoints>=41ティア追加 |
+
+### Ver.α.0.6 ブラッシュアップ記録（2026-04-14）
+
+#### 実施内容
+- 全37タスク（α.80〜α.116）実装完了
+- コンテンツ量: 全9ファイル合計 5,345→10,755行相当の大幅拡充
+- 主要拡充内容:
+  - メインストーリー: 章間遷移4件、隠しエンディング3件、ループ変化4コンテキスト、素性別ヒント10件
+  - クエスト: サブクエスト15件、信仰クエスト6件、領地クエスト6件、ギルド掲示板8件、完了テキスト15件、後日談10件
+  - 図鑑: 全種族討伐マイルストーン、希少種20バリアント、生態系関連10組、討伐報酬30件
+  - NPC: 新NPC8体、新仲間4体、時間帯別32パターン、好感度別64パターン、特殊NPC台詞3種
+  - スキル: 戦闘10種、魔法10種、支援6種、パッシブ6種、全クラスTier3追加
+  - 魔法: ルーン語15語、碑文8件、古代の書4件、詠唱演出9語
+  - 信仰: 神殿描写6件、奇跡15件、予言6件、宗教間対立5組、ランクアップ18件
+- 変更ファイル:
+  - `src/RougelikeGame.Core/Data/MainStoryData.cs`: 327→662行
+  - `src/RougelikeGame.Core/Data/QuestLoreData.cs`: 573→1040行
+  - `src/RougelikeGame.Core/Data/MonsterLoreData.cs`: 219→585行
+  - `src/RougelikeGame.Core/Data/NpcCharacterData.cs`: 291→741行
+  - `src/RougelikeGame.Core/Data/SpecialNpcData.cs`: 353→494行
+  - `src/RougelikeGame.Core/Data/CompanionNpcData.cs`: 342→506行
+  - `src/RougelikeGame.Core/Data/ReligionLoreData.cs`: 201→563行
+  - `src/RougelikeGame.Core/Data/RuneWordLoreData.cs`: 186→268行
+  - `src/RougelikeGame.Core/Systems/SkillSystem.cs`: 420→486行
