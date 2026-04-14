@@ -209,7 +209,22 @@ public enum EnemyType
     /// <summary>
     /// AZ-2: 召喚者型（仲間を召喚）
     /// </summary>
-    Summoner
+    Summoner,
+
+    /// <summary>
+    /// 狂戦士型（HP低下で攻撃力上昇）
+    /// </summary>
+    Berserker,
+
+    /// <summary>
+    /// 守護者型（縄張りを強固に守る）
+    /// </summary>
+    Guardian,
+
+    /// <summary>
+    /// 遠距離型（距離を取って攻撃）
+    /// </summary>
+    Ranged
 }
 
 /// <summary>
