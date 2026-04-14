@@ -1,3 +1,5 @@
+using RougelikeGame.Core.Map;
+
 namespace RougelikeGame.Core.Systems;
 
 /// <summary>
@@ -37,12 +39,27 @@ public static class SymbolMapEventSystem
             0.1f, new[] { Season.Winter }, new[] { TerritoryId.Mountain }),
         new("event_fairy_ring", "妖精の輪", "MPが完全回復する不思議な場所",
             0.03f, new[] { Season.Spring }, new[] { TerritoryId.Forest }),
+        new("event_sandstorm", "砂嵐", "視界が極端に悪化。迷いやすくなる",
+            0.1f, new[] { Season.Summer }, new[] { TerritoryId.Desert }),
+        new("event_swamp_miasma", "瘴気の濃霧", "毒の霧に包まれる。毒耐性がないと危険",
+            0.08f, Array.Empty<Season>(), new[] { TerritoryId.Swamp }),
+        new("event_blizzard", "猛吹雪", "凍傷の危険。移動コストが大幅増加",
+            0.1f, new[] { Season.Winter }, new[] { TerritoryId.Tundra }),
+        new("event_lake_mist", "湖上の幻霧", "幻惑効果。方向感覚を失う",
+            0.06f, new[] { Season.Autumn }, new[] { TerritoryId.Lake }),
+        new("event_eruption", "火山噴火", "溶岩弾が降り注ぐ。素早く退避が必要",
+            0.05f, Array.Empty<Season>(), new[] { TerritoryId.Volcanic }),
+        new("event_divine_light", "神聖な光", "聖なる力が降り注ぎ、HP全回復",
+            0.03f, Array.Empty<Season>(), new[] { TerritoryId.Sacred }),
     };
 
     /// <summary>全イベント定義を取得</summary>
     public static IReadOnlyList<MapEvent> GetAllEvents() => Events;
 
-    /// <summary>現在の条件で発生可能なイベントを取得</summary>
+    /// <summary>
+    /// 現在の条件で発生可能なイベントを取得。
+    /// ActiveSeasons空配列 = 全季節対象、ActiveTerritories空配列 = 全領地対象。
+    /// </summary>
     public static IReadOnlyList<MapEvent> GetAvailableEvents(Season season, TerritoryId territory)
     {
         return Events.Where(e =>
@@ -63,5 +80,61 @@ public static class SymbolMapEventSystem
                 return evt;
         }
         return null; // イベントなし
+    }
+
+    /// <summary>
+    /// バイオーム固有タイルに踏み入った際の環境イベントを返す。
+    /// 確率的にダメージやバフ/デバフを適用するイベントを生成する。
+    /// </summary>
+    public static MapEvent? GetTerrainEvent(TileType terrainType, double randomValue)
+    {
+        return terrainType switch
+        {
+            TileType.SymbolDune when randomValue < 0.08 =>
+                new MapEvent("terrain_dune_heat", "灼熱の砂丘", "焼けるような砂に体力を奪われる", 0.08f, Array.Empty<Season>(), Array.Empty<TerritoryId>()),
+            TileType.SymbolLava when randomValue < 0.12 =>
+                new MapEvent("terrain_lava_eruption", "溶岩噴出", "足元から溶岩が噴き出す！", 0.12f, Array.Empty<Season>(), Array.Empty<TerritoryId>()),
+            TileType.SymbolIce when randomValue < 0.10 =>
+                new MapEvent("terrain_ice_slip", "氷上滑走", "滑りやすい氷の上で足を取られる", 0.10f, Array.Empty<Season>(), Array.Empty<TerritoryId>()),
+            TileType.SymbolSwamp when randomValue < 0.10 =>
+                new MapEvent("terrain_swamp_poison", "毒沼", "有毒な瘴気に包まれる", 0.10f, Array.Empty<Season>(), Array.Empty<TerritoryId>()),
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// イベント発生中のマップタイル一時変更を記録するスナップショット。
+    /// ApplyTemporaryChange()で変更し、RestoreFromSnapshot()で元に戻す。
+    /// </summary>
+    public class MapTileSnapshot
+    {
+        private readonly Dictionary<Position, TileType> _savedTiles = new();
+
+        /// <summary>変更済みタイル数</summary>
+        public int ChangedTileCount => _savedTiles.Count;
+
+        /// <summary>タイルを一時変更し、元の状態を記録する</summary>
+        public void ApplyTemporaryChange(DungeonMap map, Position pos, TileType newType)
+        {
+            if (!map.IsInBounds(pos)) return;
+            if (!_savedTiles.ContainsKey(pos))
+            {
+                _savedTiles[pos] = map.GetTile(pos).Type;
+            }
+            map.SetTile(pos.X, pos.Y, newType);
+        }
+
+        /// <summary>記録した全タイルを元に戻す</summary>
+        public void RestoreAll(DungeonMap map)
+        {
+            foreach (var (pos, originalType) in _savedTiles)
+            {
+                if (map.IsInBounds(pos))
+                {
+                    map.SetTile(pos.X, pos.Y, originalType);
+                }
+            }
+            _savedTiles.Clear();
+        }
     }
 }

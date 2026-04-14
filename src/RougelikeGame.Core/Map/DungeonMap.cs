@@ -72,6 +72,20 @@ public class DungeonMap : IMap
         SetTile(new Position(x, y), type);
     }
 
+    /// <summary>
+    /// タイルを高度付きで設定する（シンボルマップ用）
+    /// </summary>
+    public void SetTileWithAltitude(int x, int y, TileType type, int altitude)
+    {
+        var pos = new Position(x, y);
+        if (IsInBounds(pos))
+        {
+            var tile = Tile.FromType(type);
+            tile.SetAltitude(altitude);
+            _tiles[pos.X, pos.Y] = tile;
+        }
+    }
+
     #endregion
 
     #region Room Management

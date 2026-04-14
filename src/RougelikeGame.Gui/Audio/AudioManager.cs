@@ -128,7 +128,10 @@ public class AudioManager : IAudioManager
                     };
                     fadeInTimer.Start();
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AudioManager] Fade-to BGM failed: {ex.GetType().Name}: {ex.Message}");
+                }
             }
         };
         fadeOutTimer.Start();

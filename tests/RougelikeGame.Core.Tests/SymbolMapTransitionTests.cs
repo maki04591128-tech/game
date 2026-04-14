@@ -31,25 +31,37 @@ public class SymbolMapSystemTests
     [InlineData(TerritoryId.Coast)]
     [InlineData(TerritoryId.Southern)]
     [InlineData(TerritoryId.Frontier)]
+    [InlineData(TerritoryId.Desert)]
+    [InlineData(TerritoryId.Swamp)]
+    [InlineData(TerritoryId.Tundra)]
+    [InlineData(TerritoryId.Lake)]
+    [InlineData(TerritoryId.Volcanic)]
+    [InlineData(TerritoryId.Sacred)]
     public void Generate_AllTerritories_ProducesValidMap(TerritoryId territory)
     {
         var generator = new SymbolMapGenerator();
         var result = generator.Generate(territory);
 
-        Assert.Equal(SymbolMapGenerator.MapWidth, result.Map.Width);
-        Assert.Equal(SymbolMapGenerator.MapHeight, result.Map.Height);
+        var (expectedWidth, expectedHeight) = SymbolMapGenerator.GetTerritoryMapSize(territory);
+        Assert.Equal(expectedWidth, result.Map.Width);
+        Assert.Equal(expectedHeight, result.Map.Height);
         Assert.Equal(0, result.Map.Depth);
         Assert.True(result.LocationPositions.Count > 0);
+        // マップのマス数が23000-50000の範囲内（10倍拡大）
+        int totalTiles = result.Map.Width * result.Map.Height;
+        Assert.InRange(totalTiles, 23000, 50000);
     }
 
     [Fact]
-    public void Generate_Capital_PlacesCorrectNumberOfLocations()
+    public void Generate_Capital_PlacesAtLeastDefinedLocations()
     {
         var locations = LocationDefinition.GetSymbolLocations(TerritoryId.Capital);
         var generator = new SymbolMapGenerator();
         var result = generator.Generate(TerritoryId.Capital);
 
-        Assert.Equal(locations.Count, result.LocationPositions.Count);
+        // 定義済みロケーション + 自動生成の村/町/都/ランダムダンジョン
+        Assert.True(result.LocationPositions.Count >= locations.Count,
+            $"Expected at least {locations.Count} locations, got {result.LocationPositions.Count}");
     }
 
     [Fact]
@@ -94,11 +106,17 @@ public class SymbolMapSystemTests
             var expectedType = loc.Type switch
             {
                 LocationType.Town => TileType.SymbolTown,
-                LocationType.Village => TileType.SymbolTown,
+                LocationType.Village => TileType.SymbolVillage,
+                LocationType.Capital => TileType.SymbolCapital,
                 LocationType.Facility => TileType.SymbolFacility,
                 LocationType.ReligiousSite => TileType.SymbolShrine,
                 LocationType.Field => TileType.SymbolField,
                 LocationType.Dungeon => TileType.SymbolDungeon,
+                LocationType.BanditDen => TileType.SymbolBanditDen,
+                LocationType.GoblinNest => TileType.SymbolGoblinNest,
+                LocationType.UndeadCrypt => TileType.SymbolUndeadCrypt,
+                LocationType.DemonPortal => TileType.SymbolDemonPortal,
+                LocationType.BorderGate => TileType.SymbolBorderGate,
                 _ => TileType.SymbolField
             };
             Assert.Equal(expectedType, tile.Type);
@@ -359,16 +377,16 @@ public class SymbolMapSystemTests
     public void SymbolMountain_IsPassableWithHighMovementCost()
     {
         var tile = Tile.FromType(TileType.SymbolMountain);
-        Assert.True(tile.BlocksMovement); // FD-1: 山岳は通行不可
-        Assert.True(tile.MovementCost >= 2.0f);
+        Assert.False(tile.BlocksMovement); // 高度システム導入後: 山岳は通行可（高コスト）
+        Assert.True(tile.MovementCost >= 1.5f);
     }
 
     [Fact]
     public void SymbolWater_IsPassableWithHighMovementCost()
     {
         var tile = Tile.FromType(TileType.SymbolWater);
-        Assert.True(tile.BlocksMovement); // FD-2: 水域は通行不可
-        Assert.True(tile.MovementCost >= 1.5f);
+        Assert.False(tile.BlocksMovement); // 高度システム導入後: 水域は通行可（高コスト）
+        Assert.True(tile.MovementCost >= 1.3f);
     }
 
     [Fact]
@@ -427,9 +445,10 @@ public class SymbolMapSystemTests
             Assert.True(system.LocationCount > 0,
                 $"Territory {territory} should have locations");
 
-            // 各ロケーションが正しく配置されている
+            // 自動生成の村/町/都/ランダムダンジョンを含め、定義済み以上のロケーション数
             var locations = LocationDefinition.GetSymbolLocations(territory);
-            Assert.Equal(locations.Count, system.LocationCount);
+            Assert.True(system.LocationCount >= locations.Count,
+                $"Territory {territory}: expected at least {locations.Count}, got {system.LocationCount}");
         }
     }
 
@@ -442,7 +461,8 @@ public class SymbolMapSystemTests
         // ダンジョン入口を見つける
         var allPositions = system.GetAllLocationPositions();
         var dungeonEntry = allPositions
-            .FirstOrDefault(p => p.Value.Type == LocationType.Dungeon);
+            .FirstOrDefault(p => p.Value.Type is LocationType.Dungeon or LocationType.BanditDen
+                or LocationType.GoblinNest or LocationType.UndeadCrypt or LocationType.DemonPortal);
 
         if (dungeonEntry.Value != null)
         {
@@ -698,6 +718,128 @@ public class SymbolMapSystemTests
         }
 
         Assert.True(floorCount > 50, $"道沿いマップはFloorタイルが50以上あるはず（実際: {floorCount}）");
+    }
+
+    #endregion
+
+    #region Cleared Dungeon Persistence Tests
+
+    [Fact]
+    public void Generate_ClearedDungeons_AreNotRegenerated()
+    {
+        // 通常生成でランダムダンジョンが存在することを確認
+        var generator = new SymbolMapGenerator();
+        var result1 = generator.Generate(TerritoryId.Capital);
+
+        var randomDungeons1 = result1.LocationPositions
+            .Where(kv => kv.Value.Id.Contains("_random_dungeon_"))
+            .ToList();
+
+        if (randomDungeons1.Count == 0)
+            return; // ダンジョンが生成されない場合はスキップ
+
+        // 全ランダムダンジョンをクリア済みとしてマーク
+        var clearedIds = new HashSet<string>(randomDungeons1.Select(kv => kv.Value.Id));
+
+        // クリア済みダンジョンを除外して再生成
+        var result2 = generator.Generate(TerritoryId.Capital, clearedIds);
+
+        var randomDungeons2 = result2.LocationPositions
+            .Where(kv => kv.Value.Id.Contains("_random_dungeon_"))
+            .ToList();
+
+        // クリア済みダンジョンが存在しないことを確認
+        Assert.True(randomDungeons2.Count < randomDungeons1.Count,
+            $"クリア済みダンジョンが再生成された: 元{randomDungeons1.Count}個 → クリア後{randomDungeons2.Count}個");
+
+        foreach (var clearedId in clearedIds)
+        {
+            Assert.DoesNotContain(result2.LocationPositions.Values,
+                loc => loc.Id == clearedId);
+        }
+    }
+
+    [Fact]
+    public void Generate_WithNullClearedSet_GeneratesAllDungeons()
+    {
+        var generator = new SymbolMapGenerator();
+
+        // null渡しでも正常動作する
+        var result1 = generator.Generate(TerritoryId.Forest);
+        var result2 = generator.Generate(TerritoryId.Forest, null);
+
+        var count1 = result1.LocationPositions.Count(kv => kv.Value.Id.Contains("_random_dungeon_"));
+        var count2 = result2.LocationPositions.Count(kv => kv.Value.Id.Contains("_random_dungeon_"));
+
+        Assert.Equal(count1, count2);
+    }
+
+    [Fact]
+    public void Generate_WithEmptyClearedSet_GeneratesAllDungeons()
+    {
+        var generator = new SymbolMapGenerator();
+
+        var result1 = generator.Generate(TerritoryId.Mountain);
+        var result2 = generator.Generate(TerritoryId.Mountain, new HashSet<string>());
+
+        var count1 = result1.LocationPositions.Count(kv => kv.Value.Id.Contains("_random_dungeon_"));
+        var count2 = result2.LocationPositions.Count(kv => kv.Value.Id.Contains("_random_dungeon_"));
+
+        Assert.Equal(count1, count2);
+    }
+
+    [Fact]
+    public void BackgroundClearSystem_GetFlagsWithPrefix_ReturnsMatchingFlags()
+    {
+        var clearSystem = new BackgroundClearSystem();
+        clearSystem.SetFlag("cleared_Capital_random_dungeon_0");
+        clearSystem.SetFlag("cleared_Capital_random_dungeon_1");
+        clearSystem.SetFlag("dungeon_clear");
+        clearSystem.SetFlag("cleared_Forest_random_dungeon_0");
+
+        var clearedIds = clearSystem.GetFlagsWithPrefix("cleared_");
+
+        Assert.Equal(3, clearedIds.Count);
+        Assert.Contains("Capital_random_dungeon_0", clearedIds);
+        Assert.Contains("Capital_random_dungeon_1", clearedIds);
+        Assert.Contains("Forest_random_dungeon_0", clearedIds);
+    }
+
+    [Fact]
+    public void BackgroundClearSystem_GetFlagsWithPrefix_EmptyWhenNoMatches()
+    {
+        var clearSystem = new BackgroundClearSystem();
+        clearSystem.SetFlag("dungeon_clear");
+        clearSystem.SetFlag("game_clear");
+
+        var clearedIds = clearSystem.GetFlagsWithPrefix("cleared_");
+
+        Assert.Empty(clearedIds);
+    }
+
+    [Fact]
+    public void SymbolMapSystem_GenerateForTerritory_WithClearedDungeons()
+    {
+        var system = new SymbolMapSystem();
+
+        // 通常生成
+        var map1 = system.GenerateForTerritory(TerritoryId.Capital);
+        var dungeonCount1 = system.GetAllLocationPositions()
+            .Count(kv => kv.Value.Id.Contains("_random_dungeon_"));
+
+        if (dungeonCount1 == 0) return;
+
+        // クリア済みセット付き再生成
+        var firstDungeonId = system.GetAllLocationPositions()
+            .First(kv => kv.Value.Id.Contains("_random_dungeon_")).Value.Id;
+        var clearedSet = new HashSet<string> { firstDungeonId };
+
+        var map2 = system.GenerateForTerritory(TerritoryId.Capital, clearedSet);
+        var dungeonCount2 = system.GetAllLocationPositions()
+            .Count(kv => kv.Value.Id.Contains("_random_dungeon_"));
+
+        Assert.True(dungeonCount2 < dungeonCount1,
+            $"クリア済みダンジョンが再生成された: 元{dungeonCount1} → クリア後{dungeonCount2}");
     }
 
     #endregion

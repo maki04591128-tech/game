@@ -931,13 +931,8 @@ public partial class MainWindow : Window
         var dialog = new WorldMapWindow(_gameController);
         dialog.Owner = this;
 
-        if (dialog.ShowDialog() == true)
-        {
-            if (dialog.TravelDestination.HasValue)
-            {
-                _gameController.TryTravelTo(dialog.TravelDestination.Value);
-            }
-        }
+        // A2: ワールドマップは情報参照用のみ。移動はDialogResult=falseで返却されるため不要。
+        dialog.ShowDialog();
 
         Focus();
     }

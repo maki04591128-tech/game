@@ -78,6 +78,12 @@ public class GameController
     /// <summary>現在のダンジョン特徴タイプ</summary>
     private DungeonFeatureType? _currentDungeonFeature;
 
+    /// <summary>現在のダンジョンの推奨レベル（ランダムダンジョン難易度連携用）</summary>
+    private int _currentDungeonMinLevel;
+
+    /// <summary>現在のダンジョンの最大階層数（null=デフォルトMaxDungeonFloor使用）</summary>
+    private int? _currentDungeonMaxFloor;
+
     /// <summary>現在の環境音タイプ</summary>
     private AmbientSoundType _currentAmbientSound = AmbientSoundType.Silence;
 
@@ -850,14 +856,16 @@ public class GameController
     private void GenerateSymbolMap()
     {
         var territory = _worldMapSystem.CurrentTerritory;
-        var symbolMap = _symbolMapSystem.GenerateForTerritory(territory);
+        // クリア済みランダムダンジョンIDを取得して再生成を防止
+        var clearedDungeonIds = _clearSystem.GetFlagsWithPrefix("cleared_");
+        var symbolMap = _symbolMapSystem.GenerateForTerritory(territory, clearedDungeonIds);
 
         Map = symbolMap;
         _worldMapSystem.IsOnSurface = true;
 
-        // プレイヤー配置（入口位置）
-        var startPos = symbolMap.EntrancePosition ?? new Position(
-            SymbolMapGenerator.MapWidth / 2, SymbolMapGenerator.MapHeight / 2);
+        // プレイヤー配置（入口位置、または領地サイズに応じた中心）
+        var (mapW, mapH) = SymbolMapGenerator.GetTerritoryMapSize(territory);
+        var startPos = symbolMap.EntrancePosition ?? new Position(mapW / 2, mapH / 2);
         Player.Position = startPos;
 
         // シンボルマップでは敵・アイテムを配置しない
@@ -865,7 +873,7 @@ public class GameController
         GroundItems.Clear();
 
         // 視界計算（シンボルマップは広い視界）
-        symbolMap.ComputeFov(Player.Position, 12);
+        symbolMap.ComputeFov(Player.Position, SymbolMapGenerator.SymbolMapFovRadius);
     }
 
     /// <summary>現在のフロアの状態（マップ・アイテム）をキャッシュに保存</summary>
@@ -892,7 +900,8 @@ public class GameController
         _currentDungeonFeature = DungeonFeatureGenerator.SelectFeatureForTerritory(territory, CurrentFloor, _random);
 
         // 環境音を更新（AmbientSoundSystem）
-        bool isBossFloor = CurrentFloor % GameConstants.BossFloorInterval == 0;
+        int bossInterval = Math.Max(1, GameConstants.BossFloorInterval);
+        bool isBossFloor = CurrentFloor % bossInterval == 0;
         _currentAmbientSound = AmbientSoundSystem.GetAmbientForDungeon(CurrentFloor, isBossFloor);
 
         // フロアキャッシュ確認（有効期限内ならマップ構造を再利用）
@@ -936,7 +945,7 @@ public class GameController
             RoomCount = baseRoomCount + CurrentFloor,
             TrapDensity = featureTrapDensity,
             DungeonId = _currentMapName,
-            IsBossFloor = CurrentFloor % GameConstants.BossFloorInterval == 0
+            IsBossFloor = CurrentFloor % bossInterval == 0
         };
 
         var generator = new DungeonGenerator();
@@ -984,9 +993,25 @@ public class GameController
     private void SpawnEnemies()
     {
         // ダンジョンIDがある場合はテーマ別敵リスト、なければ階層ベース
-        var definitions = !string.IsNullOrEmpty(_currentMapName) && !_isInLocationMap
-            ? EnemyDefinitions.GetEnemiesForDungeon(_currentMapName, CurrentFloor)
-            : EnemyDefinitions.GetEnemiesForDepth(CurrentFloor);
+        IReadOnlyList<EnemyDefinition> definitions;
+        if (_isLocationField)
+        {
+            // フィールドマップ: 領地の派閥影響に基づく敵選択
+            var territory = _worldMapSystem.CurrentTerritory;
+            var locationPositions = _symbolMapSystem.GetLocationPositions();
+            var (mapWidth, mapHeight) = SymbolMapGenerator.GetTerritoryMapSize(territory);
+            string dominantFaction = _territoryInfluenceSystem.GetDominantFactionForTile(
+                territory, _symbolMapReturnPosition ?? Player.Position, locationPositions, mapWidth, mapHeight);
+            definitions = EnemyDefinitions.GetEnemiesForFaction(dominantFaction, territory);
+        }
+        else if (!string.IsNullOrEmpty(_currentMapName) && !_isInLocationMap)
+        {
+            definitions = EnemyDefinitions.GetEnemiesForDungeon(_currentMapName, CurrentFloor);
+        }
+        else
+        {
+            definitions = EnemyDefinitions.GetEnemiesForDepth(CurrentFloor);
+        }
         int enemyCount = 4 + CurrentFloor * 2;
 
         // ダンジョン特徴によるエネミー密度修正（DungeonFeatureGenerator）
@@ -1005,6 +1030,9 @@ public class GameController
         // 階層補正: 3階ごとに全ステータス+1
         int floorBonus = CurrentFloor / 3;
 
+        // ランダムダンジョン推奨レベルによる難易度補正（MinLevel/3をベースボーナスとして加算）
+        int dungeonLevelBonus = _currentDungeonMinLevel / 3;
+
         // NG+段階による敵強化倍率
         float ngPlusMultiplier = _ngPlusTier.HasValue
             ? NewGamePlusSystem.GetEnemyStatMultiplier(_ngPlusTier.Value)
@@ -1013,12 +1041,13 @@ public class GameController
         float difficultyStatMult = (float)DifficultyConfig.EnemyStatMultiplier;
         int ngPlusBonus = (int)((ngPlusMultiplier * difficultyStatMult - 1.0f) * 10);
 
-        StatModifier? bonus = (floorBonus > 0 || ngPlusBonus > 0)
+        int totalBonus = floorBonus + dungeonLevelBonus + ngPlusBonus;
+        StatModifier? bonus = totalBonus > 0
             ? new StatModifier(
-                Strength: floorBonus + ngPlusBonus,
-                Vitality: floorBonus + ngPlusBonus,
-                Agility: floorBonus / 2 + ngPlusBonus / 2,
-                Dexterity: floorBonus / 2 + ngPlusBonus / 2)
+                Strength: floorBonus + dungeonLevelBonus + ngPlusBonus,
+                Vitality: floorBonus + dungeonLevelBonus + ngPlusBonus,
+                Agility: floorBonus / 2 + dungeonLevelBonus / 2 + ngPlusBonus / 2,
+                Dexterity: floorBonus / 2 + dungeonLevelBonus / 2 + ngPlusBonus / 2)
             : null;
 
         // フロアボスを配置（5階ごと）
@@ -1284,6 +1313,15 @@ public class GameController
             _autoExploring = false;
         }
 
+        // Ver.prt: シンボルマップ上のアクション制限
+        // 許可: 移動、インベントリ開閉、ステータス/ログ/死亡録確認、ロケーション進入、ワールドマップ、領地移動
+        if (_worldMapSystem.IsOnSurface && !IsAllowedOnSymbolMap(action))
+        {
+            AddMessage("シンボルマップ上ではこの操作は行えない");
+            OnStateChanged?.Invoke();
+            return;
+        }
+
         Position newPos = Player.Position;
         bool turnUsed = false;
         int actionCost = TurnCosts.MoveNormal; // デフォルト: 移動コスト
@@ -1454,6 +1492,8 @@ public class GameController
                 // ショップは外部UIから InitializeShop/Buy/Sell を呼ぶ
                 return;
             case GameAction.OpenWorldMap:
+                // A2: ワールドマップ廃止→関所NPC統一。情報参照のみ許可
+                AddMessage("📍 領地間の移動は関所（BorderGate）を通じて行ってください。");
                 OnShowWorldMap?.Invoke();
                 return;
             case GameAction.TalkToNpc:
@@ -1558,7 +1598,7 @@ public class GameController
             foreach (var petId in _petSystem.Pets.Keys)
             {
                 float speedMult = _petSystem.GetMoveSpeedMultiplier(petId);
-                if (speedMult > 1.0f && actionCost <= TurnCosts.AttackNormal)
+                if (speedMult > 0.0f && speedMult != 1.0f && actionCost <= TurnCosts.AttackNormal)
                 {
                     actionCost = Math.Max(1, (int)(actionCost / speedMult));
                     break; // 最初の騎乗ペットのみ適用
@@ -1673,11 +1713,11 @@ public class GameController
                 return TryLeaveTown();
             }
 
-            // シンボルマップの外周から外へ移動しようとした場合はワールドマップを表示
+            // シンボルマップの外周から外へ移動しようとした場合は関所案内メッセージを表示
+            // A2: ワールドマップ廃止→関所NPC統一
             if (_worldMapSystem.IsOnSurface)
             {
-                AddMessage("領地の境界に到達した。ワールドマップを開く…");
-                OnShowWorldMap?.Invoke();
+                AddMessage("領地の境界に到達した。関所（BorderGate）を通じて隣接領地に移動できます。");
                 return false;
             }
 
@@ -1821,6 +1861,15 @@ public class GameController
             if (mapEvent != null)
             {
                 AddMessage($"🎲 【{mapEvent.Name}】{mapEvent.Description}");
+                ResolveMapEvent(mapEvent);
+            }
+
+            // バイオーム固有地形イベント発動
+            var terrainEvent = SymbolMapEventSystem.GetTerrainEvent(tile.Type, _random.NextDouble());
+            if (terrainEvent != null)
+            {
+                AddMessage($"⚠ 【{terrainEvent.Name}】{terrainEvent.Description}");
+                ResolveMapEvent(terrainEvent);
             }
         }
 
@@ -1843,6 +1892,22 @@ public class GameController
         {
             var terrainName = SymbolMapSystem.GetTerrainName(tile.Type);
             AddMessage($"【{terrainName}】に到着した。（Tキーでフィールドに入る）");
+        }
+
+        // 徘徊ボスモンスター接触チェック（シンボルマップ上）
+        if (_worldMapSystem.IsOnSurface && _symbolMapSystem.IsPlayerContactingBoss(newPos))
+        {
+            HandleWanderingBossEncounter();
+        }
+        // 徘徊ボスの移動（プレイヤーのターン毎）
+        else if (_worldMapSystem.IsOnSurface)
+        {
+            _symbolMapSystem.MoveWanderingBoss(_random);
+            // ボスが移動してプレイヤーと接触した場合
+            if (_symbolMapSystem.IsPlayerContactingBoss(Player.Position))
+            {
+                HandleWanderingBossEncounter();
+            }
         }
 
         // 階段メッセージ
@@ -1893,6 +1958,12 @@ public class GameController
         if (weatherMoveMod > 1.0f)
         {
             _lastMoveActionCost = (int)(_lastMoveActionCost * weatherMoveMod);
+        }
+
+        // シンボルマップ地形コスト補正（タイルのMovementCostが1.0を超える場合に適用）
+        if (_worldMapSystem.IsOnSurface && tile.MovementCost > 1.0f)
+        {
+            _lastMoveActionCost = (int)(_lastMoveActionCost * tile.MovementCost);
         }
 
         // 地表面による移動コスト補正（EnvironmentalCombatSystem）
@@ -3721,11 +3792,55 @@ public class GameController
                 }
             }
 
-            if (CurrentFloor >= GameConstants.MaxDungeonFloor)
+            int effectiveMaxFloor = _currentDungeonMaxFloor ?? GameConstants.MaxDungeonFloor;
+            if (CurrentFloor >= effectiveMaxFloor)
             {
                 // 最深部到達 → ダンジョンクリアフラグ
                 _clearSystem.SetFlag("dungeon_clear");
                 AddMessage("🏆 ダンジョン最深部に到達した！");
+
+                // ランダムダンジョンの場合はクリアすると永久消滅する
+                if (_currentMapName.Contains("_random_dungeon_"))
+                {
+                    _clearSystem.SetFlag($"cleared_{_currentMapName}");
+                    AddMessage("⚡ このダンジョンは崩壊を始めた…地上に帰還する！");
+
+                    // 派閥ダンジョンクリア数を記録し、消失判定を行う
+                    var dungeonLoc = _symbolMapSystem.GetLocationById(_currentMapName);
+                    if (dungeonLoc != null)
+                    {
+                        var factionName = SymbolMapSystem.GetFactionForDungeonType(dungeonLoc.Type);
+                        if (factionName != null)
+                        {
+                            var currentTerritory2 = _worldMapSystem.CurrentTerritory;
+                            bool eliminated = _territoryInfluenceSystem.RecordFactionDungeonClear(currentTerritory2, factionName);
+                            if (eliminated)
+                            {
+                                int threshold = TerritoryInfluenceSystem.FactionEliminationThresholds[factionName];
+                                var territoryName2 = _worldMapSystem.GetCurrentTerritoryInfo().Name;
+                                AddMessage($"🎉 {territoryName2}における{factionName}の脅威が完全に消滅した！（{threshold}拠点制圧）");
+                            }
+                        }
+                    }
+
+                    _symbolMapSystem.RemoveLocationById(_currentMapName);
+
+                    // 地上帰還
+                    SaveFloorToCache();
+                    _worldMapSystem.IsOnSurface = true;
+                    _currentDungeonFeature = null;
+                    _currentDungeonMinLevel = 0;
+                    _currentDungeonMaxFloor = null;
+                    GenerateSymbolMap();
+
+                    var currentTerritory = _worldMapSystem.GetCurrentTerritoryInfo().Id;
+                    _currentAmbientSound = AmbientSoundSystem.GetAmbientForTerritory(currentTerritory);
+
+                    var territoryName = _worldMapSystem.GetCurrentTerritoryInfo().Name;
+                    AddMessage($"{territoryName}のシンボルマップに戻った");
+                    OnStateChanged?.Invoke();
+                    return true;
+                }
                 return false;
             }
 
@@ -3756,7 +3871,7 @@ public class GameController
                 var bossName = bossDef?.Name ?? "ボス";
                 AddMessage($"⚠ 強大な気配を感じる...{bossName}がいるフロアだ！");
 
-                if (CurrentFloor == GameConstants.MaxDungeonFloor)
+                if (CurrentFloor == effectiveMaxFloor)
                 {
                     AddMessage("⚠ ここがダンジョン最深部！ 最終ボスが待ち受けている！");
                 }
@@ -3794,6 +3909,8 @@ public class GameController
             AddMessage("ダンジョンから脱出した！ 地上に帰還する...");
             _worldMapSystem.IsOnSurface = true;
             _currentDungeonFeature = null;
+            _currentDungeonMinLevel = 0;
+            _currentDungeonMaxFloor = null;
             GenerateSymbolMap();
 
             // 環境音を地上用に更新（AmbientSoundSystem）
@@ -6409,81 +6526,51 @@ public class GameController
     public LocationDefinition? GetLocationAtPlayerPosition() =>
         _symbolMapSystem.GetLocationAt(Player.Position);
 
-    /// <summary>領地間移動を実行</summary>
+    /// <summary>
+    /// 領地間移動を実行。
+    /// A2: ワールドマップからの直接移動は廃止。関所（BorderGate）経由のみ許可。
+    /// このメソッドは後方互換性のために残すが、関所案内メッセージを表示する。
+    /// </summary>
+    [System.Obsolete("A2: ワールドマップ廃止。領地間移動はBorderGate経由のTryEnterTown()を使用してください。")]
     public bool TryTravelTo(TerritoryId destination)
     {
-        if (!_worldMapSystem.IsOnSurface)
+        // A2: ワールドマップ廃止→関所NPC統一
+        AddMessage("📍 領地間の移動は関所（BorderGate）のNPCにインタラクトして行ってください。");
+        AddMessage("関所はシンボルマップの端に配置されています。");
+        return false;
+    }
+
+    /// <summary>関所経由の旅路イベントを解決する（A2: 関所NPC統一）</summary>
+    private void ResolveBorderGateTravelEvent(TravelEvent travelEvent)
+    {
+        switch (travelEvent.Type)
         {
-            AddMessage("ダンジョン内から直接移動できない。まず地上に戻ること");
-            return false;
-        }
-
-        // BM-2: 評判が「嫌悪」の場合、領地への入場を拒否
-        if (!_reputationSystem.IsWelcome(destination))
-        {
-            AddMessage($"⛔ {destination}の住人から追い返された！評判が低すぎて入場できない。");
-            return false;
-        }
-
-        var result = _worldMapSystem.TravelTo(destination, Player.Level);
-        AddMessage(result.Message);
-
-        if (result.Success)
-        {
-            // ターンコスト適用
-            TurnCount += result.TurnCost;
-            GameTime.AdvanceTurn(result.TurnCost);
-
-            // 移動イベント判定
-            var travelEvent = _worldMapSystem.RollTravelEvent(
-                _worldMapSystem.CurrentTerritory, destination, _random);
-            if (travelEvent != null)
-            {
-                AddMessage($"【旅路イベント】{travelEvent.Name}: {travelEvent.Description}");
-                // AF-1/AF-2/AF-3: イベントタイプに応じた解決処理
-                switch (travelEvent.Type)
+            case TravelEventType.Merchant:
+                AddMessage("旅の商人から品物を見せてもらえそうだ。（Bキーで商店）");
+                break;
+            case TravelEventType.Ambush:
+                AddMessage("⚠ 待ち伏せだ！戦闘に備えろ！");
+                SpawnEnemies();
+                break;
+            case TravelEventType.TreasureChest:
+                var lootItem = _itemFactory.GenerateRandomItem(CurrentFloor);
+                if (lootItem != null)
                 {
-                    case TravelEventType.Merchant:
-                        AddMessage("旅の商人から品物を見せてもらえそうだ。（Bキーで商店）");
-                        break;
-                    case TravelEventType.Ambush:
-                        AddMessage("⚠ 待ち伏せだ！戦闘に備えろ！");
-                        SpawnEnemies();
-                        break;
-                    case TravelEventType.TreasureChest:
-                        var lootItem = _itemFactory.GenerateRandomItem(CurrentFloor);
-                        if (lootItem != null)
-                        {
-                            GroundItems.Add((lootItem, Player.Position));
-                            AddMessage($"💎 宝箱を発見！{lootItem.GetDisplayName()}が見つかった！");
-                        }
-                        break;
-                    case TravelEventType.Shrine:
-                        Player.Heal(Player.MaxHp / 4);
-                        AddMessage("🏛 祠で体力を回復した");
-                        break;
-                    case TravelEventType.HelpRequest:
-                        AddMessage("救援依頼を受けた。近くに困っている人がいるようだ。");
-                        break;
-                    case TravelEventType.BadWeather:
-                        AddMessage("🌧 悪天候に見舞われ、移動に時間がかかった");
-                        break;
+                    GroundItems.Add((lootItem, Player.Position));
+                    AddMessage($"💎 宝箱を発見！{lootItem.GetDisplayName()}が見つかった！");
                 }
-            }
-
-            // ショップ在庫リセット
-            _shopSystem.ClearShopInventory();
-
-            // 新しい領地のシンボルマップを生成
-            GenerateSymbolMap();
-
-            OnTerritoryChanged?.Invoke(destination);
-            // α.21: 領地到着時のフレーバーテキスト
-            AddMessage(RougelikeGame.Core.Data.TerritoryLoreData.GetArrivalDescription(destination));
-            OnStateChanged?.Invoke();
+                break;
+            case TravelEventType.Shrine:
+                Player.Heal(Player.MaxHp / 4);
+                AddMessage("🏛 祠で体力を回復した");
+                break;
+            case TravelEventType.HelpRequest:
+                AddMessage("救援依頼を受けた。近くに困っている人がいるようだ。");
+                break;
+            case TravelEventType.BadWeather:
+                AddMessage("🌧 悪天候に見舞われ、移動に時間がかかった");
+                break;
         }
-
-        return result.Success;
     }
 
     /// <summary>街・施設・宗教施設・フィールド・地形タイルに入る（ロケーションマップ遷移）</summary>
@@ -6498,11 +6585,85 @@ public class GameController
         // シンボルマップ上のロケーションを判定
         var location = _symbolMapSystem.GetLocationAt(Player.Position);
 
-        // ダンジョンの場合はダンジョン入場処理
-        if (location != null && location.Type == LocationType.Dungeon)
+        // 関所の場合は領地遷移処理（A2: 関所NPC統一、ここが唯一の領地間移動手段）
+        if (location != null && location.Type == LocationType.BorderGate)
+        {
+            var targetTerritory = location.GetBorderGateTarget();
+            if (targetTerritory.HasValue)
+            {
+                // BM-2: 評判が「嫌悪」の場合、領地への入場を拒否
+                if (!_reputationSystem.IsWelcome(targetTerritory.Value))
+                {
+                    AddMessage($"⛔ 関所の番兵：「{targetTerritory.Value}の住人からの通達で、お前の通行は拒否する。」");
+                    return false;
+                }
+
+                // 通行条件チェック（手配/通行料/戦争状態）
+                _worldMapSystem.PlayerGold = Player.Gold;
+                if (!_worldMapSystem.CanTravelTo(targetTerritory.Value, Player.Level))
+                {
+                    string reason = _worldMapSystem.GetTravelDeniedReason(targetTerritory.Value, Player.Level);
+                    AddMessage($"🏰 関所の番兵：「{reason}」");
+                    return false;
+                }
+
+                var targetDef = TerritoryDefinition.Get(targetTerritory.Value);
+
+                // NPCインタラクト風の演出
+                AddMessage($"🏰 関所の番兵：「{targetDef.Name}への通行ですね。通行料は{WorldMapSystem.BorderGateToll}Gになります。」");
+
+                // 通行料を差し引き
+                Player.AddGold(-WorldMapSystem.BorderGateToll);
+                _worldMapSystem.PlayerGold = Player.Gold;
+                AddMessage($"【{location.Name}】─ 通行料{WorldMapSystem.BorderGateToll}Gを支払い、{targetDef.Name}へ向かう…");
+
+                // 旅路イベント判定（A2: 関所経由の移動でも旅路イベント発生）
+                var fromTerritory = _worldMapSystem.CurrentTerritory;
+                var travelEvent = _worldMapSystem.RollTravelEvent(fromTerritory, targetTerritory.Value, _random);
+                if (travelEvent != null)
+                {
+                    AddMessage($"【旅路イベント】{travelEvent.Name}: {travelEvent.Description}");
+                    ResolveBorderGateTravelEvent(travelEvent);
+                }
+
+                // ターンコスト適用（移動日数）
+                int travelTurnCost = targetDef.TravelTurnCost;
+                TurnCount += travelTurnCost;
+                GameTime.AdvanceTurn(travelTurnCost);
+
+                // 領地を切り替え
+                _worldMapSystem.SetTerritory(targetTerritory.Value);
+                _worldMapSystem.VisitedTerritories.Add(targetTerritory.Value);
+                _currentDungeonFeature = null;
+
+                // ショップ在庫リセット
+                _shopSystem.ClearShopInventory();
+
+                // 新しい領地のシンボルマップを生成
+                GenerateSymbolMap();
+
+                _currentAmbientSound = AmbientSoundSystem.GetAmbientForTerritory(targetTerritory.Value);
+                AddMessage($"🏰 関所の番兵：「ようこそ{targetDef.Name}へ。お気をつけて。」");
+                OnTerritoryChanged?.Invoke(targetTerritory.Value);
+                AddMessage(RougelikeGame.Core.Data.TerritoryLoreData.GetArrivalDescription(targetTerritory.Value));
+                OnStateChanged?.Invoke();
+                return true;
+            }
+            else
+            {
+                AddMessage("関所の行き先が不明です");
+                return false;
+            }
+        }
+
+        // ダンジョンの場合はダンジョン入場処理（通常ダンジョン、野盗のねぐら、ゴブリンの巣、アンデッドの墓所、魔族の門）
+        if (location != null && location.Type is LocationType.Dungeon or LocationType.BanditDen
+            or LocationType.GoblinNest or LocationType.UndeadCrypt or LocationType.DemonPortal)
         {
             _worldMapSystem.IsOnSurface = false;
             _currentMapName = location.Id;
+            _currentDungeonMinLevel = location.MinLevel;
+            _currentDungeonMaxFloor = location.MaxFloor;
             CurrentFloor = 1;
             GenerateFloor();
             var featureName = GetCurrentDungeonFeatureName();
@@ -6594,11 +6755,121 @@ public class GameController
 
         Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
 
+        // 派閥影響度の可視化メッセージ
+        var territory = _worldMapSystem.CurrentTerritory;
+        var locationPositions = _symbolMapSystem.GetLocationPositions();
+        var (mw, mh) = SymbolMapGenerator.GetTerritoryMapSize(territory);
+        string influenceText = _territoryInfluenceSystem.GetTileInfluenceDisplayText(
+            territory, _symbolMapReturnPosition ?? Player.Position, locationPositions, mw, mh);
         AddMessage($"【{terrainName}】に足を踏み入れた（Tキーで脱出）");
+        AddMessage(influenceText);
         OnSymbolMapEnterTown?.Invoke();
         OnStateChanged?.Invoke();
         return true;
     }
+
+    /// <summary>
+    /// 徘徊ボスモンスターとのエンカウント処理。
+    /// 強制的にフィールドマップに遷移し、ボスモンスターとの戦闘を開始する。
+    /// </summary>
+    private void HandleWanderingBossEncounter()
+    {
+        var boss = _symbolMapSystem.CurrentWanderingBoss;
+        if (boss == null || boss.IsDefeated) return;
+
+        var bossDef = boss.Definition;
+        AddMessage($"🐉 【{bossDef.Name}】が立ちはだかる！ 「{bossDef.Description}」");
+        AddMessage($"⚔ 強制エンカウント！ フィールドに引き込まれた！");
+
+        // フィールドマップに遷移
+        var generator = new LocationMapGenerator();
+        var tile = Map.GetTile(Player.Position);
+        var fieldMap = generator.GenerateTerrainFieldMap(tile.Type, Player.Position);
+
+        _symbolMapReturnPosition = Player.Position;
+        _worldMapSystem.IsOnSurface = false;
+        _isInLocationMap = true;
+        _isLocationField = true;
+        _currentMapName = $"wandering_boss_{bossDef.Territory}";
+        _wanderingBossEncounter = true;
+
+        Map = fieldMap;
+        var startPos = fieldMap.EntrancePosition ?? new Position(fieldMap.Width / 2, fieldMap.Height - 1);
+        Player.Position = startPos;
+
+        Enemies.Clear();
+        GroundItems.Clear();
+
+        // ボスモンスターを敵として配置
+        var bossEnemy = CreateWanderingBossEnemy(bossDef, fieldMap);
+        if (bossEnemy != null)
+        {
+            Enemies.Add(bossEnemy);
+        }
+
+        // 通常の雑魚敵も少数配置
+        SpawnEnemies();
+
+        Map.ComputeFov(Player.Position, GetEffectiveViewRadius());
+
+        OnSymbolMapEnterTown?.Invoke();
+        OnStateChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// 徘徊ボス定義からEnemy実体を生成する
+    /// </summary>
+    private Enemy? CreateWanderingBossEnemy(WanderingBossDefinition bossDef, DungeonMap fieldMap)
+    {
+        // ボスの配置位置（プレイヤーから適度に離れた位置）
+        Position? bossPos = null;
+        for (int attempt = 0; attempt < 100; attempt++)
+        {
+            var candidatePos = fieldMap.GetRandomWalkablePosition(_random);
+            if (candidatePos.HasValue)
+            {
+                int dist = candidatePos.Value.ChebyshevDistanceTo(Player.Position);
+                if (dist >= 5 && dist <= 15)
+                {
+                    bossPos = candidatePos;
+                    break;
+                }
+            }
+        }
+        bossPos ??= fieldMap.GetRandomWalkablePosition(_random) ?? new Position(fieldMap.Width / 2, fieldMap.Height / 2);
+
+        var bossDef2 = new EnemyDefinition(
+            TypeId: $"wandering_boss_{bossDef.Territory}",
+            Name: bossDef.Name,
+            Description: bossDef.Description,
+            BaseStats: new Stats(
+                bossDef.Attack,   // Strength
+                bossDef.Hp / 10,  // Vitality
+                bossDef.Level,    // Agility
+                bossDef.Level,    // Dexterity
+                bossDef.Level,    // Intelligence
+                bossDef.Level,    // Mind
+                bossDef.Level,    // Perception
+                bossDef.Level / 2,// Charisma
+                bossDef.Level / 2 // Luck
+            ),
+            EnemyType: EnemyType.Boss,
+            Rank: EnemyRank.Boss,
+            ExperienceReward: bossDef.Level * 100,
+            SightRange: 15,
+            HearingRange: 12,
+            GiveUpDistance: 99,
+            FleeThreshold: 0f,
+            Race: MonsterRace.Dragon
+        );
+
+        var enemy = _enemyFactory.CreateEnemy(bossDef2, bossPos.Value, null);
+        enemy.IsBoss = true;
+        return enemy;
+    }
+
+    /// <summary>徘徊ボスエンカウント中フラグ</summary>
+    private bool _wanderingBossEncounter;
 
     /// <summary>タイルがNPCタイルかどうか判定</summary>
     private static bool IsNpcTile(TileType type) => type is
@@ -6801,6 +7072,26 @@ public class GameController
         _isInLocationMap = false;
         _isLocationField = false;
         _visitedBuildings.Clear();
+
+        // 徘徊ボスエンカウントからの帰還時、ボス撃破判定
+        if (_wanderingBossEncounter)
+        {
+            // フィールド内にボス（IsBoss=true）が残っていなければ撃破
+            bool bossAlive = Enemies.Any(e => e.IsBoss && e.IsAlive);
+            if (!bossAlive)
+            {
+                _symbolMapSystem.DefeatWanderingBoss();
+                var boss = _symbolMapSystem.CurrentWanderingBoss;
+                if (boss != null)
+                {
+                    // 撃破フラグを永続化（再生成時に出現しないように）
+                    _clearSystem.SetFlag($"cleared_{boss.Definition.Id}");
+                    AddMessage($"🏆 【{boss.Definition.Name}】を討伐した！");
+                }
+            }
+            _wanderingBossEncounter = false;
+        }
+
         GenerateSymbolMap();
 
         // 帰還位置を決定（保存された復帰位置 > ロケーションID検索 > デフォルト）
@@ -9159,8 +9450,9 @@ public class GameController
         if (save.BuiltFacilities.Count > 0)
         {
             var facilities = save.BuiltFacilities
-                .Where(f => Enum.TryParse<FacilityCategory>(f, out _))
-                .Select(f => Enum.Parse<FacilityCategory>(f))
+                .Select(f => Enum.TryParse<FacilityCategory>(f, out var cat) ? (FacilityCategory?)cat : null)
+                .Where(f => f.HasValue)
+                .Select(f => f!.Value)
                 .ToList();
             _baseConstructionSystem.RestoreFromSave(facilities);
         }
@@ -9267,8 +9559,9 @@ public class GameController
         if (save.ActiveOaths.Count > 0)
         {
             var oaths = save.ActiveOaths
-                .Where(s => Enum.TryParse<OathType>(s, out _))
-                .Select(s => Enum.Parse<OathType>(s));
+                .Select(s => Enum.TryParse<OathType>(s, out var oath) ? (OathType?)oath : null)
+                .Where(s => s.HasValue)
+                .Select(s => s!.Value);
             _oathSystem.RestoreOaths(oaths);
         }
 
@@ -9456,7 +9749,10 @@ public class GameController
                 int index = y * mapData.Width + x;
                 if (index < mapData.TileTypes.Count)
                 {
-                    var tileType = (TileType)mapData.TileTypes[index];
+                    var rawTileType = mapData.TileTypes[index];
+                    var tileType = Enum.IsDefined(typeof(TileType), rawTileType)
+                        ? (TileType)rawTileType
+                        : TileType.Floor;
                     restoredMap.SetTile(new Position(x, y), Tile.FromType(tileType));
 
                     // 階段位置を設定
@@ -10888,6 +11184,164 @@ public class GameController
         return SymbolMapEventSystem.GetAvailableEvents(CurrentSeason, _worldMapSystem.CurrentTerritory);
     }
 
+    /// <summary>
+    /// シンボルマップイベントの効果を発動する。
+    /// 各イベントIDに応じた具体的な効果を適用。
+    /// </summary>
+    private void ResolveMapEvent(SymbolMapEventSystem.MapEvent mapEvent)
+    {
+        switch (mapEvent.Id)
+        {
+            case "event_merchant_caravan":
+                // 行商キャラバン: ランダムアイテムを安く入手できるチャンス
+                AddMessage("    → 商人が珍しい品を見せてくれた。");
+                break;
+
+            case "event_bandit_ambush":
+                // 山賊の待ち伏せ: ダメージを受ける
+                int ambushDmg = Math.Max(1, Player.MaxHp / 10);
+                Player.TakeDamage(Damage.Physical(ambushDmg));
+                AddMessage($"    → 不意打ちを受けた！ {ambushDmg}のダメージ！");
+                break;
+
+            case "event_wandering_healer":
+                // 放浪の治療師: HP完全回復
+                Player.Heal(Player.MaxHp);
+                AddMessage("    → HPが全回復した！");
+                break;
+
+            case "event_ancient_shrine":
+                // 古代の祠: 攻撃力一時バフ（メッセージのみ、バフシステム未実装のため）
+                int shrineHeal = Math.Max(5, Player.MaxHp / 5);
+                Player.Heal(shrineHeal);
+                AddMessage($"    → 祠に祈りを捧げた。HPが{shrineHeal}回復した。");
+                break;
+
+            case "event_treasure_map":
+                // 宝の地図: ゴールド獲得
+                int goldFound = 50 + _random.Next(100);
+                Player.AddGold(goldFound);
+                AddMessage($"    → 地図の示す場所から{goldFound}Gを発見した！");
+                break;
+
+            case "event_monster_stampede":
+                // 魔物の大移動: 大ダメージ
+                int stampedeDmg = Math.Max(3, Player.MaxHp / 5);
+                Player.TakeDamage(Damage.Physical(stampedeDmg));
+                AddMessage($"    → 魔物の群れに巻き込まれた！ {stampedeDmg}のダメージ！");
+                break;
+
+            case "event_fallen_star":
+                // 流れ星: 経験値ボーナス
+                int expBonus = 50 + Player.Level * 10;
+                Player.GainExperience(expBonus);
+                AddMessage($"    → 流れ星の欠片を拾った！ 経験値{expBonus}を獲得！");
+                break;
+
+            case "event_refugee":
+                // 避難民: カルマ上昇（メッセージのみ）
+                AddMessage("    → 避難民に食料を分け与えた。感謝された。");
+                break;
+
+            case "event_storm_shelter":
+                // 嵐の避難所: HP/MP回復
+                Player.Heal(Player.MaxHp / 3);
+                Player.RestoreMp(Player.MaxMp / 3);
+                AddMessage("    → 避難所で休息した。HP/MPが回復した。");
+                break;
+
+            case "event_fairy_ring":
+                // 妖精の輪: MP完全回復
+                Player.RestoreMp(Player.MaxMp);
+                AddMessage("    → MPが全回復した！");
+                break;
+
+            case "event_sandstorm":
+                // 砂嵐: 軽ダメージ
+                int sandDmg = Math.Max(1, Player.MaxHp / 15);
+                Player.TakeDamage(Damage.Physical(sandDmg));
+                AddMessage($"    → 砂嵐にさらされた！ {sandDmg}のダメージ！");
+                break;
+
+            case "event_swamp_miasma":
+                // 瘴気の濃霧: 毒ダメージ
+                int miasmaDmg = Math.Max(1, Player.MaxHp / 12);
+                Player.TakeDamage(Damage.Magical(miasmaDmg, Element.Poison));
+                AddMessage($"    → 瘴気に侵された！ {miasmaDmg}の毒ダメージ！");
+                break;
+
+            case "event_blizzard":
+                // 猛吹雪: 凍傷ダメージ
+                int blizzardDmg = Math.Max(1, Player.MaxHp / 12);
+                Player.TakeDamage(Damage.Magical(blizzardDmg, Element.Ice));
+                AddMessage($"    → 猛吹雪に襲われた！ {blizzardDmg}の冷気ダメージ！");
+                break;
+
+            case "event_lake_mist":
+                // 湖上の幻霧: 方向感覚喪失（メッセージのみ）
+                AddMessage("    → 霧の中で方向感覚を失いかけた…");
+                break;
+
+            case "event_eruption":
+                // 火山噴火: 大ダメージ
+                int lavaDmg = Math.Max(5, Player.MaxHp / 6);
+                Player.TakeDamage(Damage.Magical(lavaDmg, Element.Fire));
+                AddMessage($"    → 溶岩弾が直撃した！ {lavaDmg}の炎ダメージ！");
+                break;
+
+            case "event_divine_light":
+                // 神聖な光: HP全回復
+                Player.Heal(Player.MaxHp);
+                Player.RestoreMp(Player.MaxMp);
+                AddMessage("    → 聖なる光に包まれ、HP/MPが全回復した！");
+                break;
+
+            default:
+                // バイオーム地形イベント処理
+                if (mapEvent.Id.StartsWith("terrain_"))
+                {
+                    ResolveTerrainEvent(mapEvent);
+                }
+                break;
+        }
+    }
+
+    /// <summary>
+    /// バイオーム固有地形イベントの効果を発動する。
+    /// </summary>
+    private void ResolveTerrainEvent(SymbolMapEventSystem.MapEvent terrainEvent)
+    {
+        switch (terrainEvent.Id)
+        {
+            case "terrain_dune_heat":
+                int heatDmg = Math.Max(1, Player.MaxHp / 20);
+                Player.TakeDamage(Damage.Physical(heatDmg));
+                AddMessage($"    → 灼熱の砂に体力を奪われた！ {heatDmg}のダメージ！");
+                break;
+
+            case "terrain_lava_eruption":
+                int lavaEruptDmg = Math.Max(3, Player.MaxHp / 8);
+                Player.TakeDamage(Damage.Magical(lavaEruptDmg, Element.Fire));
+                AddMessage($"    → 溶岩が噴出した！ {lavaEruptDmg}の炎ダメージ！");
+                break;
+
+            case "terrain_ice_slip":
+                int iceDmg = Math.Max(1, Player.MaxHp / 25);
+                Player.TakeDamage(Damage.Physical(iceDmg));
+                AddMessage($"    → 氷の上で滑って転倒！ {iceDmg}のダメージ！");
+                break;
+
+            case "terrain_swamp_poison":
+                int poisonDmg = Math.Max(1, Player.MaxHp / 15);
+                Player.TakeDamage(Damage.Magical(poisonDmg, Element.Poison));
+                AddMessage($"    → 毒沼の瘴気に侵された！ {poisonDmg}の毒ダメージ！");
+                break;
+
+            default:
+                break;
+        }
+    }
+
     /// <summary>自動探索の停止条件チェック（AutoExploreSystem）</summary>
     public AutoExploreSystem.StopReason? CheckAutoExploreStop()
     {
@@ -10898,6 +11352,37 @@ public class GameController
         var tile = Map.GetTile(Player.Position);
         bool stairsNearby = tile.Type is TileType.StairsDown or TileType.StairsUp;
         return AutoExploreSystem.CheckStopConditions(true, hasEnemyNearby, itemOnTile, stairsNearby, false, hpRatio, hungerRatio);
+    }
+
+    /// <summary>
+    /// Ver.prt: シンボルマップ上で許可されるアクションかどうか判定する。
+    /// 許可: 移動、インベントリ開閉、アイテム使用、装備変更、ログ/死亡録等の情報確認、
+    /// フィールド/ダンジョン/村/町/都への進入、ワールドマップ、領地移動、待機
+    /// </summary>
+    private static bool IsAllowedOnSymbolMap(GameAction action)
+    {
+        return action is
+            // 移動
+            GameAction.MoveUp or GameAction.MoveDown or
+            GameAction.MoveLeft or GameAction.MoveRight or
+            GameAction.MoveUpLeft or GameAction.MoveUpRight or
+            GameAction.MoveDownLeft or GameAction.MoveDownRight or
+            // 待機
+            GameAction.Wait or
+            // インベントリ（アイテム使用・装備変更含む）
+            GameAction.OpenInventory or
+            // ステータス・ログ・情報確認
+            GameAction.OpenStatus or
+            GameAction.OpenMessageLog or
+            // ロケーション進入（フィールド/ダンジョン/村/町/都）
+            GameAction.EnterTown or
+            GameAction.UseStairs or
+            GameAction.AscendStairs or
+            // ワールドマップ・領地移動
+            GameAction.OpenWorldMap or
+            GameAction.TravelToTerritory or
+            // 階段（ダンジョン進入用）
+            GameAction.LeaveTown;
     }
 
     /// <summary>フラグ条件評価（FlagConditionSystem）</summary>

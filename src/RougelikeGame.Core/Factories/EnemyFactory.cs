@@ -919,7 +919,55 @@ public static class EnemyDefinitions
             TerritoryId.Coast => new[] { Crab, SeaSerpent, Siren, Skeleton },
             TerritoryId.Southern => new[] { DesertScorpion, Mummy, Sandworm, DarkElf },
             TerritoryId.Frontier => new[] { Werewolf, Troll, Chimera, DeathKnight, Draugr },
+            TerritoryId.Desert => new[] { DesertScorpion, Sandworm, Bandit, Mummy },
+            TerritoryId.Swamp => new[] { GiantSpider, Goblin, Skeleton, Slime },
+            TerritoryId.Tundra => new[] { ForestWolf, Draugr, Skeleton },
+            TerritoryId.Lake => new[] { Crab, SeaSerpent, Rat, Bandit },
+            TerritoryId.Volcanic => new[] { Wyvern, MountainGolem, Troll, DarkElf },
+            TerritoryId.Sacred => new[] { Skeleton, Draugr, DarkElf, DeathKnight },
             _ => new[] { Slime, Goblin }
+        };
+    }
+
+    /// <summary>
+    /// 派閥名に基づく敵リストを取得（フィールドマップ用）。
+    /// TerritoryInfluenceSystem.GetDominantFactionForTile()の結果で敵種類を切り替える。
+    /// </summary>
+    public static IReadOnlyList<EnemyDefinition> GetEnemiesForFaction(string factionName, TerritoryId territory)
+    {
+        return factionName switch
+        {
+            "賊" => territory switch
+            {
+                TerritoryId.Coast => new[] { Bandit, Rat, GiantSpider },       // 海賊系
+                TerritoryId.Desert => new[] { Bandit, DesertScorpion, Sandworm },
+                _ => new[] { Bandit, Rat, Goblin }                           // 通常の野盗
+            },
+            "ゴブリン" => territory switch
+            {
+                TerritoryId.Swamp => new[] { Goblin, GiantSpider, Slime },    // 沼ゴブリン
+                TerritoryId.Mountain => new[] { Goblin, Orc, Harpy },         // 山岳ゴブリン
+                _ => new[] { Goblin, Orc, Rat }
+            },
+            "野生動物" => territory switch
+            {
+                TerritoryId.Forest => new[] { ForestWolf, Rat, ForestSprite },
+                TerritoryId.Mountain => new[] { Harpy, Rat },
+                TerritoryId.Coast => new[] { Crab, Rat },
+                TerritoryId.Tundra => new[] { ForestWolf, Rat },
+                _ => new[] { Rat, Slime }
+            },
+            "アンデッド" => territory switch
+            {
+                TerritoryId.Southern => new[] { Skeleton, Mummy, Draugr },
+                TerritoryId.Volcanic => new[] { Skeleton, Draugr, DarkElf },
+                _ => new[] { Skeleton, Draugr }
+            },
+            "魔族" => new[] { DarkElf, Troll, Chimera },
+            "エルフ" => new[] { ForestSprite, Rat, Slime },         // エルフ領の安全圏: 弱い敵
+            "ドワーフ" => new[] { Rat, Slime },                      // ドワーフ領の安全圏: 弱い敵
+            "王国" => new[] { Rat, Slime },                          // 王国領の安全圏: 弱い敵のみ
+            _ => new[] { Rat, Slime }
         };
     }
 

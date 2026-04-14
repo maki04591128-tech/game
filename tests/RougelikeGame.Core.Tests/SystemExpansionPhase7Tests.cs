@@ -674,9 +674,10 @@ public class Phase7Expansion_StartingMapResolverTests
 public class Phase7Expansion_SymbolMapEventSystemTests
 {
     [Fact]
-    public void GetAllEvents_Returns10Events()
+    public void GetAllEvents_Returns16OrMoreEvents()
     {
-        Assert.Equal(10, SymbolMapEventSystem.GetAllEvents().Count);
+        Assert.True(SymbolMapEventSystem.GetAllEvents().Count >= 16,
+            $"Expected at least 16 events, got {SymbolMapEventSystem.GetAllEvents().Count}");
     }
 
     [Fact]

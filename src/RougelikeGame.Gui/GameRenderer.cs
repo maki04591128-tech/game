@@ -73,6 +73,28 @@ public class GameRenderer
         { TileType.SecretDoor, (new SolidColorBrush(Color.FromRgb(60, 60, 80)), Brushes.DarkGray) },
         { TileType.NpcTrainer, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.Orange) },
         { TileType.NpcLibrarian, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), Brushes.MediumPurple) },
+
+        // シンボルマップ用タイル色定義
+        { TileType.SymbolGrass, (new SolidColorBrush(Color.FromRgb(15, 40, 15)), new SolidColorBrush(Color.FromRgb(90, 180, 90))) },
+        { TileType.SymbolForest, (new SolidColorBrush(Color.FromRgb(10, 35, 10)), new SolidColorBrush(Color.FromRgb(40, 140, 40))) },
+        { TileType.SymbolMountain, (new SolidColorBrush(Color.FromRgb(50, 45, 40)), new SolidColorBrush(Color.FromRgb(160, 150, 140))) },
+        { TileType.SymbolWater, (new SolidColorBrush(Color.FromRgb(10, 30, 60)), new SolidColorBrush(Color.FromRgb(60, 130, 220))) },
+        { TileType.SymbolRoad, (new SolidColorBrush(Color.FromRgb(40, 35, 25)), new SolidColorBrush(Color.FromRgb(180, 160, 120))) },
+        { TileType.SymbolTown, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), new SolidColorBrush(Color.FromRgb(255, 215, 0))) },
+        { TileType.SymbolDungeon, (new SolidColorBrush(Color.FromRgb(40, 20, 20)), new SolidColorBrush(Color.FromRgb(200, 60, 60))) },
+        { TileType.SymbolFacility, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), new SolidColorBrush(Color.FromRgb(255, 255, 100))) },
+        { TileType.SymbolShrine, (new SolidColorBrush(Color.FromRgb(30, 30, 50)), new SolidColorBrush(Color.FromRgb(200, 180, 255))) },
+        { TileType.SymbolField, (new SolidColorBrush(Color.FromRgb(25, 35, 20)), new SolidColorBrush(Color.FromRgb(150, 200, 150))) },
+        { TileType.SymbolVillage, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), new SolidColorBrush(Color.FromRgb(220, 180, 50))) },
+        { TileType.SymbolCapital, (new SolidColorBrush(Color.FromRgb(30, 30, 40)), new SolidColorBrush(Color.FromRgb(255, 230, 0))) },
+        { TileType.SymbolBanditDen, (new SolidColorBrush(Color.FromRgb(40, 20, 20)), new SolidColorBrush(Color.FromRgb(220, 80, 80))) },
+        { TileType.SymbolGoblinNest, (new SolidColorBrush(Color.FromRgb(30, 30, 20)), new SolidColorBrush(Color.FromRgb(200, 120, 40))) },
+        { TileType.SymbolBorderGate, (new SolidColorBrush(Color.FromRgb(40, 30, 30)), new SolidColorBrush(Color.FromRgb(200, 150, 100))) },
+        { TileType.SymbolDune, (new SolidColorBrush(Color.FromRgb(60, 50, 20)), new SolidColorBrush(Color.FromRgb(220, 200, 120))) },
+        { TileType.SymbolLava, (new SolidColorBrush(Color.FromRgb(60, 15, 0)), new SolidColorBrush(Color.FromRgb(255, 100, 30))) },
+        { TileType.SymbolIce, (new SolidColorBrush(Color.FromRgb(30, 40, 55)), new SolidColorBrush(Color.FromRgb(180, 220, 255))) },
+        { TileType.SymbolSwamp, (new SolidColorBrush(Color.FromRgb(20, 30, 15)), new SolidColorBrush(Color.FromRgb(100, 160, 80))) },
+        { TileType.SymbolWanderingBoss, (new SolidColorBrush(Color.FromRgb(60, 10, 10)), new SolidColorBrush(Color.FromRgb(255, 40, 40))) },
     };
 
     private static readonly Brush ExploredBackground = new SolidColorBrush(Color.FromRgb(15, 15, 20));
@@ -223,6 +245,31 @@ public class GameRenderer
             {
                 background = colors.Background;
                 foreground = colors.Foreground;
+
+                // シンボルマップタイル: 高度に応じてForeground色を調整
+                // 高度が上がるほど色を薄く（白に近づける）、下がるほど色を濃く（暗くする）
+                if (tile.Altitude != 0 && IsSymbolMapTileType(tile.Type) && foreground is SolidColorBrush scb)
+                {
+                    var baseColor = scb.Color;
+                    if (tile.Altitude > 0)
+                    {
+                        // 高度+1～+5: 色を薄くする（白方向に補間、1段階あたり約15%）
+                        float factor = Math.Min(1f, tile.Altitude * 0.15f);
+                        byte r = (byte)(baseColor.R + (255 - baseColor.R) * factor);
+                        byte g = (byte)(baseColor.G + (255 - baseColor.G) * factor);
+                        byte b = (byte)(baseColor.B + (255 - baseColor.B) * factor);
+                        foreground = new SolidColorBrush(Color.FromRgb(r, g, b));
+                    }
+                    else
+                    {
+                        // 高度-1～-5: 色を濃くする（黒方向に補間、1段階あたり約15%）
+                        float factor = Math.Min(1f, Math.Abs(tile.Altitude) * 0.15f);
+                        byte r = (byte)(baseColor.R * (1f - factor));
+                        byte g = (byte)(baseColor.G * (1f - factor));
+                        byte b = (byte)(baseColor.B * (1f - factor));
+                        foreground = new SolidColorBrush(Color.FromRgb(r, g, b));
+                    }
+                }
             }
             else
             {
@@ -313,6 +360,21 @@ public class GameRenderer
             "draugr" => Brushes.LightBlue,
             _ => Brushes.Red
         };
+    }
+
+    /// <summary>シンボルマップ用タイルタイプかどうか判定（高度色変化用）</summary>
+    private static bool IsSymbolMapTileType(TileType type)
+    {
+        return type is TileType.SymbolGrass or TileType.SymbolForest
+            or TileType.SymbolMountain or TileType.SymbolWater
+            or TileType.SymbolRoad or TileType.SymbolTown
+            or TileType.SymbolDungeon or TileType.SymbolFacility
+            or TileType.SymbolShrine or TileType.SymbolField
+            or TileType.SymbolVillage or TileType.SymbolCapital
+            or TileType.SymbolBanditDen or TileType.SymbolGoblinNest
+            or TileType.SymbolBorderGate or TileType.SymbolDune
+            or TileType.SymbolLava or TileType.SymbolIce
+            or TileType.SymbolSwamp or TileType.SymbolWanderingBoss;
     }
 
     /// <summary>ミニマップ用のWriteableBitmapとImageコントロール</summary>

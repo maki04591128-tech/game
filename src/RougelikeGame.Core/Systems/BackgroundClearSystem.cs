@@ -62,6 +62,20 @@ public class BackgroundClearSystem
         };
     }
 
+    /// <summary>指定プレフィックスで始まるブールフラグを全て取得</summary>
+    public ISet<string> GetFlagsWithPrefix(string prefix)
+    {
+        var result = new HashSet<string>();
+        foreach (var flag in _boolFlags)
+        {
+            if (flag.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                result.Add(flag.Substring(prefix.Length));
+            }
+        }
+        return result;
+    }
+
     /// <summary>セーブ用にフラグデータを取得</summary>
     public ClearFlagSaveData CreateSaveData() => new()
     {

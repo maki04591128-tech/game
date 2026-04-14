@@ -120,7 +120,7 @@ public class DungeonGenerator : IMapGenerator
             foreach (var room in rooms)
             {
                 map.AddRoom(room);
-                CarveRoom(map, room);
+                CarveRoom(map, room, parameters.DungeonId);
             }
 
             // リトライ最終回でもMinRooms未満なら強制部屋配置
@@ -277,25 +277,106 @@ public class DungeonGenerator : IMapGenerator
     }
 
     /// <summary>
-    /// 部屋を掘る
+    /// 部屋を掘る（ダンジョンIDに応じた派閥特有の形状を選択）
     /// </summary>
-    private void CarveRoom(DungeonMap map, Room room)
+    private void CarveRoom(DungeonMap map, Room room, string? dungeonId = null)
     {
-        // 部屋の形状をランダムに選択
-        int shapeRoll = _random.Next(10);
+        // ダンジョンIDから派閥タイプを判定して部屋形状の確率を調整
+        var factionStyle = GetFactionDungeonStyle(dungeonId);
 
-        if (shapeRoll < 7) // 70%: 矩形
+        int shapeRoll = _random.Next(100);
+
+        switch (factionStyle)
         {
-            RoomGenerator.CarveRoom(map, room);
+            case FactionDungeonStyle.Bandit:
+                // 野盗: 矩形主体（軍事的・整然とした配置、兵舎・倉庫のイメージ）
+                if (shapeRoll < 85)
+                    RoomGenerator.CarveRoom(map, room);
+                else
+                    RoomGenerator.CarveCrossRoom(map, room);
+                break;
+
+            case FactionDungeonStyle.Goblin:
+                // ゴブリン: 円形主体（自然洞窟・無秩序な掘り方）
+                if (shapeRoll < 30)
+                    RoomGenerator.CarveRoom(map, room);
+                else if (shapeRoll < 80)
+                    RoomGenerator.CarveCircularRoom(map, room);
+                else
+                    RoomGenerator.CarveCrossRoom(map, room);
+                break;
+
+            case FactionDungeonStyle.Undead:
+                // アンデッド: 十字形主体（墓地・聖堂の雰囲気）
+                if (shapeRoll < 40)
+                    RoomGenerator.CarveRoom(map, room);
+                else if (shapeRoll < 60)
+                    RoomGenerator.CarveCircularRoom(map, room);
+                else
+                    RoomGenerator.CarveCrossRoom(map, room);
+                break;
+
+            case FactionDungeonStyle.Demon:
+                // 魔族: 円形・十字形混合（儀式的・不気味な配置）
+                if (shapeRoll < 20)
+                    RoomGenerator.CarveRoom(map, room);
+                else if (shapeRoll < 60)
+                    RoomGenerator.CarveCircularRoom(map, room);
+                else
+                    RoomGenerator.CarveCrossRoom(map, room);
+                break;
+
+            default:
+                // 標準: 矩形70%、円形20%、十字形10%
+                if (shapeRoll < 70)
+                    RoomGenerator.CarveRoom(map, room);
+                else if (shapeRoll < 90)
+                    RoomGenerator.CarveCircularRoom(map, room);
+                else
+                    RoomGenerator.CarveCrossRoom(map, room);
+                break;
         }
-        else if (shapeRoll < 9) // 20%: 円形
+    }
+
+    /// <summary>ダンジョン派閥の形状スタイル</summary>
+    private enum FactionDungeonStyle
+    {
+        Standard,  // 標準（固定ダンジョン等）
+        Bandit,    // 野盗系: 矩形主体
+        Goblin,    // ゴブリン系: 円形主体
+        Undead,    // アンデッド系: 十字形主体
+        Demon,     // 魔族系: 円形・十字形混合
+    }
+
+    /// <summary>ダンジョンIDから派閥形状スタイルを判定</summary>
+    private static FactionDungeonStyle GetFactionDungeonStyle(string? dungeonId)
+    {
+        if (string.IsNullOrEmpty(dungeonId)) return FactionDungeonStyle.Standard;
+
+        // ランダムダンジョン名で派閥判定（IDに派閥タグが含まれる）
+        if (dungeonId.Contains("random_dungeon_bandit"))
+            return FactionDungeonStyle.Bandit;
+        if (dungeonId.Contains("random_dungeon_goblin"))
+            return FactionDungeonStyle.Goblin;
+        if (dungeonId.Contains("random_dungeon_undead"))
+            return FactionDungeonStyle.Undead;
+        if (dungeonId.Contains("random_dungeon_demon"))
+            return FactionDungeonStyle.Demon;
+
+        // 固定ダンジョンのIDからテーマを判定
+        return dungeonId switch
         {
-            RoomGenerator.CarveCircularRoom(map, room);
-        }
-        else // 10%: 十字形
-        {
-            RoomGenerator.CarveCrossRoom(map, room);
-        }
+            // カタコンベ、古戦場等 → アンデッド系
+            "capital_catacombs" or "southern_battlefield" or "southern_icecave"
+                => FactionDungeonStyle.Undead,
+            // 辺境系 → 魔族・混沌系
+            "frontier_great_rift" or "frontier_ancient_ruins"
+                => FactionDungeonStyle.Demon,
+            // 竜の巣・溶岩洞 → 魔族系（壮大な空間）
+            "mountain_lava" or "mountain_dragon"
+                => FactionDungeonStyle.Demon,
+            _ => FactionDungeonStyle.Standard
+        };
     }
 
     /// <summary>

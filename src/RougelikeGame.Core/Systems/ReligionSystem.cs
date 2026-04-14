@@ -64,7 +64,7 @@ public record ReligionDefinition(
         },
         ReligionId.NatureWorship => rank switch
         {
-            FaithRank.Saint => "世界樹の守護者",
+            FaithRank.Saint => "ヨルムンガンドの代弁者",
             FaithRank.Champion => "大ドルイド",
             FaithRank.Priest => "森の司祭",
             FaithRank.Blessed => "大地の友",

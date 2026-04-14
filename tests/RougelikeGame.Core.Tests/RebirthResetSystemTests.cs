@@ -233,6 +233,7 @@ public class RebirthResetSystemTests
     public void WorldMapSystem_Reset_ReturnsToStartTerritory()
     {
         var system = new WorldMapSystem();
+        system.PlayerGold = 100000;
         system.TravelTo(TerritoryId.Forest, 10);
         system.TravelTo(TerritoryId.Southern, 15);
 
@@ -365,6 +366,7 @@ public class RebirthResetSystemTests
         oathSystem.TakeOath(OathType.Temperance);
         investmentSystem.Invest(InvestmentType.Shop, "shop", 1000, 100);
         baseSystem.Build(FacilityCategory.Camp, 100);
+        worldMapSystem.PlayerGold = 10000;
         worldMapSystem.TravelTo(TerritoryId.Forest, 10);
         gridSystem.PlaceItem("sword", "剣", GridItemSize.Size1x2, 0, 0);
 
@@ -649,6 +651,7 @@ public class RebirthResetSystemTests
         oathSystem.TakeOath(OathType.Temperance);
         investmentSystem.Invest(InvestmentType.Shop, "shop", 1000, 100);
         baseSystem.Build(FacilityCategory.Camp, 100);
+        worldMapSystem.PlayerGold = 10000;
         worldMapSystem.TravelTo(TerritoryId.Forest, 10);
         gridSystem.PlaceItem("sword", "剣", GridItemSize.Size1x2, 0, 0);
 

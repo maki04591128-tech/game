@@ -407,10 +407,10 @@ public class Phase9_NpcSystemTests
 public class Phase9_WorldMapSystemTests
 {
     [Fact]
-    public void TerritoryDefinition_GetAll_Returns6Territories()
+    public void TerritoryDefinition_GetAll_Returns12Territories()
     {
         var all = TerritoryDefinition.GetAll();
-        Assert.Equal(6, all.Count);
+        Assert.Equal(12, all.Count);
     }
 
     [Fact]
@@ -465,13 +465,14 @@ public class Phase9_WorldMapSystemTests
     {
         var system = new WorldMapSystem();
         system.SetTerritory(TerritoryId.Capital);
+        system.PlayerGold = 10000; // 通行料を支払えるように設定
         var territory = TerritoryDefinition.Get(TerritoryId.Capital);
         if (territory.AdjacentTerritories.Length > 0)
         {
             var adjacent = territory.AdjacentTerritories[0];
-            // プレイヤーレベルが十分高い場合
+            // 通行料あり、手配なし、戦争なしの場合
             bool canTravel = system.CanTravelTo(adjacent, playerLevel: 99);
-            Assert.True(canTravel, $"Should be able to travel to adjacent territory {adjacent} with high level");
+            Assert.True(canTravel, $"Should be able to travel to adjacent territory {adjacent} with sufficient gold");
         }
     }
 
@@ -480,6 +481,7 @@ public class Phase9_WorldMapSystemTests
     {
         var system = new WorldMapSystem();
         system.SetTerritory(TerritoryId.Capital);
+        system.PlayerGold = 10000; // 通行料を支払えるように設定
         var territory = TerritoryDefinition.Get(TerritoryId.Capital);
         if (territory.AdjacentTerritories.Length > 0)
         {
@@ -521,6 +523,7 @@ public class Phase9_WorldMapSystemTests
     public void WorldMapSystem_Reset_ReturnsToInitialTerritory()
     {
         var system = new WorldMapSystem();
+        system.PlayerGold = 10000;
         var territory = TerritoryDefinition.Get(TerritoryId.Capital);
         if (territory.AdjacentTerritories.Length > 0)
         {
@@ -535,6 +538,7 @@ public class Phase9_WorldMapSystemTests
     {
         var system = new WorldMapSystem();
         system.SetTerritory(TerritoryId.Capital);
+        system.PlayerGold = 10000;
         // Frontier is typically not adjacent to Capital
         var capitalDef = TerritoryDefinition.Get(TerritoryId.Capital);
         foreach (TerritoryId tid in Enum.GetValues<TerritoryId>())
@@ -592,6 +596,7 @@ public class Phase9_WorldMapSystemTests
     {
         var system = new WorldMapSystem();
         system.SetTerritory(TerritoryId.Capital);
+        system.PlayerGold = 10000;
         var territory = TerritoryDefinition.Get(TerritoryId.Capital);
         if (territory.AdjacentTerritories.Length > 0)
         {
