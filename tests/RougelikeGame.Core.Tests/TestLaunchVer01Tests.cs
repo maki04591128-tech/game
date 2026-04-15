@@ -621,7 +621,7 @@ public class TestLaunchVer01Tests
     }
 
     [Fact]
-    public void AccessibilitySystem_TransformColor_Tritanopia_BlueToSyan()
+    public void AccessibilitySystem_TransformColor_Tritanopia_BlueToCyan()
     {
         var system = new AccessibilitySystem();
         system.SetColorBlindMode(ColorBlindMode.Tritanopia);
