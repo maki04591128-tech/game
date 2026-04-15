@@ -17,8 +17,8 @@ Phase 6 の残りタスク（Steam対応、最終ビルド）を実装し、
 
 | # | タスク | 状態 | 備考 |
 |---|--------|------|------|
-| 6.5 | Steam対応（Steamworks統合） | ⬜ | Steamworks SDK、実績、クラウドセーブ、ストアページ |
-| 6.6 | 最終ビルド・リリースノート作成 | ⬜ | リリースビルド、変更履歴、プレスキット |
+| 6.5 | Steam対応（Steamworks統合） | ✅ | プラットフォーム抽象化レイヤー実装（IPlatformService/IPlatformAchievementService/IPlatformCloudSaveService/IPlatformStatsService）。LocalPlatformService（ローカルフォールバック）＋SteamPlatformService（スタブ）＋PlatformManager（自動選択・実績連携）。全25実績のSteamAPIマッピング＋10統計項目定義。テスト12件追加 |
+| 6.6 | 最終ビルド・リリースノート作成 | ✅ | リリースノートVer.1.0テンプレート作成。主要機能/品質保証/動作環境/変更履歴を記載 |
 
 ---
 
@@ -61,8 +61,16 @@ Phase 6 の残りタスク（Steam対応、最終ビルド）を実装し、
 
 | バージョン | テスト数 | 合格 | 不合格 | 備考 |
 |-----------|---------|------|--------|------|
-| Ver.0.1 | 127 | 127 | 0 | TestLaunchVer01Tests（Tutorial 20件 + ContextHelp 18件 + SaveData 4件 + Accessibility 23件 + EdgeCase 8件 + DifficultyBalance 13件 + Integration 10件 + using 2件 + ResourceTracker 10件 + Performance 9件 + SaveCompat 10件） |
-| Core.Tests全体 | 7046 | 7046 | 0 | GUIテスト除外 |
+| Ver.0.1 | 139 | 139 | 0 | TestLaunchVer01Tests（Tutorial 20件 + ContextHelp 18件 + SaveData 4件 + Accessibility 23件 + EdgeCase 8件 + DifficultyBalance 13件 + Integration 10件 + using 2件 + ResourceTracker 10件 + Performance 9件 + SaveCompat 10件 + Steam/Platform 12件） |
+| Core.Tests全体 | 7058 | 7058 | 0 | GUIテスト除外 |
+
+---
+
+## 7. ブラッシュアップ記録
+
+| 日付 | 対象 | 内容 |
+|------|------|------|
+| 2026-04-15 | T.1-T.5, U.1-U.5, 6.5完了 | テスト・遊びやすさ・Steam対応セクション完了に伴うドキュメントブラッシュアップ。00_ドキュメント概要のVer.0.1ステータス更新、17_デバッグ・テスト設計書のテスト数7,058件に最新化、マスター実装計画書のVer.0.1説明更新、リリースノートVer.1.0テンプレート作成 |
 
 ---
 

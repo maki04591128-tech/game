@@ -1,4 +1,5 @@
 using RougelikeGame.Core.Systems;
+using RougelikeGame.Core.Systems.Platform;
 using RougelikeGame.Core.Entities;
 using RougelikeGame.Core.Factories;
 using RougelikeGame.Core.Map;
@@ -9,7 +10,7 @@ using System.Linq;
 namespace RougelikeGame.Core.Tests;
 
 /// <summary>
-/// Ver.0.1 テストローンチフェーズのテスト（全127件）
+/// Ver.0.1 テストローンチフェーズのテスト（全139件）
 /// - U.1: チュートリアルシステム（トリガー、ステップ、進行度、セーブ/ロード）20件
 /// - U.2: コンテキストヘルプシステム（トピック登録、カテゴリ別取得、キーバインド検索）18件
 /// - U.3: ゲームオーバー統計情報 4件
@@ -20,6 +21,7 @@ namespace RougelikeGame.Core.Tests;
 /// - T.3: メモリリーク検出（ResourceTracker・GC回収テスト）10件
 /// - T.4: パフォーマンステスト（マップ生成・敵生成・セーブ処理ベンチマーク）9件
 /// - T.5: クロスバージョンセーブ互換（フィールド欠落/追加互換・ラウンドトリップ）10件
+/// - 6.5: Steam対応・プラットフォーム抽象化（PlatformManager/Local/Steam/実績連携/クラウドセーブ/統計）13件
 /// - using補完 2件
 /// </summary>
 public class TestLaunchVer01Tests
@@ -1673,6 +1675,164 @@ public class TestLaunchVer01Tests
                 Thirst = 100
             }
         };
+    }
+
+    #endregion
+
+    #region Steam対応・プラットフォーム抽象化テスト (6.5)
+
+    [Fact]
+    public void PlatformManager_Initialize_DefaultsToLocal()
+    {
+        var manager = new PlatformManager();
+        Assert.Equal("Local", manager.PlatformName);
+        Assert.True(manager.IsAvailable);
+    }
+
+    [Fact]
+    public void PlatformManager_Initialize_FallsBackToLocal()
+    {
+        var manager = new PlatformManager();
+        var result = manager.Initialize(480); // Steam AppIDを渡してもSteamworks未統合なのでローカルにフォールバック
+        Assert.True(result);
+        Assert.Equal("Local", manager.PlatformName);
+    }
+
+    [Fact]
+    public void PlatformManager_LinkAchievementSystem_UnlockSyncs()
+    {
+        var manager = new PlatformManager();
+        manager.Initialize();
+        var achievements = new AchievementSystem();
+        achievements.RegisterDefaults();
+        manager.LinkAchievementSystem(achievements);
+
+        manager.UnlockAchievement("first_kill", 10);
+
+        Assert.True(achievements.IsUnlocked("first_kill"));
+        Assert.True(manager.Platform.Achievements.IsAchievementUnlocked("first_kill"));
+    }
+
+    [Fact]
+    public void LocalPlatformService_Achievements_UnlockAndCheck()
+    {
+        var service = new LocalPlatformService();
+        service.Initialize();
+
+        Assert.False(service.Achievements.IsAchievementUnlocked("test_ach"));
+        Assert.True(service.Achievements.UnlockAchievement("test_ach"));
+        Assert.True(service.Achievements.IsAchievementUnlocked("test_ach"));
+        Assert.False(service.Achievements.UnlockAchievement("test_ach")); // 重複解除は失敗
+    }
+
+    [Fact]
+    public void LocalPlatformService_Achievements_ResetAll()
+    {
+        var service = new LocalPlatformService();
+        service.Initialize();
+        service.Achievements.UnlockAchievement("ach1");
+        service.Achievements.UnlockAchievement("ach2");
+
+        Assert.True(service.Achievements.ResetAllAchievements());
+        Assert.False(service.Achievements.IsAchievementUnlocked("ach1"));
+        Assert.False(service.Achievements.IsAchievementUnlocked("ach2"));
+    }
+
+    [Fact]
+    public void LocalPlatformService_Stats_SetAndGet()
+    {
+        var service = new LocalPlatformService();
+        service.Initialize();
+
+        service.Stats.SetStat("kills", 42);
+        service.Stats.SetStat("playtime", 123.5f);
+
+        Assert.Equal(42, service.Stats.GetStatInt("kills"));
+        Assert.Equal(123.5f, service.Stats.GetStatFloat("playtime"));
+        Assert.Equal(0, service.Stats.GetStatInt("unknown"));
+        Assert.Equal(0f, service.Stats.GetStatFloat("unknown"));
+    }
+
+    [Fact]
+    public void LocalPlatformService_CloudSave_WriteReadDelete()
+    {
+        var service = new LocalPlatformService();
+        service.Initialize();
+
+        var testFileName = $"test_cloud_{Guid.NewGuid()}.dat";
+        var data = System.Text.Encoding.UTF8.GetBytes("test data");
+
+        try
+        {
+            Assert.True(service.CloudSave.IsCloudSaveEnabled);
+            Assert.True(service.CloudSave.WriteFile(testFileName, data));
+            Assert.True(service.CloudSave.FileExists(testFileName));
+
+            var read = service.CloudSave.ReadFile(testFileName);
+            Assert.NotNull(read);
+            Assert.Equal(data, read);
+
+            Assert.True(service.CloudSave.DeleteFile(testFileName));
+            Assert.False(service.CloudSave.FileExists(testFileName));
+        }
+        finally
+        {
+            service.CloudSave.DeleteFile(testFileName);
+        }
+    }
+
+    [Fact]
+    public void LocalPlatformService_CloudSave_ReadNonexistent_ReturnsNull()
+    {
+        var service = new LocalPlatformService();
+        service.Initialize();
+
+        Assert.Null(service.CloudSave.ReadFile("nonexistent_file.dat"));
+        Assert.False(service.CloudSave.FileExists("nonexistent_file.dat"));
+    }
+
+    [Fact]
+    public void SteamPlatformService_Initialize_FailsWithoutSteam()
+    {
+        var steam = new SteamPlatformService();
+        Assert.False(steam.Initialize(480));
+        Assert.False(steam.IsAvailable);
+        Assert.Equal("Steam", steam.PlatformName);
+    }
+
+    [Fact]
+    public void PlatformManager_SteamAchievementMap_ContainsAllDefaults()
+    {
+        var achievements = new AchievementSystem();
+        achievements.RegisterDefaults();
+
+        foreach (var id in achievements.Achievements.Keys)
+        {
+            Assert.True(PlatformManager.SteamAchievementMap.ContainsKey(id),
+                $"実績ID '{id}' のSteamマッピングがありません");
+        }
+    }
+
+    [Fact]
+    public void PlatformManager_SteamStatNames_HasExpectedEntries()
+    {
+        Assert.True(PlatformManager.SteamStatNames.Count >= 10);
+        Assert.Contains("STAT_TOTAL_KILLS", PlatformManager.SteamStatNames);
+        Assert.Contains("STAT_TOTAL_DEATHS", PlatformManager.SteamStatNames);
+        Assert.Contains("STAT_DEEPEST_FLOOR", PlatformManager.SteamStatNames);
+    }
+
+    [Fact]
+    public void PlatformManager_UpdateAndShutdown_NoException()
+    {
+        var manager = new PlatformManager();
+        manager.Initialize();
+
+        manager.UpdateStat("test_kills", 10);
+        manager.UpdateStat("test_time", 1.5f);
+        manager.Update();
+        manager.FlushStats();
+        manager.Shutdown();
     }
 
     #endregion
