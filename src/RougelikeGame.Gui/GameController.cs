@@ -105,6 +105,15 @@ public class GameController
     /// <summary>最後のダメージ原因（死亡判定用）</summary>
     private DeathCause _lastDamageCause = DeathCause.Unknown;
 
+    /// <summary>最後の死因テキスト（ゲームオーバー表示用）</summary>
+    private string _lastDeathCauseText = "";
+
+    /// <summary>撃破した敵の総数</summary>
+    public int TotalEnemiesDefeated { get; private set; } = 0;
+
+    /// <summary>到達した最深階層</summary>
+    public int DeepestFloorReached { get; private set; } = 0;
+
     /// <summary>満腹度が最後に減少したターン</summary>
     private long _lastHungerDecayTurn = 0;
 
@@ -411,6 +420,9 @@ public class GameController
 
         // BA-1: NPC対話ノードの初期登録
         RegisterDefaultNpcDialogues();
+
+        // U.1: ゲーム開始チュートリアルトリガー
+        TriggerTutorial(TutorialTrigger.GameStart);
     }
 
     /// <summary>BA-1: NPC固有の対話ツリーを登録</summary>
@@ -768,6 +780,8 @@ public class GameController
             AddMessage($"★ レベルアップ！ Lv.{e.NewLevel} になった！");
             _skillTreeSystem.AddPoints(1);
             AddMessage("スキルポイントを1獲得した！");
+            // U.1: レベルアップチュートリアル
+            TriggerTutorial(TutorialTrigger.FirstLevelUp);
         };
         Player.OnHungerStageChanged += (_, e) =>
         {
@@ -1730,6 +1744,9 @@ public class GameController
         var enemy = Enemies.FirstOrDefault(e => e.Position == newPos && e.IsAlive);
         if (enemy != null)
         {
+            // U.1: 敵発見チュートリアル
+            TriggerTutorial(TutorialTrigger.FirstEnemySight);
+            if (enemy.IsBoss) TriggerTutorial(TutorialTrigger.FirstBossEncounter);
             Attack(enemy);
             _lastMoveActionCost = TurnCosts.AttackNormal;
             // EP-4: SpeedBoostエンチャント効果（攻撃速度上昇: -15%/個）
@@ -2332,6 +2349,9 @@ public class GameController
     /// </summary>
     private void OnEnemyDefeated(Enemy enemy)
     {
+        // U.3: 撃破数追跡
+        TotalEnemiesDefeated++;
+
         // ボス撃破カウント（Rankベースで判定）
         if (enemy.Rank == EnemyRank.Boss || enemy.Rank == EnemyRank.HiddenBoss)
         {
@@ -3526,6 +3546,9 @@ public class GameController
             GroundItems.Remove(itemOnGround);
             AddMessage($"{itemOnGround.Item.GetDisplayName()}を拾った（{inventory.TotalWeight:F1}/{Player.CalculateMaxWeight():F1}kg）");
 
+            // U.1: アイテム拾得チュートリアル
+            TriggerTutorial(TutorialTrigger.FirstItemPickup);
+
             // 図鑑更新（アイテム）
             RegisterAndDiscoverEncyclopedia(EncyclopediaCategory.Item, itemOnGround.Item.ItemId, itemOnGround.Item.Name);
 
@@ -3846,10 +3869,19 @@ public class GameController
 
             SaveFloorToCache();
             CurrentFloor++;
+            // U.3: 最深階層追跡
+            if (CurrentFloor > DeepestFloorReached) DeepestFloorReached = CurrentFloor;
             GenerateFloor();
             CheckAutoSave(AutoSaveTrigger.FloorChange);
             AddMessage($"第{CurrentFloor}層に降りた");
             OnFloorChanged?.Invoke(CurrentFloor);
+
+            // U.1: 階段チュートリアル
+            TriggerTutorial(TutorialTrigger.FirstStairs);
+
+            // U.1: 階層到達チュートリアル
+            if (CurrentFloor >= 5) TriggerTutorial(TutorialTrigger.ReachFloor5);
+            if (CurrentFloor >= 10) TriggerTutorial(TutorialTrigger.ReachFloor10);
 
             // 5階ごとにショートカット自動解放
             if (CurrentFloor % 5 == 0)
@@ -4083,6 +4115,8 @@ public class GameController
 
                 // 消耗品の種類に応じた行動コスト
                 int itemCost = consumable is Food ? TurnCosts.Eat : TurnCosts.UsePotion;
+                // U.1: ポーション使用チュートリアル
+                if (consumable is not Food) TriggerTutorial(TutorialTrigger.FirstPotionUse);
                 TurnCount += itemCost;
                 GameTime.AdvanceTurn(itemCost);
                 ProcessEnemyTurns();
@@ -4135,6 +4169,9 @@ public class GameController
             {
                 AddMessage($"{equipItem.GetDisplayName()}を装備した（非習熟：攻撃力低下）");
             }
+
+            // U.1: 装備変更チュートリアル
+            TriggerTutorial(TutorialTrigger.FirstEquipChange);
 
             // 呪われた装備の警告
             if (equipItem.IsCursed)
@@ -4287,6 +4324,8 @@ public class GameController
         {
             ((Inventory)Player.Inventory).Add(result.ResultItem);
             AddMessage($"{result.ResultItem.Name}をインベントリに追加した");
+            // U.1: 合成チュートリアル
+            TriggerTutorial(TutorialTrigger.FirstCrafting);
         }
 
         OnStateChanged?.Invoke();
@@ -4344,6 +4383,9 @@ public class GameController
         _autoExploring = false;
         TotalDeaths++;
 
+        // U.1: 初回死亡チュートリアル
+        TriggerTutorial(TutorialTrigger.FirstDeath);
+
         // DC-1: 死亡ログを記録
         _deathLogSystem.AddLog(new DeathLogSystem.DeathLogEntry(
             TotalDeaths, Player.Name, Player.CharacterClass, Player.Race,
@@ -4377,6 +4419,9 @@ public class GameController
             DeathCause.Fall => "落下により命を落とした",
             _ => "力尽きた"
         };
+
+        // U.3: 死因テキストを保存（ゲームオーバー画面改善用）
+        _lastDeathCauseText = causeText;
 
         if (wasRescuable && Player.Sanity > 0)
         {
@@ -5668,6 +5713,9 @@ public class GameController
         AddMessage(result.Message);
         actionCost = Math.Max(1, result.TurnCost);
 
+        // U.1: 魔法詠唱チュートリアル
+        TriggerTutorial(TutorialTrigger.FirstSpellCast);
+
         var effect = SpellEffectResolver.Resolve(result);
         if (!effect.IsNone)
         {
@@ -6364,6 +6412,8 @@ public class GameController
     /// <summary>宗教に入信する</summary>
     public ReligionActionResult TryJoinReligion(ReligionId religionId)
     {
+        // U.1: 寺院訪問チュートリアル
+        TriggerTutorial(TutorialTrigger.FirstTempleVisit);
         var result = _religionSystem.JoinReligion(Player, religionId);
         AddMessage(result.Message);
 
@@ -7263,6 +7313,8 @@ public class GameController
     public IReadOnlyList<ShopSystem.ShopItem> InitializeAndGetShopItems(FacilityType shopType)
     {
         _shopSystem.InitializeShop(shopType, _worldMapSystem.CurrentTerritory, Player.Level);
+        // U.1: ショップ訪問チュートリアル
+        TriggerTutorial(TutorialTrigger.FirstShopVisit);
         return _shopSystem.GetShopItems(shopType);
     }
 
@@ -7480,6 +7532,9 @@ public class GameController
         }
 
         AddMessage($"{npcDef.Name}「こんにちは、冒険者さん」");
+
+        // U.1: NPC会話チュートリアル
+        TriggerTutorial(TutorialTrigger.FirstNpcTalk);
 
         // BZ-3: NPC会話時にTalk/Deliver/Escortクエスト目標を更新
         _questSystem.UpdateObjective(npcId);
@@ -8145,6 +8200,8 @@ public class GameController
     /// <summary>ギルドに登録</summary>
     public bool TryRegisterGuild()
     {
+        // U.1: ギルド訪問チュートリアル
+        TriggerTutorial(TutorialTrigger.FirstGuildVisit);
         var result = _guildSystem.Register();
         AddMessage(result.Message);
         if (result.Success)
@@ -8784,6 +8841,8 @@ public class GameController
         save.InfiniteDungeonMode = _infiniteDungeonMode;
         save.InfiniteDungeonKills = _infiniteDungeonKills;
         save.TotalDeaths = TotalDeaths;
+        save.TotalEnemiesDefeated = TotalEnemiesDefeated;
+        save.DeepestFloorReached = DeepestFloorReached;
 
         // AS-2: 地面アイテムの保存
         foreach (var (item, pos) in GroundItems)
@@ -9422,6 +9481,8 @@ public class GameController
         _infiniteDungeonMode = save.InfiniteDungeonMode;
         _infiniteDungeonKills = save.InfiniteDungeonKills;
         TotalDeaths = save.TotalDeaths;
+        TotalEnemiesDefeated = save.TotalEnemiesDefeated;
+        DeepestFloorReached = save.DeepestFloorReached;
 
         // AS-2: 地面アイテムの復元
         GroundItems.Clear();
@@ -9995,8 +10056,46 @@ public class GameController
         _ => race.ToString()
     };
 
+    /// <summary>種族名を日本語で取得</summary>
+    private static string GetRaceDisplayName(Race race) => race switch
+    {
+        Race.Human => "人間",
+        Race.Elf => "エルフ",
+        Race.Dwarf => "ドワーフ",
+        Race.Halfling => "ハーフリング",
+        Race.Orc => "オーク",
+        Race.Undead => "アンデッド",
+        Race.Beastfolk => "獣人",
+        Race.Demon => "悪魔",
+        Race.FallenAngel => "堕天使",
+        Race.Slime => "スライム",
+        _ => race.ToString()
+    };
+
     /// <summary>死亡ログシステム</summary>
     public DeathLogSystem GetDeathLogSystem() => _deathLogSystem;
+
+    /// <summary>U.3: ゲームオーバー画面用の統計情報を取得</summary>
+    public GameOverStatistics GetGameOverStatistics()
+    {
+        return new GameOverStatistics
+        {
+            DeathCause = _lastDeathCauseText,
+            PlayerName = Player.Name,
+            PlayerLevel = Player.Level,
+            PlayerRace = GetRaceDisplayName(Player.Race),
+            PlayerClass = Player.CharacterClass.ToString(),
+            CurrentFloor = CurrentFloor,
+            DeepestFloor = Math.Max(DeepestFloorReached, CurrentFloor),
+            TotalDeaths = TotalDeaths,
+            TotalTurns = TurnCount,
+            GameTimeText = GameTime.ToFullString(),
+            EnemiesDefeated = TotalEnemiesDefeated,
+            ItemsCollected = ((Inventory)Player.Inventory).Items.Count,
+            GoldEarned = Player.Gold,
+            SanityRemaining = Player.Sanity,
+        };
+    }
 
     /// <summary>スキルツリーシステム</summary>
     public SkillTreeSystem GetSkillTreeSystem() => _skillTreeSystem;
@@ -11678,4 +11777,23 @@ public enum GameAction
     OpenBaseConstruction,
     OpenVocabulary,
     Steal
+}
+
+/// <summary>U.3: ゲームオーバー画面表示用の統計情報</summary>
+public record GameOverStatistics
+{
+    public string DeathCause { get; init; } = "";
+    public string PlayerName { get; init; } = "";
+    public int PlayerLevel { get; init; }
+    public string PlayerRace { get; init; } = "";
+    public string PlayerClass { get; init; } = "";
+    public int CurrentFloor { get; init; }
+    public int DeepestFloor { get; init; }
+    public int TotalDeaths { get; init; }
+    public int TotalTurns { get; init; }
+    public string GameTimeText { get; init; } = "";
+    public int EnemiesDefeated { get; init; }
+    public int ItemsCollected { get; init; }
+    public int GoldEarned { get; init; }
+    public int SanityRemaining { get; init; }
 }

@@ -123,12 +123,44 @@ public class ContextHelpSystem
     /// <summary>デフォルトのヘルプトピックを一括登録</summary>
     public void RegisterDefaultTopics()
     {
-        RegisterTopic("move_basic", HelpCategory.Movement, "基本移動", "テンキーまたはViキーで8方向に移動できます", "hjklyubn", 10);
-        RegisterTopic("move_wait", HelpCategory.Movement, "待機", ".キーでその場で1ターン待機します", ".", 5);
-        RegisterTopic("combat_attack", HelpCategory.Combat, "近接攻撃", "敵に隣接して移動キーを押すと攻撃します", null, 10);
-        RegisterTopic("combat_magic", HelpCategory.Combat, "魔法", "Mキーで魔法メニューを開きます", "M", 8);
-        RegisterTopic("inventory_open", HelpCategory.Inventory, "インベントリ", "Iキーでインベントリを開きます", "I", 10);
-        RegisterTopic("survival_hunger", HelpCategory.Survival, "空腹度", "時間経過で空腹になります。食料を携帯しましょう", null, 8);
-        RegisterTopic("survival_sanity", HelpCategory.Survival, "正気度", "死に戻りで正気度が減少します。0になると廃人化", null, 9);
+        // 移動
+        RegisterTopic("move_basic", HelpCategory.Movement, "基本移動", "WASD/矢印キーで4方向に移動できます。QE/ZCキーで斜め移動。テンキーやViキー(hjklyubn)も使用可能です", "WASD", 10);
+        RegisterTopic("move_wait", HelpCategory.Movement, "待機", ".キーでその場で1ターン待機します。HPやSPが少しずつ回復します", ".", 5);
+        RegisterTopic("move_auto", HelpCategory.Movement, "自動探索", "Oキーで自動探索を開始します。敵を発見するか、アイテムを見つけると停止します", "O", 7);
+        RegisterTopic("move_stairs", HelpCategory.Movement, "階段", ">キーで下り階段を降り、<キーで上り階段を上ります。ダンジョンを深く探索しましょう", "><", 8);
+
+        // 戦闘
+        RegisterTopic("combat_attack", HelpCategory.Combat, "近接攻撃", "敵に隣接して移動キーを押すと攻撃します。武器の種類によってダメージが変わります", null, 10);
+        RegisterTopic("combat_ranged", HelpCategory.Combat, "遠距離攻撃", "Rキーで弓や投擲武器による遠距離攻撃ができます。射程内の敵を狙えます", "R", 8);
+        RegisterTopic("combat_magic", HelpCategory.Combat, "魔法", "Mキーで魔法メニューを開きます。ルーン語の組み合わせで様々な魔法を使えます", "M", 8);
+        RegisterTopic("combat_skill", HelpCategory.Combat, "スキル", "1-6キーでスキルスロットに登録した戦闘スキルを使用できます", "1-6", 7);
+        RegisterTopic("combat_throw", HelpCategory.Combat, "投擲", "投擲可能なアイテムを敵に投げつけることができます", null, 5);
+
+        // インベントリ
+        RegisterTopic("inventory_open", HelpCategory.Inventory, "インベントリ", "Iキーでインベントリを開きます。アイテムの使用・装備・ドロップができます", "I", 10);
+        RegisterTopic("inventory_pickup", HelpCategory.Inventory, "アイテム拾得", "Gキーまたは,キーで足元のアイテムを拾えます", "G", 8);
+        RegisterTopic("inventory_equip", HelpCategory.Inventory, "装備変更", "インベントリから装備品を選択して装着できます。必要レベルやステータス要件に注意", null, 7);
+        RegisterTopic("inventory_drop", HelpCategory.Inventory, "アイテムドロップ", "Dキーでアイテムを床に置けます。重量オーバー時に活用しましょう", "D", 5);
+
+        // 魔法
+        RegisterTopic("magic_rune", HelpCategory.Magic, "ルーン語", "古代の書を読むことでルーン語を習得できます。図書館で新しい単語を学びましょう", null, 8);
+        RegisterTopic("magic_spell", HelpCategory.Magic, "魔法詠唱", "効果語＋対象語＋修飾語の組み合わせで魔法を構成します。理解度が高いほど成功率が上がります", null, 7);
+
+        // クラフト
+        RegisterTopic("crafting_basic", HelpCategory.Crafting, "合成", "素材を組み合わせて新しいアイテムを作成できます。鍛冶屋で装備の強化も可能です", null, 8);
+        RegisterTopic("crafting_cooking", HelpCategory.Crafting, "料理", "食材を組み合わせて料理を作れます。料理は通常の食料より高い回復効果があります", null, 6);
+
+        // サバイバル
+        RegisterTopic("survival_hunger", HelpCategory.Survival, "空腹度", "時間経過で空腹になります。食料を常に携帯し、定期的に食事を取りましょう。飢餓状態では毎ターンダメージを受けます", null, 9);
+        RegisterTopic("survival_thirst", HelpCategory.Survival, "渇き", "時間経過で喉が渇きます。水や飲料を携帯しましょう。脱水状態では行動コストが増加します", null, 8);
+        RegisterTopic("survival_sanity", HelpCategory.Survival, "正気度", "死に戻りで正気度が減少します。0になると廃人化し、救済回数を消費します。宿屋で休息すると少し回復します", null, 9);
+        RegisterTopic("survival_fatigue", HelpCategory.Survival, "疲労", "行動するほど疲労が溜まります。重度の疲労では攻撃やスキルが使えなくなります。宿屋で休息しましょう", null, 7);
+        RegisterTopic("survival_hygiene", HelpCategory.Survival, "衛生", "長時間の探索で衛生度が低下します。病気のリスクが高まるので注意しましょう", null, 5);
+
+        // 上級テクニック
+        RegisterTopic("adv_rebirth", HelpCategory.Advanced, "死に戻り", "死亡すると知識を引き継いで転生します。ルーン語やスキルの知識は保持されますが、レベルと装備はリセットされます", null, 9);
+        RegisterTopic("adv_religion", HelpCategory.Advanced, "宗教", "神殿で宗教に入信できます。信仰度を上げると恩恵が得られますが、禁忌を犯すと罰を受けます", null, 7);
+        RegisterTopic("adv_guild", HelpCategory.Advanced, "冒険者ギルド", "ギルドに登録してクエストを受注できます。ランクが上がるとより報酬の高い依頼が解禁されます", null, 6);
+        RegisterTopic("adv_companion", HelpCategory.Advanced, "仲間", "一部のNPCを仲間として連れて行けます。仲間は自動で戦闘に参加し、AIモードを変更できます", null, 5);
     }
 }

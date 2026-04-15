@@ -129,6 +129,12 @@ public class SaveData
     /// <summary>累計死亡回数</summary>
     public int TotalDeaths { get; set; }
 
+    /// <summary>U.3: 撃破した敵の総数</summary>
+    public int TotalEnemiesDefeated { get; set; }
+
+    /// <summary>U.3: 到達した最深階層</summary>
+    public int DeepestFloorReached { get; set; }
+
     /// <summary>AS-2: 地面のアイテム</summary>
     public List<GroundItemSaveData> GroundItems { get; set; } = new();
 
