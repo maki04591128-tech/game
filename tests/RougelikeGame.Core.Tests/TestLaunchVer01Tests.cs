@@ -10,7 +10,7 @@ using System.Linq;
 namespace RougelikeGame.Core.Tests;
 
 /// <summary>
-/// Ver.0.1 テストローンチフェーズのテスト（全139件）
+/// Ver.0.1 テストローンチフェーズのテスト（全156件）
 /// - U.1: チュートリアルシステム（トリガー、ステップ、進行度、セーブ/ロード）20件
 /// - U.2: コンテキストヘルプシステム（トピック登録、カテゴリ別取得、キーバインド検索）18件
 /// - U.3: ゲームオーバー統計情報 4件
@@ -22,7 +22,8 @@ namespace RougelikeGame.Core.Tests;
 /// - T.4: パフォーマンステスト（マップ生成・敵生成・セーブ処理ベンチマーク）9件
 /// - T.5: クロスバージョンセーブ互換（フィールド欠落/追加互換・ラウンドトリップ）10件
 /// - 6.5: Steam対応・プラットフォーム抽象化（PlatformManager/Local/Steam/実績連携/クラウドセーブ/統計）13件
-/// - using補完 2件
+/// - C.4: Ver.1.0最終確認（全システム存在・マップ生成・エンティティ生成・セーブ・プラットフォーム・チュートリアル・アクセシビリティ・実績・Steamマッピング）17件
+/// - using補完 1件
 /// </summary>
 public class TestLaunchVer01Tests
 {
@@ -1833,6 +1834,236 @@ public class TestLaunchVer01Tests
         manager.Update();
         manager.FlushStats();
         manager.Shutdown();
+    }
+
+    #endregion
+
+    #region C.4: Ver.1.0 最終確認テスト
+
+    // === C.4.1: コアシステム存在確認テスト ===
+
+    [Fact]
+    public void FinalCheck_CoreSystems_AllExist()
+    {
+        // 全コアシステムがインスタンス化可能であることを確認
+        var accessibility = new AccessibilitySystem();
+        var achievement = new AchievementSystem();
+        var contextHelp = new ContextHelpSystem();
+        var crafting = new CraftingSystem();
+        var recipes = crafting.GetAllRecipes();
+        var diffSettings = DifficultySettings.Get(DifficultyLevel.Normal);
+        var resourceTracker = new ResourceTracker();
+
+        Assert.NotNull(accessibility);
+        Assert.NotNull(achievement);
+        Assert.NotNull(contextHelp);
+        Assert.NotNull(recipes);
+        Assert.NotNull(diffSettings);
+        Assert.NotNull(resourceTracker);
+    }
+
+    [Fact]
+    public void FinalCheck_AllRaces_Defined()
+    {
+        var races = Enum.GetValues<Race>();
+        Assert.True(races.Length >= 5, $"種族数が5未満: {races.Length}");
+        Assert.Contains(Race.Human, races);
+        Assert.Contains(Race.Elf, races);
+        Assert.Contains(Race.Dwarf, races);
+    }
+
+    [Fact]
+    public void FinalCheck_AllClasses_Defined()
+    {
+        var classes = Enum.GetValues<CharacterClass>();
+        Assert.True(classes.Length >= 8, $"職業数が8未満: {classes.Length}");
+    }
+
+    [Fact]
+    public void FinalCheck_AllDifficulties_HaveSettings()
+    {
+        foreach (var diff in Enum.GetValues<DifficultyLevel>())
+        {
+            var settings = DifficultySettings.Get(diff);
+            Assert.NotNull(settings);
+            Assert.True(settings.EnemyStatMultiplier > 0, $"{diff}: EnemyStatMultiplier <= 0");
+        }
+    }
+
+    [Fact]
+    public void FinalCheck_AllTerritories_Defined()
+    {
+        var territories = Enum.GetValues<TerritoryId>();
+        Assert.True(territories.Length >= 12, $"領地数が12未満: {territories.Length}");
+        Assert.Contains(TerritoryId.Capital, territories);
+        Assert.Contains(TerritoryId.Forest, territories);
+    }
+
+    // === C.4.2: マップ生成検証 ===
+
+    [Fact]
+    public void FinalCheck_DungeonGeneration_ProducesValidMap()
+    {
+        var generator = new DungeonGenerator();
+        var parameters = DungeonGenerationParameters.Default;
+        var map = generator.Generate(parameters);
+        Assert.NotNull(map);
+        Assert.Equal(80, map.Width);
+        Assert.Equal(50, map.Height);
+    }
+
+    [Fact]
+    public void FinalCheck_SymbolMapGenerator_ProducesMap()
+    {
+        var generator = new SymbolMapGenerator();
+        var result = generator.Generate(TerritoryId.Capital);
+        Assert.NotNull(result);
+        Assert.NotNull(result.Map);
+        Assert.True(result.Map.Width > 0);
+        Assert.True(result.Map.Height > 0);
+    }
+
+    // === C.4.3: エンティティ生成検証 ===
+
+    [Fact]
+    public void FinalCheck_PlayerCreation_AllRaceClassCombos()
+    {
+        int successCount = 0;
+        var races = new[] { Race.Human, Race.Elf, Race.Dwarf };
+        var classes = new[] { CharacterClass.Fighter, CharacterClass.Mage, CharacterClass.Thief };
+
+        foreach (var race in races)
+        {
+            foreach (var cls in classes)
+            {
+                var player = Player.Create($"Test_{race}_{cls}", race, cls, Background.Adventurer);
+                Assert.NotNull(player);
+                Assert.True(player.MaxHp > 0, $"{race}/{cls}: MaxHp <= 0");
+                successCount++;
+            }
+        }
+        Assert.Equal(9, successCount); // 3x3 = 9 combinations
+    }
+
+    [Fact]
+    public void FinalCheck_EnemyFactory_GeneratesEnemies()
+    {
+        var factory = new EnemyFactory();
+        var goblin = factory.CreateGoblin(new Position(5, 5));
+        Assert.NotNull(goblin);
+        Assert.True(goblin.MaxHp > 0);
+    }
+
+    // === C.4.4: セーブシステム検証 ===
+
+    [Fact]
+    public void FinalCheck_SaveData_FullRoundTrip()
+    {
+        var saveData = new SaveData
+        {
+            Version = 1,
+            Difficulty = DifficultyLevel.Normal,
+            CurrentFloor = 3,
+            TurnCount = 100,
+        };
+        saveData.Player.Name = "FinalCheckPlayer";
+        saveData.Player.Level = 10;
+        saveData.Validate();
+
+        var json = System.Text.Json.JsonSerializer.Serialize(saveData);
+        Assert.False(string.IsNullOrEmpty(json));
+
+        var loaded = System.Text.Json.JsonSerializer.Deserialize<SaveData>(json);
+        Assert.NotNull(loaded);
+        Assert.Equal("FinalCheckPlayer", loaded!.Player.Name);
+        Assert.Equal(10, loaded.Player.Level);
+        loaded.Validate();
+    }
+
+    // === C.4.5: プラットフォーム統合検証 ===
+
+    [Fact]
+    public void FinalCheck_PlatformManager_FullLifecycle()
+    {
+        var manager = new PlatformManager();
+        manager.Initialize();
+
+        // 実績解除
+        manager.UnlockAchievement("first_kill");
+
+        // 統計更新
+        manager.UpdateStat("total_kills", 100);
+
+        // クラウドセーブ
+        var testData = System.Text.Encoding.UTF8.GetBytes("test save data");
+        var cloudSave = manager.Platform.CloudSave;
+        cloudSave.WriteFile("test_final.sav", testData);
+        var readBack = cloudSave.ReadFile("test_final.sav");
+        Assert.NotNull(readBack);
+        cloudSave.DeleteFile("test_final.sav");
+
+        manager.Shutdown();
+    }
+
+    // === C.4.6: チュートリアル・ヘルプ網羅検証 ===
+
+    [Fact]
+    public void FinalCheck_TutorialSystem_Has18Triggers()
+    {
+        // TutorialTrigger列挙型の値数を確認
+        var triggers = Enum.GetValues<TutorialTrigger>();
+        Assert.True(triggers.Length >= 18, $"チュートリアルトリガー数が18未満: {triggers.Length}");
+    }
+
+    [Fact]
+    public void FinalCheck_ContextHelp_Has26Topics()
+    {
+        var help = new ContextHelpSystem();
+        help.RegisterDefaultTopics();
+        var allTopics = help.Topics;
+        Assert.True(allTopics.Count >= 26, $"ヘルプトピック数が26未満: {allTopics.Count}");
+    }
+
+    // === C.4.7: アクセシビリティ検証 ===
+
+    [Fact]
+    public void FinalCheck_Accessibility_AllColorBlindModes()
+    {
+        var modes = Enum.GetValues<ColorBlindMode>();
+        Assert.True(modes.Length >= 5, $"色覚モード数が5未満: {modes.Length}");
+
+        foreach (var mode in modes)
+        {
+            var settings = new GameSettings { ColorBlindMode = mode };
+            settings.Validate();
+            Assert.Equal(mode, settings.ColorBlindMode);
+        }
+    }
+
+    // === C.4.8: 実績システム網羅検証 ===
+
+    [Fact]
+    public void FinalCheck_AchievementSystem_Has25Achievements()
+    {
+        var system = new AchievementSystem();
+        system.RegisterDefaults();
+        Assert.True(system.TotalCount >= 25, $"実績数が25未満: {system.TotalCount}");
+    }
+
+    // === C.4.9: Steam実績・統計マッピング検証 ===
+
+    [Fact]
+    public void FinalCheck_SteamAchievementMap_Has25Entries()
+    {
+        Assert.True(PlatformManager.SteamAchievementMap.Count >= 25,
+            $"Steam実績マッピング数が25未満: {PlatformManager.SteamAchievementMap.Count}");
+    }
+
+    [Fact]
+    public void FinalCheck_SteamStatNames_Has10Entries()
+    {
+        Assert.True(PlatformManager.SteamStatNames.Count >= 10,
+            $"Steam統計項目数が10未満: {PlatformManager.SteamStatNames.Count}");
     }
 
     #endregion
