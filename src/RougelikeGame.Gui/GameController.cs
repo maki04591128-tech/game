@@ -11676,6 +11676,12 @@ public class GameController
 
     // === AccessibilitySystem活用接続 ===
 
+    /// <summary>GameSettingsからアクセシビリティ設定を適用</summary>
+    public void ApplyAccessibilitySettings(GameSettings settings)
+    {
+        _accessibilitySystem.ApplyFromGameSettings(settings);
+    }
+
     /// <summary>アクセシビリティ設定に基づく実効フォントサイズを取得</summary>
     public int GetEffectiveFontSize(int baseFontSize = 14)
     {

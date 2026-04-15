@@ -475,4 +475,352 @@ public class TestLaunchVer01Tests
     }
 
     #endregion
+
+    #region U.5: アクセシビリティ改善テスト
+
+    [Fact]
+    public void GameSettings_ColorBlindMode_DefaultIsNone()
+    {
+        var settings = GameSettings.CreateDefault();
+        Assert.Equal(ColorBlindMode.None, settings.ColorBlindMode);
+    }
+
+    [Fact]
+    public void GameSettings_HighContrastMode_DefaultIsFalse()
+    {
+        var settings = GameSettings.CreateDefault();
+        Assert.False(settings.HighContrastMode);
+    }
+
+    [Fact]
+    public void GameSettings_GameSpeedMultiplier_DefaultIsOne()
+    {
+        var settings = GameSettings.CreateDefault();
+        Assert.Equal(1.0f, settings.GameSpeedMultiplier);
+    }
+
+    [Fact]
+    public void GameSettings_ScreenReaderMode_DefaultIsFalse()
+    {
+        var settings = GameSettings.CreateDefault();
+        Assert.False(settings.ScreenReaderMode);
+    }
+
+    [Fact]
+    public void GameSettings_LargePointer_DefaultIsFalse()
+    {
+        var settings = GameSettings.CreateDefault();
+        Assert.False(settings.LargePointer);
+    }
+
+    [Fact]
+    public void GameSettings_Validate_ClampsGameSpeed()
+    {
+        var settings = new GameSettings { GameSpeedMultiplier = 5.0f };
+        settings.Validate();
+        Assert.Equal(2.0f, settings.GameSpeedMultiplier);
+    }
+
+    [Fact]
+    public void GameSettings_Validate_ClampsGameSpeed_Low()
+    {
+        var settings = new GameSettings { GameSpeedMultiplier = 0.1f };
+        settings.Validate();
+        Assert.Equal(0.25f, settings.GameSpeedMultiplier);
+    }
+
+    [Fact]
+    public void GameSettings_Validate_InvalidColorBlindMode_ResetsToDefault()
+    {
+        var settings = new GameSettings { ColorBlindMode = (ColorBlindMode)99 };
+        settings.Validate();
+        Assert.Equal(ColorBlindMode.None, settings.ColorBlindMode);
+    }
+
+    [Fact]
+    public void GameSettings_Clone_IncludesAccessibilityProperties()
+    {
+        var settings = new GameSettings
+        {
+            ColorBlindMode = ColorBlindMode.Protanopia,
+            HighContrastMode = true,
+            GameSpeedMultiplier = 1.5f,
+            ScreenReaderMode = true,
+            LargePointer = true
+        };
+        var clone = settings.Clone();
+        Assert.Equal(ColorBlindMode.Protanopia, clone.ColorBlindMode);
+        Assert.True(clone.HighContrastMode);
+        Assert.Equal(1.5f, clone.GameSpeedMultiplier);
+        Assert.True(clone.ScreenReaderMode);
+        Assert.True(clone.LargePointer);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_ApplyFromGameSettings_SetsColorMode()
+    {
+        var system = new AccessibilitySystem();
+        var settings = new GameSettings { ColorBlindMode = ColorBlindMode.Deuteranopia };
+        system.ApplyFromGameSettings(settings);
+        Assert.Equal(ColorBlindMode.Deuteranopia, system.Config.ColorMode);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_ApplyFromGameSettings_SetsHighContrast()
+    {
+        var system = new AccessibilitySystem();
+        var settings = new GameSettings { HighContrastMode = true };
+        system.ApplyFromGameSettings(settings);
+        Assert.True(system.Config.HighContrastMode);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_ApplyFromGameSettings_SetsGameSpeed()
+    {
+        var system = new AccessibilitySystem();
+        var settings = new GameSettings { GameSpeedMultiplier = 0.5f };
+        system.ApplyFromGameSettings(settings);
+        Assert.Equal(0.5f, system.Config.GameSpeedMultiplier);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_ApplyFromGameSettings_SetsScreenReader()
+    {
+        var system = new AccessibilitySystem();
+        var settings = new GameSettings { ScreenReaderMode = true };
+        system.ApplyFromGameSettings(settings);
+        Assert.True(system.Config.ScreenReaderMode);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_ApplyFromGameSettings_SetsLargePointer()
+    {
+        var system = new AccessibilitySystem();
+        var settings = new GameSettings { LargePointer = true };
+        system.ApplyFromGameSettings(settings);
+        Assert.True(system.Config.LargePointer);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_TransformColor_Protanopia_RedToDarkYellow()
+    {
+        var system = new AccessibilitySystem();
+        system.SetColorBlindMode(ColorBlindMode.Protanopia);
+        var result = system.TransformColor("Red");
+        Assert.Equal("DarkYellow", result.TransformedColor);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_TransformColor_Deuteranopia_GreenToOrange()
+    {
+        var system = new AccessibilitySystem();
+        system.SetColorBlindMode(ColorBlindMode.Deuteranopia);
+        var result = system.TransformColor("Green");
+        Assert.Equal("Orange", result.TransformedColor);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_TransformColor_Tritanopia_BlueToSyan()
+    {
+        var system = new AccessibilitySystem();
+        system.SetColorBlindMode(ColorBlindMode.Tritanopia);
+        var result = system.TransformColor("Blue");
+        Assert.Equal("Cyan", result.TransformedColor);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_TransformColor_Monochrome_AnyToGray()
+    {
+        var system = new AccessibilitySystem();
+        system.SetColorBlindMode(ColorBlindMode.Monochrome);
+        var result = system.TransformColor("Red");
+        Assert.Equal("Gray", result.TransformedColor);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_CalculateEffectiveFontSize_WithMultiplier()
+    {
+        var system = new AccessibilitySystem();
+        system.SetFontSizeMultiplier(2.0f);
+        Assert.Equal(28, system.CalculateEffectiveFontSize(14));
+    }
+
+    [Fact]
+    public void AccessibilitySystem_CalculateEffectiveTurnDelay_WithSpeed()
+    {
+        var system = new AccessibilitySystem();
+        system.SetGameSpeedMultiplier(2.0f);
+        Assert.Equal(100, system.CalculateEffectiveTurnDelay(200));
+    }
+
+    [Fact]
+    public void AccessibilitySystem_GetModeName_AllModes()
+    {
+        Assert.Equal("通常", AccessibilitySystem.GetModeName(ColorBlindMode.None));
+        Assert.Equal("1型色覚（P型）", AccessibilitySystem.GetModeName(ColorBlindMode.Protanopia));
+        Assert.Equal("2型色覚（D型）", AccessibilitySystem.GetModeName(ColorBlindMode.Deuteranopia));
+        Assert.Equal("3型色覚（T型）", AccessibilitySystem.GetModeName(ColorBlindMode.Tritanopia));
+        Assert.Equal("モノクロ", AccessibilitySystem.GetModeName(ColorBlindMode.Monochrome));
+    }
+
+    #endregion
+
+    #region T.2: エッジケース対応テスト
+
+    [Fact]
+    public void SaveData_NegativeValues_AreClamped()
+    {
+        var data = new SaveData
+        {
+            CurrentFloor = -5,
+            TurnCount = -10,
+            TotalDeaths = -1,
+            TotalEnemiesDefeated = -100,
+            DeepestFloorReached = -3,
+            BankBalance = -999,
+            GuildPoints = -50,
+            InfiniteDungeonKills = -1
+        };
+        data.Validate();
+        Assert.Equal(0, data.CurrentFloor);
+        Assert.Equal(0, data.TurnCount);
+        Assert.Equal(0, data.TotalDeaths);
+        Assert.Equal(0, data.TotalEnemiesDefeated);
+        Assert.Equal(0, data.DeepestFloorReached);
+        Assert.Equal(0, data.BankBalance);
+        Assert.Equal(0, data.GuildPoints);
+        Assert.Equal(0, data.InfiniteDungeonKills);
+    }
+
+    [Fact]
+    public void SaveData_PlayerLevel_ClampedToValid()
+    {
+        var data = new SaveData();
+        data.Player.Level = 0;
+        data.Validate();
+        Assert.Equal(1, data.Player.Level);
+
+        data.Player.Level = 999;
+        data.Validate();
+        Assert.Equal(99, data.Player.Level);
+    }
+
+    [Fact]
+    public void SaveData_NullPlayer_CreatesDefault()
+    {
+        var data = new SaveData { Player = null! };
+        data.Validate();
+        Assert.NotNull(data.Player);
+    }
+
+    [Fact]
+    public void SaveData_NullCollections_InitializedToEmpty()
+    {
+        var data = new SaveData
+        {
+            MessageHistory = null!,
+            ActiveQuests = null!,
+            CompletedQuests = null!,
+            SkillCooldowns = null!,
+            VisitedTerritories = null!,
+            NpcStates = null!,
+            KarmaHistory = null!,
+            ProficiencyLevels = null!,
+            ProficiencyExp = null!,
+            DialogueFlags = null!
+        };
+        data.Validate();
+        Assert.NotNull(data.MessageHistory);
+        Assert.NotNull(data.ActiveQuests);
+        Assert.NotNull(data.CompletedQuests);
+        Assert.NotNull(data.SkillCooldowns);
+        Assert.NotNull(data.VisitedTerritories);
+        Assert.NotNull(data.NpcStates);
+        Assert.NotNull(data.KarmaHistory);
+        Assert.NotNull(data.ProficiencyLevels);
+        Assert.NotNull(data.ProficiencyExp);
+        Assert.NotNull(data.DialogueFlags);
+    }
+
+    [Fact]
+    public void SaveData_PlayerStats_NegativeValuesFixed()
+    {
+        var data = new SaveData();
+        data.Player.CurrentHp = -10;
+        data.Player.CurrentMp = -5;
+        data.Player.CurrentSp = -3;
+        data.Player.Gold = -100;
+        data.Player.Sanity = -20;
+        data.Player.Hunger = -10;
+        data.Player.Thirst = -5;
+        data.Validate();
+        Assert.Equal(0, data.Player.CurrentHp);
+        Assert.Equal(0, data.Player.CurrentMp);
+        Assert.Equal(0, data.Player.CurrentSp);
+        Assert.Equal(0, data.Player.Gold);
+        Assert.Equal(0, data.Player.Sanity);
+        Assert.Equal(0, data.Player.Hunger);
+        Assert.Equal(0, data.Player.Thirst);
+    }
+
+    [Fact]
+    public void SaveData_PlayerStats_OverflowValuesFixed()
+    {
+        var data = new SaveData();
+        data.Player.Sanity = 200;
+        data.Player.Hunger = 150;
+        data.Player.Thirst = 300;
+        data.Validate();
+        Assert.Equal(100, data.Player.Sanity);
+        Assert.Equal(100, data.Player.Hunger);
+        Assert.Equal(100, data.Player.Thirst);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_FontSizeMultiplier_ClampsToRange()
+    {
+        var system = new AccessibilitySystem();
+        system.SetFontSizeMultiplier(10.0f);
+        Assert.Equal(3.0f, system.Config.FontSizeMultiplier);
+
+        system.SetFontSizeMultiplier(-1.0f);
+        Assert.Equal(0.5f, system.Config.FontSizeMultiplier);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_GameSpeedMultiplier_ClampsToRange()
+    {
+        var system = new AccessibilitySystem();
+        system.SetGameSpeedMultiplier(10.0f);
+        Assert.Equal(2.0f, system.Config.GameSpeedMultiplier);
+
+        system.SetGameSpeedMultiplier(0.01f);
+        Assert.Equal(0.25f, system.Config.GameSpeedMultiplier);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_ResetToDefaults_RestoresAll()
+    {
+        var system = new AccessibilitySystem();
+        system.SetColorBlindMode(ColorBlindMode.Protanopia);
+        system.SetHighContrastMode(true);
+        system.SetFontSizeMultiplier(2.0f);
+        system.SetGameSpeedMultiplier(0.5f);
+        system.ResetToDefaults();
+        Assert.Equal(ColorBlindMode.None, system.Config.ColorMode);
+        Assert.False(system.Config.HighContrastMode);
+        Assert.Equal(1.0f, system.Config.FontSizeMultiplier);
+        Assert.Equal(1.0f, system.Config.GameSpeedMultiplier);
+    }
+
+    [Fact]
+    public void AccessibilitySystem_TransformColor_None_ReturnsOriginal()
+    {
+        var system = new AccessibilitySystem();
+        var result = system.TransformColor("Red");
+        Assert.Equal("Red", result.TransformedColor);
+        Assert.Equal(ColorBlindMode.None, result.Mode);
+    }
+
+    #endregion
 }

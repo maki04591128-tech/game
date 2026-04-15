@@ -27,7 +27,7 @@ Phase 6 の残りタスク（Steam対応、最終ビルド）を実装し、
 | # | タスク | 状態 | 備考 |
 |---|--------|------|------|
 | T.1 | 統合テスト | ⬜ | 全システム連携の動作確認 |
-| T.2 | エッジケース対応 | ⬜ | セーブ破損、異常入力、大量エンティティ等 |
+| T.2 | エッジケース対応 | ✅ | セーブデータ自動バックアップ・破損時復旧・値バリデーション（SaveData.Validate/SaveManager.TryLoadBackup）。負値クランプ・nullコレクション防御・HP/MP/満腹度/渇き/正気度範囲チェック。テスト8件追加 |
 | T.3 | メモリリーク検出 | ⬜ | 長時間プレイ時のメモリ使用量監視 |
 | T.4 | パフォーマンステスト | ⬜ | 大規模マップ、大量敵、描画負荷測定 |
 | T.5 | クロスバージョンセーブ互換 | ⬜ | バージョンアップ時のセーブデータ互換性 |
@@ -42,7 +42,7 @@ Phase 6 の残りタスク（Steam対応、最終ビルド）を実装し、
 | U.2 | ヒント表示システム | ✅ | ContextHelpSystemを7→26トピックに拡充。移動4/戦闘5/インベントリ4/魔法2/クラフト2/サバイバル5/上級4のヘルプトピック。キーバインド検索・コンテキスト検索対応 |
 | U.3 | ゲームオーバー画面改善 | ✅ | 死因詳細テキスト表示、統計情報（レベル/種族/職業/撃破数/最深階層/所持金/アイテム数/正気度/ターン数）。GameOverStatisticsレコード、GetGameOverStatistics()メソッド追加。TotalEnemiesDefeated/DeepestFloorReachedをセーブ/ロード対応 |
 | U.4 | 難易度バランス最終調整 | ⬜ | プレイテストに基づく数値調整 |
-| U.5 | アクセシビリティ | ⬜ | 色覚対応、フォントサイズ変更、キーリマップ |
+| U.5 | アクセシビリティ | ✅ | GameSettingsに色覚モード(ColorBlindMode)/ハイコントラスト/ゲーム速度/スクリーンリーダー/大きなポインタ追加。AccessibilitySystem.ApplyFromGameSettingsで統合。GameController.ApplyAccessibilitySettings()接続。設定のValidate・Clone・JSON永続化対応。テスト23件追加 |
 
 ---
 
@@ -61,8 +61,8 @@ Phase 6 の残りタスク（Steam対応、最終ビルド）を実装し、
 
 | バージョン | テスト数 | 合格 | 不合格 | 備考 |
 |-----------|---------|------|--------|------|
-| Ver.0.1 | 42 | 42 | 0 | TestLaunchVer01Tests（TutorialSystem 20件 + ContextHelpSystem 18件 + SaveData 4件） |
-| Core.Tests全体 | 6961 | 6961 | 0 | GUIテスト除外 |
+| Ver.0.1 | 73 | 73 | 0 | TestLaunchVer01Tests（TutorialSystem 20件 + ContextHelpSystem 18件 + SaveData 4件 + Accessibility 23件 + EdgeCase 8件） |
+| Core.Tests全体 | 6992 | 6992 | 0 | GUIテスト除外 |
 
 ---
 

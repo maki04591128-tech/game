@@ -1,10 +1,11 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace RougelikeGame.Core.Systems;
 
 /// <summary>
-/// ゲーム設定を管理するクラス（音量・表示設定等）
+/// ゲーム設定を管理するクラス（音量・表示設定・アクセシビリティ等）
 /// </summary>
 public class GameSettings
 {
@@ -18,7 +19,8 @@ public class GameSettings
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     /// <summary>マスター音量 (0.0 - 1.0)</summary>
@@ -39,6 +41,21 @@ public class GameSettings
     /// <summary>ウィンドウ高さ</summary>
     public int WindowHeight { get; set; } = DefaultWindowHeight;
 
+    /// <summary>U.5: 色覚モード</summary>
+    public ColorBlindMode ColorBlindMode { get; set; } = DefaultColorBlindMode;
+
+    /// <summary>U.5: ハイコントラストモード</summary>
+    public bool HighContrastMode { get; set; } = DefaultHighContrastMode;
+
+    /// <summary>U.5: ゲーム速度倍率 (0.25 - 2.0)</summary>
+    public float GameSpeedMultiplier { get; set; } = DefaultGameSpeedMultiplier;
+
+    /// <summary>U.5: スクリーンリーダーモード</summary>
+    public bool ScreenReaderMode { get; set; } = DefaultScreenReaderMode;
+
+    /// <summary>U.5: 大きなポインタ</summary>
+    public bool LargePointer { get; set; } = DefaultLargePointer;
+
     // デフォルト値
     public const float DefaultMasterVolume = 0.8f;
     public const float DefaultBgmVolume = 0.8f;
@@ -46,6 +63,11 @@ public class GameSettings
     public const int DefaultFontSize = 14;
     public const int DefaultWindowWidth = 1024;
     public const int DefaultWindowHeight = 720;
+    public const ColorBlindMode DefaultColorBlindMode = ColorBlindMode.None;
+    public const bool DefaultHighContrastMode = false;
+    public const float DefaultGameSpeedMultiplier = 1.0f;
+    public const bool DefaultScreenReaderMode = false;
+    public const bool DefaultLargePointer = false;
 
     /// <summary>
     /// 実効BGM音量（マスター × BGM）
@@ -73,6 +95,9 @@ public class GameSettings
         FontSize = Math.Clamp(FontSize, 10, 24);
         WindowWidth = Math.Clamp(WindowWidth, 800, 1920);
         WindowHeight = Math.Clamp(WindowHeight, 600, 1080);
+        GameSpeedMultiplier = Math.Clamp(GameSpeedMultiplier, 0.25f, 2.0f);
+        if (!Enum.IsDefined(ColorBlindMode))
+            ColorBlindMode = DefaultColorBlindMode;
     }
 
     /// <summary>
@@ -123,6 +148,11 @@ public class GameSettings
         SeVolume = SeVolume,
         FontSize = FontSize,
         WindowWidth = WindowWidth,
-        WindowHeight = WindowHeight
+        WindowHeight = WindowHeight,
+        ColorBlindMode = ColorBlindMode,
+        HighContrastMode = HighContrastMode,
+        GameSpeedMultiplier = GameSpeedMultiplier,
+        ScreenReaderMode = ScreenReaderMode,
+        LargePointer = LargePointer
     };
 }

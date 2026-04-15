@@ -139,6 +139,17 @@ public class AccessibilitySystem
         );
     }
 
+    /// <summary>GameSettingsからアクセシビリティ設定を適用</summary>
+    public void ApplyFromGameSettings(GameSettings settings)
+    {
+        SetColorBlindMode(settings.ColorBlindMode);
+        SetFontSizeMultiplier(settings.FontSize / 14.0f);
+        SetGameSpeedMultiplier(settings.GameSpeedMultiplier);
+        SetHighContrastMode(settings.HighContrastMode);
+        SetScreenReaderMode(settings.ScreenReaderMode);
+        SetLargePointer(settings.LargePointer);
+    }
+
     private static string TransformForProtanopia(string color) => color switch
     {
         "Red" => "DarkYellow",
