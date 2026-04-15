@@ -20,7 +20,7 @@ public class DamageCalculator
 
     /// <summary>
     /// 物理ダメージを計算
-    /// 基礎ダメージ = (攻撃力 × スキル倍率) - (防御力 × 0.5)
+    /// 基礎ダメージ = (攻撃力 × スキル倍率) - (防御力 × 0.65)
     /// 最終ダメージ = 基礎ダメージ × 乱数(0.9~1.1) × 属性相性 × クリティカル倍率
     /// </summary>
     public DamageResult CalculatePhysicalDamage(PhysicalDamageParams param)
