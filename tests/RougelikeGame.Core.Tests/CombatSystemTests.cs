@@ -461,9 +461,9 @@ public class CombatSystemTests
             CharacterClass = CharacterClass.Mage
         };
 
-        // 20 + (15×5) + (20×2) + (5×2) + 5 + (8×4) = 20 + 75 + 40 + 10 + 5 + 32 = 182
+        // 20 + (15×5) + (20×3) + (5×2) + 5 + (8×4) = 20 + 75 + 60 + 10 + 5 + 32 = 202
         var result = system.CalculateMaxMp(param);
-        Assert.Equal(182, result);
+        Assert.Equal(202, result);
     }
 
     [Fact]
