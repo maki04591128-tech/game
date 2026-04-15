@@ -1,5 +1,6 @@
 using RougelikeGame.Core.Systems;
 using Xunit;
+using System.Linq;
 
 namespace RougelikeGame.Core.Tests;
 
@@ -820,6 +821,267 @@ public class TestLaunchVer01Tests
         var result = system.TransformColor("Red");
         Assert.Equal("Red", result.TransformedColor);
         Assert.Equal(ColorBlindMode.None, result.Mode);
+    }
+
+    #endregion
+
+    #region U.4: 難易度バランステスト
+
+    [Theory]
+    [InlineData(DifficultyLevel.Easy)]
+    [InlineData(DifficultyLevel.Normal)]
+    [InlineData(DifficultyLevel.Hard)]
+    [InlineData(DifficultyLevel.Nightmare)]
+    [InlineData(DifficultyLevel.Ironman)]
+    public void DifficultySettings_AllLevels_HaveValidMultipliers(DifficultyLevel level)
+    {
+        var settings = DifficultySettings.Get(level);
+        Assert.True(settings.EnemyStatMultiplier > 0, "敵ステータス倍率は正の値");
+        Assert.True(settings.ExpMultiplier > 0, "経験値倍率は正の値");
+        Assert.True(settings.HungerDecayMultiplier > 0, "満腹度減少倍率は正の値");
+        Assert.True(settings.TurnLimitMultiplier > 0, "ターン制限倍率は正の値");
+        Assert.True(settings.RescueCount >= 0, "救出回数は0以上");
+        Assert.True(settings.ItemDropMultiplier > 0, "アイテムドロップ倍率は正の値");
+        Assert.True(settings.GoldMultiplier > 0, "ゴールド倍率は正の値");
+        Assert.True(settings.DamageTakenMultiplier > 0, "被ダメージ倍率は正の値");
+        Assert.True(settings.DamageDealtMultiplier > 0, "与ダメージ倍率は正の値");
+    }
+
+    [Fact]
+    public void DifficultySettings_Easy_IsEasierThanNormal()
+    {
+        var easy = DifficultySettings.Easy;
+        var normal = DifficultySettings.Normal;
+        Assert.True(easy.EnemyStatMultiplier < normal.EnemyStatMultiplier, "Easy敵が弱い");
+        Assert.True(easy.ExpMultiplier > normal.ExpMultiplier, "Easy経験値が多い");
+        Assert.True(easy.RescueCount > normal.RescueCount, "Easy救出回数が多い");
+        Assert.True(easy.ItemDropMultiplier > normal.ItemDropMultiplier, "Easyアイテムが多い");
+        Assert.True(easy.DamageTakenMultiplier < normal.DamageTakenMultiplier, "Easy被ダメが少ない");
+    }
+
+    [Fact]
+    public void DifficultySettings_Hard_IsHarderThanNormal()
+    {
+        var hard = DifficultySettings.Hard;
+        var normal = DifficultySettings.Normal;
+        Assert.True(hard.EnemyStatMultiplier > normal.EnemyStatMultiplier, "Hard敵が強い");
+        Assert.True(hard.ExpMultiplier < normal.ExpMultiplier, "Hard経験値が少ない");
+        Assert.True(hard.RescueCount < normal.RescueCount, "Hard救出回数が少ない");
+        Assert.True(hard.DamageTakenMultiplier > normal.DamageTakenMultiplier, "Hard被ダメが多い");
+    }
+
+    [Fact]
+    public void DifficultySettings_Nightmare_IsHarderThanHard()
+    {
+        var nightmare = DifficultySettings.Nightmare;
+        var hard = DifficultySettings.Hard;
+        Assert.True(nightmare.EnemyStatMultiplier > hard.EnemyStatMultiplier, "Nightmare敵がさらに強い");
+        Assert.True(nightmare.RescueCount < hard.RescueCount, "Nightmare救出回数がさらに少ない");
+    }
+
+    [Fact]
+    public void DifficultySettings_Ironman_HasPermaDeath()
+    {
+        var ironman = DifficultySettings.IronmanSettings;
+        Assert.True(ironman.PermaDeath, "Ironmanは永久死亡");
+        Assert.Equal(0, ironman.RescueCount);
+    }
+
+    [Fact]
+    public void DifficultySettings_Normal_HasBalancedValues()
+    {
+        var normal = DifficultySettings.Normal;
+        Assert.Equal(1.0, normal.EnemyStatMultiplier);
+        Assert.Equal(1.0, normal.ExpMultiplier);
+        Assert.Equal(1.0, normal.HungerDecayMultiplier);
+        Assert.Equal(1.0, normal.TurnLimitMultiplier);
+        Assert.Equal(1.0, normal.ItemDropMultiplier);
+        Assert.Equal(1.0, normal.GoldMultiplier);
+        Assert.Equal(1.0, normal.DamageTakenMultiplier);
+        Assert.Equal(1.0, normal.DamageDealtMultiplier);
+        Assert.False(normal.PermaDeath);
+    }
+
+    [Theory]
+    [InlineData(DifficultyLevel.Easy)]
+    [InlineData(DifficultyLevel.Normal)]
+    [InlineData(DifficultyLevel.Hard)]
+    [InlineData(DifficultyLevel.Nightmare)]
+    [InlineData(DifficultyLevel.Ironman)]
+    public void DifficultySettings_AllLevels_HaveDisplayNameAndDescription(DifficultyLevel level)
+    {
+        var settings = DifficultySettings.Get(level);
+        Assert.False(string.IsNullOrEmpty(settings.DisplayName));
+        Assert.False(string.IsNullOrEmpty(settings.Description));
+        Assert.Equal(level, settings.Level);
+    }
+
+    #endregion
+
+    #region T.1: 統合テスト
+
+    [Fact]
+    public void Integration_AccessibilitySystem_WithGameSettings_RoundTrip()
+    {
+        var settings = new GameSettings
+        {
+            ColorBlindMode = ColorBlindMode.Tritanopia,
+            HighContrastMode = true,
+            GameSpeedMultiplier = 0.5f,
+            FontSize = 20
+        };
+        var system = new AccessibilitySystem();
+        system.ApplyFromGameSettings(settings);
+
+        Assert.Equal(ColorBlindMode.Tritanopia, system.Config.ColorMode);
+        Assert.True(system.Config.HighContrastMode);
+        Assert.Equal(0.5f, system.Config.GameSpeedMultiplier);
+
+        var transformed = system.TransformColor("Blue");
+        Assert.Equal("Cyan", transformed.TransformedColor);
+    }
+
+    [Fact]
+    public void Integration_SaveData_WithDifficulty_IsPreserved()
+    {
+        var data = new SaveData { Difficulty = DifficultyLevel.Nightmare };
+        data.Validate();
+        Assert.Equal(DifficultyLevel.Nightmare, data.Difficulty);
+    }
+
+    [Fact]
+    public void Integration_TutorialSystem_WithHelpSystem_BothWork()
+    {
+        var tutorial = new TutorialSystem();
+        var help = new ContextHelpSystem();
+        help.RegisterDefaultTopics();
+
+        var step = tutorial.OnTrigger(TutorialTrigger.GameStart);
+        Assert.NotNull(step);
+
+        var topics = help.Topics.Values.ToList();
+        Assert.True(topics.Count > 0);
+    }
+
+    [Fact]
+    public void Integration_DifficultySettings_WithSaveData_AllLevelsValid()
+    {
+        foreach (DifficultyLevel level in Enum.GetValues(typeof(DifficultyLevel)))
+        {
+            var data = new SaveData { Difficulty = level };
+            var settings = DifficultySettings.Get(data.Difficulty);
+            Assert.NotNull(settings);
+            Assert.Equal(level, settings.Level);
+        }
+    }
+
+    [Fact]
+    public void Integration_AccessibilitySystem_ResetAndReapply()
+    {
+        var system = new AccessibilitySystem();
+        system.SetColorBlindMode(ColorBlindMode.Monochrome);
+        system.SetHighContrastMode(true);
+        Assert.Equal(ColorBlindMode.Monochrome, system.Config.ColorMode);
+
+        system.ResetToDefaults();
+        Assert.Equal(ColorBlindMode.None, system.Config.ColorMode);
+        Assert.False(system.Config.HighContrastMode);
+
+        var settings = new GameSettings { ColorBlindMode = ColorBlindMode.Protanopia };
+        system.ApplyFromGameSettings(settings);
+        Assert.Equal(ColorBlindMode.Protanopia, system.Config.ColorMode);
+    }
+
+    [Fact]
+    public void Integration_SaveData_Validate_FixesMultipleIssues()
+    {
+        var data = new SaveData
+        {
+            CurrentFloor = -1,
+            TurnCount = -100,
+            TotalDeaths = -5,
+            BankBalance = -999,
+            Difficulty = DifficultyLevel.Hard,
+            Player = null!,
+            MessageHistory = null!,
+            ActiveQuests = null!
+        };
+        data.Validate();
+
+        Assert.Equal(0, data.CurrentFloor);
+        Assert.Equal(0, data.TurnCount);
+        Assert.Equal(0, data.TotalDeaths);
+        Assert.Equal(0, data.BankBalance);
+        Assert.Equal(DifficultyLevel.Hard, data.Difficulty);
+        Assert.NotNull(data.Player);
+        Assert.NotNull(data.MessageHistory);
+        Assert.NotNull(data.ActiveQuests);
+    }
+
+    [Fact]
+    public void Integration_GameSettings_AllDefaults_AreValid()
+    {
+        var settings = GameSettings.CreateDefault();
+        settings.Validate();
+        Assert.Equal(GameSettings.DefaultMasterVolume, settings.MasterVolume);
+        Assert.Equal(GameSettings.DefaultBgmVolume, settings.BgmVolume);
+        Assert.Equal(GameSettings.DefaultSeVolume, settings.SeVolume);
+        Assert.Equal(GameSettings.DefaultFontSize, settings.FontSize);
+        Assert.Equal(GameSettings.DefaultColorBlindMode, settings.ColorBlindMode);
+        Assert.Equal(GameSettings.DefaultHighContrastMode, settings.HighContrastMode);
+        Assert.Equal(GameSettings.DefaultGameSpeedMultiplier, settings.GameSpeedMultiplier);
+        Assert.Equal(GameSettings.DefaultScreenReaderMode, settings.ScreenReaderMode);
+        Assert.Equal(GameSettings.DefaultLargePointer, settings.LargePointer);
+    }
+
+    [Fact]
+    public void Integration_GameSettings_ExtremeValues_AreClamped()
+    {
+        var settings = new GameSettings
+        {
+            MasterVolume = 5.0f,
+            BgmVolume = -1.0f,
+            SeVolume = 100f,
+            FontSize = 0,
+            WindowWidth = 100,
+            WindowHeight = 50000,
+            GameSpeedMultiplier = 99f,
+            ColorBlindMode = (ColorBlindMode)255
+        };
+        settings.Validate();
+        Assert.Equal(1.0f, settings.MasterVolume);
+        Assert.Equal(0f, settings.BgmVolume);
+        Assert.Equal(1.0f, settings.SeVolume);
+        Assert.Equal(10, settings.FontSize);
+        Assert.Equal(800, settings.WindowWidth);
+        Assert.Equal(1080, settings.WindowHeight);
+        Assert.Equal(2.0f, settings.GameSpeedMultiplier);
+        Assert.Equal(ColorBlindMode.None, settings.ColorBlindMode);
+    }
+
+    [Fact]
+    public void Integration_ContextHelpSystem_TopicsHaveNonEmptyContent()
+    {
+        var help = new ContextHelpSystem();
+        help.RegisterDefaultTopics();
+        var topics = help.Topics.Values.ToList();
+        foreach (var topic in topics)
+        {
+            Assert.False(string.IsNullOrEmpty(topic.Title), $"トピックのタイトルが空: {topic.Category}");
+            Assert.False(string.IsNullOrEmpty(topic.Content), $"トピックの内容が空: {topic.Title}");
+        }
+    }
+
+    [Fact]
+    public void Integration_TutorialSystem_CompletingAll_SetsComplete()
+    {
+        var system = new TutorialSystem();
+        foreach (TutorialTrigger trigger in Enum.GetValues(typeof(TutorialTrigger)))
+        {
+            system.OnTrigger(trigger);
+        }
+        Assert.True(system.IsComplete);
+        Assert.Equal(system.TotalSteps, system.CompletedCount);
     }
 
     #endregion
