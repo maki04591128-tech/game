@@ -70,8 +70,9 @@ public class LocalCloudSaveService : IPlatformCloudSaveService
             File.WriteAllBytes(path, data);
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CloudSave] WriteFile failed: {fileName} - {ex.Message}");
             return false;
         }
     }
@@ -83,8 +84,9 @@ public class LocalCloudSaveService : IPlatformCloudSaveService
             var path = Path.Combine(_saveDirectory, fileName);
             return File.Exists(path) ? File.ReadAllBytes(path) : null;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CloudSave] ReadFile failed: {fileName} - {ex.Message}");
             return null;
         }
     }
@@ -106,8 +108,9 @@ public class LocalCloudSaveService : IPlatformCloudSaveService
             }
             return false;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CloudSave] DeleteFile failed: {fileName} - {ex.Message}");
             return false;
         }
     }
@@ -122,8 +125,9 @@ public class LocalCloudSaveService : IPlatformCloudSaveService
                 .Cast<string>()
                 .ToList();
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[CloudSave] GetFileList failed: {ex.Message}");
             return Array.Empty<string>();
         }
     }
