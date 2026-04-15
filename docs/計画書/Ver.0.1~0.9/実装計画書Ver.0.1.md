@@ -1,7 +1,7 @@
 ﻿# 実装計画書 Ver.0.1〜0.9（テストローンチ）
 
 **目標**: デバッグ、遊びやすさ改善、Steam対応、正式リリース準備
-**状態**: ⬜ 未着手
+**状態**: 🔧 実装中
 
 ---
 
@@ -38,9 +38,9 @@ Phase 6 の残りタスク（Steam対応、最終ビルド）を実装し、
 
 | # | タスク | 状態 | 備考 |
 |---|--------|------|------|
-| U.1 | チュートリアル強化 | ⬜ | 初回プレイ時のインタラクティブガイド |
-| U.2 | ヒント表示システム | ⬜ | 状況に応じたヒントポップアップ |
-| U.3 | ゲームオーバー画面改善 | ⬜ | 死因表示、統計、リトライ導線 |
+| U.1 | チュートリアル強化 | ✅ | チュートリアルトリガー18種をGameControllerの各イベントに接続（GameStart/FirstEnemySight/FirstItemPickup/FirstStairs/FirstDeath/FirstLevelUp/FirstEquipChange/FirstPotionUse/FirstCrafting/FirstSpellCast/FirstNpcTalk/FirstShopVisit/FirstTempleVisit/FirstGuildVisit/FirstBossEncounter/ReachFloor5/ReachFloor10/FirstMagicWord） |
+| U.2 | ヒント表示システム | ✅ | ContextHelpSystemを7→26トピックに拡充。移動4/戦闘5/インベントリ4/魔法2/クラフト2/サバイバル5/上級4のヘルプトピック。キーバインド検索・コンテキスト検索対応 |
+| U.3 | ゲームオーバー画面改善 | ✅ | 死因詳細テキスト表示、統計情報（レベル/種族/職業/撃破数/最深階層/所持金/アイテム数/正気度/ターン数）。GameOverStatisticsレコード、GetGameOverStatistics()メソッド追加。TotalEnemiesDefeated/DeepestFloorReachedをセーブ/ロード対応 |
 | U.4 | 難易度バランス最終調整 | ⬜ | プレイテストに基づく数値調整 |
 | U.5 | アクセシビリティ | ⬜ | 色覚対応、フォントサイズ変更、キーリマップ |
 
@@ -54,6 +54,15 @@ Phase 6 の残りタスク（Steam対応、最終ビルド）を実装し、
 | C.2 | フィードバック反映 | ⬜ | 報告された不具合・要望の対応 |
 | C.3 | Steamストアページ作成 | ⬜ | スクリーンショット、PV、説明文、タグ |
 | C.4 | Ver.1.0 最終確認 | ⬜ | 全コンテンツ・全システムの最終チェック |
+
+---
+
+## 6. テスト実績
+
+| バージョン | テスト数 | 合格 | 不合格 | 備考 |
+|-----------|---------|------|--------|------|
+| Ver.0.1 | 42 | 42 | 0 | TestLaunchVer01Tests（TutorialSystem 20件 + ContextHelpSystem 18件 + SaveData 4件） |
+| Core.Tests全体 | 6961 | 6961 | 0 | GUIテスト除外 |
 
 ---
 
