@@ -28,9 +28,9 @@ Phase 6 の残りタスク（Steam対応、最終ビルド）を実装し、
 |---|--------|------|------|
 | T.1 | 統合テスト | ✅ | AccessibilitySystem×GameSettings統合・SaveData×Difficulty統合・Tutorial×Help統合・DifficultySettings全レベル検証・GameSettings極値クランプ・ContextHelpSystem内容検証・TutorialSystem全ステップ完了検証。テスト10件追加 |
 | T.2 | エッジケース対応 | ✅ | セーブデータ自動バックアップ・破損時復旧・値バリデーション（SaveData.Validate/SaveManager.TryLoadBackup）。負値クランプ・nullコレクション防御・HP/MP/満腹度/渇き/正気度範囲チェック。テスト8件追加 |
-| T.3 | メモリリーク検出 | ⬜ | 長時間プレイ時のメモリ使用量監視 |
-| T.4 | パフォーマンステスト | ⬜ | 大規模マップ、大量敵、描画負荷測定 |
-| T.5 | クロスバージョンセーブ互換 | ⬜ | バージョンアップ時のセーブデータ互換性 |
+| T.3 | メモリリーク検出 | ✅ | ResourceTrackerシステム新規実装（リソース追跡・リーク検出・ピークメモリ監視）。GC回収可能性テスト・大量リスト生成テスト。テスト10件追加 |
+| T.4 | パフォーマンステスト | ✅ | DungeonMap生成（80x50/200x200）・DungeonGenerator標準生成・5階層連続生成・100体敵生成・SaveDataシリアライズ/デシリアライズ・大量インベントリ(500件)・Validate1000回ベンチマーク。テスト9件追加 |
+| T.5 | クロスバージョンセーブ互換 | ✅ | バージョン1ロード・新フィールド欠落時デフォルト値・未知フィールド無視・nullコレクションValidate初期化・同バージョンラウンドトリップ・PlayerData全フィールド保持・全難易度レベル保持・空コレクション保持・破損JSON検出・未来バージョン検出。テスト10件追加 |
 
 ---
 
@@ -61,8 +61,8 @@ Phase 6 の残りタスク（Steam対応、最終ビルド）を実装し、
 
 | バージョン | テスト数 | 合格 | 不合格 | 備考 |
 |-----------|---------|------|--------|------|
-| Ver.0.1 | 98 | 98 | 0 | TestLaunchVer01Tests（Tutorial 20件 + ContextHelp 18件 + SaveData 4件 + Accessibility 23件 + EdgeCase 8件 + DifficultyBalance 13件 + Integration 10件 + using 2件） |
-| Core.Tests全体 | 6992 | 6992 | 0 | GUIテスト除外 |
+| Ver.0.1 | 127 | 127 | 0 | TestLaunchVer01Tests（Tutorial 20件 + ContextHelp 18件 + SaveData 4件 + Accessibility 23件 + EdgeCase 8件 + DifficultyBalance 13件 + Integration 10件 + using 2件 + ResourceTracker 10件 + Performance 9件 + SaveCompat 10件） |
+| Core.Tests全体 | 7046 | 7046 | 0 | GUIテスト除外 |
 
 ---
 
