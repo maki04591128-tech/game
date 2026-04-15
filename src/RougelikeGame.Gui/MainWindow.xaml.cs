@@ -349,6 +349,22 @@ public partial class MainWindow : Window
         _heldMovementKeys.Remove(e.Key);
     }
 
+    /// <summary>
+    /// β.15: ウィンドウリサイズ時にフォントサイズ・レイアウトを動的調整
+    /// </summary>
+    private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // 基準サイズ 1024x720 に対する縮尺を計算
+        double widthScale = e.NewSize.Width / 1024.0;
+        double heightScale = e.NewSize.Height / 720.0;
+        double scale = Math.Min(widthScale, heightScale);
+
+        // ステータスバーとキーヘルプのフォントサイズを縮尺に合わせて調整
+        double baseFontSize = 11.0;
+        double adjustedFontSize = Math.Max(9.0, Math.Min(14.0, baseFontSize * scale));
+        KeyHelpText.FontSize = adjustedFontSize;
+    }
+
     private void UpdateDisplay()
     {
         // ステータス更新
@@ -658,18 +674,40 @@ public partial class MainWindow : Window
         _audioManager.StopBgm();
         _audioManager.PlayBgm(BgmIds.GameOver, loop: false);
 
+        // U.3: 統計情報を取得してゲームオーバー画面に表示
+        var stats = _gameController.GetGameOverStatistics();
         string result;
         if (_gameController.IsGameOver && !_gameController.Player.IsAlive)
         {
-            result = $"あなたは第{_gameController.CurrentFloor}層で力尽きた...\n\n到達階層: 第{_gameController.CurrentFloor}層\n{_gameController.GameTime.ToFullString()}\n死亡回数: {_gameController.TotalDeaths}回";
+            result = $"あなたは第{stats.CurrentFloor}層で{stats.DeathCause}...\n\n"
+                   + $"━━━━ 冒険の記録 ━━━━\n\n"
+                   + $"🧙 {stats.PlayerName}  ({stats.PlayerRace} / {stats.PlayerClass})\n"
+                   + $"📊 レベル: {stats.PlayerLevel}\n"
+                   + $"🗺️ 到達階層: 第{stats.CurrentFloor}層  (最深: 第{stats.DeepestFloor}層)\n"
+                   + $"⚔️ 撃破した敵: {stats.EnemiesDefeated}体\n"
+                   + $"💀 死亡回数: {stats.TotalDeaths}回\n"
+                   + $"💰 所持金: {stats.GoldEarned}G\n"
+                   + $"🎒 所持アイテム: {stats.ItemsCollected}個\n"
+                   + $"🧠 正気度: {stats.SanityRemaining}\n\n"
+                   + $"⏱️ {stats.GameTimeText}\n"
+                   + $"ターン数: {stats.TotalTurns}";
         }
         else if (_gameController.IsGameOver && _gameController.Player.IsAlive)
         {
-            result = $"時間切れ — 世界の崩壊に巻き込まれた...\n\n到達階層: 第{_gameController.CurrentFloor}層\n{_gameController.GameTime.ToFullString()}\n死亡回数: {_gameController.TotalDeaths}回";
+            result = $"時間切れ — 世界の崩壊に巻き込まれた...\n\n"
+                   + $"━━━━ 冒険の記録 ━━━━\n\n"
+                   + $"🧙 {stats.PlayerName}  ({stats.PlayerRace} / {stats.PlayerClass})\n"
+                   + $"📊 レベル: {stats.PlayerLevel}\n"
+                   + $"🗺️ 到達階層: 第{stats.CurrentFloor}層  (最深: 第{stats.DeepestFloor}層)\n"
+                   + $"⚔️ 撃破した敵: {stats.EnemiesDefeated}体\n"
+                   + $"💀 死亡回数: {stats.TotalDeaths}回\n"
+                   + $"💰 所持金: {stats.GoldEarned}G\n\n"
+                   + $"⏱️ {stats.GameTimeText}\n"
+                   + $"ターン数: {stats.TotalTurns}";
         }
         else
         {
-            result = $"冒険終了\n\n到達階層: 第{_gameController.CurrentFloor}層\n{_gameController.GameTime.ToFullString()}";
+            result = $"冒険終了\n\n到達階層: 第{stats.CurrentFloor}層\n{stats.GameTimeText}";
         }
 
         // β.21: 専用ゲームオーバー画面を表示（MessageBox→GameOverWindow）

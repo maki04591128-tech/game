@@ -148,6 +148,29 @@ public class EnemyFactory
                 composite.AddBehavior(new IdleBehavior(0.1f));
                 break;
 
+            case EnemyType.Berserker:
+                composite.AddBehavior(new BerserkerBehavior(0.4f));
+                composite.AddBehavior(new AggressiveBehavior(15));
+                composite.AddBehavior(new ChaseBehavior());
+                composite.AddBehavior(new PatrolBehavior());
+                composite.AddBehavior(new IdleBehavior(0.0f));
+                break;
+
+            case EnemyType.Guardian:
+                composite.AddBehavior(new DefensiveBehavior(8));
+                composite.AddBehavior(new AggressiveBehavior(10));
+                composite.AddBehavior(new ChaseBehavior());
+                composite.AddBehavior(new IdleBehavior(0.0f));
+                break;
+
+            case EnemyType.Ranged:
+                composite.AddBehavior(new RangedBehavior(6));
+                composite.AddBehavior(new FleeBehavior());
+                composite.AddBehavior(new AlertBehavior());
+                composite.AddBehavior(new PatrolBehavior());
+                composite.AddBehavior(new IdleBehavior(0.1f));
+                break;
+
             default:
                 composite.AddBehavior(new IdleBehavior());
                 break;
@@ -610,7 +633,289 @@ public static class EnemyDefinitions
         Race: MonsterRace.Beast
     );
 
-    // === 辺境領域 ===
+    // === 沼地領域 ===
+    public static readonly EnemyDefinition SwampLizard = new(
+        TypeId: "swamp_lizard",
+        Name: "沼地蜥蜴",
+        Description: "湿地帯に棲む巨大な蜥蜴。鱗は水を弾き、尾の一撃は成人の骨を砕くほどの威力を持つ。沼の泥に紛れて獲物を待ち伏せする狡猾なハンター。",
+        BaseStats: new Stats(8, 9, 7, 6, 3, 4, 5, 1, 4),
+        EnemyType: EnemyType.Normal,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 20,
+        DropTableId: "drop_slime",
+        Race: MonsterRace.Beast
+    );
+
+    public static readonly EnemyDefinition SwampToad = new(
+        TypeId: "swamp_toad",
+        Name: "毒蛙",
+        Description: "猛毒を持つ巨大な蛙。その毒は接触するだけで皮膚を焼き、吸い込めば意識を失う。鳴き声で仲間を呼ぶ習性がある。",
+        BaseStats: new Stats(5, 8, 4, 3, 2, 5, 8, 1, 5),
+        EnemyType: EnemyType.Ambusher,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 15,
+        DropTableId: "drop_spider",
+        SightRange: 5,
+        HearingRange: 10,
+        Race: MonsterRace.Insect
+    );
+
+    public static readonly EnemyDefinition SwampWitch = new(
+        TypeId: "swamp_witch",
+        Name: "沼の魔女",
+        Description: "沼地の奥深くに棲む孤独な魔女。呪術と沼の瘴気を操り、アンデッドの従僕を使役する。かつては名のある魔術師だったという噂もある。",
+        BaseStats: new Stats(5, 6, 6, 7, 14, 12, 10, 8, 6),
+        EnemyType: EnemyType.Summoner,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 55,
+        DropTableId: "drop_dark_elf",
+        FleeThreshold: 0.3f,
+        Race: MonsterRace.Humanoid,
+        WeaponType: Items.WeaponType.Staff
+    );
+
+    public static readonly EnemyDefinition SwampLord = new(
+        TypeId: "boss_swamp_lord",
+        Name: "沼地の主",
+        Description: "太古より沼地の最深部に君臨する古竜の末裔。全身が黒い鱗に覆われ、毒の霧を纏い、水中から不意に現れて獲物を丸呑みにする。",
+        BaseStats: new Stats(22, 25, 10, 8, 12, 18, 14, 5, 8),
+        EnemyType: EnemyType.Berserker,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 500,
+        DropTableId: "drop_dark_elf",
+        SightRange: 12,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Dragon
+    );
+
+    // === 凍土領域 ===
+    public static readonly EnemyDefinition IceWolf = new(
+        TypeId: "ice_wolf",
+        Name: "氷原狼",
+        Description: "極寒の凍土に適応した大型の白狼。群れで獲物を追い詰め、氷の吹雪の中でも正確に獲物を捕捉する鋭い嗅覚を持つ。",
+        BaseStats: new Stats(10, 8, 12, 8, 2, 5, 10, 1, 5),
+        EnemyType: EnemyType.Pack,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 22,
+        DropTableId: "drop_slime",
+        SightRange: 10,
+        HearingRange: 12,
+        FleeThreshold: 0.3f,
+        Race: MonsterRace.Beast
+    );
+
+    public static readonly EnemyDefinition FrostGiant = new(
+        TypeId: "frost_giant",
+        Name: "霜の巨人",
+        Description: "永久凍土の奥に棲む巨人族の生き残り。身の丈は人の三倍を超え、凍りついた大地そのもののような肌を持つ。投げつける氷塊は岩をも砕く。",
+        BaseStats: new Stats(18, 20, 4, 5, 6, 10, 6, 2, 3),
+        EnemyType: EnemyType.Aggressive,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 60,
+        DropTableId: "drop_orc",
+        SightRange: 10,
+        GiveUpDistance: 25,
+        FleeThreshold: 0.1f,
+        Race: MonsterRace.Humanoid
+    );
+
+    public static readonly EnemyDefinition IceWraith = new(
+        TypeId: "ice_wraith",
+        Name: "氷霊",
+        Description: "吹雪の中に現れる半透明の霊体。凍死した旅人の怨念が氷の精霊と融合して生まれたとされる。触れるものすべてを凍りつかせる。",
+        BaseStats: new Stats(4, 4, 9, 7, 12, 10, 12, 1, 8),
+        EnemyType: EnemyType.Normal,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 30,
+        DropTableId: "drop_skeleton",
+        SightRange: 8,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Spirit
+    );
+
+    public static readonly EnemyDefinition FrostWyrm = new(
+        TypeId: "boss_frost_wyrm",
+        Name: "氷竜",
+        Description: "凍土の最深部の氷洞に眠る太古の氷竜。目覚めれば吹雪を巻き起こし、その氷のブレスは生あるもの全てを凍てつかせる。古の北方民族が神として崇めた存在。",
+        BaseStats: new Stats(28, 30, 8, 7, 16, 20, 12, 5, 6),
+        EnemyType: EnemyType.Guardian,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 600,
+        DropTableId: "drop_dark_elf",
+        SightRange: 14,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Dragon
+    );
+
+    // === 湖畔領域 ===
+    public static readonly EnemyDefinition WaterNymph = new(
+        TypeId: "water_nymph",
+        Name: "水妖精",
+        Description: "清らかな湖に棲む水の精霊。普段は穏やかだが、湖を汚す者には容赦なく水流の刃を向ける。その歌声は旅人を惑わせる。",
+        BaseStats: new Stats(4, 5, 10, 8, 10, 8, 8, 12, 7),
+        EnemyType: EnemyType.Normal,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 20,
+        DropTableId: "drop_goblin",
+        SightRange: 8,
+        Race: MonsterRace.Spirit
+    );
+
+    public static readonly EnemyDefinition Kappa = new(
+        TypeId: "kappa",
+        Name: "河童",
+        Description: "湖畔に潜む水棲の小型人型生物。甲羅と嘴を持ち、水中での戦闘に長ける。頭の皿が渇くと力を失うという弱点がある。",
+        BaseStats: new Stats(8, 7, 9, 10, 5, 6, 8, 3, 6),
+        EnemyType: EnemyType.Ambusher,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 18,
+        DropTableId: "drop_goblin",
+        SightRange: 6,
+        HearingRange: 10,
+        FleeThreshold: 0.35f,
+        Race: MonsterRace.Humanoid
+    );
+
+    public static readonly EnemyDefinition GiantFish = new(
+        TypeId: "giant_fish",
+        Name: "巨大魚",
+        Description: "湖底に潜む巨大な淡水魚。通常は深い水底でじっとしているが、獲物を見つけると驚異的な速度で突進する。鋭い歯は鎧すら貫く。",
+        BaseStats: new Stats(14, 12, 8, 4, 1, 3, 4, 1, 3),
+        EnemyType: EnemyType.Aggressive,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 25,
+        DropTableId: "drop_slime",
+        SightRange: 5,
+        FleeThreshold: 0.15f,
+        Race: MonsterRace.Beast
+    );
+
+    public static readonly EnemyDefinition LakeSerpent = new(
+        TypeId: "boss_lake_serpent",
+        Name: "湖の大蛇",
+        Description: "湖の最深部に棲むとされる伝説の大蛇。時折湖面に巨大な影を落とし、漁師たちの畏怖の対象となっている。その体は宝石のような鱗で覆われている。",
+        BaseStats: new Stats(24, 22, 12, 10, 10, 15, 10, 4, 6),
+        EnemyType: EnemyType.Berserker,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 500,
+        DropTableId: "drop_dark_elf",
+        SightRange: 10,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Dragon
+    );
+
+    // === 火山領域 ===
+    public static readonly EnemyDefinition LavaSlime = new(
+        TypeId: "lava_slime",
+        Name: "溶岩スライム",
+        Description: "溶岩の中から生まれた灼熱のスライム。通常のスライムとは異なり、触れるだけで火傷を負う。倒しても溶岩に接触すると再生する厄介な存在。",
+        BaseStats: new Stats(8, 12, 3, 2, 4, 6, 4, 1, 3),
+        EnemyType: EnemyType.Normal,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 25,
+        DropTableId: "drop_slime",
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Amorphous
+    );
+
+    public static readonly EnemyDefinition Salamander = new(
+        TypeId: "salamander",
+        Name: "サラマンダー",
+        Description: "火山の溶岩流に棲む炎の蜥蜴竜。その鱗は常に赤熱し、口からは炎を吐く。耐火の鱗は最高級の防具素材として珍重される。",
+        BaseStats: new Stats(12, 10, 8, 7, 8, 6, 8, 2, 5),
+        EnemyType: EnemyType.Aggressive,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 35,
+        DropTableId: "drop_orc",
+        SightRange: 8,
+        FleeThreshold: 0.15f,
+        Race: MonsterRace.Dragon
+    );
+
+    public static readonly EnemyDefinition FireElemental = new(
+        TypeId: "fire_elemental",
+        Name: "炎の精霊",
+        Description: "火山の火口から生まれた純粋な炎の化身。実体を持たず、物理攻撃がほとんど通じない。水や氷の魔法が有効。",
+        BaseStats: new Stats(6, 8, 10, 8, 16, 14, 10, 3, 6),
+        EnemyType: EnemyType.Aggressive,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 55,
+        DropTableId: "drop_dark_elf",
+        SightRange: 10,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Spirit
+    );
+
+    public static readonly EnemyDefinition VolcanoTitan = new(
+        TypeId: "boss_volcano_titan",
+        Name: "火山の巨神",
+        Description: "火山の溶岩が意思を持って固まったかのような巨大な存在。古の魔術師が封印したとされる太古の構造体で、胸の核に膨大な魔力を秘める。",
+        BaseStats: new Stats(30, 35, 5, 4, 14, 20, 8, 3, 4),
+        EnemyType: EnemyType.Guardian,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 700,
+        DropTableId: "drop_dark_elf",
+        SightRange: 8,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Construct
+    );
+
+    // === 聖域領域 ===
+    public static readonly EnemyDefinition FallenAngel = new(
+        TypeId: "fallen_angel",
+        Name: "堕天使",
+        Description: "かつて神に仕えた天使が堕落した存在。聖なる力と闇の力の両方を操り、人の心の弱さに付け込んで従者とする。その翼は黒く染まっている。",
+        BaseStats: new Stats(10, 8, 12, 10, 18, 16, 14, 10, 8),
+        EnemyType: EnemyType.Summoner,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 70,
+        DropTableId: "drop_dark_elf",
+        SightRange: 12,
+        FleeThreshold: 0.2f,
+        Race: MonsterRace.Demon
+    );
+
+    public static readonly EnemyDefinition HolyGolem = new(
+        TypeId: "holy_golem",
+        Name: "聖域の番人",
+        Description: "聖域を守護するために古代の聖職者が創り出した石の番人。侵入者を排除するためだけに動き、疲れも痛みも知らない。聖なる紋章が刻まれた体は頑強。",
+        BaseStats: new Stats(16, 20, 3, 3, 2, 14, 6, 1, 2),
+        EnemyType: EnemyType.Guardian,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 40,
+        DropTableId: "drop_orc",
+        SightRange: 6,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Construct
+    );
+
+    public static readonly EnemyDefinition Phantom = new(
+        TypeId: "phantom",
+        Name: "亡霊",
+        Description: "聖域の地下に封印された古の邪悪な魂。壁をすり抜け、実体を持たないためほとんどの物理攻撃を無効化する。聖なる武器や光魔法が有効。",
+        BaseStats: new Stats(3, 4, 10, 8, 12, 8, 12, 2, 10),
+        EnemyType: EnemyType.Ambusher,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 30,
+        DropTableId: "drop_skeleton",
+        SightRange: 10,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Undead
+    );
+
+    public static readonly EnemyDefinition SealedDemon = new(
+        TypeId: "boss_sealed_demon",
+        Name: "封印の魔王",
+        Description: "聖域の最深部に千年もの間封印されてきた古の魔王。封印が弱まるにつれてその力を取り戻しつつあり、解放されれば世界を滅ぼしかねない存在。",
+        BaseStats: new Stats(32, 28, 14, 12, 22, 24, 16, 8, 10),
+        EnemyType: EnemyType.Berserker,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 800,
+        DropTableId: "drop_dark_elf",
+        SightRange: 14,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Demon
+    );
     public static readonly EnemyDefinition Werewolf = new(
         TypeId: "werewolf",
         Name: "ウェアウルフ",
@@ -655,6 +960,95 @@ public static class EnemyDefinitions
         FleeThreshold: 0.0f,
         Race: MonsterRace.Undead,
         WeaponType: Items.WeaponType.Greatsword
+    );
+
+    // === 中層バリエーション ===
+    public static readonly EnemyDefinition PoisonSnake = new(
+        TypeId: "poison_snake",
+        Name: "毒蛇",
+        Description: "暗闘に潜む大型の毒蛇。素早い動きと致死性の毒を併せ持つ。噛まれたら数ターン以内に解毒しなければ危険。",
+        BaseStats: new Stats(5, 4, 14, 12, 1, 3, 12, 1, 8),
+        EnemyType: EnemyType.Ambusher,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 18,
+        DropTableId: "drop_spider",
+        SightRange: 5,
+        HearingRange: 12,
+        Race: MonsterRace.Beast
+    );
+
+    public static readonly EnemyDefinition Lich = new(
+        TypeId: "lich",
+        Name: "リッチ",
+        Description: "死を超越した魔術師の成れの果て。膨大な魔力を操り、アンデッドの軍勢を使役する。その核たるフィラクテリを破壊しない限り、何度でも蘇る。",
+        BaseStats: new Stats(5, 6, 4, 5, 22, 20, 10, 4, 6),
+        EnemyType: EnemyType.Summoner,
+        Rank: EnemyRank.Rare,
+        ExperienceReward: 80,
+        DropTableId: "drop_dark_elf",
+        SightRange: 10,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Undead
+    );
+
+    public static readonly EnemyDefinition ShadowAssassin = new(
+        TypeId: "shadow_assassin",
+        Name: "影の暗殺者",
+        Description: "闇に溶けるように動く暗殺者。その正体は闇の教団に魂を売った元人間。姿を消す能力を持ち、背後からの一撃は致命的。",
+        BaseStats: new Stats(10, 6, 16, 18, 8, 6, 14, 3, 10),
+        EnemyType: EnemyType.Ambusher,
+        Rank: EnemyRank.Rare,
+        ExperienceReward: 65,
+        DropTableId: "drop_dark_elf",
+        SightRange: 12,
+        HearingRange: 10,
+        FleeThreshold: 0.25f,
+        Race: MonsterRace.Humanoid,
+        WeaponType: Items.WeaponType.Dagger
+    );
+
+    public static readonly EnemyDefinition CaveBeetle = new(
+        TypeId: "cave_beetle",
+        Name: "地底蟲",
+        Description: "地下深くに棲む巨大な甲虫。硬い甲殻は並の武器を跳ね返し、強力な顎で岩をも砕く。群れで巣を形成し、卵を守るために凶暴化する。",
+        BaseStats: new Stats(10, 14, 5, 4, 1, 3, 4, 1, 2),
+        EnemyType: EnemyType.Pack,
+        Rank: EnemyRank.Common,
+        ExperienceReward: 20,
+        DropTableId: "drop_spider",
+        SightRange: 4,
+        HearingRange: 12,
+        FleeThreshold: 0.1f,
+        Race: MonsterRace.Insect
+    );
+
+    public static readonly EnemyDefinition Basilisk = new(
+        TypeId: "basilisk",
+        Name: "バジリスク",
+        Description: "蛇の体に竜の翼を持つ伝説の魔獣。その視線は石化の呪いを帯び、目を合わせた者は即座に石と化す。鏡で視線を反射すれば自らの力で石化する。",
+        BaseStats: new Stats(14, 12, 6, 5, 10, 8, 14, 2, 6),
+        EnemyType: EnemyType.Normal,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 55,
+        DropTableId: "drop_orc",
+        SightRange: 10,
+        FleeThreshold: 0.1f,
+        Race: MonsterRace.Dragon
+    );
+
+    public static readonly EnemyDefinition Minotaur = new(
+        TypeId: "minotaur",
+        Name: "ミノタウロス",
+        Description: "迷宮の奥に棲む牛頭の巨人。巨大な戦斧を振るい、怒りに駆られると手がつけられなくなる。知性は低いが戦闘本能は極めて高い。",
+        BaseStats: new Stats(20, 18, 8, 6, 3, 8, 6, 1, 4),
+        EnemyType: EnemyType.Berserker,
+        Rank: EnemyRank.Elite,
+        ExperienceReward: 60,
+        DropTableId: "drop_orc",
+        SightRange: 6,
+        GiveUpDistance: 30,
+        FleeThreshold: 0.05f,
+        Race: MonsterRace.Beast
     );
 
     #endregion
@@ -842,11 +1236,52 @@ public static class EnemyDefinitions
         Race: MonsterRace.Demon
     );
 
-    #endregion
+    /// <summary>35階ボス: 炎竜の将（高火力竜族）</summary>
+    public static readonly EnemyDefinition FloorBoss35 = new(
+        TypeId: "floor_boss_35",
+        Name: "炎竜の将",
+        Description: "灼熱の炎を操る竜族の将軍。その咆哮は大地を震わせ、炎のブレスは全てを灰燼に帰す。",
+        BaseStats: new Stats(30, 28, 12, 10, 18, 22, 12, 5, 8),
+        EnemyType: EnemyType.Berserker,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 800,
+        DropTableId: "drop_floor_boss_30",
+        SightRange: 16,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Dragon
+    );
 
-    /// <summary>
-    /// フロアボスを取得（5階ごと）
-    /// </summary>
+    /// <summary>40階ボス: 闇の大魔術師（召喚型ボス）</summary>
+    public static readonly EnemyDefinition FloorBoss40 = new(
+        TypeId: "floor_boss_40",
+        Name: "闇の大魔術師",
+        Description: "闇の深淵から力を汲み上げる大魔術師。無数のアンデッドを召喚し、自らも強力な暗黒魔法で攻撃する。",
+        BaseStats: new Stats(20, 22, 14, 12, 28, 26, 14, 8, 10),
+        EnemyType: EnemyType.Summoner,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 1000,
+        DropTableId: "drop_floor_boss_30",
+        SightRange: 18,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Demon
+    );
+
+    /// <summary>45階ボス: 深淵の支配者（最強格ボス）</summary>
+    public static readonly EnemyDefinition FloorBoss45 = new(
+        TypeId: "floor_boss_45",
+        Name: "深淵の支配者",
+        Description: "深淵の果てに君臨する絶対的な支配者。あらゆる魔法と物理攻撃を操り、その存在は世界の均衡を脅かす。",
+        BaseStats: new Stats(35, 35, 16, 14, 25, 28, 16, 10, 12),
+        EnemyType: EnemyType.Guardian,
+        Rank: EnemyRank.Boss,
+        ExperienceReward: 1500,
+        DropTableId: "drop_floor_boss_30",
+        SightRange: 20,
+        FleeThreshold: 0.0f,
+        Race: MonsterRace.Demon
+    );
+
+    #endregion
     public static EnemyDefinition? GetFloorBoss(int floor) => floor switch
     {
         5 => FloorBoss5,
@@ -855,6 +1290,9 @@ public static class EnemyDefinitions
         20 => FloorBoss20,
         25 => FloorBoss25,
         30 => FloorBoss30,
+        35 => FloorBoss35,
+        40 => FloorBoss40,
+        45 => FloorBoss45,
         _ => null
     };
 
@@ -863,7 +1301,7 @@ public static class EnemyDefinitions
     /// </summary>
     public static IReadOnlyList<EnemyDefinition> GetAllFloorBosses()
     {
-        return new[] { FloorBoss5, FloorBoss10, FloorBoss15, FloorBoss20, FloorBoss25, FloorBoss30 };
+        return new[] { FloorBoss5, FloorBoss10, FloorBoss15, FloorBoss20, FloorBoss25, FloorBoss30, FloorBoss35, FloorBoss40, FloorBoss45 };
     }
 
     /// <summary>
@@ -899,10 +1337,12 @@ public static class EnemyDefinitions
         {
             <= 3 => new[] { Rat, Slime, Goblin },
             <= 6 => new[] { Slime, Goblin, Skeleton, GiantSpider },
-            <= 10 => new[] { Goblin, Skeleton, Orc, GiantSpider },
-            <= 15 => new[] { Skeleton, Orc, GiantSpider, DarkElf },
-            <= 20 => new[] { Orc, DarkElf, Troll, Draugr },
-            _ => new[] { DarkElf, Troll, Draugr }
+            <= 10 => new[] { Goblin, Skeleton, Orc, GiantSpider, CaveBeetle, PoisonSnake },
+            <= 15 => new[] { Skeleton, Orc, GiantSpider, DarkElf, ShadowAssassin },
+            <= 20 => new[] { Orc, DarkElf, Troll, Draugr, Basilisk, Minotaur },
+            <= 30 => new[] { DarkElf, Troll, Draugr, Lich, DeathKnight },
+            <= 40 => new[] { Lich, DeathKnight, FallenAngel, ShadowAssassin },
+            _ => new[] { Lich, DeathKnight, FallenAngel, SealedDemon }
         };
     }
 
@@ -919,12 +1359,12 @@ public static class EnemyDefinitions
             TerritoryId.Coast => new[] { Crab, SeaSerpent, Siren, Skeleton },
             TerritoryId.Southern => new[] { DesertScorpion, Mummy, Sandworm, DarkElf },
             TerritoryId.Frontier => new[] { Werewolf, Troll, Chimera, DeathKnight, Draugr },
-            TerritoryId.Desert => new[] { DesertScorpion, Sandworm, Bandit, Mummy },
-            TerritoryId.Swamp => new[] { GiantSpider, Goblin, Skeleton, Slime },
-            TerritoryId.Tundra => new[] { ForestWolf, Draugr, Skeleton },
-            TerritoryId.Lake => new[] { Crab, SeaSerpent, Rat, Bandit },
-            TerritoryId.Volcanic => new[] { Wyvern, MountainGolem, Troll, DarkElf },
-            TerritoryId.Sacred => new[] { Skeleton, Draugr, DarkElf, DeathKnight },
+            TerritoryId.Desert => new[] { DesertScorpion, Mummy, Sandworm, Basilisk, Bandit },
+            TerritoryId.Swamp => new[] { SwampLizard, SwampToad, SwampWitch, GiantSpider, PoisonSnake },
+            TerritoryId.Tundra => new[] { IceWolf, FrostGiant, IceWraith, Draugr },
+            TerritoryId.Lake => new[] { WaterNymph, Kappa, GiantFish, Crab, SeaSerpent },
+            TerritoryId.Volcanic => new[] { LavaSlime, Salamander, FireElemental, Wyvern, MountainGolem },
+            TerritoryId.Sacred => new[] { FallenAngel, HolyGolem, Phantom, Skeleton, DeathKnight },
             _ => new[] { Slime, Goblin }
         };
     }
@@ -954,16 +1394,20 @@ public static class EnemyDefinitions
                 TerritoryId.Forest => new[] { ForestWolf, Rat, ForestSprite },
                 TerritoryId.Mountain => new[] { Harpy, Rat },
                 TerritoryId.Coast => new[] { Crab, Rat },
-                TerritoryId.Tundra => new[] { ForestWolf, Rat },
+                TerritoryId.Tundra => new[] { IceWolf, Rat },
+                TerritoryId.Lake => new[] { GiantFish, Kappa, Crab },
+                TerritoryId.Volcanic => new[] { Salamander, LavaSlime },
                 _ => new[] { Rat, Slime }
             },
             "アンデッド" => territory switch
             {
                 TerritoryId.Southern => new[] { Skeleton, Mummy, Draugr },
                 TerritoryId.Volcanic => new[] { Skeleton, Draugr, DarkElf },
+                TerritoryId.Sacred => new[] { Phantom, Skeleton, Draugr },
                 _ => new[] { Skeleton, Draugr }
             },
             "魔族" => new[] { DarkElf, Troll, Chimera },
+            "精霊" => new[] { WaterNymph, IceWraith, FireElemental, ForestSprite },
             "エルフ" => new[] { ForestSprite, Rat, Slime },         // エルフ領の安全圏: 弱い敵
             "ドワーフ" => new[] { Rat, Slime },                      // ドワーフ領の安全圏: 弱い敵
             "王国" => new[] { Rat, Slime },                          // 王国領の安全圏: 弱い敵のみ
@@ -978,11 +1422,18 @@ public static class EnemyDefinitions
     {
         return territory switch
         {
+            TerritoryId.Capital => null,
             TerritoryId.Forest => ForestGuardian,
             TerritoryId.Mountain => MountainKing,
             TerritoryId.Coast => DeepSeaLeviathan,
             TerritoryId.Southern => DesertPharaoh,
             TerritoryId.Frontier => FrontierDragon,
+            TerritoryId.Desert => DesertPharaoh,
+            TerritoryId.Swamp => SwampLord,
+            TerritoryId.Tundra => FrostWyrm,
+            TerritoryId.Lake => LakeSerpent,
+            TerritoryId.Volcanic => VolcanoTitan,
+            TerritoryId.Sacred => SealedDemon,
             _ => null
         };
     }
@@ -1077,8 +1528,15 @@ public static class EnemyDefinitions
             MountainGolem, Harpy, Wyvern,
             SeaSerpent, Siren, Crab,
             DesertScorpion, Mummy, Sandworm,
+            SwampLizard, SwampToad, SwampWitch,
+            IceWolf, FrostGiant, IceWraith,
+            WaterNymph, Kappa, GiantFish,
+            LavaSlime, Salamander, FireElemental,
+            FallenAngel, HolyGolem, Phantom,
             Werewolf, Chimera, DeathKnight,
-            ForestGuardian, MountainKing, DeepSeaLeviathan, DesertPharaoh, FrontierDragon, AbyssLord
+            PoisonSnake, Lich, ShadowAssassin, CaveBeetle, Basilisk, Minotaur,
+            ForestGuardian, MountainKing, DeepSeaLeviathan, DesertPharaoh, FrontierDragon, AbyssLord,
+            SwampLord, FrostWyrm, LakeSerpent, VolcanoTitan, SealedDemon
         };
     }
 
@@ -1087,6 +1545,6 @@ public static class EnemyDefinitions
     /// </summary>
     public static IReadOnlyList<EnemyDefinition> GetAllBosses()
     {
-        return new[] { ForestGuardian, MountainKing, DeepSeaLeviathan, DesertPharaoh, FrontierDragon, AbyssLord };
+        return new[] { ForestGuardian, MountainKing, DeepSeaLeviathan, DesertPharaoh, FrontierDragon, AbyssLord, SwampLord, FrostWyrm, LakeSerpent, VolcanoTitan, SealedDemon };
     }
 }

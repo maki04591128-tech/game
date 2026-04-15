@@ -63,6 +63,28 @@ public record NpcDefinition(
             NpcType.QuestGiver, TerritoryId.Frontier, new[] { "dlg_wolf_intro" }, 40),
         new("npc_frontier_hermit", "隠者イゴール", "辺境の洞窟に住む謎の隠者",
             NpcType.Sage, TerritoryId.Frontier, new[] { "dlg_igor_intro" }, 20),
+        // 砂漠領
+        new("npc_desert_elder", "砂漠の長老ファリス", "砂漠の遊牧民を率いる長老。砂の下に眠る遺跡の秘密を知る",
+            NpcType.Sage, TerritoryId.Desert, new[] { "dlg_faris_intro" }, 40),
+        // 沼地領
+        new("npc_swamp_herbalist", "沼地の薬師モーラ", "沼地に自生する希少な薬草を採取する薬師。毒や瘴気に詳しい",
+            NpcType.Alchemist, TerritoryId.Swamp, new[] { "dlg_mora_intro" }, 50),
+        // 凍土領
+        new("npc_tundra_hunter", "凍土の狩人ヨルン", "極寒の地で獣を狩る熟練の猟師。氷の魔物の弱点を知り尽くす",
+            NpcType.QuestGiver, TerritoryId.Tundra, new[] { "dlg_jorn_intro" }, 40),
+        new("npc_tundra_scholar", "氷原の学者エーリカ", "凍土の古代遺跡を研究する学者。古代文明の知識に長ける",
+            NpcType.Sage, TerritoryId.Tundra, new[] { "dlg_erika_intro" }, 30),
+        // 湖畔領
+        new("npc_lake_fisherman", "湖畔の漁師ルーカス", "湖で暮らす漁師。最近湖に出没する魔物に悩まされている",
+            NpcType.Villager, TerritoryId.Lake, new[] { "dlg_lucas_intro" }, 60),
+        new("npc_lake_priestess", "湖の巫女アリア", "湖畔の神殿に仕える巫女。水の精霊と対話できるという",
+            NpcType.Priest, TerritoryId.Lake, new[] { "dlg_aria_intro" }, 40),
+        // 火山領
+        new("npc_volcanic_smith", "火山の鍛冶師イグナス", "火山の溶岩を利用して武具を鍛える伝説の鍛冶師",
+            NpcType.Blacksmith, TerritoryId.Volcanic, new[] { "dlg_ignas_intro" }, 30),
+        // 聖域領
+        new("npc_sacred_priest", "聖域の大神官テオドール", "聖域を守護する大神官。聖なる力で邪悪を退ける",
+            NpcType.Priest, TerritoryId.Sacred, new[] { "dlg_theodor_intro" }, 40),
     };
 
     /// <summary>領地のNPC一覧を取得</summary>
@@ -850,6 +872,126 @@ public static class QuestDatabase
             QuestType.Explore, "npc_southern_mystic", RequiredLevel: 20, RequiredGuildRank: GuildRank.Platinum,
             Objectives: new[] { new QuestObjective("古代遺跡の最深部に到達する", "floor_ruins_10", 1) },
             Reward: new QuestReward(Gold: 3000, Experience: 2000, GuildPoints: 150)),
+
+        // ===== Ver.α.0.9 新領地クエスト追加 =====
+
+        // --- 砂漠領クエスト ---
+        new("quest_desert_scorpion", "砂漠のサソリ退治", "砂漠を徘徊する巨大サソリが隊商を襲っている。討伐してほしい",
+            QuestType.Kill, "npc_guild_master", RequiredLevel: 8, RequiredGuildRank: GuildRank.Iron,
+            Objectives: new[] { new QuestObjective("砂漠サソリを8匹倒す", "enemy_desert_scorpion", 8) },
+            Reward: new QuestReward(Gold: 350, Experience: 180, GuildPoints: 25)),
+
+        new("quest_desert_oasis", "砂漠のオアシス調査", "砂漠の奥地にあるオアシスの異変を調査してほしい",
+            QuestType.Explore, "npc_desert_elder", RequiredLevel: 10, RequiredGuildRank: GuildRank.Silver,
+            Objectives: new[] { new QuestObjective("砂漠ダンジョン7階に到達する", "floor_desert_7", 1) },
+            Reward: new QuestReward(Gold: 600, Experience: 350, GuildPoints: 40)),
+
+        new("quest_desert_pharaoh", "ファラオの墓所", "砂漠に眠る古代ファラオの墓が開かれた。不死の王を鎮めてほしい",
+            QuestType.Kill, "npc_guild_master", RequiredLevel: 15, RequiredGuildRank: GuildRank.Gold,
+            Objectives: new[] { new QuestObjective("砂漠のファラオを倒す", "boss_pharaoh", 1) },
+            Reward: new QuestReward(Gold: 1800, Experience: 1000, GuildPoints: 90)),
+
+        // --- 沼地領クエスト ---
+        new("quest_swamp_toad", "沼地の毒蛙討伐", "沼地の毒蛙が増殖し、近隣の集落に被害が出ている",
+            QuestType.Kill, "npc_swamp_herbalist", RequiredLevel: 6, RequiredGuildRank: GuildRank.Iron,
+            Objectives: new[] { new QuestObjective("毒蛙を6匹倒す", "enemy_swamp_toad", 6) },
+            Reward: new QuestReward(Gold: 280, Experience: 140, GuildPoints: 22)),
+
+        new("quest_swamp_herb", "瘴気の薬草採集", "沼地の奥にしか生えない希少な薬草を集めてきてほしい",
+            QuestType.Collect, "npc_swamp_herbalist", RequiredLevel: 8, RequiredGuildRank: GuildRank.Iron,
+            Objectives: new[] { new QuestObjective("沼地の薬草を5つ集める", "material_swamp_herb", 5) },
+            Reward: new QuestReward(Gold: 400, Experience: 200, GuildPoints: 28)),
+
+        new("quest_swamp_witch", "沼の魔女の討伐", "沼地の奥に潜む魔女がアンデッドを操り、旅人を襲っている",
+            QuestType.Kill, "npc_guild_master", RequiredLevel: 12, RequiredGuildRank: GuildRank.Silver,
+            Objectives: new[] { new QuestObjective("沼の魔女を倒す", "enemy_swamp_witch", 1) },
+            Reward: new QuestReward(Gold: 700, Experience: 400, GuildPoints: 45)),
+
+        // --- 凍土領クエスト ---
+        new("quest_tundra_wolf", "氷原狼の群れ", "凍土を徘徊する氷原狼の群れが村を脅かしている",
+            QuestType.Kill, "npc_tundra_hunter", RequiredLevel: 7, RequiredGuildRank: GuildRank.Iron,
+            Objectives: new[] { new QuestObjective("氷原狼を7匹倒す", "enemy_ice_wolf", 7) },
+            Reward: new QuestReward(Gold: 320, Experience: 160, GuildPoints: 24)),
+
+        new("quest_tundra_crystal", "永久凍結晶の採取", "凍土の洞窟深部にある永久凍結晶を採取してきてほしい",
+            QuestType.Collect, "npc_tundra_scholar", RequiredLevel: 10, RequiredGuildRank: GuildRank.Silver,
+            Objectives: new[] { new QuestObjective("永久凍結晶を3つ集める", "material_permafrost_crystal", 3) },
+            Reward: new QuestReward(Gold: 550, Experience: 300, GuildPoints: 38)),
+
+        new("quest_tundra_wyrm", "氷竜の脅威", "凍土の最奥に棲む氷竜が目覚め、周辺一帯が凍りついている",
+            QuestType.Kill, "npc_guild_master", RequiredLevel: 18, RequiredGuildRank: GuildRank.Gold,
+            Objectives: new[] { new QuestObjective("氷竜を倒す", "boss_frost_wyrm", 1) },
+            Reward: new QuestReward(Gold: 2200, Experience: 1400, GuildPoints: 110)),
+
+        // --- 湖畔領クエスト ---
+        new("quest_lake_fish", "湖の巨大魚退治", "湖に巨大な魚が現れ、漁師たちが困っている",
+            QuestType.Kill, "npc_lake_fisherman", RequiredLevel: 5, RequiredGuildRank: GuildRank.Copper,
+            Objectives: new[] { new QuestObjective("巨大魚を3匹倒す", "enemy_giant_fish", 3) },
+            Reward: new QuestReward(Gold: 200, Experience: 100, GuildPoints: 15)),
+
+        new("quest_lake_nymph", "水妖精との交渉", "湖に棲む水妖精が人里に現れるようになった。話を聞いてきてほしい",
+            QuestType.Talk, "npc_lake_priestess", RequiredLevel: 10, RequiredGuildRank: GuildRank.Silver,
+            Objectives: new[] { new QuestObjective("水妖精の長に話しかける", "talk_water_nymph_elder", 1) },
+            Reward: new QuestReward(Gold: 450, Experience: 250, GuildPoints: 35)),
+
+        new("quest_lake_serpent", "湖の大蛇討伐", "湖底に潜む大蛇が暴れ始めた。冒険者ギルドからの緊急依頼だ",
+            QuestType.Kill, "npc_guild_master", RequiredLevel: 14, RequiredGuildRank: GuildRank.Gold,
+            Objectives: new[] { new QuestObjective("湖の大蛇を倒す", "boss_lake_serpent", 1) },
+            Reward: new QuestReward(Gold: 1600, Experience: 900, GuildPoints: 85)),
+
+        // --- 火山領クエスト ---
+        new("quest_volcanic_ore", "火山鉱の採掘", "火山地帯でしか採れない貴重な火山鉱を採掘してきてほしい",
+            QuestType.Collect, "npc_volcanic_smith", RequiredLevel: 12, RequiredGuildRank: GuildRank.Silver,
+            Objectives: new[] { new QuestObjective("火山鉱を4つ集める", "material_volcanic_ore", 4) },
+            Reward: new QuestReward(Gold: 650, Experience: 350, GuildPoints: 42)),
+
+        new("quest_volcanic_salamander", "サラマンダー討伐", "火山洞窟のサラマンダーが鍛冶場を脅かしている",
+            QuestType.Kill, "npc_volcanic_smith", RequiredLevel: 14, RequiredGuildRank: GuildRank.Silver,
+            Objectives: new[] { new QuestObjective("サラマンダーを5匹倒す", "enemy_salamander", 5) },
+            Reward: new QuestReward(Gold: 750, Experience: 420, GuildPoints: 48)),
+
+        new("quest_volcanic_titan", "火山の巨神", "火山の最深部で巨神が目覚めた。このままでは大噴火が起きかねない",
+            QuestType.Kill, "npc_guild_master", RequiredLevel: 20, RequiredGuildRank: GuildRank.Platinum,
+            Objectives: new[] { new QuestObjective("火山の巨神を倒す", "boss_volcano_titan", 1) },
+            Reward: new QuestReward(Gold: 3500, Experience: 2500, GuildPoints: 180)),
+
+        // --- 聖域クエスト ---
+        new("quest_sacred_phantom", "聖域の亡霊退治", "聖域に彷徨う亡霊を鎮めてほしいと神殿から依頼が来ている",
+            QuestType.Kill, "npc_sacred_priest", RequiredLevel: 15, RequiredGuildRank: GuildRank.Gold,
+            Objectives: new[] { new QuestObjective("亡霊を10体倒す", "enemy_phantom", 10) },
+            Reward: new QuestReward(Gold: 1200, Experience: 700, GuildPoints: 70, FaithPoints: 50)),
+
+        new("quest_sacred_seal", "封印の調査", "聖域の封印が弱まっている。現地を調査して報告してほしい",
+            QuestType.Explore, "npc_sacred_priest", RequiredLevel: 18, RequiredGuildRank: GuildRank.Gold,
+            Objectives: new[] { new QuestObjective("聖域ダンジョン10階に到達する", "floor_sacred_10", 1) },
+            Reward: new QuestReward(Gold: 2000, Experience: 1200, GuildPoints: 100, FaithPoints: 80)),
+
+        new("quest_sacred_demon", "封印の魔王討伐", "聖域の封印が破られ、太古の魔王が解放された。全冒険者への緊急招集だ",
+            QuestType.Kill, "npc_guild_master", RequiredLevel: 25, RequiredGuildRank: GuildRank.Platinum,
+            Objectives: new[] { new QuestObjective("封印の魔王を倒す", "boss_sealed_demon", 1) },
+            Reward: new QuestReward(Gold: 5000, Experience: 4000, GuildPoints: 250, FaithPoints: 150)),
+
+        // --- ミスリルランク クエスト ---
+        new("quest_mythril_deep_abyss", "深淵の探索", "ダンジョン最深部に存在するとされる深淵の裂け目を調査してほしい",
+            QuestType.Explore, "npc_guild_master", RequiredLevel: 28, RequiredGuildRank: GuildRank.Mythril,
+            Objectives: new[] { new QuestObjective("ダンジョン40階に到達する", "floor_abyss_40", 1) },
+            Reward: new QuestReward(Gold: 8000, Experience: 6000, GuildPoints: 400)),
+
+        new("quest_mythril_dragon_slayer", "竜殺し", "各地で目覚めた古竜たちが人類を脅かしている。竜殺しの勇者よ、立ち上がれ",
+            QuestType.Kill, "npc_guild_master", RequiredLevel: 30, RequiredGuildRank: GuildRank.Mythril,
+            Objectives: new[] { new QuestObjective("ボスを3体倒す", "boss_any", 3) },
+            Reward: new QuestReward(Gold: 10000, Experience: 8000, GuildPoints: 500)),
+
+        // --- アダマンタインランク クエスト ---
+        new("quest_adamantine_abyss_lord", "深淵の王", "深淵の最奥に潜む王を討伐せよ。これは冒険者ギルド最高位の依頼だ",
+            QuestType.Kill, "npc_guild_master", RequiredLevel: 35, RequiredGuildRank: GuildRank.Adamantine,
+            Objectives: new[] { new QuestObjective("深淵の王を倒す", "boss_abyss_lord", 1) },
+            Reward: new QuestReward(Gold: 20000, Experience: 15000, GuildPoints: 1000)),
+
+        new("quest_adamantine_world_peace", "世界の平和", "全ての脅威を排除し、王国に真の平和をもたらせ",
+            QuestType.Kill, "npc_guild_master", RequiredLevel: 40, RequiredGuildRank: GuildRank.Adamantine,
+            Objectives: new[] { new QuestObjective("全領地ボスを倒す", "boss_all_territory", 11) },
+            Reward: new QuestReward(Gold: 50000, Experience: 30000, GuildPoints: 2000)),
     };
 
     /// <summary>ギルドランクで受注可能なクエストを取得</summary>

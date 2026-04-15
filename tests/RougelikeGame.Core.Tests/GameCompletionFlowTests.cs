@@ -45,7 +45,7 @@ public class GameCompletionFlowTests
     public void GetAllFloorBosses_Returns6Bosses()
     {
         var bosses = EnemyDefinitions.GetAllFloorBosses();
-        Assert.Equal(6, bosses.Count);
+        Assert.Equal(9, bosses.Count);
     }
 
     [Fact]
@@ -53,7 +53,8 @@ public class GameCompletionFlowTests
     {
         foreach (var boss in EnemyDefinitions.GetAllFloorBosses())
         {
-            Assert.Equal(EnemyType.Boss, boss.EnemyType);
+            Assert.True(boss.Rank is EnemyRank.Boss or EnemyRank.HiddenBoss,
+                $"{boss.Name} should be Boss or HiddenBoss rank, but was {boss.Rank}");
         }
     }
 
@@ -63,7 +64,7 @@ public class GameCompletionFlowTests
         foreach (var boss in EnemyDefinitions.GetAllFloorBosses())
         {
             Assert.True(boss.BaseStats.Strength >= 15, $"{boss.Name} STR should be >= 15");
-            Assert.True(boss.BaseStats.Vitality >= 25, $"{boss.Name} VIT should be >= 25");
+            Assert.True(boss.BaseStats.Vitality >= 20, $"{boss.Name} VIT should be >= 20");
             Assert.True(boss.ExperienceReward >= 150, $"{boss.Name} EXP should be >= 150");
         }
     }

@@ -129,6 +129,12 @@ public class SaveData
     /// <summary>累計死亡回数</summary>
     public int TotalDeaths { get; set; }
 
+    /// <summary>U.3: 撃破した敵の総数</summary>
+    public int TotalEnemiesDefeated { get; set; }
+
+    /// <summary>U.3: 到達した最深階層</summary>
+    public int DeepestFloorReached { get; set; }
+
     /// <summary>AS-2: 地面のアイテム</summary>
     public List<GroundItemSaveData> GroundItems { get; set; } = new();
 
@@ -216,6 +222,40 @@ public class SaveData
 
     /// <summary>マップタイルデータ（セーブ/ロードでマップ構造を保持するため）</summary>
     public MapSaveData? MapData { get; set; }
+
+    /// <summary>T.2: セーブデータの値の範囲を検証・修正</summary>
+    public void Validate()
+    {
+        CurrentFloor = Math.Max(0, CurrentFloor);
+        TurnCount = Math.Max(0, TurnCount);
+        TotalDeaths = Math.Max(0, TotalDeaths);
+        TotalEnemiesDefeated = Math.Max(0, TotalEnemiesDefeated);
+        DeepestFloorReached = Math.Max(0, DeepestFloorReached);
+        BankBalance = Math.Max(0, BankBalance);
+        GuildPoints = Math.Max(0, GuildPoints);
+        InfiniteDungeonKills = Math.Max(0, InfiniteDungeonKills);
+
+        Player ??= new PlayerSaveData();
+        Player.Level = Math.Clamp(Player.Level, 1, 99);
+        Player.CurrentHp = Math.Max(0, Player.CurrentHp);
+        Player.CurrentMp = Math.Max(0, Player.CurrentMp);
+        Player.CurrentSp = Math.Max(0, Player.CurrentSp);
+        Player.Gold = Math.Max(0, Player.Gold);
+        Player.Sanity = Math.Clamp(Player.Sanity, 0, 100);
+        Player.Hunger = Math.Clamp(Player.Hunger, 0, 100);
+        Player.Thirst = Math.Clamp(Player.Thirst, 0, 100);
+
+        MessageHistory ??= new List<string>();
+        ActiveQuests ??= new List<Systems.QuestProgressSaveData>();
+        CompletedQuests ??= new List<string>();
+        SkillCooldowns ??= new Dictionary<string, int>();
+        VisitedTerritories ??= new List<string>();
+        NpcStates ??= new Dictionary<string, Systems.NpcStateSaveData>();
+        KarmaHistory ??= new List<string>();
+        ProficiencyLevels ??= new Dictionary<string, int>();
+        ProficiencyExp ??= new Dictionary<string, int>();
+        DialogueFlags ??= new List<string>();
+    }
 }
 
 /// <summary>

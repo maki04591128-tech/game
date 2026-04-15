@@ -21,7 +21,7 @@ public class NpcQuestSystemTests
     public void NpcDefinition_GetAll_Returns16Npcs()
     {
         var all = NpcDefinition.GetAll();
-        Assert.Equal(16, all.Count);
+        Assert.Equal(24, all.Count);
     }
 
     [Fact]
@@ -564,7 +564,7 @@ public class NpcQuestSystemTests
     [Fact]
     public void QuestDatabase_AllQuests_HasExpectedCount()
     {
-        Assert.Equal(11, QuestDatabase.AllQuests.Count);
+        Assert.Equal(33, QuestDatabase.AllQuests.Count);
     }
 
     [Fact]

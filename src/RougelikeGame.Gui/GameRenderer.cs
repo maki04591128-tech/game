@@ -11,6 +11,17 @@ using RougelikeGame.Core.Map;
 namespace RougelikeGame.Gui;
 
 /// <summary>
+/// β.5: 描画モード（アスキー/スプライト切替用）
+/// </summary>
+public enum RenderMode
+{
+    /// <summary>アスキーアート表示（現在のデフォルト）</summary>
+    Ascii,
+    /// <summary>スプライト画像表示（将来実装時に切替）</summary>
+    Sprite
+}
+
+/// <summary>
 /// ゲームマップのレンダリングを担当
 /// </summary>
 public class GameRenderer
@@ -28,8 +39,19 @@ public class GameRenderer
     /// <summary>現在使用中のTextBlockインデックス</summary>
     private int _textPoolIndex;
 
+    /// <summary>β.5: スプライト用Imageプール</summary>
+    private readonly List<Image> _imagePool = new();
+    /// <summary>β.5: 現在使用中のImageインデックス</summary>
+    private int _imagePoolIndex;
+
     public const int TileSize = 20;
     private const string FontFamily = "Consolas";
+
+    /// <summary>β.5: 現在の描画モード（アスキー/スプライト）</summary>
+    public RenderMode CurrentRenderMode { get; set; } = RenderMode.Ascii;
+
+    /// <summary>β.5: スプライトアトラスのキャッシュ（タイル種別→BitmapSource）</summary>
+    private readonly Dictionary<string, BitmapSource> _spriteCache = new();
 
     // タイル色定義
     private static readonly Dictionary<TileType, (Brush Background, Brush Foreground)> TileColors = new()
@@ -111,6 +133,7 @@ public class GameRenderer
         // プールインデックスをリセット（オブジェクトは再利用する）
         _rectPoolIndex = 0;
         _textPoolIndex = 0;
+        _imagePoolIndex = 0;
         _tileRects.Clear();
         _tileTexts.Clear();
     }
@@ -170,6 +193,66 @@ public class GameRenderer
             _rectPool[i].Visibility = Visibility.Collapsed;
         for (int i = _textPoolIndex; i < _textPool.Count; i++)
             _textPool[i].Visibility = Visibility.Collapsed;
+        for (int i = _imagePoolIndex; i < _imagePool.Count; i++)
+            _imagePool[i].Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// β.5: プール済みImageを取得（スプライト描画用。不足時は新規作成してCanvasに追加）
+    /// </summary>
+    private Image RentImage()
+    {
+        if (_imagePoolIndex < _imagePool.Count)
+        {
+            var img = _imagePool[_imagePoolIndex];
+            img.Visibility = Visibility.Visible;
+            _imagePoolIndex++;
+            return img;
+        }
+
+        var newImg = new Image
+        {
+            Width = TileSize,
+            Height = TileSize,
+            Stretch = System.Windows.Media.Stretch.Uniform
+        };
+        _canvas.Children.Add(newImg);
+        _imagePool.Add(newImg);
+        _imagePoolIndex++;
+        return newImg;
+    }
+
+    /// <summary>
+    /// β.5: スプライト画像をキャッシュにロード。
+    /// spriteKey: "floor_stone", "wall_brick" 等のタイル識別子。
+    /// imagePath: スプライト画像ファイルパス。
+    /// 画像が見つからない場合はfalseを返す（ASCII描画にフォールバック）。
+    /// </summary>
+    public bool LoadSprite(string spriteKey, string imagePath)
+    {
+        try
+        {
+            if (System.IO.File.Exists(imagePath))
+            {
+                var bitmap = new BitmapImage(new Uri(imagePath, UriKind.Absolute));
+                bitmap.Freeze(); // スレッドセーフ化
+                _spriteCache[spriteKey] = bitmap;
+                return true;
+            }
+        }
+        catch
+        {
+            // 画像ロード失敗時はASCIIフォールバック
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// β.5: キャッシュされたスプライトを取得。見つからない場合はnull。
+    /// </summary>
+    private BitmapSource? GetCachedSprite(string spriteKey)
+    {
+        return _spriteCache.TryGetValue(spriteKey, out var sprite) ? sprite : null;
     }
 
     public void Render(DungeonMap map, Player player, IEnumerable<Enemy> enemies, IEnumerable<(Item Item, Position Position)> groundItems)

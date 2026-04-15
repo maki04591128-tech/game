@@ -28,6 +28,19 @@ public static class SaveManager
         {
             Directory.CreateDirectory(SaveDirectory);
             var path = GetSavePath(slot);
+
+            // T.2: 既存セーブがあればバックアップを作成
+            if (File.Exists(path))
+            {
+                var backupPath = path + ".bak";
+                try { File.Copy(path, backupPath, overwrite: true); }
+                catch { /* バックアップ失敗は無視 */ }
+            }
+
+            data.Version = CurrentSaveVersion;
+            data.SavedAt = DateTime.UtcNow;
+            ValidateSaveData(data);
+
             var json = JsonSerializer.Serialize(data, JsonOptions);
             File.WriteAllText(path, json);
             return true;
@@ -48,9 +61,24 @@ public static class SaveManager
         try
         {
             var path = GetSavePath(slot);
-            if (!File.Exists(path)) return null;
+            if (!File.Exists(path))
+            {
+                // T.2: バックアップからの自動復旧を試みる
+                var backupPath = path + ".bak";
+                if (File.Exists(backupPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SaveManager] Main save missing, trying backup for slot {slot}");
+                    path = backupPath;
+                }
+                else
+                {
+                    return null;
+                }
+            }
 
             var json = File.ReadAllText(path);
+            if (string.IsNullOrWhiteSpace(json)) return null;
+
             var data = JsonSerializer.Deserialize<SaveData>(json, JsonOptions);
 
             // CA-3: セーブデータバージョン検証
@@ -60,14 +88,54 @@ public static class SaveManager
                 return null;
             }
 
+            if (data != null)
+                ValidateSaveData(data);
+
             return data;
+        }
+        catch (JsonException ex)
+        {
+            // T.2: JSON破損時にバックアップからの復旧を試みる
+            System.Diagnostics.Debug.WriteLine($"[SaveManager] JSON corrupt (slot {slot}): {ex.Message}");
+            return TryLoadBackup(slot);
         }
         catch (Exception ex)
         {
-            // CA-6: 破損JSONやI/Oエラーを安全に処理
+            // CA-6: I/Oエラーを安全に処理
             System.Diagnostics.Debug.WriteLine($"[SaveManager] Load failed (slot {slot}): {ex.GetType().Name}: {ex.Message}");
             return null;
         }
+    }
+
+    /// <summary>T.2: バックアップからのセーブデータ復旧</summary>
+    private static SaveData? TryLoadBackup(int slot)
+    {
+        try
+        {
+            var backupPath = GetSavePath(slot) + ".bak";
+            if (!File.Exists(backupPath)) return null;
+
+            var json = File.ReadAllText(backupPath);
+            if (string.IsNullOrWhiteSpace(json)) return null;
+
+            var data = JsonSerializer.Deserialize<SaveData>(json, JsonOptions);
+            if (data != null)
+            {
+                ValidateSaveData(data);
+                System.Diagnostics.Debug.WriteLine($"[SaveManager] Restored from backup (slot {slot})");
+            }
+            return data;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>T.2: セーブデータの値の範囲を検証・修正</summary>
+    public static void ValidateSaveData(SaveData data)
+    {
+        data.Validate();
     }
 
     /// <summary>CA-3: 現在のセーブデータバージョン</summary>

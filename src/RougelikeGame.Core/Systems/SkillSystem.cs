@@ -112,6 +112,18 @@ public static class SkillDatabase
         Add(new("ki_strike", "気功", "MPではなく内気で攻撃。VIT依存ダメージ", SkillCategory.Combat, SkillTarget.SingleEnemy, 0, 15, 3, 1, CharacterClass.Monk, null, 1.2));
         Add(new("combo_strike", "連打", "3連続攻撃（各0.6倍ダメージ）", SkillCategory.Combat, SkillTarget.SingleEnemy, 0, 20, 4, 1, CharacterClass.Monk, null, 0.6, TurnCost: 5));
         Add(new("meditation", "瞑想", "HP・MP・SPを少量回復", SkillCategory.Support, SkillTarget.Self, 0, 0, 10, 5, CharacterClass.Monk, "ki_strike", 0.15, TurnCost: 10));
+
+        // 上位戦技（Tier 3）
+        Add(new("blade_dance", "刃の舞", "5連続斬撃。各0.5倍ダメージで合計2.5倍。回避不能の剣舞", SkillCategory.Combat, SkillTarget.SingleEnemy, 0, 35, 8, 12, CharacterClass.Fighter, "whirlwind", 0.5, TurnCost: 6));
+        Add(new("counter_stance", "反撃の構え", "3ターンの間、受けた近接攻撃に自動反撃する構えを取る", SkillCategory.Combat, SkillTarget.Self, 0, 20, 10, 10, CharacterClass.Knight, "provoke", 1.2));
+        Add(new("assassinate", "暗殺", "HP30%以下の敵を即死させる。失敗時も3倍ダメージ", SkillCategory.Combat, SkillTarget.SingleEnemy, 0, 30, 10, 12, CharacterClass.Thief, "backstab", 3.0, Element.Dark));
+        Add(new("rain_of_arrows", "矢の雨", "空を覆う矢の豪雨。全敵に1.8倍ダメージ", SkillCategory.Combat, SkillTarget.AllEnemies, 0, 35, 8, 12, CharacterClass.Ranger, "multi_shot", 1.8));
+        Add(new("iron_fist", "鉄拳", "防御力無視の渾身の一撃。装甲を貫通する", SkillCategory.Combat, SkillTarget.SingleEnemy, 0, 30, 6, 12, CharacterClass.Monk, "combo_strike", 2.5));
+        Add(new("dual_wield", "二刀流", "二刀流戦闘を習得。通常攻撃時に追加攻撃が発生する", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 8, CharacterClass.Fighter, "weapon_mastery", 0.30));
+        Add(new("parry", "受け流し", "次の攻撃を無効化し、隙を突いて反撃する", SkillCategory.Combat, SkillTarget.Self, 0, 15, 5, 6, CharacterClass.Knight, "shield_block", 1.5));
+        Add(new("shadow_step", "影渡り", "影を伝って敵の背後に瞬間移動し、次の攻撃のダメージ2倍", SkillCategory.Combat, SkillTarget.SingleEnemy, 5, 15, 4, 7, CharacterClass.Thief, "sneak", 2.0, Element.Dark));
+        Add(new("eagle_eye", "鷹の目", "クリティカル率+15%。弱点を見抜く狩人の眼力", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 10, CharacterClass.Ranger, "precise_shot", 0.15));
+        Add(new("inner_peace", "内なる平穏", "毎ターンHPを最大値の3%回復する精神統一の境地", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 10, CharacterClass.Monk, "meditation", 0.03));
     }
 
     private static void InitializeMagicSkills()
@@ -133,6 +145,18 @@ public static class SkillDatabase
         Add(new("summon_undead", "死霊召喚", "骸骨の味方を召喚", SkillCategory.Magic, SkillTarget.Self, 20, 0, 8, 1, CharacterClass.Necromancer, null, 1.0, Element.Dark));
         Add(new("life_drain", "生命吸収", "敵のHPを吸収する", SkillCategory.Magic, SkillTarget.SingleEnemy, 12, 0, 3, 1, CharacterClass.Necromancer, null, 1.0, Element.Dark));
         Add(new("curse", "呪詛", "敵の全ステータスを低下", SkillCategory.Magic, SkillTarget.SingleEnemy, 15, 0, 6, 5, CharacterClass.Necromancer, "life_drain", 0.20, Element.Curse));
+
+        // 上位魔法（Tier 3）
+        Add(new("meteor", "メテオ", "灼熱の隕石を降らせ全敵を焼き尽くす。最強の火属性魔法", SkillCategory.Magic, SkillTarget.AllEnemies, 45, 0, 10, 15, CharacterClass.Mage, "fireball", 3.0, Element.Fire, TurnCost: 5));
+        Add(new("blizzard", "ブリザード", "絶対零度の吹雪が全敵を凍結させる。凍結した敵は2ターン行動不能", SkillCategory.Magic, SkillTarget.AllEnemies, 40, 0, 10, 15, CharacterClass.Mage, "ice_storm", 2.5, Element.Ice, TurnCost: 5));
+        Add(new("thunder_god", "雷神", "天より降り注ぐ神雷。単体に壊滅的な雷撃を叩き込む", SkillCategory.Magic, SkillTarget.SingleEnemy, 35, 0, 6, 12, CharacterClass.Mage, "basic_magic", 3.5, Element.Lightning));
+        Add(new("resurrection", "蘇生", "死の淵から生命を引き戻す奇跡。HP50%で復活", SkillCategory.Magic, SkillTarget.Self, 50, 0, 20, 15, CharacterClass.Cleric, "blessing", 0.50, Element.Holy, TurnCost: 8));
+        Add(new("mass_heal", "全体回復", "聖なる光が味方全体を包み、傷を癒す大治癒の奇跡", SkillCategory.Magic, SkillTarget.AllAllies, 35, 0, 8, 12, CharacterClass.Cleric, "heal", 1.5, Element.Light));
+        Add(new("army_of_dead", "死者の軍勢", "大地から無数の死霊を呼び起こし、亡者の軍団を従える", SkillCategory.Magic, SkillTarget.Self, 50, 0, 15, 15, CharacterClass.Necromancer, "summon_undead", 2.0, Element.Dark, TurnCost: 8));
+        Add(new("soul_cage", "魂の牢獄", "敵の魂を捕縛し、死亡時の復活を封じる呪縛", SkillCategory.Magic, SkillTarget.SingleEnemy, 25, 0, 8, 10, CharacterClass.Necromancer, "curse", 1.0, Element.Curse));
+        Add(new("arcane_explosion", "魔力爆発", "自身を中心に蓄積魔力を一気に解放。周囲全体に大ダメージ", SkillCategory.Magic, SkillTarget.AllEnemies, 30, 0, 7, 10, CharacterClass.Mage, "mana_focus", 2.0));
+        Add(new("divine_judgment", "神罰", "天からの聖なる裁きで敵を打ち、その生命力で自身を癒す", SkillCategory.Magic, SkillTarget.SingleEnemy, 30, 0, 6, 10, CharacterClass.Cleric, "holy_light", 2.0, Element.Holy));
+        Add(new("death_fog", "死の霧", "猛毒の瘴気を広範囲に展開。毎ターン毒ダメージを与え続ける", SkillCategory.Magic, SkillTarget.AllEnemies, 30, 0, 8, 10, CharacterClass.Necromancer, "life_drain", 0.8, Element.Poison, TurnCost: 4));
     }
 
     private static void InitializeSupportSkills()
@@ -148,6 +172,14 @@ public static class SkillDatabase
         Add(new("identify", "鑑定", "未鑑定アイテムを鑑定する", SkillCategory.Support, SkillTarget.Self, 3, 0, 0, 1, CharacterClass.Alchemist, null, 0.0));
         Add(new("enchant", "付与", "武器に一時的な属性を付与", SkillCategory.Crafting, SkillTarget.Self, 15, 0, 10, 5, CharacterClass.Alchemist, "brew", 0.0, TurnCost: 15));
         Add(new("transmute", "変成", "素材を別の素材に変換", SkillCategory.Crafting, SkillTarget.Self, 10, 0, 5, 7, CharacterClass.Alchemist, "brew", 0.0, TurnCost: 20));
+
+        // 上位支援スキル（Tier 3）
+        Add(new("war_cry", "鬨の声", "味方全体の攻撃力上昇＋敵全体に恐怖付与。戦場を支配する咆哮", SkillCategory.Support, SkillTarget.AllAllies, 20, 0, 10, 12, CharacterClass.Bard, "charm", 0.30));
+        Add(new("song_of_peace", "平和の歌", "5ターンの間、全ての戦闘行為を封じる禁断の旋律", SkillCategory.Support, SkillTarget.AllEnemies, 25, 0, 15, 10, CharacterClass.Bard, "lullaby", 0.0, TurnCost: 4));
+        Add(new("philosopher_stone", "賢者の石", "あらゆる素材を望みの物質に変換する究極の錬金術", SkillCategory.Crafting, SkillTarget.Self, 30, 0, 20, 15, CharacterClass.Alchemist, "transmute", 0.0, TurnCost: 25));
+        Add(new("elixir", "エリクサー", "万病を癒し活力を与える究極の霊薬を調合する", SkillCategory.Crafting, SkillTarget.Self, 20, 0, 12, 10, CharacterClass.Alchemist, "brew", 1.0, TurnCost: 15));
+        Add(new("smoke_bomb", "煙幕", "煙幕を張り確実に戦闘から離脱する。逃走成功率100%", SkillCategory.Support, SkillTarget.Self, 0, 20, 6, 5, CharacterClass.Thief, "sneak", 0.0));
+        Add(new("battle_plan", "戦術指揮", "味方全体の防御力を上昇させる的確な戦術指示", SkillCategory.Support, SkillTarget.AllAllies, 0, 25, 8, 8, CharacterClass.Knight, "provoke", 0.25));
     }
 
     private static void InitializePassiveSkills()
@@ -184,6 +216,14 @@ public static class SkillDatabase
         Add(new("reality_warp", "現実歪曲", "ランダムな有益効果を自分に付与", SkillCategory.Support, SkillTarget.Self, 25, 0, 6, 1, null, null, 0.0));
         Add(new("mutation_release", "突然変異解放", "全ステータスランダム変動", SkillCategory.Support, SkillTarget.Self, 40, 0, 10, 1, null, null, 0.0));
         Add(new("chaos_vortex", "混沌の渦", "敵全体にランダム状態異常", SkillCategory.Magic, SkillTarget.AllEnemies, 50, 0, 8, 1, null, null, 0.8));
+
+        // 上位パッシブ・隠しスキル（クラス不問）
+        Add(new("death_defiance", "死の抗い", "致死ダメージを受けた際、フロアにつき1回だけHP1で生存する", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 12, null, null, 1.0));
+        Add(new("mana_shield", "魔力障壁", "HPダメージの30%をMPで肩代わりする。MPが尽きると無効", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 10, null, null, 0.30));
+        Add(new("berserker_rage", "狂戦士の怒り", "HPが減少するほど攻撃力が上昇。HP10%以下で攻撃力2倍", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 8, null, null, 2.0));
+        Add(new("fortune_blessing", "幸運の祝福", "敵撃破時のアイテムドロップ率が25%上昇する", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 7, null, null, 0.25));
+        Add(new("scholar_insight", "学者の洞察", "戦闘で得られる経験値が20%増加する知識の蓄積", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 5, null, null, 0.20));
+        Add(new("survival_instinct", "生存本能", "HP20%以下の時、敵の攻撃を25%の確率で自動回避する", SkillCategory.Passive, SkillTarget.Self, 0, 0, 0, 10, null, null, 0.25));
     }
 
     private static void InitializeSkillTrees()
@@ -195,7 +235,9 @@ public static class SkillDatabase
             new("weapon_mastery", 1, Array.Empty<string>()),
             new("whirlwind", 2, new[] { "strong_strike" }),
             new("hp_boost", 2, Array.Empty<string>()),
-            new("critical_eye", 3, new[] { "weapon_mastery" })
+            new("critical_eye", 3, new[] { "weapon_mastery" }),
+            new("blade_dance", 3, new[] { "whirlwind" }),
+            new("dual_wield", 3, new[] { "weapon_mastery" })
         };
 
         _skillTrees[CharacterClass.Knight] = new()
@@ -203,7 +245,10 @@ public static class SkillDatabase
             new("shield_block", 1, Array.Empty<string>()),
             new("shield_bash", 1, Array.Empty<string>()),
             new("provoke", 2, new[] { "shield_block" }),
-            new("hp_boost", 2, Array.Empty<string>())
+            new("hp_boost", 2, Array.Empty<string>()),
+            new("counter_stance", 3, new[] { "provoke" }),
+            new("parry", 3, new[] { "shield_block" }),
+            new("battle_plan", 3, new[] { "provoke" })
         };
 
         _skillTrees[CharacterClass.Thief] = new()
@@ -212,7 +257,10 @@ public static class SkillDatabase
             new("sneak", 1, Array.Empty<string>()),
             new("backstab", 2, new[] { "sneak" }),
             new("disarm_trap", 2, new[] { "lockpick" }),
-            new("treasure_sense", 3, Array.Empty<string>())
+            new("treasure_sense", 3, Array.Empty<string>()),
+            new("assassinate", 3, new[] { "backstab" }),
+            new("shadow_step", 3, new[] { "sneak" }),
+            new("smoke_bomb", 3, new[] { "sneak" })
         };
 
         _skillTrees[CharacterClass.Ranger] = new()
@@ -220,7 +268,9 @@ public static class SkillDatabase
             new("precise_shot", 1, Array.Empty<string>()),
             new("tracking", 1, Array.Empty<string>()),
             new("multi_shot", 2, new[] { "precise_shot" }),
-            new("critical_eye", 3, Array.Empty<string>())
+            new("critical_eye", 3, Array.Empty<string>()),
+            new("rain_of_arrows", 3, new[] { "multi_shot" }),
+            new("eagle_eye", 3, new[] { "precise_shot" })
         };
 
         _skillTrees[CharacterClass.Mage] = new()
@@ -230,7 +280,11 @@ public static class SkillDatabase
             new("fireball", 2, new[] { "basic_magic" }),
             new("ice_storm", 2, new[] { "basic_magic" }),
             new("arcane_shield", 2, new[] { "mana_focus" }),
-            new("mp_boost", 3, Array.Empty<string>())
+            new("mp_boost", 3, Array.Empty<string>()),
+            new("meteor", 3, new[] { "fireball" }),
+            new("blizzard", 3, new[] { "ice_storm" }),
+            new("thunder_god", 3, new[] { "basic_magic" }),
+            new("arcane_explosion", 3, new[] { "mana_focus" })
         };
 
         _skillTrees[CharacterClass.Cleric] = new()
@@ -239,7 +293,10 @@ public static class SkillDatabase
             new("purify", 1, Array.Empty<string>()),
             new("holy_light", 2, new[] { "heal" }),
             new("blessing", 2, new[] { "purify" }),
-            new("hp_boost", 3, Array.Empty<string>())
+            new("hp_boost", 3, Array.Empty<string>()),
+            new("resurrection", 3, new[] { "blessing" }),
+            new("mass_heal", 3, new[] { "heal" }),
+            new("divine_judgment", 3, new[] { "holy_light" })
         };
 
         _skillTrees[CharacterClass.Monk] = new()
@@ -248,7 +305,9 @@ public static class SkillDatabase
             new("combo_strike", 1, Array.Empty<string>()),
             new("meditation", 2, new[] { "ki_strike" }),
             new("hp_boost", 2, Array.Empty<string>()),
-            new("critical_eye", 3, Array.Empty<string>())
+            new("critical_eye", 3, Array.Empty<string>()),
+            new("iron_fist", 3, new[] { "combo_strike" }),
+            new("inner_peace", 3, new[] { "meditation" })
         };
 
         _skillTrees[CharacterClass.Bard] = new()
@@ -256,7 +315,9 @@ public static class SkillDatabase
             new("inspire_song", 1, Array.Empty<string>()),
             new("knowledge_collect", 1, Array.Empty<string>()),
             new("lullaby", 2, new[] { "inspire_song" }),
-            new("charm", 3, new[] { "lullaby" })
+            new("charm", 3, new[] { "lullaby" }),
+            new("war_cry", 3, new[] { "charm" }),
+            new("song_of_peace", 3, new[] { "lullaby" })
         };
 
         _skillTrees[CharacterClass.Alchemist] = new()
@@ -265,7 +326,9 @@ public static class SkillDatabase
             new("identify", 1, Array.Empty<string>()),
             new("enchant", 2, new[] { "brew" }),
             new("transmute", 2, new[] { "brew" }),
-            new("poison_resist", 3, Array.Empty<string>())
+            new("poison_resist", 3, Array.Empty<string>()),
+            new("philosopher_stone", 3, new[] { "transmute" }),
+            new("elixir", 3, new[] { "brew" })
         };
 
         _skillTrees[CharacterClass.Necromancer] = new()
@@ -273,7 +336,10 @@ public static class SkillDatabase
             new("summon_undead", 1, Array.Empty<string>()),
             new("life_drain", 1, Array.Empty<string>()),
             new("curse", 2, new[] { "life_drain" }),
-            new("mp_boost", 2, Array.Empty<string>())
+            new("mp_boost", 2, Array.Empty<string>()),
+            new("army_of_dead", 3, new[] { "summon_undead" }),
+            new("soul_cage", 3, new[] { "curse" }),
+            new("death_fog", 3, new[] { "life_drain" })
         };
     }
 
