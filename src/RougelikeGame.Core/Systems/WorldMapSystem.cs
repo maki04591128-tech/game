@@ -99,7 +99,7 @@ public record LocationDefinition(
         ["mountain_lava"] = new("mountain_lava", "溶岩洞", "高難易度、火属性の敵", LocationType.Dungeon, TerritoryId.Mountain, MinLevel: 15, DangerLevel: 4),
         ["mountain_dragon"] = new("mountain_dragon", "竜の巣", "最高難易度、ドラゴン", LocationType.Dungeon, TerritoryId.Mountain, MinLevel: 25, DangerLevel: 5),
 
-        // 海岸領 ── 統合: 非ダンジョンを「港町マリーナ」に集約
+        // 沿岸領 ── 統合: 非ダンジョンを「港町マリーナ」に集約
         ["coast_town"] = new("coast_town", "港町マリーナ", "海運の要所。ぶどう畑の村、麦畑地帯、闇の礼拝堂が周辺に広がる",
             LocationType.Town, TerritoryId.Coast,
             SubLocationIds: new[] { "coast_port", "coast_vineyard", "coast_field", "coast_darkchapel" }),
@@ -145,7 +145,7 @@ public record LocationDefinition(
         ["desert_pyramid"] = new("desert_pyramid", "古代のピラミッド", "古代王朝の墓所、罠とミイラ", LocationType.Dungeon, TerritoryId.Desert, MinLevel: 12, DangerLevel: 4),
         ["desert_antlion"] = new("desert_antlion", "蟻地獄の巣穴", "巨大蟲の巣、地下空洞", LocationType.Dungeon, TerritoryId.Desert, MinLevel: 8, DangerLevel: 3),
 
-        // 沼沢領
+        // 沼地領
         ["swamp_town"] = new("swamp_town", "水郷の里", "沼沢地の中に浮かぶ水上集落。薬草園、毒の沼、蛙人の村がある",
             LocationType.Town, TerritoryId.Swamp,
             SubLocationIds: new[] { "swamp_village", "swamp_herb", "swamp_frog" }),
@@ -167,7 +167,7 @@ public record LocationDefinition(
         ["tundra_glacier"] = new("tundra_glacier", "氷河の裂け目", "氷に閉ざされた古代生物の墓", LocationType.Dungeon, TerritoryId.Tundra, MinLevel: 18, DangerLevel: 4),
         ["tundra_mammoth"] = new("tundra_mammoth", "マンモスの墓場", "巨獣の骨が累々と横たわる洞窟", LocationType.Dungeon, TerritoryId.Tundra, MinLevel: 20, DangerLevel: 5),
 
-        // 湖水領
+        // 湖畔領
         ["lake_town"] = new("lake_town", "湖畔の都ミラージュ", "巨大湖のほとりに広がる美しい都市。漁師の浜、水の神殿、霧の島がある",
             LocationType.Town, TerritoryId.Lake,
             SubLocationIds: new[] { "lake_city", "lake_fisher", "lake_temple" }),
@@ -251,7 +251,7 @@ public record TerritoryDefinition(
             TimeConstants.TurnsPerDay * 5,
             new[] { FacilityType.AdventurerGuild, FacilityType.WeaponShop, FacilityType.Smithy, FacilityType.Inn }),
 
-        [TerritoryId.Coast] = new(TerritoryId.Coast, "海岸領", "港湾都市と漁村が点在する沿岸地帯", 5, 15,
+        [TerritoryId.Coast] = new(TerritoryId.Coast, "沿岸領", "港湾都市と漁村が点在する沿岸地帯", 5, 15,
             new[] { TerritoryId.Capital, TerritoryId.Southern, TerritoryId.Desert },
             TimeConstants.TurnsPerDay * 2,
             new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.ArmorShop, FacilityType.Inn, FacilityType.Bank }),
@@ -271,7 +271,7 @@ public record TerritoryDefinition(
             TimeConstants.TurnsPerDay * 4,
             new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.Inn }),
 
-        [TerritoryId.Swamp] = new(TerritoryId.Swamp, "沼沢領", "瘴気漂う湿地帯と水上集落", 8, 15,
+        [TerritoryId.Swamp] = new(TerritoryId.Swamp, "沼地領", "瘴気漂う湿地帯と水上集落", 8, 15,
             new[] { TerritoryId.Forest, TerritoryId.Lake },
             TimeConstants.TurnsPerDay * 3,
             new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.Inn }),
@@ -281,7 +281,7 @@ public record TerritoryDefinition(
             TimeConstants.TurnsPerDay * 5,
             new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.Inn }),
 
-        [TerritoryId.Lake] = new(TerritoryId.Lake, "湖水領", "巨大湖とその周辺の豊かな水郷", 5, 15,
+        [TerritoryId.Lake] = new(TerritoryId.Lake, "湖畔領", "巨大湖とその周辺の豊かな水郷", 5, 15,
             new[] { TerritoryId.Capital, TerritoryId.Swamp },
             TimeConstants.TurnsPerDay * 2,
             new[] { FacilityType.AdventurerGuild, FacilityType.GeneralShop, FacilityType.Inn, FacilityType.Church }),

@@ -104,6 +104,7 @@ public static class RuneWordDatabase
         Add(new("allir", "allir", "アッリル", "全て", RuneWordCategory.Target, 10, 0, Difficulty: 3));
         Add(new("draugr", "draugr", "ドラウグル", "亡者", RuneWordCategory.Target, 3, 0, Difficulty: 2));
         Add(new("thurs", "þurs", "スルス", "巨人", RuneWordCategory.Target, 4, 0, Difficulty: 2));
+        Add(new("vaettr", "vættr", "ヴァエットル", "精霊", RuneWordCategory.Target, 3, 0, Difficulty: 2));
     }
 
     private static void InitializeElementWords()
@@ -118,6 +119,8 @@ public static class RuneWordDatabase
         Add(new("myrkr", "myrkr", "ミュルクル", "闇", RuneWordCategory.Element, 0, 3, MpMultiplier: 1.2f, Difficulty: 3));
         Add(new("helgr", "helgr", "ヘルグル", "聖なる", RuneWordCategory.Element, 0, 3, MpMultiplier: 1.3f, Difficulty: 3));
         Add(new("bolvadr", "bölvaðr", "ボルヴァズル", "呪われた", RuneWordCategory.Element, 0, 3, MpMultiplier: 1.3f, Difficulty: 3));
+        Add(new("tomr", "tómr", "トームル", "空（虚）", RuneWordCategory.Element, 0, 2, MpMultiplier: 0.8f, Difficulty: 2));
+        Add(new("blandinn", "blandinn", "ブランディン", "混合", RuneWordCategory.Element, 0, 3, MpMultiplier: 1.5f, Difficulty: 3));
     }
 
     private static void InitializeModifierWords()
@@ -133,6 +136,7 @@ public static class RuneWordDatabase
         // 精度修飾
         Add(new("rett", "rétt", "レット", "正しく", RuneWordCategory.Modifier, 0, 3, MpMultiplier: 1.2f, Difficulty: 2));
         Add(new("viss", "víss", "ヴィース", "確実に", RuneWordCategory.Modifier, 0, 5, MpMultiplier: 1.5f, Difficulty: 3));
+        Add(new("villt", "villt", "ヴィルト", "乱れて", RuneWordCategory.Modifier, 0, 2, PowerMultiplier: 1.2f, MpMultiplier: 1.0f, Difficulty: 2));  // 命中-20%威力+20%
 
         // 速度修飾
         Add(new("skjotr", "skjótr", "スキョートル", "速い", RuneWordCategory.Modifier, 0, -3, MpMultiplier: 1.3f, Difficulty: 2));
@@ -147,6 +151,8 @@ public static class RuneWordDatabase
         Add(new("hringr", "hringr", "フリングル", "円", RuneWordCategory.Range, 0, 5, MpMultiplier: 1.5f, Difficulty: 2));
         Add(new("vidr", "víðr", "ヴィーズル", "広い", RuneWordCategory.Range, 0, 8, MpMultiplier: 2.0f, Difficulty: 3));
         Add(new("heimr", "heimr", "ヘイムル", "世界", RuneWordCategory.Range, 0, 12, MpMultiplier: 3.0f, Difficulty: 4));
+        Add(new("baugr", "baugr", "バウグル", "環", RuneWordCategory.Range, 0, 4, MpMultiplier: 1.4f, Difficulty: 2));
+        Add(new("geiri", "geiri", "ゲイリ", "槍状", RuneWordCategory.Range, 0, 4, MpMultiplier: 1.3f, Difficulty: 2));
     }
 
     private static void InitializeDurationWords()

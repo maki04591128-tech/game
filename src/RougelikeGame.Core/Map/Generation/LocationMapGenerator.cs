@@ -194,7 +194,7 @@ public class LocationMapGenerator
         return map;
     }
 
-    /// <summary>海岸領の街 - 港と水辺が特徴的な海運都市</summary>
+    /// <summary>沿岸領の街 - 港と水辺が特徴的な海運都市</summary>
     private DungeonMap GenerateCoastTown(string locationId)
     {
         const int width = 50;
