@@ -78,21 +78,21 @@ public static class ElementSystem
     }
 
     // 火属性の相性
+    // 設計書: 火 | 氷 | 水、火 | - （植物は種族ベース耐性で処理）
     private static float GetFireAffinity(Element target) => target switch
     {
         Element.Ice => AdvantageMutiplier,      // 氷に有利
-        Element.Wind => AdvantageMutiplier,     // 風（植物）に有利
         Element.Water => DisadvantageMutiplier, // 水に不利
         _ => NeutralMutiplier
     };
 
     // 水属性の相性
+    // 設計書: 水 | 火、雷 | 氷 | - （植物は種族ベース耐性で処理）
     private static float GetWaterAffinity(Element target) => target switch
     {
         Element.Fire => AdvantageMutiplier,         // 火に有利
         Element.Lightning => AdvantageMutiplier,    // 雷に有利（導電）
         Element.Ice => DisadvantageMutiplier,       // 氷に不利
-        Element.Wind => DisadvantageMutiplier,      // 風（植物）に不利
         _ => NeutralMutiplier
     };
 
@@ -156,11 +156,12 @@ public static class ElementSystem
     };
 
     // 呪い属性の相性
+    // 設計書: 呪い | 聖、光 | 闇、呪い | -
     private static float GetCurseAffinity(Element target) => target switch
     {
-        Element.Light => DisadvantageMutiplier, // 光に不利
-        Element.Holy => DisadvantageMutiplier,  // 聖に不利
-        Element.Dark => NullifyMutiplier,       // V-4: 闇に無効（双方向対称に）
+        Element.Holy => AdvantageMutiplier,     // 聖に有利
+        Element.Light => AdvantageMutiplier,    // 光に有利
+        Element.Dark => DisadvantageMutiplier,  // 闇に不利
         _ => NeutralMutiplier
     };
 

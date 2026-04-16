@@ -1,4 +1,5 @@
 using RougelikeGame.Core;
+using RougelikeGame.Core.Entities;
 using RougelikeGame.Engine.Combat;
 using Xunit;
 
@@ -54,6 +55,192 @@ public class CombatSystemTests
     public void HasResistance_ReturnsTrue_WhenFireAttackedByFire()
     {
         Assert.True(ElementSystem.HasResistance(Element.Fire, Element.Fire));
+    }
+
+    /// <summary>
+    /// 設計書「2.3 属性相性表」準拠: 呪い属性は聖・光に有利
+    /// </summary>
+    [Theory]
+    [InlineData(Element.Curse, Element.Holy, 1.5f)]    // 呪い→聖は有利（設計書準拠）
+    [InlineData(Element.Curse, Element.Light, 1.5f)]   // 呪い→光は有利（設計書準拠）
+    [InlineData(Element.Curse, Element.Dark, 0.5f)]    // 呪い→闇は不利（設計書準拠）
+    [InlineData(Element.Curse, Element.Curse, 0.5f)]   // 呪い→呪いは同属性不利
+    [InlineData(Element.Curse, Element.Fire, 1.0f)]    // 呪い→火は通常
+    public void ElementAffinity_CurseElement_MatchesDesignDoc(Element attack, Element target, float expected)
+    {
+        var result = ElementSystem.GetAffinityMultiplier(attack, target);
+        Assert.Equal(expected, result);
+    }
+
+    /// <summary>
+    /// 設計書準拠: 火→風は通常（植物は種族ベース耐性で処理）
+    /// </summary>
+    [Theory]
+    [InlineData(Element.Fire, Element.Wind, 1.0f)]     // 火→風は通常（植物≠風）
+    [InlineData(Element.Water, Element.Wind, 1.0f)]    // 水→風は通常（植物≠風）
+    public void ElementAffinity_WindIsNotPlantProxy_Neutral(Element attack, Element target, float expected)
+    {
+        var result = ElementSystem.GetAffinityMultiplier(attack, target);
+        Assert.Equal(expected, result);
+    }
+
+    /// <summary>
+    /// テスト用Enemy生成ヘルパー（InitializeResources呼び出し付き）
+    /// </summary>
+    private static Enemy CreateTestEnemy(string name, MonsterRace race)
+    {
+        var enemy = new Enemy { Name = name, Race = race };
+        enemy.InitializeResources();
+        return enemy;
+    }
+
+    /// <summary>
+    /// 設計書準拠: 種族-属性耐性テーブル
+    /// 植物種族は火・風に弱く、精霊種族は闇に弱く、不死種族は光・聖に弱い
+    /// TakeDamage経由で耐性効果を間接的に検証する
+    /// </summary>
+    [Fact]
+    public void RaceElementResistance_PlantTakesMoreFireDamage()
+    {
+        var plantEnemy = CreateTestEnemy("TestPlant", MonsterRace.Plant);
+        var humanEnemy = CreateTestEnemy("TestHuman", MonsterRace.Humanoid);
+        var fireDamage = Damage.Magical(100, Element.Fire);
+
+        int plantHpBefore = plantEnemy.CurrentHp;
+        plantEnemy.TakeDamage(fireDamage);
+        int plantDmg = plantHpBefore - plantEnemy.CurrentHp;
+
+        int humanHpBefore = humanEnemy.CurrentHp;
+        humanEnemy.TakeDamage(fireDamage);
+        int humanDmg = humanHpBefore - humanEnemy.CurrentHp;
+
+        Assert.True(plantDmg > humanDmg, "植物種族は火に弱い（人型より多くダメージを受ける）");
+    }
+
+    [Fact]
+    public void RaceElementResistance_PlantTakesMoreWindDamage()
+    {
+        var plantEnemy = CreateTestEnemy("TestPlant", MonsterRace.Plant);
+        var humanEnemy = CreateTestEnemy("TestHuman", MonsterRace.Humanoid);
+        var windDamage = Damage.Magical(100, Element.Wind);
+
+        int plantHpBefore = plantEnemy.CurrentHp;
+        plantEnemy.TakeDamage(windDamage);
+        int plantDmg = plantHpBefore - plantEnemy.CurrentHp;
+
+        int humanHpBefore = humanEnemy.CurrentHp;
+        humanEnemy.TakeDamage(windDamage);
+        int humanDmg = humanHpBefore - humanEnemy.CurrentHp;
+
+        Assert.True(plantDmg > humanDmg, "植物種族は風に弱い（設計書: 風→植物有利）");
+    }
+
+    [Fact]
+    public void RaceElementResistance_SpiritTakesMoreDarkDamage()
+    {
+        var spiritEnemy = CreateTestEnemy("TestSpirit", MonsterRace.Spirit);
+        var humanEnemy = CreateTestEnemy("TestHuman", MonsterRace.Humanoid);
+        var darkDamage = Damage.Magical(100, Element.Dark);
+
+        int spiritHpBefore = spiritEnemy.CurrentHp;
+        spiritEnemy.TakeDamage(darkDamage);
+        int spiritDmg = spiritHpBefore - spiritEnemy.CurrentHp;
+
+        int humanHpBefore = humanEnemy.CurrentHp;
+        humanEnemy.TakeDamage(darkDamage);
+        int humanDmg = humanHpBefore - humanEnemy.CurrentHp;
+
+        Assert.True(spiritDmg > humanDmg, "精霊種族は闇に弱い（設計書: 闇→精神有利）");
+    }
+
+    [Fact]
+    public void RaceElementResistance_UndeadTakesMoreLightDamage()
+    {
+        var undeadEnemy = CreateTestEnemy("TestUndead", MonsterRace.Undead);
+        var humanEnemy = CreateTestEnemy("TestHuman", MonsterRace.Humanoid);
+        var lightDamage = Damage.Magical(100, Element.Light);
+
+        int undeadHpBefore = undeadEnemy.CurrentHp;
+        undeadEnemy.TakeDamage(lightDamage);
+        int undeadDmg = undeadHpBefore - undeadEnemy.CurrentHp;
+
+        int humanHpBefore = humanEnemy.CurrentHp;
+        humanEnemy.TakeDamage(lightDamage);
+        int humanDmg = humanHpBefore - humanEnemy.CurrentHp;
+
+        Assert.True(undeadDmg > humanDmg, "不死種族は光に弱い（設計書: 光→アンデッド有利）");
+    }
+
+    [Fact]
+    public void RaceElementResistance_UndeadResistsPoison()
+    {
+        var undeadEnemy = CreateTestEnemy("TestUndead", MonsterRace.Undead);
+        var humanEnemy = CreateTestEnemy("TestHuman", MonsterRace.Humanoid);
+        var poisonDamage = Damage.Magical(100, Element.Poison);
+
+        int undeadHpBefore = undeadEnemy.CurrentHp;
+        undeadEnemy.TakeDamage(poisonDamage);
+        int undeadDmg = undeadHpBefore - undeadEnemy.CurrentHp;
+
+        int humanHpBefore = humanEnemy.CurrentHp;
+        humanEnemy.TakeDamage(poisonDamage);
+        int humanDmg = humanHpBefore - humanEnemy.CurrentHp;
+
+        Assert.True(undeadDmg < humanDmg, "不死種族は毒に耐性がある（設計書: 毒→アンデッド不利）");
+    }
+
+    [Fact]
+    public void RaceElementResistance_BeastTakesMorePoisonDamage()
+    {
+        var beastEnemy = CreateTestEnemy("TestBeast", MonsterRace.Beast);
+        var humanEnemy = CreateTestEnemy("TestHuman", MonsterRace.Humanoid);
+        var poisonDamage = Damage.Magical(100, Element.Poison);
+
+        int beastHpBefore = beastEnemy.CurrentHp;
+        beastEnemy.TakeDamage(poisonDamage);
+        int beastDmg = beastHpBefore - beastEnemy.CurrentHp;
+
+        int humanHpBefore = humanEnemy.CurrentHp;
+        humanEnemy.TakeDamage(poisonDamage);
+        int humanDmg = humanHpBefore - humanEnemy.CurrentHp;
+
+        Assert.True(beastDmg > humanDmg, "獣種族は毒に弱い（設計書: 毒→生物有利）");
+    }
+
+    [Fact]
+    public void RaceElementResistance_InsectTakesMorePoisonDamage()
+    {
+        var insectEnemy = CreateTestEnemy("TestInsect", MonsterRace.Insect);
+        var humanEnemy = CreateTestEnemy("TestHuman", MonsterRace.Humanoid);
+        var poisonDamage = Damage.Magical(100, Element.Poison);
+
+        int insectHpBefore = insectEnemy.CurrentHp;
+        insectEnemy.TakeDamage(poisonDamage);
+        int insectDmg = insectHpBefore - insectEnemy.CurrentHp;
+
+        int humanHpBefore = humanEnemy.CurrentHp;
+        humanEnemy.TakeDamage(poisonDamage);
+        int humanDmg = humanHpBefore - humanEnemy.CurrentHp;
+
+        Assert.True(insectDmg > humanDmg, "昆虫種族は毒に弱い（設計書: 毒→生物有利）");
+    }
+
+    [Fact]
+    public void RaceElementResistance_ConstructResistsPoison()
+    {
+        var constructEnemy = CreateTestEnemy("TestConstruct", MonsterRace.Construct);
+        var humanEnemy = CreateTestEnemy("TestHuman", MonsterRace.Humanoid);
+        var poisonDamage = Damage.Magical(100, Element.Poison);
+
+        int constructHpBefore = constructEnemy.CurrentHp;
+        constructEnemy.TakeDamage(poisonDamage);
+        int constructDmg = constructHpBefore - constructEnemy.CurrentHp;
+
+        int humanHpBefore = humanEnemy.CurrentHp;
+        humanEnemy.TakeDamage(poisonDamage);
+        int humanDmg = humanHpBefore - humanEnemy.CurrentHp;
+
+        Assert.True(constructDmg < humanDmg, "構造体は毒に耐性がある");
     }
 
     #endregion
