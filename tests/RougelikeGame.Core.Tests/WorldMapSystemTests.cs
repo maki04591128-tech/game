@@ -44,9 +44,15 @@ public class WorldMapSystemTests
     [InlineData(TerritoryId.Capital, "王都領")]
     [InlineData(TerritoryId.Forest, "森林領")]
     [InlineData(TerritoryId.Mountain, "山岳領")]
-    [InlineData(TerritoryId.Coast, "海岸領")]
+    [InlineData(TerritoryId.Coast, "沿岸領")]
     [InlineData(TerritoryId.Southern, "南部領")]
     [InlineData(TerritoryId.Frontier, "辺境領")]
+    [InlineData(TerritoryId.Desert, "砂漠領")]
+    [InlineData(TerritoryId.Swamp, "沼地領")]
+    [InlineData(TerritoryId.Tundra, "凍土領")]
+    [InlineData(TerritoryId.Lake, "湖畔領")]
+    [InlineData(TerritoryId.Volcanic, "火山領")]
+    [InlineData(TerritoryId.Sacred, "聖域領")]
     public void TerritoryDefinition_Get_ReturnsCorrectName(TerritoryId id, string expectedName)
     {
         var territory = TerritoryDefinition.Get(id);

@@ -56,7 +56,7 @@ public record RaceDefinition(
             new StatModifier(Vitality: 2, Mind: 2, Charisma: -4, Luck: -2),
             HpBonus: 10, MpBonus: 10,
             Traits: ["毒無効", "食事不要"],
-            ExpMultiplier: 0.9, SanityLossMultiplier: 1.3),
+            ExpMultiplier: 0.9, SanityLossMultiplier: 0.8),  // 設計書: アンデッドは正気度消耗-20%
 
         [Race.Demon] = new(Race.Demon, "悪魔", "強大な力を持つ魔界の住人",
             new StatModifier(Strength: 2, Intelligence: 2, Mind: 2, Charisma: -3, Luck: -3),

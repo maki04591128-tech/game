@@ -72,13 +72,13 @@ public class ResourceSystem
 
     /// <summary>
     /// 最大MPを計算
-    /// 最大MP = 基礎値(20) + (MND × 5) + (INT × 2) + (レベル × 2) + 種族補正
+    /// 最大MP = 基礎値(20) + (MND × 5) + (INT × 3) + (レベル × 2) + 種族補正
     /// </summary>
     public int CalculateMaxMp(MpCalculationParams param)
     {
         int baseMp = 20;
         int mndBonus = param.Mind * 5;
-        int intBonus = param.Intelligence * 2;
+        int intBonus = param.Intelligence * 3;
         int levelBonus = param.Level * 2;
         int classBonus = GetClassMpBonus(param.CharacterClass, param.Level);
 

@@ -142,6 +142,108 @@ public class MagicLanguageSystemTests
         Assert.Equal(2, word.Difficulty);
     }
 
+    // === 設計書-コード整合性検証テスト ===
+
+    [Fact]
+    public void RuneWordDatabase_TotalCount_Matches_DesignDoc_85Words()
+    {
+        // 設計書08: 79語 + 追加6語 = 85語
+        Assert.Equal(85, RuneWordDatabase.Count);
+    }
+
+    [Fact]
+    public void RuneWordDatabase_EffectWords_Has32()
+    {
+        var words = RuneWordDatabase.GetByCategory(RuneWordCategory.Effect).ToList();
+        Assert.Equal(32, words.Count);
+    }
+
+    [Fact]
+    public void RuneWordDatabase_TargetWords_Has11_IncludingVaettr()
+    {
+        var words = RuneWordDatabase.GetByCategory(RuneWordCategory.Target).ToList();
+        Assert.Equal(11, words.Count);
+        Assert.NotNull(RuneWordDatabase.GetById("vaettr"));
+    }
+
+    [Fact]
+    public void RuneWordDatabase_ElementWords_Has12_IncludingTomrAndBlandinn()
+    {
+        var words = RuneWordDatabase.GetByCategory(RuneWordCategory.Element).ToList();
+        Assert.Equal(12, words.Count);
+        Assert.NotNull(RuneWordDatabase.GetById("tomr"));
+        Assert.NotNull(RuneWordDatabase.GetById("blandinn"));
+    }
+
+    [Fact]
+    public void RuneWordDatabase_ModifierWords_Has12_IncludingVillt()
+    {
+        var words = RuneWordDatabase.GetByCategory(RuneWordCategory.Modifier).ToList();
+        Assert.Equal(12, words.Count);
+        Assert.NotNull(RuneWordDatabase.GetById("villt"));
+    }
+
+    [Fact]
+    public void RuneWordDatabase_RangeWords_Has7_IncludingBaugrAndGeiri()
+    {
+        var words = RuneWordDatabase.GetByCategory(RuneWordCategory.Range).ToList();
+        Assert.Equal(7, words.Count);
+        Assert.NotNull(RuneWordDatabase.GetById("baugr"));
+        Assert.NotNull(RuneWordDatabase.GetById("geiri"));
+    }
+
+    [Fact]
+    public void RuneWordDatabase_Vaettr_HasCorrectProperties()
+    {
+        var word = RuneWordDatabase.GetById("vaettr");
+        Assert.NotNull(word);
+        Assert.Equal(RuneWordCategory.Target, word.Category);
+        Assert.Equal("ヴァエットル", word.Pronunciation);
+        Assert.Equal("精霊", word.Meaning);
+        Assert.Equal(3, word.BaseMpCost);
+    }
+
+    [Fact]
+    public void RuneWordDatabase_Tomr_HasMpMultiplier_0_8()
+    {
+        var word = RuneWordDatabase.GetById("tomr");
+        Assert.NotNull(word);
+        Assert.Equal(RuneWordCategory.Element, word.Category);
+        Assert.Equal(0.8f, word.MpMultiplier);
+    }
+
+    [Fact]
+    public void RuneWordDatabase_Blandinn_HasMpMultiplier_1_5()
+    {
+        var word = RuneWordDatabase.GetById("blandinn");
+        Assert.NotNull(word);
+        Assert.Equal(RuneWordCategory.Element, word.Category);
+        Assert.Equal(1.5f, word.MpMultiplier);
+    }
+
+    [Fact]
+    public void RuneWordDatabase_Villt_HasPowerMultiplier_1_2()
+    {
+        var word = RuneWordDatabase.GetById("villt");
+        Assert.NotNull(word);
+        Assert.Equal(RuneWordCategory.Modifier, word.Category);
+        Assert.Equal(1.2f, word.PowerMultiplier);
+    }
+
+    [Fact]
+    public void RuneWordDatabase_Baugr_And_Geiri_HaveCorrectMpMultipliers()
+    {
+        var baugr = RuneWordDatabase.GetById("baugr");
+        Assert.NotNull(baugr);
+        Assert.Equal(RuneWordCategory.Range, baugr.Category);
+        Assert.Equal(1.4f, baugr.MpMultiplier);
+
+        var geiri = RuneWordDatabase.GetById("geiri");
+        Assert.NotNull(geiri);
+        Assert.Equal(RuneWordCategory.Range, geiri.Category);
+        Assert.Equal(1.3f, geiri.MpMultiplier);
+    }
+
     #endregion
 
     #region SpellParser Tests

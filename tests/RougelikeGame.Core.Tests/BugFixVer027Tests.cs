@@ -1004,8 +1004,8 @@ public class BugFixVer027Tests
             CharacterClass = CharacterClass.Fighter
         });
         // Fighter: mpPerLevel=2, bonus=2*(5-1)=8
-        // 20 + 50 + 20 + 10 + 0 + 8 = 108
-        Assert.Equal(108, mp);
+        // 20 + 50 + 30 + 10 + 0 + 8 = 118
+        Assert.Equal(118, mp);
     }
 
     [Fact]

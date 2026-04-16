@@ -191,6 +191,7 @@ public static class SanityLoss
     public const int Combat = 5;
     public const int Boss = 8;
     public const int Starvation = 10;
+    public const int Dehydration = 10;  // DC-1: 渇き死（飢餓と同等）
     public const int Trap = 10;
     public const int TimeLimit = 15;
     public const int Curse = 15;

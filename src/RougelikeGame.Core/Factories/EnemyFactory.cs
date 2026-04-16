@@ -204,6 +204,9 @@ public class EnemyFactory
             case MonsterRace.Spirit:
                 composite.AddBehavior(new SpiritBehavior());
                 break;
+            // Humanoid, Demon, Plant, Insect: 専用ビヘイビアなし（基本行動のみ）
+            default:
+                break;
         }
     }
 

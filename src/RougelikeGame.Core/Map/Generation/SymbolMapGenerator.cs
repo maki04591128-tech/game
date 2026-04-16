@@ -825,6 +825,7 @@ public class SymbolMapGenerator
             LocationType.UndeadCrypt => TileType.SymbolUndeadCrypt,
             LocationType.DemonPortal => TileType.SymbolDemonPortal,
             LocationType.BorderGate => TileType.SymbolBorderGate,
+            LocationType.WanderingBoss => TileType.SymbolWanderingBoss,
             _ => TileType.SymbolField
         };
     }

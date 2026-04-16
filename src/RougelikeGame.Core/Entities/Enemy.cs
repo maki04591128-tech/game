@@ -457,23 +457,31 @@ public class Enemy : Character
         // 種族固有耐性
         float racialResist = (Race, element) switch
         {
-            // 不死: 闇耐性+50%, 聖弱点-50%
+            // 不死: 闇耐性+50%, 聖弱点-50%, 光弱点-30%, 毒耐性+50%（設計書: 毒→アンデッド不利）
             (MonsterRace.Undead, Element.Dark) => 0.50f,
             (MonsterRace.Undead, Element.Holy) => -0.50f,
+            (MonsterRace.Undead, Element.Light) => -0.30f,
+            (MonsterRace.Undead, Element.Poison) => 0.50f,
             // 悪魔: 闇耐性+30%, 聖弱点-30%
             (MonsterRace.Demon, Element.Dark) => 0.30f,
             (MonsterRace.Demon, Element.Holy) => -0.30f,
             // 竜: 炎耐性+50%
             (MonsterRace.Dragon, Element.Fire) => 0.50f,
-            // 精霊: 物理系は別処理。全魔法耐性+20%
-            (MonsterRace.Spirit, _) when element != Element.None => 0.20f,
-            // 植物: 炎弱点-30%, 氷耐性+20%
+            // 精霊: 闇弱点-30%（設計書: 闇→精神有利）、その他魔法耐性+20%
+            (MonsterRace.Spirit, Element.Dark) => -0.30f,
+            (MonsterRace.Spirit, _) when element != Element.None && element != Element.Dark => 0.20f,
+            // 植物: 炎弱点-30%, 風弱点-30%（設計書: 風→植物有利）, 氷耐性+20%
             (MonsterRace.Plant, Element.Fire) => -0.30f,
+            (MonsterRace.Plant, Element.Wind) => -0.30f,
             (MonsterRace.Plant, Element.Ice) => 0.20f,
-            // 昆虫: 炎弱点-20%
+            // 昆虫: 炎弱点-20%, 毒弱点-20%（設計書: 毒→生物有利）
             (MonsterRace.Insect, Element.Fire) => -0.20f,
-            // 構造体: 雷弱点-30%
+            (MonsterRace.Insect, Element.Poison) => -0.20f,
+            // 獣: 毒弱点-20%（設計書: 毒→生物有利）
+            (MonsterRace.Beast, Element.Poison) => -0.20f,
+            // 構造体: 雷弱点-30%, 毒耐性+50%（設計書: 金属=構造体、毒→アンデッド不利に準ずる）
             (MonsterRace.Construct, Element.Lightning) => -0.30f,
+            (MonsterRace.Construct, Element.Poison) => 0.50f,
             // 不定形: 物理耐性は別処理、魔法全般に小耐性
             (MonsterRace.Amorphous, _) when element != Element.None => 0.10f,
             _ => 0f

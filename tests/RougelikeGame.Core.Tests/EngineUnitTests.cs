@@ -56,10 +56,11 @@ public class EngineUnitTests
     }
 
     [Fact]
-    public void ElementSystem_DarkVsCurse_IsNullified()
+    public void ElementSystem_DarkVsCurse_IsNeutral()
     {
+        // 設計書: 闇→呪い は通常。アンデッドへの無効は種族ベース耐性で処理
         float mult = ElementSystem.GetAffinityMultiplier(Element.Dark, Element.Curse);
-        Assert.Equal(ElementSystem.NullifyMutiplier, mult);
+        Assert.Equal(ElementSystem.NeutralMutiplier, mult);
     }
 
     [Fact]

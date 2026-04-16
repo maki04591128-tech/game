@@ -264,4 +264,33 @@ public class CharacterCreationTests
     }
 
     #endregion
+
+    #region 設計書-コード整合性検証
+
+    [Fact]
+    public void Undead_SanityLossMultiplier_Is_0_8_DesignDoc()
+    {
+        // 設計書07: アンデッドは正気度消耗-20%（0.8倍）
+        var undead = RaceDefinition.Get(Race.Undead);
+        Assert.Equal(0.8, undead.SanityLossMultiplier);
+    }
+
+    [Theory]
+    [InlineData(Race.Human, 1.0)]
+    [InlineData(Race.Elf, 0.9)]
+    [InlineData(Race.Dwarf, 0.85)]
+    [InlineData(Race.Beastfolk, 1.0)]  // 獣人=1.0 (設計書: ±0%)  
+    [InlineData(Race.Halfling, 0.95)]
+    [InlineData(Race.Undead, 0.8)]
+    [InlineData(Race.Orc, 1.2)]
+    [InlineData(Race.Demon, 1.4)]
+    [InlineData(Race.FallenAngel, 1.5)]
+    [InlineData(Race.Slime, 1.6)]
+    public void RaceSanityMultiplier_MatchesDesignDoc(Race race, double expected)
+    {
+        var def = RaceDefinition.Get(race);
+        Assert.Equal(expected, def.SanityLossMultiplier);
+    }
+
+    #endregion
 }
