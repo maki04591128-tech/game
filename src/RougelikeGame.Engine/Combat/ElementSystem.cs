@@ -140,10 +140,11 @@ public static class ElementSystem
     };
 
     // 闇属性の相性
+    // 設計書: 闇 | 光、精神※ | 闇 | アンデッド※
+    // ※精神(Spirit)・アンデッド(Undead)は種族ベース耐性(Enemy.GetResistanceAgainst)で処理
     private static float GetDarkAffinity(Element target) => target switch
     {
         Element.Light => AdvantageMutiplier,    // 光に有利
-        Element.Curse => NullifyMutiplier,      // 呪い（アンデッド）には無効
         _ => NeutralMutiplier
     };
 
