@@ -21,47 +21,56 @@
 
 ## 1. Ver.1.0.α.1：清算期（Phase B：Month 1〜2）
 
-**目標**：旧 137 システムから新 28 システムへ縮減するため、削除対象コード・テスト・GUI を一括除去する。
+**目標**：旧 137 システムから新 28 システム構成へ「**表面上**」縮減する。ただし **コードは一切削除せず**、参照解除＋フィーチャフラグ切替による非破壊アプローチを採る。
 
-### 1.1 タスク
+### 1.1 方針（2026-04-17 改訂）
 
-- [ ] B-1. `docs/流用資産マップ.md` に従い、削除対象システムを剥がす
-  - 宗教（ReligionSystem / ReligionWindow）
-  - カルマ（KarmaSystem）
-  - 熟練度・武器熟練度（ProficiencySystem / WeaponProficiencySystem）
-  - スキルツリー（SkillTree* / SkillTreeWindow）
-  - 戦闘スタンス（CombatStanceSystem）
-  - 鍛冶（SmithingSystem）
-  - 採取・釣り（GatheringSystem / GatheringFishingSystem）
-  - 投資（InvestmentSystem）
-  - 商人ギルド／ペット商人（MerchantGuildSystem / PetMerchantFactionSystem）
-  - 仲間・ペット（Companion* / RecruitCompanion* / ペット関連）
-  - 病気（DiseaseSystem）
-  - 徘徊ボス（WanderingBoss*）
-  - 種族特性（RacialTraitSystem）
-  - 影響度・評判
-  - クラフト（CraftingWindow）
-  - 旧エンサイクロペディア（EncyclopediaWindow、日記へ統合）
-  - 旧町・旅行イベント（TownWindow / TravelEventWindow）
-  - 難易度選択（DifficultySelectWindow、Ver.2.0 で再導入）
-  - 無限ダンジョン
-- [ ] B-2. 削除対象に紐付く `tests/RougelikeGame.Core.Tests/` 配下のテストファイルを削除
-- [ ] B-3. GUI 画面の削除（`13_GUI設計書（15画面版）.md` に準拠）
-- [ ] B-4. GameController から削除済みシステム参照を剥がす
-- [ ] B-5. 削除後に `dotnet test RougelikeGame.sln --filter "FullyQualifiedName!~GuiAutomationTests&FullyQualifiedName!~GuiSystemVerificationTests"` で緑維持
-- [ ] B-6. GUI オートテスト（GuiAutomationTests / GuiSystemVerificationTests）を新 GUI に合わせて修正
+- ❌ ファイル・クラス・テストを**削除しない**
+- ✅ `GameSettings`（または新規 `RuneMageSettings`）に `UseRuneMageMode` 等のフィーチャフラグを導入
+- ✅ `GameController` 側で **休眠システムの初期化を条件分岐**してスキップ
+- ✅ 既存テスト（～7,000 件）は原則そのまま通す。壊れる場合のみ最小修正
+- ✅ 休眠対象システムにも `[Obsolete("Ver.1.0 休眠。Ver.2.0 で再評価", error: false)]` を付与し、IDE 上で識別可能にする（任意）
 
-### 1.2 完了条件
+### 1.2 タスク
 
-- 新企画書 §10.2「完全削除リスト」109 項目のうち、機械的に削除可能なものがすべて削除済み
+- [ ] B-1. フィーチャフラグ基盤の追加
+  - `GameSettings.UseRuneMageMode`（デフォルト `true`）
+  - `EnableSixElements` / `EnableSixStatusEffects` / `EnableDiaryUi` / `EnableFiveTerritories` / `EnablePermanentKnowledge` を追加
+- [ ] B-2. `GameController` で休眠対象システムの初期化をフラグ条件下に置く（`docs/流用資産マップ.md` §6.1 の 35+ システム）
+  - Religion / Karma / Reputation / TerritoryInfluence
+  - Proficiency / WeaponProficiency
+  - Skill / SkillTree / SkillFusion
+  - CombatStance / Smithing / Cooking / Fishing / Gathering / Harvest
+  - Gambling / Investment / Smuggling / Steal
+  - Companion / Pet / BaseConstruction
+  - ItemIdentification / Enchantment / MerchantGuild / PriceFluctuation / BlackMarket
+  - WanderingBoss / ItemGrade / MultiClass / RacialTrait / MonsterRace
+  - Disease / InfiniteDungeon / Oath / Relationship / FactionWar / DungeonFaction
+  - Execution / TrapCrafting / Mimic / DungeonEcosystem / DungeonShortcut
+  - EnvironmentalPuzzle / EnvironmentalCombat / Season / ModLoader
+- [ ] B-3. 休眠対象 GUI 画面 14 枚について、タイトル・メインメニュー・キーバインドからの**起動エントリを外す**（XAML／コードビハインドはそのまま残す）
+- [ ] B-4. 既存テストが全合格のまま通ることを継続的に確認
+  - `dotnet test RougelikeGame.sln --filter "FullyQualifiedName!~GuiAutomationTests&FullyQualifiedName!~GuiSystemVerificationTests"`
+- [ ] B-5. GUI オートテスト（GuiAutomationTests / GuiSystemVerificationTests）を新 GUI 構成に合わせて修正（削除画面が消えることの確認は「非表示」確認に置き換える）
+- [ ] B-6. 休眠対象システムに `[Obsolete]` 属性を付与（任意、レビュー後に一括処理）
+
+### 1.3 完了条件
+
+- 新企画書 §10.2「完全削除リスト」109 項目のうち、休眠化可能なものがすべて `GameController` から参照解除済み
+- フィーチャフラグ OFF で旧仕様が動作することが確認できる（回帰保護）
 - ビルド通過・全テスト合格
-- `GameController` が 10 システム程度に縮小
+- `GameController` の**表面上の**アクティブシステム数が約 10 に圧縮
 
 ---
 
 ## 2. Ver.1.0.α.2：再構築期（Phase C：Month 3〜4）
 
-**目標**：新企画書 §5.1 のコアシステム（魔法言語・理解度・詠唱・石碑解読・正気度・死に戻り）を完全実装する。
+**目標**：新企画書 §5.1 のコアシステム（魔法言語・理解度・詠唱・石碑解読・正気度・死に戻り）を、**既存クラスを拡張する非破壊の形で**完全実装する。
+
+### 2.1 方針
+
+- 既存クラスの public API は壊さない（新メソッド・新コンストラクタ・新プロパティを追加する方向で拡張）
+- 旧挙動はフィーチャフラグ OFF で再現できる状態を維持
 
 ### 2.1 タスク
 
@@ -81,9 +90,10 @@
 - [ ] C-7. 死に戻りシステム改修（`07_死に戻りシステム設計書.md`）
   - 肉体リセット ／ 知識永続
 - [ ] C-8. ステータス極小化：VIT/STR/AGI/DEX/INT/MND/PER/CHA/LUK → HP/MP/Lv/正気度/理解度
+  - 旧 9 ステータスは内部保持、新 5 指標を UI/バランス面で前面化
   - HP：重量 = 5:1 連動
-- [ ] C-9. 属性 12 → 6（eldr / vatn / jörð / vindr / ljós / myrkr）
-- [ ] C-10. 状態異常 20+ → 6（brenndr / frosinn / verkur / blóð / blindr / eitr）
+- [ ] C-9. 属性 12 → 6（eldr / vatn / jörð / vindr / ljós / myrkr）：6 属性を追加定義し、フィーチャフラグで 12→6 に絞り込み。旧属性定義は保全
+- [ ] C-10. 状態異常 20+ → 6（brenndr / frosinn / verkur / blóð / blindr / eitr）：新 6 状態異常を追加。旧状態異常は保全
 - [ ] C-11. チュートリアル（最初の 10 分、`brenna` 習得まで）完全実装
 
 ### 2.2 完了条件
